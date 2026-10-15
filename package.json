@@ -37,5 +37,9 @@
 	"imports": {
 		"#lib": "./src/lib/index.js",
 		"#lib/*": "./src/lib/*"
+	},
+	"dependencies": {
+		"@iconify-json/lucide": "^1.2.143",
+		"unplugin-icons": "^24.0.0"
 	}
 }
