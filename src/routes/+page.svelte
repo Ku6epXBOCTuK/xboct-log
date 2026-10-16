@@ -19,6 +19,7 @@
 	} from "#lib/types.ts";
 	import { goto } from "$app/navigation";
 	import { page } from "$app/state";
+	import { SvelteMap } from "svelte/reactivity";
 	import Check from "~icons/lucide/check";
 	import ChevronDown from "~icons/lucide/chevron-down";
 	import FolderKanban from "~icons/lucide/folder-kanban";
@@ -49,7 +50,7 @@
 
 	const tagCount = $derived(new Set(tasks.flatMap((task) => task.tags)).size);
 	const allTags = $derived.by(() => {
-		const counts = new Map<string, number>();
+		const counts = new SvelteMap<string, number>();
 
 		for (const task of tasks) {
 			for (const tag of task.tags) {

@@ -1,10 +1,10 @@
 <script lang="ts">
-	import Check from "#lib/components/Check.svelte";
 	import { createProject, updateProject } from "#lib/remote/projects.remote.ts";
 	import { messageOf } from "#lib/tasks/display.ts";
 	import { INBOX_PROJECT_ID, type Project, type Task } from "#lib/types.ts";
 	import { resolve } from "$app/paths";
 	import BarChart3 from "~icons/lucide/bar-chart-3";
+	import Check from "~icons/lucide/check";
 	import ChevronDown from "~icons/lucide/chevron-down";
 	import ClipBoardList from "~icons/lucide/clipboard-list";
 	import FolderKanban from "~icons/lucide/folder-kanban";
