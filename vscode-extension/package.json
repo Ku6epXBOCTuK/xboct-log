@@ -1,0 +1,62 @@
+{
+	"name": "xboct-log",
+	"displayName": "Xboct Log",
+	"description": "Открывает борд xboct-log во вкладке редактора.",
+	"version": "0.0.1",
+	"type": "commonjs",
+	"publisher": "xboct-log",
+	"license": "MIT",
+	"engines": {
+		"vscode": "^1.90.0"
+	},
+	"categories": [
+		"Other"
+	],
+	"main": "./out/extension.js",
+	"activationEvents": [
+		"onWebviewPanel:xboctLog"
+	],
+	"contributes": {
+		"commands": [
+			{
+				"command": "xboctLog.open",
+				"title": "Xboct Log: Open Board"
+			},
+			{
+				"command": "xboctLog.reload",
+				"title": "Xboct Log: Reload",
+				"icon": "$(refresh)"
+			}
+		],
+		"menus": {
+			"view/title": [
+				{
+					"command": "xboctLog.reload",
+					"when": "activeWebviewPanelId == xboctLog",
+					"group": "navigation"
+				}
+			]
+		},
+		"configuration": {
+			"title": "Xboct Log",
+			"properties": {
+				"xboctLog.serverUrl": {
+					"type": "string",
+					"default": "http://127.0.0.1:45881",
+					"description": "Адрес задеплоенного приложения xboct-log."
+				}
+			}
+		}
+	},
+	"scripts": {
+		"compile": "tsc -p .",
+		"watch": "tsc -p . -w",
+		"package": "vsce package"
+	},
+	"devDependencies": {
+		"@types/node": "^24",
+		"@types/vscode": "^1.90.0",
+		"@vscode/vsce": "^3",
+		"typescript": "^6.0.3"
+	}
+}

@@ -24,3 +24,8 @@ vite.config.ts.timestamp-*
 
 # refs
 /refs/
+
+# VS Code extension
+/vscode-extension/node_modules
+/vscode-extension/out
+*.vsix

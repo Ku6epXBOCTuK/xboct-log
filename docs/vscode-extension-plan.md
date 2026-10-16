@@ -181,13 +181,21 @@ default-src 'none'; frame-src http://127.0.0.1:45881; script-src 'nonce-<n>'; st
 ## Шаг 5. Гигиена репозитория
 
 Корневой `pnpm lint` гоняет `prettier --check . && eslint .` по всему дереву,
-поэтому чужой код надо изолировать.
+поэтому исключаем только сгенерированное.
 
 - `.gitignore` (корень): добавить `/vscode-extension/node_modules`,
   `/vscode-extension/out`, `*.vsix`.
-- `.prettierignore` (корень): добавить `vscode-extension/`.
+- `.prettierignore` (корень): **ничего добавлять не нужно** — код расширения
+  форматируется корневым Prettier (табы, 80 колонок, двойные кавычки).
 - `eslint.config.js` (корень): добавить блок
-  `{ ignores: ["vscode-extension/**"] }`.
+  `{ ignores: ["vscode-extension/out/**"] }`.
+
+Исходники расширения **не изолируются** от корневых Prettier и ESLint: это наш
+код на нашем стеке, и корневой конфиг проверяет его без ошибок (`out/` исключён
+как сгенерированный, `node_modules` — через `includeIgnoreFile`). Отдельным
+остаётся только `tsconfig.json`: корневой собран под `$app/tsconfig`, ESM и
+бандлер, а расширение компилируется в commonjs под Node, поэтому `pnpm check`
+его не типизирует, и за типы отвечает `tsc -p .` внутри `vscode-extension`.
 
 ## Шаг 6. Сборка и установка
 
