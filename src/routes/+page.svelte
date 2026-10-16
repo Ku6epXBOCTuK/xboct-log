@@ -18,6 +18,7 @@
 		type Task,
 	} from "#lib/types.ts";
 	import { goto } from "$app/navigation";
+	import { resolve } from "$app/paths";
 	import { page } from "$app/state";
 	import { SvelteMap } from "svelte/reactivity";
 	import Check from "~icons/lucide/check";
@@ -165,7 +166,10 @@
 			url.searchParams.set("project", projectId);
 		}
 
-		void goto(url, { replace: true, shallow: true });
+		const pathname = url.pathname.slice(1);
+		const target = `${pathname}${url.search}` as
+			"" | "kanban" | `?${string}` | `kanban?${string}`;
+		void goto(resolve(target), { replace: true, shallow: true });
 	}
 
 	function applyUpdate(updated: Task) {
