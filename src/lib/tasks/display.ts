@@ -8,6 +8,17 @@ export const STATUS_LABELS: Record<Status, string> = {
 	cancelled: "cancelled",
 };
 
+export function messageOf(error: unknown): string {
+	if (error !== null && typeof error === "object" && "body" in error) {
+		const { message } = error.body as { message?: string };
+		if (typeof message === "string" && message !== "") return message;
+	}
+
+	if (error instanceof Error && error.message !== "") return error.message;
+
+	return "Update failed";
+}
+
 export function formatDate(value: string): string {
 	const date = new Date(value);
 	if (Number.isNaN(date.getTime())) return "";

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import SideBar from "#lib/components/layout/SideBar.svelte";
+	import NewTask from "#lib/components/NewTask.svelte";
 	import Search from "#lib/components/Search.svelte";
 	import Selected from "#lib/components/Selected.svelte";
 	import Table from "#lib/components/Table.svelte";
@@ -11,6 +12,7 @@
 		PRIORITIES,
 		STATUSES,
 		type Priority,
+		type Project,
 		type Status,
 		type Task,
 	} from "#lib/types.ts";
@@ -23,16 +25,20 @@
 	import Tag from "~icons/lucide/tag";
 	import X from "~icons/lucide/x";
 
-	const tasks = await getTasks({ limit: 1000 });
-	const projects = await getProjects();
+	const loadedProjects = await getProjects();
+	const loaded = await getTasks({ limit: 1000 });
 
 	let lightTheme = $state(false);
 	let status = $state<Status | "all">("all");
 	let priority = $state<Priority | "all">("all");
 	let query = $state("");
 	let selected: Task | null = $state(null);
+	let tasks = $state<Task[]>(loaded);
+	let projects = $state<Project[]>(loadedProjects);
+	let creating = $state(false);
 
 	const tagCount = $derived(new Set(tasks.flatMap((task) => task.tags)).size);
+	const epics = $derived(tasks.filter((task) => task.is_epic));
 
 	const visibleTasks = $derived.by(() => {
 		const needle = query.trim().toLowerCase();
@@ -58,6 +64,25 @@
 		status = "all";
 		priority = "all";
 		query = "";
+	}
+
+	function applyUpdate(updated: Task) {
+		tasks = tasks.map((task) => (task.id === updated.id ? updated : task));
+	}
+
+	function addTask(task: Task) {
+		tasks = [task, ...tasks];
+		selected = task;
+	}
+
+	function addProject(project: Project) {
+		projects = [...projects, project].sort((left, right) =>
+			left.name.localeCompare(right.name),
+		);
+	}
+
+	function openNewTask() {
+		creating = true;
 	}
 </script>
 
@@ -88,7 +113,7 @@
 					<button class="icon-button" aria-label="Collapse sidebar">
 						<PanelLeftClose />
 					</button>
-					<button class="new-task">
+					<button class="new-task" onclick={openNewTask}>
 						<Plus data-icon="inline-start" /> New task
 					</button>
 				</div>
@@ -144,7 +169,20 @@
 				</span>
 			</div>
 		</header>
-		<Table tasks={visibleTasks} bind:selected />
+		<Table
+			tasks={visibleTasks}
+			bind:selected
+			total={tasks.length}
+			onclear={clearFilters}
+			onnew={openNewTask}
+		/>
 	</section>
-	<Selected bind:selected />
+	<Selected bind:selected {epics} onchange={applyUpdate} />
+	<NewTask
+		bind:open={creating}
+		{projects}
+		{epics}
+		oncreated={addTask}
+		onprojectcreated={addProject}
+	/>
 </main>

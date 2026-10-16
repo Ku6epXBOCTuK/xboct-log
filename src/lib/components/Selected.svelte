@@ -1,17 +1,116 @@
 <script lang="ts">
-	import { STATUS_LABELS, formatDate } from "#lib/tasks/display.ts";
-	import { PRIORITIES, STATUSES, type Task } from "#lib/types.ts";
+	import { updateTask } from "#lib/remote/tasks.remote.ts";
+	import { STATUS_LABELS, formatDate, messageOf } from "#lib/tasks/display.ts";
+	import {
+		PRIORITIES,
+		STATUSES,
+		type Priority,
+		type Status,
+		type Task,
+	} from "#lib/types.ts";
 	import X from "~icons/lucide/x";
 	import StatusDot from "./ui/StatusDot.svelte";
 
+	type Patch = Partial<
+		Pick<
+			Task,
+			| "title"
+			| "description"
+			| "status"
+			| "priority"
+			| "is_epic"
+			| "epic_id"
+			| "source_file"
+			| "source_line"
+			| "tags"
+		>
+	>;
+
 	interface Props {
 		selected: Task | null;
+		epics: Task[];
+		onchange?: (task: Task) => void;
 	}
 
-	let { selected = $bindable() }: Props = $props();
+	let { selected = $bindable(), epics, onchange }: Props = $props();
 
-	function setSelected(task: Task | null) {
-		selected = task;
+	let saving = $state(false);
+	let failure = $state<string | null>(null);
+
+	const epicOptions = $derived(
+		selected === null
+			? []
+			: epics.filter(
+					(epic) =>
+						epic.id !== selected?.id &&
+						epic.project_id === selected?.project_id,
+				),
+	);
+
+	async function save(patch: Patch) {
+		if (selected === null) return;
+
+		const id = selected.id;
+		saving = true;
+		failure = null;
+
+		try {
+			const updated = await updateTask({ id, patch });
+			if (selected?.id === id) selected = updated;
+			onchange?.(updated);
+		} catch (error) {
+			failure = messageOf(error);
+		} finally {
+			saving = false;
+		}
+	}
+
+	function saveTitle(event: Event) {
+		const input = event.currentTarget as HTMLInputElement;
+		const title = input.value.trim();
+
+		if (title === "") {
+			failure = "title cannot be empty";
+			input.value = selected?.title ?? "";
+			return;
+		}
+
+		save({ title });
+	}
+
+	function saveSourceFile(event: Event) {
+		const file = (event.currentTarget as HTMLInputElement).value.trim();
+		save({ source_file: file === "" ? null : file });
+	}
+
+	function saveSourceLine(event: Event) {
+		const input = event.currentTarget as HTMLInputElement;
+		const raw = input.value.trim();
+		const line = raw === "" ? null : Number(raw);
+
+		if (line !== null && !Number.isInteger(line)) {
+			failure = "source line must be a whole number";
+			input.value =
+				selected?.source_line === null || selected?.source_line === undefined
+					? ""
+					: String(selected.source_line);
+			return;
+		}
+
+		save({ source_line: line });
+	}
+
+	function saveTags(event: Event) {
+		const tags = (event.currentTarget as HTMLInputElement).value
+			.split(",")
+			.map((tag) => tag.trim())
+			.filter((tag) => tag !== "");
+
+		save({ tags });
+	}
+
+	function saveDescription(event: Event) {
+		save({ description: (event.currentTarget as HTMLTextAreaElement).value });
 	}
 </script>
 
@@ -21,7 +120,7 @@
 			<span class="epic-badge">{selected.id}</span>
 			<button
 				class="close-detail"
-				onclick={() => setSelected(null)}
+				onclick={() => (selected = null)}
 				aria-label="Close task details"
 			>
 				<X />
@@ -30,11 +129,23 @@
 		<p class="detail-kicker">
 			TASK DETAIL / {selected.project_id.toUpperCase()}
 		</p>
-		<h2>{selected.title}</h2>
+		<input
+			class="title-input"
+			value={selected.title}
+			onchange={saveTitle}
+			aria-label="Title"
+		/>
+		{#if failure !== null}
+			<p class="detail-error">{failure}</p>
+		{/if}
 		<div class="detail-grid">
 			<label>
 				Status
-				<select value={selected.status}>
+				<select
+					value={selected.status}
+					onchange={(event) =>
+						save({ status: event.currentTarget.value as Status })}
+				>
 					{#each STATUSES as option (option)}
 						<option value={option}>{STATUS_LABELS[option]}</option>
 					{/each}
@@ -42,7 +153,11 @@
 			</label>
 			<label>
 				Priority
-				<select value={selected.priority}>
+				<select
+					value={selected.priority}
+					onchange={(event) =>
+						save({ priority: event.currentTarget.value as Priority })}
+				>
 					{#each PRIORITIES as option (option)}
 						<option value={option}>{option}</option>
 					{/each}
@@ -52,7 +167,11 @@
 		<div class="detail-grid">
 			<label>
 				Type
-				<select value={selected.is_epic ? "epic" : "task"}>
+				<select
+					value={selected.is_epic ? "epic" : "task"}
+					onchange={(event) =>
+						save({ is_epic: event.currentTarget.value === "epic" })}
+				>
 					<option value="task">task</option>
 					<option value="epic">epic</option>
 				</select>
@@ -69,28 +188,54 @@
 		</div>
 		<label class="detail-field">
 			Epic
-			<input value={selected.epic_id ?? ""} readOnly />
+			<select
+				value={selected.epic_id ?? ""}
+				onchange={(event) =>
+					save({
+						epic_id:
+							event.currentTarget.value === ""
+								? null
+								: event.currentTarget.value,
+					})}
+			>
+				<option value="">none</option>
+				{#each epicOptions as epic (epic.id)}
+					<option value={epic.id}>{epic.id} — {epic.title}</option>
+				{/each}
+			</select>
 		</label>
 		<label class="detail-field">
 			Comma-separated tags
-			<input value={selected.tags.join(", ")} readOnly />
+			<input value={selected.tags.join(", ")} onchange={saveTags} />
 		</label>
+		<div class="detail-grid">
+			<label>
+				Source file
+				<input value={selected.source_file ?? ""} onchange={saveSourceFile} />
+			</label>
+			<label>
+				Source line
+				<input
+					value={selected.source_line === null
+						? ""
+						: String(selected.source_line)}
+					onchange={saveSourceLine}
+				/>
+			</label>
+		</div>
 		<div class="progress-meta">
 			<StatusDot status={selected.status} />
 			<span>{STATUS_LABELS[selected.status]}</span>
-			<span class="muted">created {formatDate(selected.created_at)}</span>
-			<span class="muted">updated {formatDate(selected.updated_at)}</span>
+			<span class="muted">
+				{saving ? "saving…" : `updated ${formatDate(selected.updated_at)}`}
+			</span>
 		</div>
-		{#if selected.source_file !== null}
-			<code class="source-line">
-				{selected.source_file}{selected.source_line === null
-					? ""
-					: `:${selected.source_line}`}
-			</code>
-		{/if}
 		<div class="description">
-			<p>{selected.description}</p>
+			<textarea
+				value={selected.description}
+				onchange={saveDescription}
+				placeholder="Description"
+				aria-label="Description"></textarea>
 		</div>
-		<button class="edit-button">Edit description</button>
 	</aside>
 {/if}

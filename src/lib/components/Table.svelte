@@ -7,15 +7,22 @@
 	interface Props {
 		tasks: Task[];
 		selected: Task | null;
+		total: number;
+		onclear?: () => void;
+		onnew?: () => void;
 	}
 
-	let { tasks, selected = $bindable() }: Props = $props();
+	let {
+		tasks,
+		selected = $bindable(),
+		total,
+		onclear,
+		onnew,
+	}: Props = $props();
 
 	function setSelected(task: Task) {
 		selected = task;
 	}
-
-	function clearFilters() {}
 </script>
 
 <div class="table-wrap">
@@ -76,8 +83,13 @@
 	{#if tasks.length === 0}
 		<div class="empty-state">
 			<SlidersHorizontal />
-			<p>No tasks match these filters.</p>
-			<button onclick={clearFilters}>Reset filters</button>
+			<p>{total === 0 ? "No tasks yet." : "No tasks match these filters."}</p>
+			<div class="empty-actions">
+				{#if total > 0}
+					<button onclick={onclear}>Reset filters</button>
+				{/if}
+				<button onclick={onnew}>New task</button>
+			</div>
 		</div>
 	{/if}
 </div>
