@@ -4,12 +4,16 @@
 	import Selected from "#lib/components/Selected.svelte";
 	import Table from "#lib/components/Table.svelte";
 	import StatusDot from "#lib/components/ui/StatusDot.svelte";
+	import { getProjects } from "#lib/remote/projects.remote.ts";
+	import { getTasks } from "#lib/remote/tasks.remote.ts";
+	import { STATUS_LABELS } from "#lib/tasks/display.ts";
 	import {
-		PRIORITY_OPTIONS_LIST,
-		STATUS_OPTIONS_LIST,
-		tasks,
+		PRIORITIES,
+		STATUSES,
+		type Priority,
+		type Status,
 		type Task,
-	} from "#lib/tasks/mocks.ts";
+	} from "#lib/types.ts";
 	import ChevronDown from "~icons/lucide/chevron-down";
 	import FolderKanban from "~icons/lucide/folder-kanban";
 	import Moon from "~icons/lucide/moon";
@@ -19,30 +23,46 @@
 	import Tag from "~icons/lucide/tag";
 	import X from "~icons/lucide/x";
 
+	const tasks = await getTasks({ limit: 1000 });
+	const projects = await getProjects();
+
 	let lightTheme = $state(false);
-	let status = $state("all");
-	let priority = $state("all");
+	let status = $state<Status | "all">("all");
+	let priority = $state<Priority | "all">("all");
 	let query = $state("");
 	let selected: Task | null = $state(null);
-	let filteredTasks = $state(tasks);
+
+	const tagCount = $derived(new Set(tasks.flatMap((task) => task.tags)).size);
+
+	const visibleTasks = $derived.by(() => {
+		const needle = query.trim().toLowerCase();
+
+		return tasks.filter((task) => {
+			if (status !== "all" && task.status !== status) return false;
+			if (priority !== "all" && task.priority !== priority) return false;
+			if (needle === "") return true;
+
+			return (
+				task.id.toLowerCase().includes(needle) ||
+				task.title.toLowerCase().includes(needle) ||
+				task.description.toLowerCase().includes(needle)
+			);
+		});
+	});
 
 	function toggleTheme() {
 		lightTheme = !lightTheme;
 	}
 
-	function setStatus(option: string) {
-		status = option === status ? "all" : option;
+	function clearFilters() {
+		status = "all";
+		priority = "all";
+		query = "";
 	}
-
-	function setPriority(option: string) {
-		priority = option === status ? "all" : option;
-	}
-
-	function clearFilters() {}
 </script>
 
 <main class={`app-shell ${lightTheme ? "theme-light" : ""}`}>
-	<SideBar />
+	<SideBar {projects} {tasks} />
 
 	<section class={`workspace ${selected ? "with-detail compact-table" : ""}`}>
 		<header class="workspace-header">
@@ -85,21 +105,21 @@
 			<div class="filter-row">
 				<div class="filter-group">
 					<span class="filter-label">STATUS</span>
-					{#each STATUS_OPTIONS_LIST as option (option)}
+					{#each STATUSES as option (option)}
 						<button
-							onclick={() => setStatus(status === option ? "all" : option)}
+							onclick={() => (status = status === option ? "all" : option)}
 							class={`filter-chip ${status === option ? "active" : ""}`}
 						>
 							<StatusDot status={option} />
-							{option}
+							{STATUS_LABELS[option]}
 						</button>
 					{/each}
 				</div>
 				<div class="filter-group priority-group">
 					<span class="filter-label">PRIORITY</span>
-					{#each PRIORITY_OPTIONS_LIST as option (option)}
+					{#each PRIORITIES as option (option)}
 						<button
-							onclick={() => setPriority(priority === option ? "all" : option)}
+							onclick={() => (priority = priority === option ? "all" : option)}
 							class={`filter-chip priority-${option} ${priority === option ? "active" : ""}`}
 						>
 							{option}
@@ -116,15 +136,15 @@
 					<ChevronDown />
 				</button>
 				<button class="select-filter">
-					<Tag /> Tags <strong>(25)</strong>
+					<Tag /> Tags <strong>({tagCount})</strong>
 					<ChevronDown />
 				</button>
 				<span class="result-count">
-					{filteredTasks.length} visible / 27 total
+					{visibleTasks.length} visible / {tasks.length} total
 				</span>
 			</div>
 		</header>
-		<Table {filteredTasks} bind:selected />
+		<Table tasks={visibleTasks} bind:selected />
 	</section>
 	<Selected bind:selected />
 </main>

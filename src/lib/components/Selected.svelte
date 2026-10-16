@@ -1,5 +1,6 @@
 <script lang="ts">
-	import type { Task } from "#lib/tasks/mocks.ts";
+	import { STATUS_LABELS, formatDate } from "#lib/tasks/display.ts";
+	import { PRIORITIES, STATUSES, type Task } from "#lib/types.ts";
 	import X from "~icons/lucide/x";
 	import StatusDot from "./ui/StatusDot.svelte";
 
@@ -26,48 +27,49 @@
 				<X />
 			</button>
 		</div>
-		<p class="detail-kicker">TASK DETAIL / {selected.project.toUpperCase()}</p>
+		<p class="detail-kicker">
+			TASK DETAIL / {selected.project_id.toUpperCase()}
+		</p>
 		<h2>{selected.title}</h2>
 		<div class="detail-grid">
 			<label>
 				Status
 				<select value={selected.status}>
-					<option>in progress</option>
-					<option>backlog</option>
-					<option>blocked</option>
-					<option>done</option>
+					{#each STATUSES as option (option)}
+						<option value={option}>{STATUS_LABELS[option]}</option>
+					{/each}
 				</select>
 			</label>
 			<label>
 				Priority
 				<select value={selected.priority}>
-					<option>high</option>
-					<option>medium</option>
-					<option>low</option>
-					<option>critical</option>
+					{#each PRIORITIES as option (option)}
+						<option value={option}>{option}</option>
+					{/each}
 				</select>
 			</label>
 		</div>
 		<div class="detail-grid">
 			<label>
-				Category
-				<select>
-					<option>Bug</option>
-					<option>Feature</option>
-					<option>Chore</option>
+				Type
+				<select value={selected.is_epic ? "epic" : "task"}>
+					<option value="task">task</option>
+					<option value="epic">epic</option>
 				</select>
 			</label>
 			<label>
-				Type
-				<select>
-					<option>task</option>
-					<option>epic</option>
-				</select>
+				Closed
+				<input
+					value={selected.closed_at === null
+						? ""
+						: formatDate(selected.closed_at)}
+					readOnly
+				/>
 			</label>
 		</div>
 		<label class="detail-field">
 			Epic
-			<input value="SHOP-13" readOnly />
+			<input value={selected.epic_id ?? ""} readOnly />
 		</label>
 		<label class="detail-field">
 			Comma-separated tags
@@ -75,47 +77,20 @@
 		</label>
 		<div class="progress-meta">
 			<StatusDot status={selected.status} />
-			<span>{selected.status}</span>
-			<div class="progress-bar">
-				<span style={`width: ${selected.progress ?? 0}%`}></span>
-			</div>
-			<span>{selected.progress ?? 0}%</span>
-			<span class="muted">created {selected.date}/2026</span>
+			<span>{STATUS_LABELS[selected.status]}</span>
+			<span class="muted">created {formatDate(selected.created_at)}</span>
+			<span class="muted">updated {formatDate(selected.updated_at)}</span>
 		</div>
-		<code class="source-line">src/{selected.project}/PaymentForm.tsx:112</code>
+		{#if selected.source_file !== null}
+			<code class="source-line">
+				{selected.source_file}{selected.source_line === null
+					? ""
+					: `:${selected.source_line}`}
+			</code>
+		{/if}
 		<div class="description">
 			<p>{selected.description}</p>
-			<p>
-				The implementation should preserve state across redirects and remain
-				safe to retry.
-			</p>
-			<label class="check-row">
-				<input type="checkbox" defaultChecked />
-				<span>Reproduce with the 3-D Secure test card</span>
-			</label>
-			<label class="check-row">
-				<input type="checkbox" defaultChecked />
-				<span>Find where the state is lost</span>
-			</label>
-			<label class="check-row">
-				<input type="checkbox" />
-				<span>Keep the draft in session storage until payment is confirmed</span
-				>
-			</label>
 		</div>
 		<button class="edit-button">Edit description</button>
-		<div class="related-section">
-			<p>BLOCKED BY</p>
-			<div class="related-item">
-				<span class="epic-badge">SHOP-24</span>
-				<span>Storage wrapper swallows quota errors</span>
-				<StatusDot status="done" />
-				<X />
-			</div>
-			<div class="related-add">
-				<input placeholder="Task ID" />
-				<button>Add</button>
-			</div>
-		</div>
 	</aside>
 {/if}

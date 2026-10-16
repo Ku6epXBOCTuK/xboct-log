@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Status } from "#lib/tasks/mocks.ts";
+	import type { Status } from "#lib/types.ts";
 
 	interface Props {
 		status: Status;

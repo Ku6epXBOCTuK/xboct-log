@@ -1,22 +1,37 @@
 <script lang="ts">
 	import Check from "#lib/components/Check.svelte";
 	import Trash2 from "#lib/components/Trash2.svelte";
-	import { PROJECTS } from "#lib/tasks/mocks.ts";
+	import type { Project, Task } from "#lib/types.ts";
 	import { resolve } from "$app/paths";
 	import BarChart3 from "~icons/lucide/bar-chart-3";
 	import ChevronDown from "~icons/lucide/chevron-down";
 	import ClipBoardList from "~icons/lucide/clipboard-list";
 	import FolderKanban from "~icons/lucide/folder-kanban";
 
+	interface Props {
+		projects: Project[];
+		tasks: Task[];
+	}
+
+	let { projects, tasks }: Props = $props();
+
 	let projectsOpen = $state(true);
-	let activeProject = $state("");
+	let activeProject = $state("all");
+
+	const inProgressCount = $derived(
+		tasks.filter((task) => task.status === "in-progress").length,
+	);
 
 	function toggleProjectsOpen() {
 		projectsOpen = !projectsOpen;
 	}
 
-	function setActiveProject(projectName: string) {
-		activeProject = activeProject === projectName ? "all" : projectName;
+	function setActiveProject(projectId: string) {
+		activeProject = activeProject === projectId ? "all" : projectId;
+	}
+
+	function countInProject(projectId: string) {
+		return tasks.filter((task) => task.project_id === projectId).length;
 	}
 </script>
 
@@ -28,15 +43,14 @@
 	<nav class="primary-nav" aria-label="Primary navigation">
 		<a class="nav-item active" href={resolve("/")}>
 			<ClipBoardList /> Tasks
-			<span class="nav-count">24</span>
+			<span class="nav-count">{tasks.length}</span>
 		</a>
 		<a class="nav-item" href={resolve("/kanban")}>
 			<FolderKanban /> Kanban
-			<span class="nav-count">4</span>
+			<span class="nav-count">{inProgressCount}</span>
 		</a>
 		<button class="nav-item">
 			<BarChart3 /> Statistics
-			<span class="nav-alert">2</span>
 		</button>
 	</nav>
 	<div class="projects-heading">
@@ -51,21 +65,23 @@
 			/>
 			Projects
 		</button>
-		<span>27 tasks</span>
+		<span>{tasks.length} tasks</span>
 	</div>
 	{#if projectsOpen}
 		<div class="project-list">
-			<p class="project-hint">3 of 3 projects included — checked</p>
-			{#each PROJECTS as { name, count } (name)}
+			<p class="project-hint">
+				{projects.length} of {projects.length} projects included — checked
+			</p>
+			{#each projects as project (project.id)}
 				<button
-					onclick={() => setActiveProject(name)}
-					class={`project-item ${activeProject === name ? "selected" : ""}`}
+					onclick={() => setActiveProject(project.id)}
+					class={`project-item ${activeProject === project.id ? "selected" : ""}`}
 				>
 					<span class="project-check">
 						<Check />
 					</span>
-					<span>{name}</span>
-					<span class="project-count">{count}</span>
+					<span>{project.name}</span>
+					<span class="project-count">{countInProject(project.id)}</span>
 					<Trash2 class="delete-icon" />
 				</button>
 			{/each}

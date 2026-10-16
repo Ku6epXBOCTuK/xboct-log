@@ -1,14 +1,15 @@
 <script lang="ts">
-	import type { Task } from "#lib/tasks/mocks.ts";
+	import { STATUS_LABELS, formatDate } from "#lib/tasks/display.ts";
+	import type { Task } from "#lib/types.ts";
 	import SlidersHorizontal from "./SlidersHorizontal.svelte";
 	import StatusDot from "./ui/StatusDot.svelte";
 
 	interface Props {
-		filteredTasks: Task[];
+		tasks: Task[];
 		selected: Task | null;
 	}
 
-	let { filteredTasks, selected = $bindable() }: Props = $props();
+	let { tasks, selected = $bindable() }: Props = $props();
 
 	function setSelected(task: Task) {
 		selected = task;
@@ -32,7 +33,7 @@
 			</tr>
 		</thead>
 		<tbody>
-			{#each filteredTasks as task (task.id)}
+			{#each tasks as task (task.id)}
 				<tr
 					onclick={() => setSelected(task)}
 					class={selected?.id === task.id ? "row-selected" : ""}
@@ -40,11 +41,11 @@
 					<td class="task-id">{task.id}</td>
 					<td class="task-title">
 						<span class="new-badge">
-							{task.status === "backlog" ? "new" : "active"}
+							{task.status === "open" ? "new" : "active"}
 						</span>
 						{task.title}
-						{#if task.id === "SHOP-26"}
-							<span class="epic-badge">SHOP-13</span>
+						{#if task.epic_id !== null}
+							<span class="epic-badge">{task.epic_id}</span>
 						{/if}
 					</td>
 					<td class="optional-column">
@@ -59,18 +60,20 @@
 					<td>
 						<span class="status-label">
 							<StatusDot status={task.status} />
-							{task.status}
+							{STATUS_LABELS[task.status]}
 						</span>
 					</td>
 					<td class={`priority-label ${task.priority} optional-column`}>
 						{task.priority}
 					</td>
-					<td class="date-label optional-column">{task.date}</td>
+					<td class="date-label optional-column"
+						>{formatDate(task.created_at)}</td
+					>
 				</tr>
 			{/each}
 		</tbody>
 	</table>
-	{#if filteredTasks.length === 0}
+	{#if tasks.length === 0}
 		<div class="empty-state">
 			<SlidersHorizontal />
 			<p>No tasks match these filters.</p>
