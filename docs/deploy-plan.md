@@ -132,6 +132,15 @@ nssm set xboct-log Start SERVICE_AUTO_START
 
 Проверка и перезапуск: `nssm status xboct-log`, `nssm restart xboct-log`.
 
+Права на управление службой без elevation (однократно, из elevated PowerShell):
+
+```powershell
+sc.exe sdset xboct-log "D:(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWRPWPDTLOCRRC;;;IU)(A;;CCLCSWRPWPDTLOCRRC;;;SU)"
+```
+
+По умолчанию `IU`/`SU` получают только чтение статуса; `CCLCSWRPWPDTLOCRRC`
+добавляет `RP` (start) и `WP` (stop), после чего `deploy.ps1` идёт без admin.
+
 ## Шаг 4. `scripts/deploy.ps1`
 
 Сборка на `origin/main` в транзитном worktree, копирование артефакта, рестарт.
@@ -179,14 +188,13 @@ finally {
 только на время `robocopy` + рестарт). `robocopy` возвращает коды `0..7` как
 успех — ошибкой считается `>= 8`.
 
-Скрипт запускается из **elevated** PowerShell: `nssm stop`/`nssm start` без прав
-администратора не работают.
+Скрипт запускается из **обычного** PowerShell: права на `nssm stop`/`nssm start`
+выданы пользователю через DACL службы (см. шаг 3).
 
 ### Отличия фактической реализации
 
 Полный скрипт — `scripts/deploy.ps1`. К наброску выше добавлено:
 
-- guard: запуск только из elevated PowerShell;
 - свип `%TEMP%\xboct-log-build-*` на старте;
 - проверка `build\index.js` до `robocopy` (не перетирать прод пустым билдом);
 - best-effort уборка worktree с ретраями;
@@ -320,8 +328,9 @@ launcher'а в проде называется `start.mjs` (deploy копиру�
 - **Node ≥ 22.5** из-за `node:sqlite` (на машине стоит 24.13.0).
 - **Простой при деплое** = время `robocopy` + рестарт, порядка 2–3 секунд.
 - **`ORIGIN`** нужен только если появится реверс-прокси.
-- **Deploy требует admin.** `nssm stop`/`nssm start` — только из elevated
-  PowerShell.
+- **Deploy без admin.** `nssm stop`/`nssm start` работают из обычного
+  PowerShell: DACL службы `xboct-log` даёт `IU`/`SU` права `RP`/`WP`
+  (start/stop). Выдано однократно через `sc.exe sdset` (шаг 3).
 - **Temp-worktree и блокировка файлов.** `git worktree remove --force` иногда не
   может удалить каталог сборки; в `%TEMP%` остаётся мусор, который подчищает
   свип на старте следующего deploy. Регистрация worktree не течёт.

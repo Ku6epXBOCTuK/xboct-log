@@ -6,10 +6,6 @@ $Service  = "xboct-log"
 $Temp     = Join-Path $env:TEMP ("xboct-log-build-" + [guid]::NewGuid().ToString("N"))
 $StartDir = (Get-Location).Path
 
-if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-	throw "Run deploy.ps1 from an elevated PowerShell: nssm stop/start needs admin rights."
-}
-
 Get-ChildItem $env:TEMP -Directory -Filter "xboct-log-build-*" -ErrorAction SilentlyContinue | ForEach-Object {
 	try { Remove-Item $_.FullName -Recurse -Force -ErrorAction Stop }
 	catch { Write-Warning "stale build dir kept: $($_.Name)" }
