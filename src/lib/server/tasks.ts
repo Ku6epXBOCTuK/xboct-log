@@ -163,6 +163,23 @@ export function getTask(db: DatabaseSync, id: string): Task | undefined {
 	return taskById(db, id);
 }
 
+function allocateNumber(db: DatabaseSync, projectId: string): number {
+	const { high, used } = db
+		.prepare(
+			`SELECT
+				COALESCE((SELECT last_number FROM task_number_high_water WHERE project_id = ?), 0) AS high,
+				COALESCE((SELECT MAX(number) FROM tasks WHERE project_id = ?), 0) AS used`,
+		)
+		.get(projectId, projectId) as { high: number; used: number };
+	const next = Math.max(high, used) + 1;
+	db.prepare(
+		`INSERT INTO task_number_high_water (project_id, last_number)
+		 VALUES (?, ?)
+		 ON CONFLICT (project_id) DO UPDATE SET last_number = excluded.last_number`,
+	).run(projectId, next);
+	return next;
+}
+
 export function createTask(
 	db: DatabaseSync,
 	input: NewTask,
@@ -207,11 +224,7 @@ export function createTask(
 	return guard(() => {
 		db.exec("BEGIN IMMEDIATE");
 		try {
-			const { n } = db
-				.prepare(
-					"SELECT COALESCE(MAX(number), 0) + 1 AS n FROM tasks WHERE project_id = ?",
-				)
-				.get(project.id) as { n: number };
+			const n = allocateNumber(db, project.id);
 			const id = `${project.prefix}-${n}`;
 
 			db.prepare(

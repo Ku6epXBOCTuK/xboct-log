@@ -32,6 +32,11 @@ CREATE TABLE IF NOT EXISTS tasks (
 	UNIQUE (project_id, number)
 );
 
+CREATE TABLE IF NOT EXISTS task_number_high_water (
+	project_id  TEXT PRIMARY KEY REFERENCES projects (id),
+	last_number INTEGER NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_tasks_project ON tasks (project_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks (status);
 CREATE INDEX IF NOT EXISTS idx_tasks_updated ON tasks (updated_at);
