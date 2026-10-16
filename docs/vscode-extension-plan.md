@@ -109,6 +109,12 @@ export function GET() {
 `vite.config.ts`, поэтому код расширения он не проверяет — конфликта с
 `pnpm check` нет.
 
+Сам `tsconfig.json` расширения: `module: "node16"` и явный
+`types: ["node", "vscode"]`. Без первого не резолвится `node:crypto`, без
+второго не подхватывается `@types/node` (а в нём — глобальный `URL`), и `tsc`
+падает на обоих. При `"type": "commonjs"` в манифесте расширения
+`module: "node16"` по-прежнему компилирует в CommonJS, как требует `main`.
+
 `package.json` (манифест расширения), ключевое:
 
 - `"main": "./out/extension.js"`, `"engines": { "vscode": "^1.90.0" }`
@@ -157,7 +163,9 @@ default-src 'none'; frame-src http://127.0.0.1:45881; script-src 'nonce-<n>'; st
 1. Принимает от extension host `{ type: "xboct-log:theme", theme }` и пересылает
    его в iframe через `frame.contentWindow.postMessage(data, "*")`. Внутри
    приложения это ловит слушатель из шага 1.2 — **без перезагрузки**.
-2. Принимает `{ type: "xboct-log:reload" }` и переустанавливает `frame.src`.
+2. Принимает `{ type: "xboct-log:reload" }` и переустанавливает `frame.src` с
+   параметром-обнулителем кэша (`&_=<timestamp>`): без него повторная установка
+   того же URL не вызывает навигацию.
 
 Начальная тема зашивается в сам `src` (`?theme=light|dark`), чтобы не было
 вспышки. `targetOrigin: "*"` здесь безопасен: адресат только `127.0.0.1`.
