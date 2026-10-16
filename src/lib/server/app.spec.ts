@@ -16,6 +16,7 @@ import {
 	deleteTask,
 	getTask,
 	listTasks,
+	moveTask,
 	updateTask,
 } from "./tasks";
 
@@ -312,5 +313,120 @@ describe("tasks", () => {
 			done: 0,
 			cancelled: 0,
 		});
+	});
+});
+
+describe("task moves", () => {
+	it("assigns the next number in the target project", () => {
+		const db = setup();
+		unwrap(createProject(db, { id: "bil", name: "Billing", prefix: "BIL" }));
+		unwrap(createTask(db, { project_id: "bil", title: "Existing" }));
+		const task = unwrap(createTask(db, { project_id: "spa", title: "Move" }));
+
+		const moved = unwrap(moveTask(db, task.id, "bil"));
+
+		expect(moved.id).toBe("BIL-2");
+		expect(moved.project_id).toBe("bil");
+		expect(getTask(db, task.id)).toBeUndefined();
+	});
+
+	it("detaches a child moved to another project", () => {
+		const db = setup();
+		unwrap(createProject(db, { id: "bil", name: "Billing", prefix: "BIL" }));
+		const epic = unwrap(
+			createTask(db, { project_id: "spa", title: "Revamp", is_epic: true }),
+		);
+		const child = unwrap(
+			createTask(db, {
+				project_id: "spa",
+				title: "Child",
+				epic_id: epic.id,
+			}),
+		);
+
+		const moved = unwrap(moveTask(db, child.id, "bil"));
+
+		expect(moved.id).toBe("BIL-1");
+		expect(moved.epic_id).toBeNull();
+	});
+
+	it("moves an epic with its subtree and rewires the links", () => {
+		const db = setup();
+		unwrap(createProject(db, { id: "bil", name: "Billing", prefix: "BIL" }));
+		const epic = unwrap(
+			createTask(db, { project_id: "spa", title: "Revamp", is_epic: true }),
+		);
+		const child = unwrap(
+			createTask(db, {
+				project_id: "spa",
+				title: "Child",
+				is_epic: true,
+				epic_id: epic.id,
+			}),
+		);
+		const leaf = unwrap(
+			createTask(db, { project_id: "spa", title: "Leaf", epic_id: child.id }),
+		);
+
+		const moved = unwrap(moveTask(db, epic.id, "bil"));
+
+		expect(moved.id).toBe("BIL-1");
+		expect(getTask(db, "BIL-1")?.id).toBe("BIL-1");
+		expect(getTask(db, "BIL-2")?.epic_id).toBe("BIL-1");
+		expect(getTask(db, "BIL-3")?.epic_id).toBe("BIL-2");
+		expect(getTask(db, child.id)).toBeUndefined();
+		expect(getTask(db, leaf.id)).toBeUndefined();
+	});
+
+	it("returns the task unchanged when the project matches", () => {
+		const db = setup();
+		const task = unwrap(createTask(db, { project_id: "spa", title: "Stay" }));
+
+		const moved = unwrap(moveTask(db, task.id, "spa"));
+
+		expect(moved.id).toBe(task.id);
+		expect(moved.updated_at).toBe(task.updated_at);
+	});
+
+	it("returns not_found for an unknown task or project", () => {
+		const db = setup();
+
+		expect(failure(moveTask(db, "SPA-9", "spa")).kind).toBe("not_found");
+		const task = unwrap(createTask(db, { project_id: "spa", title: "X" }));
+		expect(failure(moveTask(db, task.id, "ghost")).kind).toBe("not_found");
+	});
+});
+
+describe("task numbering", () => {
+	it("does not reuse the number of a deleted task", () => {
+		const db = setup();
+		const first = unwrap(createTask(db, { project_id: "spa", title: "A" }));
+		unwrap(deleteTask(db, first.id));
+
+		const next = unwrap(createTask(db, { project_id: "spa", title: "B" }));
+
+		expect(next.id).toBe("SPA-2");
+	});
+
+	it("does not reuse the number of a task moved away", () => {
+		const db = setup();
+		unwrap(createProject(db, { id: "bil", name: "Billing", prefix: "BIL" }));
+		const first = unwrap(createTask(db, { project_id: "spa", title: "A" }));
+		unwrap(moveTask(db, first.id, "bil"));
+
+		const next = unwrap(createTask(db, { project_id: "spa", title: "B" }));
+
+		expect(next.id).toBe("SPA-2");
+	});
+
+	it("does not reuse a number in the project a task moved out of", () => {
+		const db = setup();
+		unwrap(createProject(db, { id: "bil", name: "Billing", prefix: "BIL" }));
+		const moved = unwrap(createTask(db, { project_id: "bil", title: "A" }));
+		unwrap(moveTask(db, moved.id, "spa"));
+
+		const next = unwrap(createTask(db, { project_id: "bil", title: "B" }));
+
+		expect(next.id).toBe("BIL-2");
 	});
 });
