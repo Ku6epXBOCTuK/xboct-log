@@ -76,3 +76,8 @@ export const closeTask = command(
 export const deleteTask = command(z.string().min(1), (id) =>
 	unwrap(repo.deleteTask(getDb(), id)),
 );
+
+export const moveTask = command(
+	z.object({ id: z.string().min(1), project_id: z.string().min(1) }),
+	({ id, project_id }) => unwrap(repo.moveTask(getDb(), id, project_id)),
+);
