@@ -10,6 +10,7 @@
 		total: number;
 		onclear?: () => void;
 		onnew?: () => void;
+		onepic?: (id: string) => void;
 	}
 
 	let {
@@ -18,10 +19,18 @@
 		total,
 		onclear,
 		onnew,
+		onepic,
 	}: Props = $props();
 
 	function setSelected(task: Task) {
 		selected = task;
+	}
+
+	function filterEpic(event: MouseEvent, epicId: string | null) {
+		event.stopPropagation();
+		if (epicId !== null) {
+			onepic?.(epicId);
+		}
 	}
 </script>
 
@@ -52,7 +61,13 @@
 						</span>
 						{task.title}
 						{#if task.epic_id !== null}
-							<span class="epic-badge">{task.epic_id}</span>
+							<button
+								class="epic-badge epic-filter"
+								title="Show tasks of this epic"
+								onclick={(event) => filterEpic(event, task.epic_id)}
+							>
+								{task.epic_id}
+							</button>
 						{/if}
 					</td>
 					<td class="optional-column">

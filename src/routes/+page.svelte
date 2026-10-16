@@ -31,6 +31,7 @@
 	let lightTheme = $state(false);
 	let status = $state<Status | "all">("all");
 	let priority = $state<Priority | "all">("all");
+	let epic = $state("any");
 	let query = $state("");
 	let selected: Task | null = $state(null);
 	let tasks = $state<Task[]>(loaded);
@@ -40,12 +41,20 @@
 	const tagCount = $derived(new Set(tasks.flatMap((task) => task.tags)).size);
 	const epics = $derived(tasks.filter((task) => task.is_epic));
 
+	function epicCount(epicId: string): number {
+		return tasks.filter((task) => task.epic_id === epicId).length;
+	}
+
 	const visibleTasks = $derived.by(() => {
 		const needle = query.trim().toLowerCase();
 
 		return tasks.filter((task) => {
 			if (status !== "all" && task.status !== status) return false;
 			if (priority !== "all" && task.priority !== priority) return false;
+			if (epic === "none" && task.epic_id !== null) return false;
+			if (epic !== "any" && epic !== "none" && task.epic_id !== epic) {
+				return false;
+			}
 			if (needle === "") return true;
 
 			return (
@@ -63,6 +72,7 @@
 	function clearFilters() {
 		status = "all";
 		priority = "all";
+		epic = "any";
 		query = "";
 	}
 
@@ -156,10 +166,19 @@
 				</button>
 			</div>
 			<div class="meta-row">
-				<button class="select-filter">
-					<FolderKanban /> Epic: <strong>any</strong>
+				<label class="select-filter">
+					<FolderKanban />
+					<select bind:value={epic} aria-label="Filter by epic">
+						<option value="any">Epic: any</option>
+						<option value="none">Epic: none</option>
+						{#each epics as epicTask (epicTask.id)}
+							<option value={epicTask.id}>
+								{epicTask.id} — {epicTask.title} ({epicCount(epicTask.id)})
+							</option>
+						{/each}
+					</select>
 					<ChevronDown />
-				</button>
+				</label>
 				<button class="select-filter">
 					<Tag /> Tags <strong>({tagCount})</strong>
 					<ChevronDown />
@@ -175,6 +194,7 @@
 			total={tasks.length}
 			onclear={clearFilters}
 			onnew={openNewTask}
+			onepic={(id) => (epic = id)}
 		/>
 	</section>
 	<Selected bind:selected {epics} onchange={applyUpdate} />

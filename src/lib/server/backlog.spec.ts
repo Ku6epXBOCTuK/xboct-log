@@ -192,6 +192,29 @@ describe("tasks", () => {
 		expect(listTasks(db, { project_id: "spa" })).toHaveLength(2);
 	});
 
+	it("filters epics and their children", () => {
+		const db = setup();
+		const epic = unwrap(
+			createTask(db, { project_id: "spa", title: "Revamp", is_epic: true }),
+		);
+		unwrap(
+			createTask(db, {
+				project_id: "spa",
+				title: "Child",
+				epic_id: epic.id,
+			}),
+		);
+		unwrap(createTask(db, { project_id: "spa", title: "Loose" }));
+
+		expect(listTasks(db, { is_epic: true }).map((task) => task.id)).toEqual([
+			epic.id,
+		]);
+		expect(listTasks(db, { is_epic: false })).toHaveLength(2);
+		expect(
+			listTasks(db, { epic_id: epic.id }).map((task) => task.title),
+		).toEqual(["Child"]);
+	});
+
 	it("sorts by priority severity, most severe first", () => {
 		const db = setup();
 		unwrap(

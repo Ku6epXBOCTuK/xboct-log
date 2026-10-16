@@ -12,6 +12,7 @@ const taskFilters = z
 		status: z.array(z.enum(STATUSES)).optional(),
 		priority: z.array(z.enum(PRIORITIES)).optional(),
 		tag: z.array(z.string()).optional(),
+		is_epic: z.boolean().optional(),
 		epic_id: z.string().nullable().optional(),
 		q: z.string().optional(),
 		sort: z.enum(["updated_at", "created_at", "priority"]).optional(),

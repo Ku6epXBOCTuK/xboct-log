@@ -60,6 +60,7 @@ export interface TaskQuery {
 	status?: Status[];
 	priority?: Priority[];
 	tag?: string[];
+	is_epic?: boolean;
 	epic_id?: string | null;
 	q?: string;
 	sort?: "updated_at" | "created_at" | "priority";
@@ -250,6 +251,10 @@ export function listTasks(db: DatabaseSync, query: TaskQuery = {}): Task[] {
 	if (query.priority?.length) {
 		where.push(`priority IN (${query.priority.map(() => "?").join(", ")})`);
 		params.push(...query.priority);
+	}
+	if (query.is_epic !== undefined) {
+		where.push("is_epic = ?");
+		params.push(query.is_epic ? 1 : 0);
 	}
 	if (query.epic_id !== undefined) {
 		if (query.epic_id === null) {
