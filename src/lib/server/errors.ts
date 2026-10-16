@@ -11,31 +11,28 @@ const STATUS_BY_KIND: Record<ErrorKind, ErrorStatus> = {
 	unexpected: 500,
 };
 
-export class BacklogError extends Error {
+export class AppError extends Error {
 	readonly kind: ErrorKind;
 	readonly status: ErrorStatus;
 
 	constructor(kind: ErrorKind, message: string) {
 		super(message);
-		this.name = "BacklogError";
+		this.name = "AppError";
 		this.kind = kind;
 		this.status = STATUS_BY_KIND[kind];
 	}
 }
 
-export const invalid = (message: string) =>
-	new BacklogError("validation", message);
-export const notFound = (message: string) =>
-	new BacklogError("not_found", message);
-export const conflict = (message: string) =>
-	new BacklogError("conflict", message);
+export const invalid = (message: string) => new AppError("validation", message);
+export const notFound = (message: string) => new AppError("not_found", message);
+export const conflict = (message: string) => new AppError("conflict", message);
 export const unexpected = (error: unknown) =>
-	new BacklogError(
+	new AppError(
 		"unexpected",
 		error instanceof Error ? error.message : String(error),
 	);
 
-export function guard<T>(run: () => T): Result<T, BacklogError> {
+export function guard<T>(run: () => T): Result<T, AppError> {
 	try {
 		return ok(run());
 	} catch (error) {

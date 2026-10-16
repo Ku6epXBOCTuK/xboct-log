@@ -198,6 +198,9 @@ textarea:focus-visible {
 
 .brand {
 	padding: var(--space-1) var(--space-3) var(--space-6);
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
 	font-size: var(--text-brand);
 	line-height: 1;
 	font-weight: 700;
@@ -205,9 +208,19 @@ textarea:focus-visible {
 	color: var(--foreground);
 }
 
-.brand i {
+.brand-mark {
+	width: 1.375rem;
+	height: 1.375rem;
+	flex: none;
+	fill: currentColor;
+}
+
+.brand-mark-accent {
+	fill: var(--accent);
+}
+
+.brand-word-accent {
 	color: var(--accent);
-	font-style: normal;
 }
 
 .primary-nav {
@@ -1322,15 +1335,11 @@ tbody tr:not(.row-selected):hover td {
 
 	.brand {
 		padding-inline: var(--space-2);
-		font-size: 0;
+		justify-content: center;
 	}
 
-	.brand span {
+	.brand-word {
 		display: none;
-	}
-
-	.brand i {
-		font-size: var(--text-brand);
 	}
 
 	.nav-item {

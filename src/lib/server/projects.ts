@@ -1,7 +1,7 @@
 import { err, ok, type Result } from "neverthrow";
 import type { DatabaseSync } from "node:sqlite";
 import type { Project } from "../types";
-import { BacklogError, conflict, guard, invalid, notFound } from "./errors";
+import { AppError, conflict, guard, invalid, notFound } from "./errors";
 
 const ID_PATTERN = /^[a-z0-9][a-z0-9-]*$/i;
 
@@ -48,7 +48,7 @@ function projectById(db: DatabaseSync, id: string): Project | undefined {
 export function createProject(
 	db: DatabaseSync,
 	input: NewProject,
-): Result<Project, BacklogError> {
+): Result<Project, AppError> {
 	const id = input.id?.trim() ?? "";
 	const name = input.name?.trim() ?? "";
 	const prefix = input.prefix?.trim() ?? "";
@@ -103,7 +103,7 @@ export function updateProject(
 	db: DatabaseSync,
 	id: string,
 	patch: ProjectPatch,
-): Result<Project, BacklogError> {
+): Result<Project, AppError> {
 	const current = getProject(db, id);
 	if (!current) {
 		return err(notFound(`project ${id} not found`));

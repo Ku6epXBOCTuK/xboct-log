@@ -2,7 +2,7 @@ import type { Result } from "neverthrow";
 import type { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 import { openDatabase } from "./db";
-import { type BacklogError } from "./errors";
+import { type AppError } from "./errors";
 import {
 	createProject,
 	getProject,
@@ -19,12 +19,12 @@ import {
 	updateTask,
 } from "./tasks";
 
-function unwrap<T>(result: Result<T, BacklogError>): T {
+function unwrap<T>(result: Result<T, AppError>): T {
 	expect(result.isOk()).toBe(true);
 	return result._unsafeUnwrap();
 }
 
-function failure(result: Result<unknown, BacklogError>): BacklogError {
+function failure(result: Result<unknown, AppError>): AppError {
 	expect(result.isErr()).toBe(true);
 	return result._unsafeUnwrapErr();
 }

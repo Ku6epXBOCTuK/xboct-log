@@ -12,7 +12,7 @@ import {
 	type Status,
 	type Task,
 } from "../types";
-import { BacklogError, guard, invalid, notFound } from "./errors";
+import { AppError, guard, invalid, notFound } from "./errors";
 import { getProject } from "./projects";
 
 interface TaskRow {
@@ -133,7 +133,7 @@ function validateEpic(
 	epicId: string,
 	projectId: string,
 	selfId: string | null,
-): BacklogError | null {
+): AppError | null {
 	if (selfId !== null && epicId === selfId) {
 		return invalid("a task cannot be its own epic");
 	}
@@ -166,7 +166,7 @@ export function getTask(db: DatabaseSync, id: string): Task | undefined {
 export function createTask(
 	db: DatabaseSync,
 	input: NewTask,
-): Result<Task, BacklogError> {
+): Result<Task, AppError> {
 	const project = getProject(db, input.project_id);
 	if (!project) {
 		return err(notFound(`project ${input.project_id} not found`));
@@ -340,7 +340,7 @@ export function updateTask(
 	db: DatabaseSync,
 	id: string,
 	patch: TaskPatch,
-): Result<Task, BacklogError> {
+): Result<Task, AppError> {
 	const current = getTask(db, id);
 	if (!current) {
 		return err(notFound(`task ${id} not found`));
@@ -444,7 +444,7 @@ export function closeTask(
 	db: DatabaseSync,
 	id: string,
 	reason: ClosedReason,
-): Result<Task, BacklogError> {
+): Result<Task, AppError> {
 	if (!isClosedReason(reason)) {
 		return err(invalid(`invalid close reason: ${reason}`));
 	}
@@ -467,7 +467,7 @@ export function closeTask(
 export function deleteTask(
 	db: DatabaseSync,
 	id: string,
-): Result<string, BacklogError> {
+): Result<string, AppError> {
 	if (!getTask(db, id)) {
 		return err(notFound(`task ${id} not found`));
 	}

@@ -1,56 +1,52 @@
-# sv
+# xboct-log
 
-Everything you need to build a Svelte project, powered by
-[`sv`](https://github.com/sveltejs/cli).
+A local-first task backlog. Projects, tasks, and a kanban board on top of a
+single SQLite file. Built with SvelteKit and Svelte 5.
 
-## Creating a project
+## Features
 
-If you're seeing this, you've probably already done this step. Congrats!
+- **Tasks** with a `PREFIX-NUMBER` id, title, description, status, priority,
+  tags, epics, and closed reasons.
+- **Projects** with an id, name, and task prefix. Rename, archive, and restore
+  them from the sidebar.
+- **Kanban board** for moving work across `open` / `in-progress` / `blocked` /
+  `done`.
+- **List view** with search and status/priority filters.
+- **Detail panel** for editing a task without leaving the list.
+- **Light and dark** themes.
 
-```sh
-# create a new project
-npx sv create my-app
-```
+## Requirements
 
-To recreate this project with the same configuration:
+- Node.js 22.5 or newer, for the built-in `node:sqlite` module.
+- pnpm.
 
-```sh
-# recreate this project
-pnpm dlx sv@1.1.1 create --template minimal --types ts --add prettier eslint vitest="usages:unit" sveltekit-adapter="adapter:static" experimental="features:async,remoteFunctions" --install pnpm ./
-```
-
-## Adding features
-
-Add features to your project with `sv add`:
-
-```sh
-npx sv add
-```
-
-For example, to add Tailwind CSS:
+## Getting started
 
 ```sh
-npx sv add tailwindcss
+pnpm install
+pnpm dev
 ```
 
-## Developing
+The database is created on first run at `~/.xboct-log/xboct-log.db`.
 
-Once you've created a project and installed dependencies with `npm install` (or
-`pnpm install` or `yarn`), start a development server:
+Point it somewhere else with `XBOCT_LOG_DB`:
 
 ```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+XBOCT_LOG_DB=./tasks.db pnpm dev
 ```
 
-## Building
+## Scripts
 
-To create a production version of your app:
+| Command        | Description                         |
+| -------------- | ----------------------------------- |
+| `pnpm dev`     | Start the development server        |
+| `pnpm build`   | Build for production (Node adapter) |
+| `pnpm preview` | Preview the production build        |
+| `pnpm check`   | Type-check with `svelte-check`      |
+| `pnpm lint`    | Prettier check and ESLint           |
+| `pnpm format`  | Format with Prettier                |
+| `pnpm test`    | Run unit tests with Vitest          |
 
-```sh
-npm run build
-```
+## License
 
-You can preview the production build with `npm run preview`.
+[MIT](./LICENSE)
