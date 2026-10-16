@@ -82,23 +82,25 @@ Pop-Location
 
 ## Шаг 2. Launcher `scripts/start-prod.mjs`
 
-Единый источник правды по env для prod. NSSM вызывает именно его.
+Единый источник правды по env для prod; NSSM вызывает его копию в
+`app\start.mjs`.
 
-```js
-import { homedir } from "node:os";
-import { join } from "node:path";
-import { pathToFileURL } from "node:url";
+Задаёт дефолты `PORT=45881`, `HOST=0.0.0.0`, `PROTOCOL_HEADER=x-forwarded-proto`
+и путь к прод-БД, затем импортирует `build/handler.js` и поднимает вокруг него
+свой `http.createServer`.
 
-process.env.PORT ??= "45881";
-process.env.HOST ??= "0.0.0.0";
-process.env.XBOCT_LOG_DB ??= join(homedir(), ".xboct-log", "xboct-log.db");
+Зачем свой сервер: прод отдаётся по http, а `adapter-node` без `PROTOCOL_HEADER`
+считает схему `https`. Тогда SvelteKit сравнивает `Origin` браузера
+(`http://<host>`) с вычисленным `https://<host>` и отвечает 403
+`Cross-site remote requests are forbidden` на любой не-GET запрос — падают
+remote-команды (создание задачи), а remote-query (GET) работают. Launcher
+подставляет заголовок `x-forwarded-proto: http` (через `??=`, чтобы реальный
+заголовок прокси имел приоритет), причём `PROTOCOL_HEADER` выставляется **до**
+импорта `handler.js`: адаптер читает его на загрузке модуля.
 
-const entry = join(import.meta.dirname, "build", "index.js");
-await import(pathToFileURL(entry).href);
-```
-
-`ORIGIN` не обязателен: при доступе по тому же адресу SvelteKit видит
-совпадающий `Origin`. Выставлять `ORIGIN` нужно только за прокси.
+`paths.origin` тут не подходит: значение фиксируется на сборке и привязывает
+прод к одному адресу, ломая доступ по IP локалки. Подстановка заголовка
+восстанавливает реальную схему и оставляет host динамическим.
 
 ## Шаг 3. Служба NSSM
 
@@ -143,59 +145,29 @@ sc.exe sdset xboct-log "D:(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRC
 
 ## Шаг 4. `scripts/deploy.ps1`
 
-Сборка на `origin/main` в транзитном worktree, копирование артефакта, рестарт.
+Порядок: транзитный worktree на `origin/main` →
+`pnpm install --frozen-lockfile` + `pnpm build` в нём → копирование
+`package.json`, `pnpm-lock.yaml` и `scripts\start-prod.mjs` (в `app\start.mjs`)
+в `app` → `pnpm install --prod` → `nssm stop` → `robocopy` `build` в `app\build`
+→ запись `version.txt` → `nssm start`.
 
-```powershell
-$ErrorActionPreference = "Stop"
-
-$Repo    = "C:\+XBOCTuK\+life_projects\git-processes\backlog"
-$AppDir  = Join-Path $env:USERPROFILE ".xboct-log\app"
-$Service = "xboct-log"
-$Temp    = Join-Path $env:TEMP ("xboct-log-build-" + [guid]::NewGuid().ToString("N"))
-
-git -C $Repo fetch origin
-git -C $Repo worktree add --detach $Temp origin/main
-try {
-  Push-Location $Temp
-  pnpm install --frozen-lockfile
-  pnpm build
-  Pop-Location
-
-  New-Item -ItemType Directory -Force $AppDir | Out-Null
-  New-Item -ItemType Directory -Force (Join-Path $AppDir "logs") | Out-Null
-  Copy-Item (Join-Path $Temp "package.json"), (Join-Path $Temp "pnpm-lock.yaml") $AppDir -Force
-  Copy-Item (Join-Path $Repo "scripts\start-prod.mjs") (Join-Path $AppDir "start.mjs") -Force
-
-  Push-Location $AppDir
-  pnpm install --prod --frozen-lockfile
-  Pop-Location
-
-  nssm stop $Service
-  $rc = (robocopy (Join-Path $Temp "build") (Join-Path $AppDir "build") /MIR /NFL /NDL /NJH /NJS)
-  if ($LASTEXITCODE -ge 8) { throw "robocopy failed ($LASTEXITCODE)" }
-
-  $head = git -C $Temp rev-parse HEAD
-  "$head  $(Get-Date -Format o)" | Set-Content (Join-Path $AppDir "version.txt")
-
-  nssm start $Service
-}
-finally {
-  if (Test-Path $Temp) { git -C $Repo worktree remove $Temp --force }
-}
-```
-
-Порядок важен: `pnpm install --prod` идёт **до** остановки службы (простой
-только на время `robocopy` + рестарт). `robocopy` возвращает коды `0..7` как
-успех — ошибкой считается `>= 8`.
+`pnpm install --prod` идёт **до** остановки службы, поэтому простой — только
+время `robocopy` + рестарт. `robocopy` возвращает коды `0..7` как успех —
+ошибкой считается `>= 8`.
 
 Скрипт запускается из **обычного** PowerShell: права на `nssm stop`/`nssm start`
 выданы пользователю через DACL службы (см. шаг 3).
 
-### Отличия фактической реализации
+Детали реализации:
 
-Полный скрипт — `scripts/deploy.ps1`. К наброску выше добавлено:
-
-- свип `%TEMP%\xboct-log-build-*` на старте;
+- свип `%TEMP%\xboct-log-build-*` и `xboct-log-trash-*` на старте;
+- `pnpm install --package-import-method=copy` в worktree: иначе pnpm ставит
+  пакеты хардлинками из общего стора, и `rolldown-binding.*.node` остаётся
+  залоченным процессом, который его загрузил (например, VS Code), — тогда
+  каталог сборочного worktree не удаляется, пока этот процесс жив;
+- недоудалённый каталог переименовывается в `xboct-log-trash-*` (переименование
+  каталога проходит даже с залоченным файлом внутри) и добивается следующим
+  свипом;
 - проверка `build\index.js` до `robocopy` (не перетирать прод пустым билдом);
 - best-effort уборка worktree с ретраями;
 - ожидание `SERVICE_RUNNING` после `nssm start`.
@@ -215,31 +187,9 @@ worktree при этом снимается корректно (`git worktree li
 
 Копия прод-БД в `dev.db` через `backup()` из `node:sqlite` — тот же примитив,
 что уже используется в `src/lib/server/backup.ts`. Безопасно при включённом WAL
-и при работающем prod.
-
-```js
-import { existsSync } from "node:fs";
-import { homedir } from "node:os";
-import { join } from "node:path";
-import { DatabaseSync, backup } from "node:sqlite";
-
-const root = join(homedir(), ".xboct-log");
-const prod = process.env.XBOCT_LOG_PROD_DB ?? join(root, "xboct-log.db");
-const dev = process.env.XBOCT_LOG_DB ?? join(root, "dev.db");
-
-if (!existsSync(prod)) {
-  console.error(`prod database not found: ${prod}`);
-  process.exit(1);
-}
-
-const source = new DatabaseSync(prod, { readOnly: true });
-try {
-  await backup(source, dev);
-} finally {
-  source.close();
-}
-console.log(`cloned ${prod} -> ${dev}`);
-```
+и при работающем prod. Источник — `XBOCT_LOG_PROD_DB` (по умолчанию
+`~/.xboct-log/xboct-log.db`), приёмник — `XBOCT_LOG_DB` (по умолчанию
+`~/.xboct-log/dev.db`).
 
 Если открытие `readOnly` на живом WAL даст ошибку — открывать без `readOnly`.
 
@@ -251,39 +201,12 @@ console.log(`cloned ${prod} -> ${dev}`);
 запустят `pnpm dev:vite` вручную). Тогда бэкапы уйдут в `dev-backups`, а не
 перезапишут прод-файл `xboct-log-YYYY-MM-DD.db` в общем каталоге.
 
-```js
-import { spawn } from "node:child_process";
-import { homedir } from "node:os";
-import { join } from "node:path";
-
-const root = join(homedir(), ".xboct-log");
-const env = {
-  ...process.env,
-  XBOCT_LOG_DB: process.env.XBOCT_LOG_DB ?? join(root, "dev.db"),
-  XBOCT_LOG_BACKUP_DIR:
-    process.env.XBOCT_LOG_BACKUP_DIR ?? join(root, "dev-backups"),
-  XBOCT_LOG_BACKUP_DISABLED: "1",
-};
-
-const child = spawn("pnpm", ["exec", "vite", "dev", "--port", "5173"], {
-  stdio: "inherit",
-  env,
-  shell: true,
-});
-child.on("exit", (code) => process.exit(code ?? 0));
-```
-
 Рабочий цикл: `pnpm dev:clone` → `pnpm dev` → ломаешь данные как угодно →
 `pnpm dev:clone` снова для чистой копии.
 
 ## Шаг 6. Скрипты в `package.json`
 
-```json
-"deploy": "powershell -ExecutionPolicy Bypass -File scripts/deploy.ps1",
-"dev": "node scripts/dev.mjs",
-"dev:vite": "vite dev",
-"dev:clone": "node scripts/dev-clone.mjs"
-```
+В `package.json` объявлены `deploy`, `dev`, `dev:vite` и `dev:clone`.
 
 `dev` заменяется на launcher, чтобы dev **по умолчанию** шёл на клон и не трогал
 прод. `dev:vite` остаётся для сырого запуска без изоляции.
@@ -327,7 +250,10 @@ launcher'а в проде называется `start.mjs` (deploy копиру�
   обновляется деплоем.
 - **Node ≥ 22.5** из-за `node:sqlite` (на машине стоит 24.13.0).
 - **Простой при деплое** = время `robocopy` + рестарт, порядка 2–3 секунд.
-- **`ORIGIN`** нужен только если появится реверс-прокси.
+- **Схема запроса.** Прод работает по http, а `adapter-node` без
+  `PROTOCOL_HEADER` считает схему `https` и отбрасывает любой не-GET запрос как
+  cross-site. Лечится лаунчером (шаг 2): `PROTOCOL_HEADER` + подстановка
+  `x-forwarded-proto: http`. `ORIGIN` не нужен, пока нет реверс-прокси.
 - **Deploy без admin.** `nssm stop`/`nssm start` работают из обычного
   PowerShell: DACL службы `xboct-log` даёт `IU`/`SU` права `RP`/`WP`
   (start/stop). Выдано однократно через `sc.exe sdset` (шаг 3).

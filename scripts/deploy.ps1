@@ -6,16 +6,24 @@ $Service  = "xboct-log"
 $Temp     = Join-Path $env:TEMP ("xboct-log-build-" + [guid]::NewGuid().ToString("N"))
 $StartDir = (Get-Location).Path
 
-Get-ChildItem $env:TEMP -Directory -Filter "xboct-log-build-*" -ErrorAction SilentlyContinue | ForEach-Object {
-	try { Remove-Item $_.FullName -Recurse -Force -ErrorAction Stop }
-	catch { Write-Warning "stale build dir kept: $($_.Name)" }
+Get-ChildItem $env:TEMP -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "xboct-log-build-*" -or $_.Name -like "xboct-log-trash-*" } | ForEach-Object {
+	$dir = $_
+	try { Remove-Item $dir.FullName -Recurse -Force -ErrorAction Stop }
+	catch {
+		Write-Warning "stale dir kept: $($dir.Name): $($_.Exception.Message)"
+		if ($dir.Name -like "xboct-log-build-*") {
+			$trash = Join-Path $env:TEMP ("xboct-log-trash-" + [guid]::NewGuid().ToString("N"))
+			try { [System.IO.Directory]::Move($dir.FullName, $trash) }
+			catch { Write-Warning "trash move failed: $($_.Exception.Message)" }
+		}
+	}
 }
 
 git -C $Repo fetch origin
 git -C $Repo worktree add --detach $Temp origin/main
 try {
 	Push-Location $Temp
-	pnpm install --frozen-lockfile
+	pnpm install --frozen-lockfile --package-import-method=copy
 	pnpm build
 	Pop-Location
 
@@ -56,5 +64,12 @@ finally {
 		Start-Sleep -Seconds 2
 		Remove-Item $Temp -Recurse -Force -ErrorAction SilentlyContinue
 	}
-	if (Test-Path $Temp) { Write-Warning "leftover build dir not removed (locked native module): $Temp" }
+	if (Test-Path $Temp) {
+		$trash = Join-Path $env:TEMP ("xboct-log-trash-" + [guid]::NewGuid().ToString("N"))
+		try {
+			[System.IO.Directory]::Move($Temp, $trash)
+			Write-Warning "leftover build dir moved to trash (locked native module): $trash"
+		}
+		catch { Write-Warning "leftover build dir kept: $Temp" }
+	}
 }
