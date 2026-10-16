@@ -119,12 +119,16 @@ export function listProjects(
 	options: ListProjectsOptions = {},
 ): Project[] {
 	const rows = options.includeArchived
-		? db.prepare("SELECT * FROM projects ORDER BY name").all()
+		? db
+				.prepare(
+					"SELECT * FROM projects ORDER BY CASE WHEN id = ? THEN 0 ELSE 1 END, name",
+				)
+				.all(INBOX_PROJECT_ID)
 		: db
 				.prepare(
-					"SELECT * FROM projects WHERE archived_at IS NULL ORDER BY name",
+					"SELECT * FROM projects WHERE archived_at IS NULL ORDER BY CASE WHEN id = ? THEN 0 ELSE 1 END, name",
 				)
-				.all();
+				.all(INBOX_PROJECT_ID);
 	return (rows as unknown as ProjectRow[]).map(mapProject);
 }
 

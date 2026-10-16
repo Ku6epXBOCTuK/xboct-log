@@ -2,7 +2,7 @@
 	import Check from "#lib/components/Check.svelte";
 	import { createProject, updateProject } from "#lib/remote/projects.remote.ts";
 	import { messageOf } from "#lib/tasks/display.ts";
-	import type { Project, Task } from "#lib/types.ts";
+	import { INBOX_PROJECT_ID, type Project, type Task } from "#lib/types.ts";
 	import { resolve } from "$app/paths";
 	import BarChart3 from "~icons/lucide/bar-chart-3";
 	import ChevronDown from "~icons/lucide/chevron-down";
@@ -15,14 +15,22 @@
 	interface Props {
 		projects: Project[];
 		tasks: Task[];
+		activeProject: string;
+		onprojectselect?: (projectId: string) => void;
 		onprojectcreated?: (project: Project) => void;
 		onprojectupdated?: (project: Project) => void;
 	}
 
-	let { projects, tasks, onprojectcreated, onprojectupdated }: Props = $props();
+	let {
+		projects,
+		tasks,
+		activeProject,
+		onprojectselect,
+		onprojectcreated,
+		onprojectupdated,
+	}: Props = $props();
 
 	let projectsOpen = $state(true);
-	let activeProject = $state("all");
 	let showArchived = $state(false);
 	let creatingProject = $state(false);
 	let creating = $state(false);
@@ -54,8 +62,8 @@
 		projectsOpen = !projectsOpen;
 	}
 
-	function setActiveProject(projectId: string) {
-		activeProject = activeProject === projectId ? "all" : projectId;
+	function selectProject(projectId: string) {
+		onprojectselect?.(activeProject === projectId ? "all" : projectId);
 	}
 
 	function countInProject(projectId: string) {
@@ -250,7 +258,7 @@
 					>
 						<button
 							class="project-item"
-							onclick={() => setActiveProject(project.id)}
+							onclick={() => selectProject(project.id)}
 						>
 							<span class="project-check">
 								<Check />
@@ -266,16 +274,18 @@
 						>
 							<Pencil />
 						</button>
-						<button
-							class="project-icon"
-							type="button"
-							onclick={() => toggleArchived(project)}
-							aria-label={project.archived_at === null
-								? `Archive ${project.name}`
-								: `Restore ${project.name}`}
-						>
-							<Trash2 class="delete-icon" />
-						</button>
+						{#if project.id !== INBOX_PROJECT_ID}
+							<button
+								class="project-icon"
+								type="button"
+								onclick={() => toggleArchived(project)}
+								aria-label={project.archived_at === null
+									? `Archive ${project.name}`
+									: `Restore ${project.name}`}
+							>
+								<Trash2 class="delete-icon" />
+							</button>
+						{/if}
 					</div>
 				{/if}
 			{/each}

@@ -9,6 +9,7 @@
 	import { getTasks } from "#lib/remote/tasks.remote.ts";
 	import { STATUS_LABELS } from "#lib/tasks/display.ts";
 	import {
+		INBOX_PROJECT_ID,
 		PRIORITIES,
 		STATUSES,
 		type Priority,
@@ -16,6 +17,8 @@
 		type Status,
 		type Task,
 	} from "#lib/types.ts";
+	import { goto } from "$app/navigation";
+	import { page } from "$app/state";
 	import Check from "~icons/lucide/check";
 	import ChevronDown from "~icons/lucide/chevron-down";
 	import FolderKanban from "~icons/lucide/folder-kanban";
@@ -36,6 +39,7 @@
 	let epic = $state("any");
 	let query = $state("");
 	let selected: Task | null = $state(null);
+	let activeProject = $state(page.url.searchParams.get("project") ?? "all");
 	let tasks = $state<Task[]>(loaded);
 	let projects = $state<Project[]>(loadedProjects);
 	let creating = $state(false);
@@ -112,6 +116,9 @@
 		const needle = query.trim().toLowerCase();
 
 		return tasks.filter((task) => {
+			if (activeProject !== "all" && task.project_id !== activeProject) {
+				return false;
+			}
 			if (status !== "all" && task.status !== status) return false;
 			if (priority !== "all" && task.priority !== priority) return false;
 			if (epic === "none" && task.epic_id !== null) return false;
@@ -144,6 +151,20 @@
 		epic = "any";
 		query = "";
 		selectedTags = [];
+	}
+
+	function setActiveProject(projectId: string) {
+		activeProject = projectId;
+		epic = "any";
+
+		const url = new URL(page.url.href);
+		if (projectId === "all") {
+			url.searchParams.delete("project");
+		} else {
+			url.searchParams.set("project", projectId);
+		}
+
+		void goto(url, { replace: true, shallow: true });
 	}
 
 	function applyUpdate(updated: Task) {
@@ -179,7 +200,11 @@
 	}
 
 	function sortProjects(list: Project[]) {
-		return [...list].sort((left, right) => left.name.localeCompare(right.name));
+		return [...list].sort((left, right) => {
+			if (left.id === INBOX_PROJECT_ID) return -1;
+			if (right.id === INBOX_PROJECT_ID) return 1;
+			return left.name.localeCompare(right.name);
+		});
 	}
 
 	function openNewTask() {
@@ -191,6 +216,8 @@
 	<SideBar
 		{projects}
 		{tasks}
+		{activeProject}
+		onprojectselect={setActiveProject}
 		onprojectcreated={addProject}
 		onprojectupdated={updateProjectInList}
 	/>

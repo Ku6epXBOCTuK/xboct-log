@@ -3,6 +3,7 @@
 	import { createTask } from "#lib/remote/tasks.remote.ts";
 	import { messageOf } from "#lib/tasks/display.ts";
 	import {
+		INBOX_PROJECT_ID,
 		PRIORITIES,
 		type Priority,
 		type Project,
@@ -53,7 +54,9 @@
 	);
 
 	function reset() {
-		projectId = projects[0]?.id ?? "";
+		projectId = projects.some((project) => project.id === INBOX_PROJECT_ID)
+			? INBOX_PROJECT_ID
+			: (projects[0]?.id ?? "");
 		title = "";
 		description = "";
 		priority = "medium";
