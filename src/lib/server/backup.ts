@@ -1,0 +1,234 @@
+import { existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { backup, type DatabaseSync } from "node:sqlite";
+import { err, ok, type Result } from "neverthrow";
+import { getDb } from "./db";
+import { type AppError, unexpected } from "./errors";
+import { defaultDbPath } from "./paths";
+
+const APP_NAME = "xboct-log";
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+export type BackupKind = "daily" | "weekly";
+
+export interface BackupConfig {
+	dir: string;
+	hour: number;
+	minute: number;
+	weekday: number;
+	dailyKeep: number;
+	weeklyKeep: number;
+	disabled: boolean;
+}
+
+function envInt(name: string, fallback: number): number {
+	const raw = process.env[name];
+	if (raw === undefined || raw === "") {
+		return fallback;
+	}
+	const value = Number.parseInt(raw, 10);
+	return Number.isFinite(value) ? value : fallback;
+}
+
+function isTruthy(value: string | undefined): boolean {
+	return value === "1" || value === "true" || value === "yes";
+}
+
+export function backupConfig(): BackupConfig {
+	return {
+		dir:
+			process.env.XBOCT_LOG_BACKUP_DIR ??
+			join(dirname(defaultDbPath()), "backups"),
+		hour: envInt("XBOCT_LOG_BACKUP_HOUR", 3),
+		minute: envInt("XBOCT_LOG_BACKUP_MINUTE", 0),
+		weekday: envInt("XBOCT_LOG_BACKUP_WEEKDAY", 0),
+		dailyKeep: envInt("XBOCT_LOG_BACKUP_DAILY_KEEP", 7),
+		weeklyKeep: envInt("XBOCT_LOG_BACKUP_WEEKLY_KEEP", 4),
+		disabled: isTruthy(process.env.XBOCT_LOG_BACKUP_DISABLED),
+	};
+}
+
+const pad = (value: number) => String(value).padStart(2, "0");
+
+export function localDate(date: Date): string {
+	return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+export function isoWeek(date: Date): string {
+	const day = new Date(
+		Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
+	);
+	const weekday = day.getUTCDay() || 7;
+	day.setUTCDate(day.getUTCDate() + 4 - weekday);
+	const yearStart = Date.UTC(day.getUTCFullYear(), 0, 1);
+	const week = Math.ceil(((day.getTime() - yearStart) / DAY_MS + 1) / 7);
+	return `${day.getUTCFullYear()}-W${pad(week)}`;
+}
+
+export function backupFileName(kind: BackupKind, date: Date): string {
+	const stamp = kind === "daily" ? localDate(date) : isoWeek(date);
+	return `${APP_NAME}-${stamp}.db`;
+}
+
+export function prune(dir: string, keep: number): void {
+	if (keep < 1) {
+		return;
+	}
+	let names: string[];
+	try {
+		names = readdirSync(dir).filter((name) => name.endsWith(".db"));
+	} catch {
+		return;
+	}
+	names.sort().reverse();
+	for (const name of names.slice(keep)) {
+		try {
+			rmSync(join(dir, name), { force: true });
+		} catch (error) {
+			console.warn(`[backup] failed to remove ${name}`, error);
+		}
+	}
+}
+
+export async function runBackup(
+	db: DatabaseSync,
+	config: BackupConfig,
+	kind: BackupKind,
+	now: Date = new Date(),
+): Promise<Result<string, AppError>> {
+	if (config.disabled) {
+		return ok("");
+	}
+	const dir = join(config.dir, kind);
+	const target = join(dir, backupFileName(kind, now));
+	try {
+		mkdirSync(dir, { recursive: true });
+		rmSync(target, { force: true });
+		await backup(db, target);
+	} catch (error) {
+		return err(unexpected(error));
+	}
+	prune(dir, kind === "daily" ? config.dailyKeep : config.weeklyKeep);
+	return ok(target);
+}
+
+export async function runScheduled(
+	db: DatabaseSync,
+	config: BackupConfig,
+	now: Date = new Date(),
+): Promise<Result<string[], AppError>> {
+	const daily = await runBackup(db, config, "daily", now);
+	if (daily.isErr()) {
+		return err(daily.error);
+	}
+	const saved = [daily.value];
+	if (now.getDay() === config.weekday) {
+		const weekly = await runBackup(db, config, "weekly", now);
+		if (weekly.isErr()) {
+			return err(weekly.error);
+		}
+		saved.push(weekly.value);
+	}
+	return ok(saved);
+}
+
+function scheduledFor(config: BackupConfig, now: Date): Date {
+	return new Date(
+		now.getFullYear(),
+		now.getMonth(),
+		now.getDate(),
+		config.hour,
+		config.minute,
+		0,
+		0,
+	);
+}
+
+export async function catchUp(
+	db: DatabaseSync,
+	config: BackupConfig,
+	now: Date = new Date(),
+): Promise<Result<string[], AppError>> {
+	if (config.disabled || now.getTime() < scheduledFor(config, now).getTime()) {
+		return ok([]);
+	}
+
+	const saved: string[] = [];
+	const daily = join(config.dir, "daily", backupFileName("daily", now));
+	if (!existsSync(daily)) {
+		const result = await runBackup(db, config, "daily", now);
+		if (result.isErr()) {
+			return err(result.error);
+		}
+		saved.push(result.value);
+	}
+
+	if (now.getDay() === config.weekday) {
+		const weekly = join(config.dir, "weekly", backupFileName("weekly", now));
+		if (!existsSync(weekly)) {
+			const result = await runBackup(db, config, "weekly", now);
+			if (result.isErr()) {
+				return err(result.error);
+			}
+			saved.push(result.value);
+		}
+	}
+	return ok(saved);
+}
+
+function msUntilNext(config: BackupConfig, now: Date): number {
+	const next = scheduledFor(config, now);
+	if (next.getTime() <= now.getTime()) {
+		next.setDate(next.getDate() + 1);
+	}
+	return next.getTime() - now.getTime();
+}
+
+function report(label: string, result: Result<string[], AppError>): void {
+	if (result.isErr()) {
+		console.warn(`[backup] ${label} failed: ${result.error.message}`);
+		return;
+	}
+	if (result.value.length > 0) {
+		console.log(`[backup] ${label}: ${result.value.join(", ")}`);
+	}
+}
+
+interface BackupGlobal {
+	__xboctLogBackupStarted?: boolean;
+}
+
+// NOTE: a module-level flag is not enough because SvelteKit reloads server
+// modules in dev without restarting the process, which would stack timers.
+function claimScheduler(): boolean {
+	const scope = globalThis as BackupGlobal;
+	if (scope.__xboctLogBackupStarted) {
+		return false;
+	}
+	scope.__xboctLogBackupStarted = true;
+	return true;
+}
+
+export function startBackupScheduler(): void {
+	const config = backupConfig();
+	if (config.disabled || !claimScheduler()) {
+		return;
+	}
+
+	const run = (label: string) => {
+		void runScheduled(getDb(), config).then((result) => report(label, result));
+	};
+	const schedule = () => {
+		const timer = setTimeout(
+			() => {
+				run("scheduled");
+				schedule();
+			},
+			msUntilNext(config, new Date()),
+		);
+		timer.unref();
+	};
+
+	void catchUp(getDb(), config).then((result) => report("catch-up", result));
+	schedule();
+}
