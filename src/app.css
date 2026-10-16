@@ -33,7 +33,7 @@
 	--control-h-lg: 2.5rem;
 
 	--sidebar-w: 15.5rem;
-	--detail-w: 24rem;
+	--detail-w: 48rem;
 
 	--background: light-dark(#f6f7f8, #111315);
 	--surface: light-dark(#eff1f3, #101214);
@@ -1298,7 +1298,7 @@ tbody tr:not(.row-selected):hover td {
 @media (max-width: 1100px) {
 	:root {
 		--sidebar-w: 13.125rem;
-		--detail-w: 21.25rem;
+		--detail-w: 24rem;
 	}
 
 	.detail-panel {

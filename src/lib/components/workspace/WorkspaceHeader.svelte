@@ -1,0 +1,46 @@
+<script lang="ts">
+	import FilterRow from "#lib/components/filters/FilterRow.svelte";
+	import MetaRow from "#lib/components/filters/MetaRow.svelte";
+	import SearchBar from "#lib/components/filters/SearchBar.svelte";
+	import TitleRow from "#lib/components/workspace/TitleRow.svelte";
+	import type { Filters } from "#lib/state/filters.svelte.ts";
+	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
+	import type { Theme } from "#lib/state/theme.svelte.ts";
+	import { collectTags, countTasksInEpic } from "#lib/tasks/filter.ts";
+
+	interface Props {
+		tasks: TaskStore;
+		filters: Filters;
+		theme: Theme;
+		visibleCount: number;
+		onnew: () => void;
+	}
+
+	let { tasks, filters, theme, visibleCount, onnew }: Props = $props();
+
+	const epics = $derived(tasks.epics);
+	const tags = $derived(collectTags(tasks.tasks));
+</script>
+
+<header class="workspace-header">
+	<TitleRow appearance={theme.appearance} ontoggle={theme.toggle} {onnew} />
+	<SearchBar
+		value={filters.query}
+		oninput={(value) => (filters.query = value)}
+	/>
+	<FilterRow
+		status={filters.status}
+		priority={filters.priority}
+		onstatus={(value) => (filters.status = value)}
+		onpriority={(value) => (filters.priority = value)}
+		onclear={() => filters.clear()}
+	/>
+	<MetaRow
+		{filters}
+		{epics}
+		{tags}
+		{visibleCount}
+		total={tasks.tasks.length}
+		countEpic={(epicId) => countTasksInEpic(tasks.tasks, epicId)}
+	/>
+</header>
