@@ -1,47 +1,33 @@
 <script lang="ts">
-	import BarChart3 from "#lib/components/BarChart3.svelte";
-	import Check from "#lib/components/Check.svelte";
-	import ClipBoardList from "#lib/components/ClipBoardList.svelte";
-	import FolderKanban from "#lib/components/FolderKanban.svelte";
-	import Inbox from "#lib/components/Inbox.svelte";
-	import PanelLeftClose from "#lib/components/PanelLeftClose.svelte";
+	import SideBar from "#lib/components/layout/SideBar.svelte";
 	import Search from "#lib/components/Search.svelte";
-	import StatusDot from "#lib/components/StatusDot.svelte";
+	import Selected from "#lib/components/Selected.svelte";
 	import Table from "#lib/components/Table.svelte";
-	import Trash2 from "#lib/components/Trash2.svelte";
+	import StatusDot from "#lib/components/ui/StatusDot.svelte";
 	import {
 		PRIORITY_OPTIONS_LIST,
 		STATUS_OPTIONS_LIST,
 		tasks,
+		type Task,
 	} from "#lib/tasks/mocks.ts";
-	import { resolve } from "$app/paths";
 	import ChevronDown from "~icons/lucide/chevron-down";
+	import FolderKanban from "~icons/lucide/folder-kanban";
 	import Moon from "~icons/lucide/moon";
+	import PanelLeftClose from "~icons/lucide/panel-left-close";
 	import Plus from "~icons/lucide/plus";
 	import Sun from "~icons/lucide/sun";
 	import Tag from "~icons/lucide/tag";
 	import X from "~icons/lucide/x";
 
 	let lightTheme = $state(false);
-	let projectsOpen = $state(false);
-	let activeProject = $state("");
-	let count = $state(0);
 	let status = $state("all");
 	let priority = $state("all");
 	let query = $state("");
-	let selected = $state(false);
+	let selected: Task | null = $state(null);
 	let filteredTasks = $state(tasks);
-
-	function toggleProjectsOpen() {
-		projectsOpen = !projectsOpen;
-	}
 
 	function toggleTheme() {
 		lightTheme = !lightTheme;
-	}
-
-	function setActiveProject(projectName: string) {
-		activeProject = activeProject === projectName ? "all" : projectName;
 	}
 
 	function setStatus(option: string) {
@@ -56,72 +42,7 @@
 </script>
 
 <main class={`app-shell ${lightTheme ? "theme-light" : ""}`}>
-	<aside class="sidebar">
-		<div class="brand">
-			<span>backlog</span>
-			<i>.</i>
-		</div>
-		<nav class="primary-nav" aria-label="Primary navigation">
-			<a class="nav-item active" href={resolve("/")}>
-				<ClipBoardList data-icon="inline-start" /> Tasks
-				<span class="nav-count">24</span>
-			</a>
-			<a class="nav-item" href={resolve("/kanban")}>
-				<FolderKanban data-icon="inline-start" /> Kanban
-				<span class="nav-count">4</span>
-			</a>
-			<button class="nav-item">
-				<BarChart3 data-icon="inline-start" /> Statistics
-				<span class="nav-alert">2</span>
-			</button>
-		</nav>
-		<div class="projects-heading">
-			<button
-				class="section-toggle"
-				onclick={() => toggleProjectsOpen}
-				aria-expanded={projectsOpen}
-			>
-				<ChevronDown
-					class={projectsOpen ? "" : "-rotate-90"}
-					data-icon="inline-start"
-				/>
-				Projects
-			</button>
-			<span>27 tasks</span>
-		</div>
-		{#if projectsOpen}
-			<div class="project-list">
-				<p class="project-hint">3 of 3 projects included — checked</p>
-				{#each [["billing-api", "9"], ["design-kit", "3"], ["shop-web", "15"]] as project (project[0])}
-					<button
-						onclick={() => setActiveProject(project[0])}
-						class={`project-item ${activeProject === project[0] ? "selected" : ""}`}
-					>
-						<span class="project-check">
-							<Check />
-						</span>
-						<span>{name}</span>
-						<span class="project-count">{count}</span>
-						<Trash2 class="delete-icon" />
-					</button>
-				{/each}
-			</div>
-		{/if}
-		<div class="sidebar-note">
-			<div>
-				<Inbox /> No code graph: 3 projects
-			</div>
-			<code>
-				code-review-graph build — check
-				<br />
-				candidates are less precise
-			</code>
-		</div>
-		<div class="language-switch">
-			<button>RU</button>
-			<button class="active">EN</button>
-		</div>
-	</aside>
+	<SideBar />
 
 	<section class={`workspace ${selected ? "with-detail compact-table" : ""}`}>
 		<header class="workspace-header">
@@ -203,6 +124,7 @@
 				</span>
 			</div>
 		</header>
-		<Table {filteredTasks} />
+		<Table {filteredTasks} bind:selected />
 	</section>
+	<Selected bind:selected />
 </main>

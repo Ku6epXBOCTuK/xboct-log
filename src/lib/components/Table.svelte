@@ -1,15 +1,14 @@
 <script lang="ts">
 	import type { Task } from "#lib/tasks/mocks.ts";
 	import SlidersHorizontal from "./SlidersHorizontal.svelte";
-	import StatusDot from "./StatusDot.svelte";
+	import StatusDot from "./ui/StatusDot.svelte";
 
 	interface Props {
 		filteredTasks: Task[];
+		selected: Task | null;
 	}
 
-	let { filteredTasks }: Props = $props();
-
-	let selected: Task | null = $state(null);
+	let { filteredTasks, selected = $bindable() }: Props = $props();
 
 	function setSelected(task: Task) {
 		selected = task;

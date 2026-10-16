@@ -1,3 +1,14 @@
+export interface Project {
+	name: string;
+	count: number;
+}
+
+export const PROJECTS = [
+	{ name: "billing-api", count: 9 },
+	{ name: "design-kit", count: 3 },
+	{ name: "shop-web", count: 15 },
+] as const satisfies Project[];
+
 export const STATUS_OPTIONS = {
 	BACKLOG: "backlog",
 	IN_PROGRESS: "in progress",

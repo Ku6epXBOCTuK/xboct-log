@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Task } from "#lib/tasks/mocks.ts";
 	import X from "~icons/lucide/x";
-	import StatusDot from "./StatusDot.svelte";
+	import StatusDot from "./ui/StatusDot.svelte";
 
 	interface Props {
 		selected: Task | null;
@@ -14,7 +14,7 @@
 	}
 </script>
 
-{#if selected}
+{#if selected !== null}
 	<aside class="detail-panel" aria-label="Task details">
 		<div class="detail-top">
 			<span class="epic-badge">{selected.id}</span>
