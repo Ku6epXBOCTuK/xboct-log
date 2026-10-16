@@ -21,7 +21,12 @@
 	const tasks = createTaskStore(loadedTasks);
 	const projects = createProjectStore(loadedProjects);
 	const filters = createFilters(page.url.searchParams.get("project") ?? "all");
-	const theme = createTheme();
+	const requestedTheme = page.url.searchParams.get("theme");
+	const theme = createTheme(
+		requestedTheme === "light" || requestedTheme === "dark"
+			? requestedTheme
+			: null,
+	);
 
 	let selected: Task | null = $state(null);
 	let creating = $state(false);
