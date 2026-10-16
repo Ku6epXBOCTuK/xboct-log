@@ -10,6 +10,16 @@ export type Status = (typeof STATUSES)[number];
 
 export const CLOSED_STATUSES: readonly Status[] = ["done", "cancelled"];
 
+export const CLOSED_REASONS = ["fixed", "obsolete", "duplicate"] as const;
+
+export type ClosedReason = (typeof CLOSED_REASONS)[number];
+
+export const STATUS_BY_REASON: Record<ClosedReason, Status> = {
+	fixed: "done",
+	obsolete: "cancelled",
+	duplicate: "cancelled",
+};
+
 export const PRIORITIES = ["low", "medium", "high", "critical"] as const;
 
 export type Priority = (typeof PRIORITIES)[number];
@@ -45,4 +55,5 @@ export interface Task {
 	created_at: string;
 	updated_at: string;
 	closed_at: string | null;
+	closed_reason: ClosedReason | null;
 }

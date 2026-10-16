@@ -10,8 +10,10 @@ import {
 	updateProject,
 } from "./projects";
 import {
+	closeTask,
 	countTasksByStatus,
 	createTask,
+	deleteTask,
 	getTask,
 	listTasks,
 	updateTask,
@@ -156,6 +158,48 @@ describe("tasks", () => {
 
 		const reopened = unwrap(updateTask(db, task.id, { status: "open" }));
 		expect(reopened.closed_at).toBeNull();
+	});
+
+	it("closes with a reason and clears it on reopen", () => {
+		const db = setup();
+		const task = unwrap(createTask(db, { project_id: "spa", title: "Ship" }));
+
+		const closed = unwrap(closeTask(db, task.id, "obsolete"));
+		expect(closed.status).toBe("cancelled");
+		expect(closed.closed_reason).toBe("obsolete");
+		expect(closed.closed_at).not.toBeNull();
+
+		const reopened = unwrap(updateTask(db, task.id, { status: "open" }));
+		expect(reopened.closed_at).toBeNull();
+		expect(reopened.closed_reason).toBeNull();
+	});
+
+	it("maps the fixed reason to done", () => {
+		const db = setup();
+		const task = unwrap(createTask(db, { project_id: "spa", title: "Ship" }));
+
+		expect(unwrap(closeTask(db, task.id, "fixed")).status).toBe("done");
+	});
+
+	it("returns not_found when closing a missing task", () => {
+		const db = setup();
+
+		expect(failure(closeTask(db, "SPA-9", "fixed")).kind).toBe("not_found");
+	});
+
+	it("deletes a task and detaches its epic children", () => {
+		const db = setup();
+		const epic = unwrap(
+			createTask(db, { project_id: "spa", title: "Revamp", is_epic: true }),
+		);
+		const child = unwrap(
+			createTask(db, { project_id: "spa", title: "Child", epic_id: epic.id }),
+		);
+
+		expect(unwrap(deleteTask(db, epic.id))).toBe(epic.id);
+		expect(getTask(db, epic.id)).toBeUndefined();
+		expect(getTask(db, child.id)?.epic_id).toBeNull();
+		expect(failure(deleteTask(db, epic.id)).kind).toBe("not_found");
 	});
 
 	it("rejects an epic from another project", () => {

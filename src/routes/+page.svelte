@@ -92,6 +92,13 @@
 		projects = sortProjects([...projects, project]);
 	}
 
+	function removeTask(id: string) {
+		tasks = tasks.filter((task) => task.id !== id);
+		if (epic === id) {
+			epic = "any";
+		}
+	}
+
 	function updateProjectInList(updated: Project) {
 		projects = sortProjects(
 			projects.map((project) =>
@@ -215,7 +222,12 @@
 			onepic={(id) => (epic = id)}
 		/>
 	</section>
-	<Selected bind:selected {epics} onchange={applyUpdate} />
+	<Selected
+		bind:selected
+		{epics}
+		onchange={applyUpdate}
+		ondelete={removeTask}
+	/>
 	<NewTask
 		bind:open={creating}
 		projects={activeProjects}

@@ -3,7 +3,7 @@ import { command, query } from "$app/server";
 import { z } from "zod";
 import { getDb } from "../server/db";
 import * as repo from "../server/tasks";
-import { PRIORITIES, STATUSES } from "../types";
+import { CLOSED_REASONS, PRIORITIES, STATUSES } from "../types";
 import { unwrap } from "./result";
 
 const taskFilters = z
@@ -66,4 +66,13 @@ export const createTask = command(newTask, (input) =>
 export const updateTask = command(
 	z.object({ id: z.string().min(1), patch: taskPatch }),
 	({ id, patch }) => unwrap(repo.updateTask(getDb(), id, patch)),
+);
+
+export const closeTask = command(
+	z.object({ id: z.string().min(1), reason: z.enum(CLOSED_REASONS) }),
+	({ id, reason }) => unwrap(repo.closeTask(getDb(), id, reason)),
+);
+
+export const deleteTask = command(z.string().min(1), (id) =>
+	unwrap(repo.deleteTask(getDb(), id)),
 );

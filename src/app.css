@@ -740,6 +740,35 @@ td {
 .detail-field {
 	margin-bottom: 15px;
 }
+.detail-actions {
+	display: flex;
+	align-items: flex-end;
+	gap: 10px;
+	margin-top: 18px;
+}
+.detail-actions .close-reason {
+	margin-right: auto;
+}
+.danger {
+	border: 1px solid rgba(255, 120, 104, 0.4);
+	background: transparent;
+	color: var(--accent);
+	border-radius: 5px;
+	padding: 8px 10px;
+	font-size: 12px;
+}
+.danger:hover {
+	background: rgba(255, 120, 104, 0.12);
+}
+.danger.armed {
+	background: var(--accent);
+	border-color: var(--accent);
+	color: #1b1716;
+	font-weight: 700;
+}
+.danger.armed:hover {
+	background: var(--accent);
+}
 .modal-panel {
 	width: 560px;
 	max-width: calc(100vw - 32px);

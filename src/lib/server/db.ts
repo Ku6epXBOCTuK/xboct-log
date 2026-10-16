@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS tasks (
 	created_at  TEXT NOT NULL,
 	updated_at  TEXT NOT NULL,
 	closed_at   TEXT,
+	closed_reason TEXT,
 	UNIQUE (project_id, number)
 );
 

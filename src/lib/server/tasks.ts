@@ -1,10 +1,13 @@
 import { err, type Result } from "neverthrow";
 import type { DatabaseSync } from "node:sqlite";
 import {
+	CLOSED_REASONS,
 	CLOSED_STATUSES,
 	PRIORITIES,
 	PRIORITY_RANK,
 	STATUSES,
+	STATUS_BY_REASON,
+	type ClosedReason,
 	type Priority,
 	type Status,
 	type Task,
@@ -28,6 +31,7 @@ interface TaskRow {
 	created_at: string;
 	updated_at: string;
 	closed_at: string | null;
+	closed_reason: string | null;
 }
 
 export interface NewTask {
@@ -86,11 +90,16 @@ function mapTask(row: TaskRow): Task {
 		created_at: row.created_at,
 		updated_at: row.updated_at,
 		closed_at: row.closed_at,
+		closed_reason: row.closed_reason as ClosedReason | null,
 	};
 }
 
 function isStatus(value: string): value is Status {
 	return (STATUSES as readonly string[]).includes(value);
+}
+
+function isClosedReason(value: string): value is ClosedReason {
+	return (CLOSED_REASONS as readonly string[]).includes(value);
 }
 
 function isPriority(value: string): value is Priority {
@@ -369,6 +378,8 @@ export function updateTask(
 		) {
 			sets.push("closed_at = ?");
 			params.push(null);
+			sets.push("closed_reason = ?");
+			params.push(null);
 		}
 	}
 	if (patch.priority !== undefined) {
@@ -426,5 +437,51 @@ export function updateTask(
 			id,
 		);
 		return taskById(db, id)!;
+	});
+}
+
+export function closeTask(
+	db: DatabaseSync,
+	id: string,
+	reason: ClosedReason,
+): Result<Task, BacklogError> {
+	if (!isClosedReason(reason)) {
+		return err(invalid(`invalid close reason: ${reason}`));
+	}
+	if (!getTask(db, id)) {
+		return err(notFound(`task ${id} not found`));
+	}
+
+	const now = new Date().toISOString();
+
+	return guard(() => {
+		db.prepare(
+			`UPDATE tasks
+			 SET status = ?, closed_at = ?, closed_reason = ?, updated_at = ?
+			 WHERE id = ?`,
+		).run(STATUS_BY_REASON[reason], now, reason, now, id);
+		return taskById(db, id)!;
+	});
+}
+
+export function deleteTask(
+	db: DatabaseSync,
+	id: string,
+): Result<string, BacklogError> {
+	if (!getTask(db, id)) {
+		return err(notFound(`task ${id} not found`));
+	}
+
+	return guard(() => {
+		db.exec("BEGIN IMMEDIATE");
+		try {
+			db.prepare("UPDATE tasks SET epic_id = NULL WHERE epic_id = ?").run(id);
+			db.prepare("DELETE FROM tasks WHERE id = ?").run(id);
+			db.exec("COMMIT");
+			return id;
+		} catch (error) {
+			db.exec("ROLLBACK");
+			throw error;
+		}
 	});
 }

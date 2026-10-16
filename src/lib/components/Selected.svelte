@@ -1,9 +1,16 @@
 <script lang="ts">
-	import { updateTask } from "#lib/remote/tasks.remote.ts";
+	import {
+		closeTask,
+		deleteTask,
+		updateTask,
+	} from "#lib/remote/tasks.remote.ts";
 	import { STATUS_LABELS, formatDate, messageOf } from "#lib/tasks/display.ts";
 	import {
+		CLOSED_REASONS,
 		PRIORITIES,
 		STATUSES,
+		STATUS_BY_REASON,
+		type ClosedReason,
 		type Priority,
 		type Status,
 		type Task,
@@ -30,12 +37,15 @@
 		selected: Task | null;
 		epics: Task[];
 		onchange?: (task: Task) => void;
+		ondelete?: (id: string) => void;
 	}
 
-	let { selected = $bindable(), epics, onchange }: Props = $props();
+	let { selected = $bindable(), epics, onchange, ondelete }: Props = $props();
 
 	let saving = $state(false);
 	let failure = $state<string | null>(null);
+	let closeReason = $state<ClosedReason>("fixed");
+	let confirmingDelete = $state(false);
 
 	const epicOptions = $derived(
 		selected === null
@@ -112,6 +122,47 @@
 	function saveDescription(event: Event) {
 		save({ description: (event.currentTarget as HTMLTextAreaElement).value });
 	}
+
+	async function closeSelected() {
+		if (selected === null) return;
+
+		const id = selected.id;
+		saving = true;
+		failure = null;
+
+		try {
+			const updated = await closeTask({ id, reason: closeReason });
+			if (selected?.id === id) selected = updated;
+			onchange?.(updated);
+		} catch (error) {
+			failure = messageOf(error);
+		} finally {
+			saving = false;
+		}
+	}
+
+	async function deleteSelected() {
+		if (selected === null) return;
+
+		const id = selected.id;
+		saving = true;
+		failure = null;
+
+		try {
+			await deleteTask(id);
+			confirmingDelete = false;
+			selected = null;
+			ondelete?.(id);
+		} catch (error) {
+			failure = messageOf(error);
+		} finally {
+			saving = false;
+		}
+	}
+
+	function reopen() {
+		save({ status: "open" });
+	}
 </script>
 
 {#if selected !== null}
@@ -186,6 +237,12 @@
 				/>
 			</label>
 		</div>
+		{#if selected.closed_at !== null}
+			<label class="detail-field">
+				Closed reason
+				<input value={selected.closed_reason ?? ""} readOnly />
+			</label>
+		{/if}
 		<label class="detail-field">
 			Epic
 			<select
@@ -236,6 +293,39 @@
 				onchange={saveDescription}
 				placeholder="Description"
 				aria-label="Description"></textarea>
+		</div>
+		<div class="detail-actions">
+			{#if selected.closed_at === null}
+				<label class="close-reason">
+					Close reason
+					<select bind:value={closeReason} aria-label="Close reason">
+						{#each CLOSED_REASONS as option (option)}
+							<option value={option}>
+								{option} → {STATUS_BY_REASON[option]}
+							</option>
+						{/each}
+					</select>
+				</label>
+				<button class="new-task" onclick={closeSelected} disabled={saving}>
+					Close
+				</button>
+			{:else}
+				<button class="icon-button" onclick={reopen} disabled={saving}>
+					Reopen
+				</button>
+			{/if}
+			{#if confirmingDelete}
+				<button class="danger armed" onclick={deleteSelected} disabled={saving}>
+					Confirm delete
+				</button>
+				<button class="icon-button" onclick={() => (confirmingDelete = false)}>
+					Cancel
+				</button>
+			{:else}
+				<button class="danger" onclick={() => (confirmingDelete = true)}>
+					Delete
+				</button>
+			{/if}
 		</div>
 	</aside>
 {/if}
