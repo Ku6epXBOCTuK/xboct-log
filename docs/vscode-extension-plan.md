@@ -180,9 +180,18 @@ default-src 'none'; frame-src http://127.0.0.1:45881; script-src 'nonce-<n>'; st
   `fetch("<serverUrl>/api/health", { signal: AbortSignal.timeout(1500) })`.
   Лежит → открываем панель с HTML-страницей «служба `xboct-log` не отвечает,
   запустите `nssm start xboct-log`» на переменных `--vscode-*`; поднят → iframe.
-- **`xboctLog.reload`** шлёт `{ type: "xboct-log:reload" }` в webview.
+- **Офлайн-страница умеет перепроверяться.** Кнопка «Проверить снова» и кнопка
+  Reload в заголовке вкладки шлют из webview `{ type: "xboct-log:retry" }`,
+  расширение повторяет health-запрос и перерисовывает `webview.html`. Без этого
+  был бы тупик: у офлайн-страницы нет моста к iframe, и Reload в заголовке
+  ничего бы не делал.
+- **`xboctLog.reload`** шлёт `{ type: "xboct-log:reload" }` в webview. На борде
+  это переустанавливает `iframe.src`, на офлайн-странице — перепроверка живости.
 - **`registerWebviewPanelSerializer`** восстанавливает вкладку после рестарта VS
   Code (парная настройка — `activationEvents: ["onWebviewPanel:xboctLog"]`).
+  Восстановленной панели нужно заново выставить
+  `webview.options = { enableScripts: true }`: при восстановлении опции не
+  переносятся, и без этого скрипт-мост не запустится.
 - **Статусбар** (опционально): элемент со счётчиком открытых задач. Требует
   обращения к данным, то есть REST API, — поэтому в базовый объём не входит.
 
