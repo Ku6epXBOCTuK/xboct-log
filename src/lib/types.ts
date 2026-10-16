@@ -31,6 +31,9 @@ export const PRIORITY_RANK: Record<Priority, number> = {
 	low: 3,
 };
 
+export const INBOX_PROJECT_ID = "inbox";
+export const INBOX_PROJECT_PREFIX = "INB";
+
 export interface Project {
 	id: string;
 	name: string;

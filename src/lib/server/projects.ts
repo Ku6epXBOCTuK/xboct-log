@@ -1,6 +1,6 @@
 import { err, ok, type Result } from "neverthrow";
 import type { DatabaseSync } from "node:sqlite";
-import type { Project } from "../types";
+import { INBOX_PROJECT_ID, INBOX_PROJECT_PREFIX, type Project } from "../types";
 import { AppError, conflict, guard, invalid, notFound } from "./errors";
 
 const ID_PATTERN = /^[a-z0-9][a-z0-9-]*$/i;
@@ -81,6 +81,35 @@ export function createProject(
 	});
 }
 
+export function ensureInbox(db: DatabaseSync): Project {
+	const existing = projectById(db, INBOX_PROJECT_ID);
+	if (existing) {
+		if (existing.archived_at !== null) {
+			db.prepare("UPDATE projects SET archived_at = NULL WHERE id = ?").run(
+				INBOX_PROJECT_ID,
+			);
+			return projectById(db, INBOX_PROJECT_ID)!;
+		}
+		return existing;
+	}
+
+	const clash = db
+		.prepare("SELECT id, name FROM projects WHERE prefix = ?")
+		.get(INBOX_PROJECT_PREFIX) as unknown as
+		{ id: string; name: string } | undefined;
+	if (clash) {
+		throw new Error(
+			`cannot create Inbox: prefix ${INBOX_PROJECT_PREFIX} is taken by project "${clash.name}" (${clash.id})`,
+		);
+	}
+
+	const createdAt = new Date().toISOString();
+	db.prepare(
+		"INSERT INTO projects (id, name, prefix, created_at) VALUES (?, ?, ?, ?)",
+	).run(INBOX_PROJECT_ID, "Inbox", INBOX_PROJECT_PREFIX, createdAt);
+	return projectById(db, INBOX_PROJECT_ID)!;
+}
+
 export function getProject(db: DatabaseSync, id: string): Project | undefined {
 	return projectById(db, id);
 }
@@ -107,6 +136,10 @@ export function updateProject(
 	const current = getProject(db, id);
 	if (!current) {
 		return err(notFound(`project ${id} not found`));
+	}
+
+	if (patch.archived === true && id === INBOX_PROJECT_ID) {
+		return err(invalid("inbox cannot be archived"));
 	}
 
 	const sets: string[] = [];
