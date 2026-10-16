@@ -2,7 +2,9 @@ import { err, ok, type Result } from "neverthrow";
 
 export type ErrorKind = "validation" | "not_found" | "conflict" | "unexpected";
 
-const STATUS_BY_KIND: Record<ErrorKind, number> = {
+export type ErrorStatus = 400 | 404 | 409 | 500;
+
+const STATUS_BY_KIND: Record<ErrorKind, ErrorStatus> = {
 	validation: 400,
 	not_found: 404,
 	conflict: 409,
@@ -11,7 +13,7 @@ const STATUS_BY_KIND: Record<ErrorKind, number> = {
 
 export class BacklogError extends Error {
 	readonly kind: ErrorKind;
-	readonly status: number;
+	readonly status: ErrorStatus;
 
 	constructor(kind: ErrorKind, message: string) {
 		super(message);
