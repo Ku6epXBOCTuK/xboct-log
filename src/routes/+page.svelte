@@ -16,6 +16,7 @@
 		type Status,
 		type Task,
 	} from "#lib/types.ts";
+	import Check from "~icons/lucide/check";
 	import ChevronDown from "~icons/lucide/chevron-down";
 	import FolderKanban from "~icons/lucide/folder-kanban";
 	import Moon from "~icons/lucide/moon";
@@ -38,8 +39,24 @@
 	let tasks = $state<Task[]>(loaded);
 	let projects = $state<Project[]>(loadedProjects);
 	let creating = $state(false);
+	let tagsOpen = $state(false);
+	let selectedTags = $state<string[]>([]);
+	let tagFilter = $state<HTMLElement | null>(null);
 
 	const tagCount = $derived(new Set(tasks.flatMap((task) => task.tags)).size);
+	const allTags = $derived.by(() => {
+		const counts = new Map<string, number>();
+
+		for (const task of tasks) {
+			for (const tag of task.tags) {
+				counts.set(tag, (counts.get(tag) ?? 0) + 1);
+			}
+		}
+
+		return [...counts.entries()]
+			.map(([tag, count]) => ({ tag, count }))
+			.sort((left, right) => left.tag.localeCompare(right.tag));
+	});
 	const epics = $derived(tasks.filter((task) => task.is_epic));
 	const activeProjects = $derived(
 		projects.filter((project) => project.archived_at === null),
@@ -56,6 +73,37 @@
 		return () => media.removeEventListener("change", sync);
 	});
 
+	$effect(() => {
+		if (!tagsOpen) return;
+
+		function onPointerDown(event: PointerEvent) {
+			if (tagFilter !== null && !tagFilter.contains(event.target as Node)) {
+				tagsOpen = false;
+			}
+		}
+
+		function onKeydown(event: KeyboardEvent) {
+			if (event.key === "Escape") tagsOpen = false;
+		}
+
+		document.addEventListener("pointerdown", onPointerDown);
+		document.addEventListener("keydown", onKeydown);
+		return () => {
+			document.removeEventListener("pointerdown", onPointerDown);
+			document.removeEventListener("keydown", onKeydown);
+		};
+	});
+
+	function toggleTag(tag: string) {
+		selectedTags = selectedTags.includes(tag)
+			? selectedTags.filter((item) => item !== tag)
+			: [...selectedTags, tag];
+	}
+
+	function clearTags() {
+		selectedTags = [];
+	}
+
 	function epicCount(epicId: string): number {
 		return tasks.filter((task) => task.epic_id === epicId).length;
 	}
@@ -68,6 +116,12 @@
 			if (priority !== "all" && task.priority !== priority) return false;
 			if (epic === "none" && task.epic_id !== null) return false;
 			if (epic !== "any" && epic !== "none" && task.epic_id !== epic) {
+				return false;
+			}
+			if (
+				selectedTags.length > 0 &&
+				!selectedTags.some((tag) => task.tags.includes(tag))
+			) {
 				return false;
 			}
 			if (needle === "") return true;
@@ -89,6 +143,7 @@
 		priority = "all";
 		epic = "any";
 		query = "";
+		selectedTags = [];
 	}
 
 	function applyUpdate(updated: Task) {
@@ -213,10 +268,53 @@
 					</select>
 					<ChevronDown />
 				</label>
-				<button class="select-filter">
-					<Tag /> Tags <strong>({tagCount})</strong>
-					<ChevronDown />
-				</button>
+				<div class="tag-filter" bind:this={tagFilter}>
+					<button
+						class="select-filter"
+						class:active={selectedTags.length > 0}
+						onclick={() => (tagsOpen = !tagsOpen)}
+						aria-haspopup="true"
+						aria-expanded={tagsOpen}
+					>
+						<Tag /> Tags
+						<strong>
+							({selectedTags.length > 0
+								? `${selectedTags.length}/${tagCount}`
+								: tagCount})
+						</strong>
+						<ChevronDown />
+					</button>
+					{#if tagsOpen}
+						<div class="tag-menu" role="menu">
+							{#if allTags.length === 0}
+								<p class="tag-menu-empty">No tags yet</p>
+							{:else}
+								{#each allTags as item (item.tag)}
+									<button
+										class="tag-option"
+										class:active={selectedTags.includes(item.tag)}
+										role="menuitemcheckbox"
+										aria-checked={selectedTags.includes(item.tag)}
+										onclick={() => toggleTag(item.tag)}
+									>
+										<span class="tag-option-check">
+											{#if selectedTags.includes(item.tag)}
+												<Check />
+											{/if}
+										</span>
+										<span class="tag-option-name">#{item.tag}</span>
+										<span class="tag-option-count">{item.count}</span>
+									</button>
+								{/each}
+								{#if selectedTags.length > 0}
+									<button class="tag-menu-clear" onclick={clearTags}>
+										Clear tags
+									</button>
+								{/if}
+							{/if}
+						</div>
+					{/if}
+				</div>
 				<span class="result-count">
 					{visibleTasks.length} visible / {tasks.length} total
 				</span>
