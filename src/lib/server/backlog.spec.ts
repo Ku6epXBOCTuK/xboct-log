@@ -79,6 +79,21 @@ describe("projects", () => {
 		expect(listProjects(db)).toHaveLength(0);
 		expect(listProjects(db, { includeArchived: true })).toHaveLength(1);
 	});
+
+	it("renames and restores a project", () => {
+		const db = setup();
+		expect(
+			unwrap(updateProject(db, "spa", { archived: true })).archived_at,
+		).not.toBeNull();
+
+		expect(
+			unwrap(updateProject(db, "spa", { name: " Storefront " })).name,
+		).toBe("Storefront");
+
+		const restored = unwrap(updateProject(db, "spa", { archived: false }));
+		expect(restored.archived_at).toBeNull();
+		expect(listProjects(db)).toHaveLength(1);
+	});
 });
 
 describe("tasks", () => {

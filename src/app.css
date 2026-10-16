@@ -176,6 +176,84 @@ button {
 	color: #858c92;
 	margin-left: 8px;
 }
+.project-row {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+}
+.project-row .project-item {
+	flex: 1;
+	min-width: 0;
+}
+.project-row.selected .project-item {
+	color: #f0f1f1;
+}
+.project-icon {
+	border: 0;
+	background: transparent;
+	color: #858c92;
+	border-radius: 4px;
+	padding: 6px;
+	display: grid;
+	place-items: center;
+}
+.project-icon:hover {
+	color: #e8eaeb;
+	background: #25292d;
+}
+.project-icon svg {
+	width: 15px;
+	height: 15px;
+}
+.project-icon .delete-icon {
+	margin-left: 0;
+}
+.project-rename {
+	width: 100%;
+	border: 1px solid #485057;
+	background: #1a1e21;
+	color: #e3e5e6;
+	border-radius: 5px;
+	padding: 7px 9px;
+	outline: none;
+	font-size: 14px;
+}
+.project-create {
+	display: flex;
+	flex-direction: column;
+	gap: 7px;
+	margin-bottom: 12px;
+}
+.project-create input {
+	width: 100%;
+	border: 1px solid #485057;
+	background: #1a1e21;
+	color: #e3e5e6;
+	border-radius: 5px;
+	padding: 7px 9px;
+	outline: none;
+	font-size: 12px;
+}
+.project-create-actions {
+	display: flex;
+	gap: 7px;
+}
+.project-error {
+	color: var(--accent);
+	font-size: 12px;
+	margin: 0 0 10px;
+}
+.project-archived-toggle {
+	border: 0;
+	background: transparent;
+	color: #81888e;
+	font-size: 12px;
+	text-align: left;
+	padding: 6px 0;
+}
+.project-archived-toggle:hover {
+	color: #e8eaeb;
+}
 .sidebar-note {
 	margin-top: auto;
 	color: #778087;

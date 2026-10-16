@@ -25,7 +25,7 @@
 	import Tag from "~icons/lucide/tag";
 	import X from "~icons/lucide/x";
 
-	const loadedProjects = await getProjects();
+	const loadedProjects = await getProjects({ includeArchived: true });
 	const loaded = await getTasks({ limit: 1000 });
 
 	let lightTheme = $state(false);
@@ -40,6 +40,9 @@
 
 	const tagCount = $derived(new Set(tasks.flatMap((task) => task.tags)).size);
 	const epics = $derived(tasks.filter((task) => task.is_epic));
+	const activeProjects = $derived(
+		projects.filter((project) => project.archived_at === null),
+	);
 
 	function epicCount(epicId: string): number {
 		return tasks.filter((task) => task.epic_id === epicId).length;
@@ -86,9 +89,19 @@
 	}
 
 	function addProject(project: Project) {
-		projects = [...projects, project].sort((left, right) =>
-			left.name.localeCompare(right.name),
+		projects = sortProjects([...projects, project]);
+	}
+
+	function updateProjectInList(updated: Project) {
+		projects = sortProjects(
+			projects.map((project) =>
+				project.id === updated.id ? updated : project,
+			),
 		);
+	}
+
+	function sortProjects(list: Project[]) {
+		return [...list].sort((left, right) => left.name.localeCompare(right.name));
 	}
 
 	function openNewTask() {
@@ -97,7 +110,12 @@
 </script>
 
 <main class={`app-shell ${lightTheme ? "theme-light" : ""}`}>
-	<SideBar {projects} {tasks} />
+	<SideBar
+		{projects}
+		{tasks}
+		onprojectcreated={addProject}
+		onprojectupdated={updateProjectInList}
+	/>
 
 	<section class={`workspace ${selected ? "with-detail compact-table" : ""}`}>
 		<header class="workspace-header">
@@ -200,7 +218,7 @@
 	<Selected bind:selected {epics} onchange={applyUpdate} />
 	<NewTask
 		bind:open={creating}
-		{projects}
+		projects={activeProjects}
 		{epics}
 		oncreated={addTask}
 		onprojectcreated={addProject}
