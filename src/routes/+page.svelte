@@ -150,6 +150,10 @@
 		tasks = tasks.map((task) => (task.id === updated.id ? updated : task));
 	}
 
+	function applyMove(oldId: string, task: Task) {
+		tasks = tasks.map((item) => (item.id === oldId ? task : item));
+	}
+
 	function addTask(task: Task) {
 		tasks = [task, ...tasks];
 		selected = task;
@@ -332,7 +336,9 @@
 	<Selected
 		bind:selected
 		{epics}
+		{projects}
 		onchange={applyUpdate}
+		onmove={applyMove}
 		ondelete={removeTask}
 	/>
 	<NewTask

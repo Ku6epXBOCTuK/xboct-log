@@ -2,6 +2,7 @@
 	import {
 		closeTask,
 		deleteTask,
+		moveTask,
 		updateTask,
 	} from "#lib/remote/tasks.remote.ts";
 	import { STATUS_LABELS, formatDate, messageOf } from "#lib/tasks/display.ts";
@@ -12,6 +13,7 @@
 		STATUS_BY_REASON,
 		type ClosedReason,
 		type Priority,
+		type Project,
 		type Status,
 		type Task,
 	} from "#lib/types.ts";
@@ -36,11 +38,20 @@
 	interface Props {
 		selected: Task | null;
 		epics: Task[];
+		projects: Project[];
 		onchange?: (task: Task) => void;
+		onmove?: (oldId: string, task: Task) => void;
 		ondelete?: (id: string) => void;
 	}
 
-	let { selected = $bindable(), epics, onchange, ondelete }: Props = $props();
+	let {
+		selected = $bindable(),
+		epics,
+		projects,
+		onchange,
+		onmove,
+		ondelete,
+	}: Props = $props();
 
 	let saving = $state(false);
 	let failure = $state<string | null>(null);
@@ -121,6 +132,27 @@
 
 	function saveDescription(event: Event) {
 		save({ description: (event.currentTarget as HTMLTextAreaElement).value });
+	}
+
+	async function moveTo(event: Event) {
+		if (selected === null) return;
+
+		const projectId = (event.currentTarget as HTMLSelectElement).value;
+		if (projectId === selected.project_id) return;
+
+		const oldId = selected.id;
+		saving = true;
+		failure = null;
+
+		try {
+			const moved = await moveTask({ id: oldId, project_id: projectId });
+			if (selected?.id === oldId) selected = moved;
+			onmove?.(oldId, moved);
+		} catch (error) {
+			failure = messageOf(error);
+		} finally {
+			saving = false;
+		}
 	}
 
 	async function closeSelected() {
@@ -240,6 +272,18 @@
 				<input value={selected.closed_reason ?? ""} readOnly />
 			</label>
 		{/if}
+		<label class="detail-field">
+			Project
+			<select
+				value={selected.project_id}
+				onchange={moveTo}
+				aria-label="Project"
+			>
+				{#each projects as project (project.id)}
+					<option value={project.id}>{project.name}</option>
+				{/each}
+			</select>
+		</label>
 		<label class="detail-field">
 			Epic
 			<select

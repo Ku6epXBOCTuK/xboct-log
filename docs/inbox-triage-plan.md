@@ -115,9 +115,9 @@ Inbox, появляется перенос задачи между проект�
 
 ### Шаг 4. Перенос из карточки задачи (45 мин)
 
-1. `src/lib/components/Selected.svelte` — селект `Project`, новый проп
-   `projects`. По `change` вызывается `moveTask`, `selected` заменяется
-   перенесённой задачей, вызывается `onchange`.
+1. `src/lib/components/Selected.svelte` — селект `Project`, новые пропы
+   `projects` и `onmove(oldId, task)`. По `change` вызывается `moveTask`,
+   `selected` заменяется перенесённой задачей, вызывается `onmove`.
 2. `src/routes/+page.svelte` — `applyUpdate` ищет задачу по `id` (строка 150,
    `task.id === updated.id`), а при переносе `id` меняется, поэтому старая
    запись останется, а новая не появится. Добавить отдельный проп
