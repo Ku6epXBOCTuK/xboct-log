@@ -1,0 +1,48 @@
+export const STATUSES = [
+	"open",
+	"in-progress",
+	"blocked",
+	"done",
+	"cancelled",
+] as const;
+
+export type Status = (typeof STATUSES)[number];
+
+export const CLOSED_STATUSES: readonly Status[] = ["done", "cancelled"];
+
+export const PRIORITIES = ["low", "medium", "high", "critical"] as const;
+
+export type Priority = (typeof PRIORITIES)[number];
+
+export const PRIORITY_RANK: Record<Priority, number> = {
+	critical: 0,
+	high: 1,
+	medium: 2,
+	low: 3,
+};
+
+export interface Project {
+	id: string;
+	name: string;
+	prefix: string;
+	created_at: string;
+	archived_at: string | null;
+}
+
+export interface Task {
+	id: string;
+	project_id: string;
+	number: number;
+	title: string;
+	description: string;
+	status: Status;
+	priority: Priority;
+	is_epic: boolean;
+	epic_id: string | null;
+	source_file: string | null;
+	source_line: number | null;
+	tags: string[];
+	created_at: string;
+	updated_at: string;
+	closed_at: string | null;
+}

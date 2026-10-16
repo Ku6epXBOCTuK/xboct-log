@@ -1,4 +1,4 @@
-import adapter from "@sveltejs/adapter-static";
+import adapter from "@sveltejs/adapter-node";
 import { sveltekit } from "@sveltejs/kit/vite";
 import Icons from "unplugin-icons/vite";
 import { defineConfig } from "vitest/config";
