@@ -47,6 +47,13 @@
 он. Node резолвит их из `app/node_modules`, поднимаясь от
 `app/build/server/chunks/*.js` вверх.
 
+Подтверждено на живой сборке `origin/main`: внешние импорты в `build/server/**`
+— ровно `neverthrow` и `zod`. Чтобы `pnpm install --prod` поставил **только**
+их, `@iconify-json/lucide` и `unplugin-icons` должны лежать в `devDependencies`
+(они нужны лишь на сборке). Иначе прод тянет 4 топ-пакета и ~210 всего. Правка
+внесена (`chore: update deps`); на прод она попадает только после пуша в
+`origin/main`.
+
 ---
 
 ## Шаг 1. Прод-рантайм-папка
@@ -103,13 +110,25 @@ $app  = "$env:USERPROFILE\.xboct-log\app"
 
 nssm install xboct-log $node "$app\start.mjs"
 nssm set xboct-log AppDirectory $app
+nssm set xboct-log AppEnvironmentExtra "XBOCT_LOG_DB=$env:USERPROFILE\.xboct-log\xboct-log.db"
 nssm set xboct-log AppStdout    "$app\logs\out.log"
 nssm set xboct-log AppStderr    "$app\logs\err.log"
 nssm set xboct-log AppRotateFiles 1
 nssm set xboct-log AppRotateBytes 1048576
 nssm set xboct-log Start SERVICE_AUTO_START
-nssm start xboct-log
 ```
+
+`AppEnvironmentExtra` обязателен: служба под nssm стартует как `LocalSystem`, а
+под ним `homedir()` в Node = `C:\Windows\system32\config\systemprofile`. Без
+явного `XBOCT_LOG_DB` бэклог ушёл бы в системный профиль. С выставленной
+переменной `??=` в launcher её не перезапишет, а `backups` выведется из
+`dirname(db)`.
+
+`nssm start xboct-log` — **не** здесь, а после первого деплоя (шаг 4): пока
+`app\build` пуст, служба уйдёт в crash-loop.
+
+Установка nssm: `choco install nssm -y` (манифест scoop битый — тянет мёртвый
+`nssm.cc/ci/*`).
 
 Проверка и перезапуск: `nssm status xboct-log`, `nssm restart xboct-log`.
 
@@ -159,6 +178,24 @@ finally {
 Порядок важен: `pnpm install --prod` идёт **до** остановки службы (простой
 только на время `robocopy` + рестарт). `robocopy` возвращает коды `0..7` как
 успех — ошибкой считается `>= 8`.
+
+Скрипт запускается из **elevated** PowerShell: `nssm stop`/`nssm start` без прав
+администратора не работают.
+
+### Отличия фактической реализации
+
+Полный скрипт — `scripts/deploy.ps1`. К наброску выше добавлено:
+
+- guard: запуск только из elevated PowerShell;
+- свип `%TEMP%\xboct-log-build-*` на старте;
+- проверка `build\index.js` до `robocopy` (не перетирать прод пустым билдом);
+- best-effort уборка worktree с ретраями;
+- ожидание `SERVICE_RUNNING` после `nssm start`.
+
+`git worktree remove --force` может не удалить каталог: native-модуль
+(`rolldown-binding.*.node`) на время держит фильтр файловой системы. Регистрация
+worktree при этом снимается корректно (`git worktree list` чист), а каталог
+подчищает свип при следующем deploy.
 
 Почему так безопасно: прод читает `~/.xboct-log/app/build`, а `pnpm build` в
 рабочей папке пишет в `backlog\build`. Случайная сборка физически не попадает на
@@ -234,7 +271,6 @@ child.on("exit", (code) => process.exit(code ?? 0));
 ## Шаг 6. Скрипты в `package.json`
 
 ```json
-"start": "node scripts/start-prod.mjs",
 "deploy": "powershell -ExecutionPolicy Bypass -File scripts/deploy.ps1",
 "dev": "node scripts/dev.mjs",
 "dev:vite": "vite dev",
@@ -244,12 +280,21 @@ child.on("exit", (code) => process.exit(code ?? 0));
 `dev` заменяется на launcher, чтобы dev **по умолчанию** шёл на клон и не трогал
 прод. `dev:vite` остаётся для сырого запуска без изоляции.
 
+Скрипт `start` не заводим: prod поднимает NSSM (`nssm start xboct-log`), а файл
+launcher'а в проде называется `start.mjs` (deploy копирует
+`scripts/start-prod.mjs` в `app\start.mjs`), так что одноимённому npm-скрипту
+нет применения.
+
+Запускать деплой — через `pnpm run deploy`, а **не** `pnpm deploy`: `deploy` —
+встроенная команда pnpm, она перехватывает имя и падает с
+`ERR_PNPM_INVALID_DEPLOY_TARGET`.
+
 ## Шаг 7. Проверка
 
 1. `pnpm dev:clone` — появился `dev.db`.
 2. `pnpm dev` — открывается `http://localhost:5173`, в каталоге
    `~/.xboct-log\backups` ничего не меняется.
-3. `pnpm deploy` — `nssm status xboct-log` = `SERVICE_RUNNING`,
+3. `pnpm run deploy` — `nssm status xboct-log` = `SERVICE_RUNNING`,
    `app\version.txt` содержит свежий хэш.
 4. `http://localhost:45881` — прод открывается; с другой машины в сети — по
    `http://<IP>:45881`.
@@ -275,6 +320,15 @@ child.on("exit", (code) => process.exit(code ?? 0));
 - **Node ≥ 22.5** из-за `node:sqlite` (на машине стоит 24.13.0).
 - **Простой при деплое** = время `robocopy` + рестарт, порядка 2–3 секунд.
 - **`ORIGIN`** нужен только если появится реверс-прокси.
+- **Deploy требует admin.** `nssm stop`/`nssm start` — только из elevated
+  PowerShell.
+- **Temp-worktree и блокировка файлов.** `git worktree remove --force` иногда не
+  может удалить каталог сборки; в `%TEMP%` остаётся мусор, который подчищает
+  свип на старте следующего deploy. Регистрация worktree не течёт.
+- **Прод-`node_modules`.** Прод ставит ровно `neverthrow` + `zod`, только если
+  `@iconify-json/lucide` и `unplugin-icons` в `devDependencies` **и** эта правка
+  есть в `origin/main`. Пока не запушено — deploy вернёт в app полный
+  `package.json` и ~210 пакетов.
 
 ## Отложено: prod на Bun
 
