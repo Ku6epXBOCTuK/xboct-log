@@ -177,9 +177,6 @@
 				<X />
 			</button>
 		</div>
-		<p class="detail-kicker">
-			TASK DETAIL / {selected.project_id.toUpperCase()}
-		</p>
 		<input
 			class="title-input"
 			value={selected.title}
@@ -295,37 +292,48 @@
 				aria-label="Description"></textarea>
 		</div>
 		<div class="detail-actions">
-			{#if selected.closed_at === null}
-				<label class="close-reason">
-					Close reason
-					<select bind:value={closeReason} aria-label="Close reason">
-						{#each CLOSED_REASONS as option (option)}
-							<option value={option}>
-								{option} → {STATUS_BY_REASON[option]}
-							</option>
-						{/each}
-					</select>
-				</label>
-				<button class="new-task" onclick={closeSelected} disabled={saving}>
-					Close
-				</button>
-			{:else}
-				<button class="icon-button" onclick={reopen} disabled={saving}>
-					Reopen
-				</button>
-			{/if}
-			{#if confirmingDelete}
-				<button class="danger armed" onclick={deleteSelected} disabled={saving}>
-					Confirm delete
-				</button>
-				<button class="icon-button" onclick={() => (confirmingDelete = false)}>
-					Cancel
-				</button>
-			{:else}
-				<button class="danger" onclick={() => (confirmingDelete = true)}>
-					Delete
-				</button>
-			{/if}
+			<div class="action-group">
+				{#if selected.closed_at === null}
+					<label class="close-reason">
+						Close reason
+						<select bind:value={closeReason} aria-label="Close reason">
+							{#each CLOSED_REASONS as option (option)}
+								<option value={option}>
+									{option} → {STATUS_BY_REASON[option]}
+								</option>
+							{/each}
+						</select>
+					</label>
+					<button class="new-task" onclick={closeSelected} disabled={saving}>
+						Close
+					</button>
+				{:else}
+					<button class="icon-button" onclick={reopen} disabled={saving}>
+						Reopen
+					</button>
+				{/if}
+			</div>
+			<div class="action-group">
+				{#if confirmingDelete}
+					<button
+						class="icon-button"
+						onclick={() => (confirmingDelete = false)}
+					>
+						Cancel
+					</button>
+					<button
+						class="danger armed"
+						onclick={deleteSelected}
+						disabled={saving}
+					>
+						Confirm delete
+					</button>
+				{:else}
+					<button class="danger" onclick={() => (confirmingDelete = true)}>
+						Delete
+					</button>
+				{/if}
+			</div>
 		</div>
 	</aside>
 {/if}

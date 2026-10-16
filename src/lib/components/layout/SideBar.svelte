@@ -170,7 +170,7 @@
 			/>
 			Projects
 		</button>
-		<span>{tasks.length} tasks</span>
+		<span>{tasks.length} {tasks.length === 1 ? "task" : "tasks"}</span>
 		<button
 			class="project-icon"
 			onclick={toggleCreateProject}

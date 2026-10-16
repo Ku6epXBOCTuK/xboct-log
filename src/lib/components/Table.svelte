@@ -43,9 +43,7 @@
 				<th class="optional-column">Tags</th>
 				<th>Status</th>
 				<th class="optional-column">Priority</th>
-				<th class="date-col optional-column">
-					Created <span>↓</span>
-				</th>
+				<th class="date-col optional-column">Created</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -56,9 +54,6 @@
 				>
 					<td class="task-id">{task.id}</td>
 					<td class="task-title">
-						<span class="new-badge">
-							{task.status === "open" ? "new" : "active"}
-						</span>
 						{task.title}
 						{#if task.epic_id !== null}
 							<button

@@ -28,7 +28,8 @@
 	const loadedProjects = await getProjects({ includeArchived: true });
 	const loaded = await getTasks({ limit: 1000 });
 
-	let lightTheme = $state(false);
+	let override = $state<"light" | "dark" | null>(null);
+	let systemLight = $state(false);
 	let status = $state<Status | "all">("all");
 	let priority = $state<Priority | "all">("all");
 	let epic = $state("any");
@@ -43,6 +44,17 @@
 	const activeProjects = $derived(
 		projects.filter((project) => project.archived_at === null),
 	);
+	const appearance = $derived(override ?? (systemLight ? "light" : "dark"));
+	const themeClass = $derived(override === null ? "" : `theme-${override}`);
+
+	$effect(() => {
+		const media = window.matchMedia("(prefers-color-scheme: light)");
+		const sync = () => (systemLight = media.matches);
+
+		sync();
+		media.addEventListener("change", sync);
+		return () => media.removeEventListener("change", sync);
+	});
 
 	function epicCount(epicId: string): number {
 		return tasks.filter((task) => task.epic_id === epicId).length;
@@ -69,7 +81,7 @@
 	});
 
 	function toggleTheme() {
-		lightTheme = !lightTheme;
+		override = appearance === "light" ? "dark" : "light";
 	}
 
 	function clearFilters() {
@@ -116,7 +128,7 @@
 	}
 </script>
 
-<main class={`app-shell ${lightTheme ? "theme-light" : ""}`}>
+<main class={`app-shell ${themeClass}`}>
 	<SideBar
 		{projects}
 		{tasks}
@@ -127,19 +139,16 @@
 	<section class={`workspace ${selected ? "with-detail compact-table" : ""}`}>
 		<header class="workspace-header">
 			<div class="title-row">
-				<div>
-					<p class="eyebrow">WORKSPACE / TASKS</p>
-					<h1>Projects</h1>
-				</div>
+				<h1>Projects</h1>
 				<div class="header-actions">
 					<button
 						class="icon-button"
 						onclick={toggleTheme}
-						aria-label={lightTheme
+						aria-label={appearance === "light"
 							? "Switch to dark theme"
 							: "Switch to light theme"}
 					>
-						{#if lightTheme}
+						{#if appearance === "light"}
 							<Moon />
 						{:else}
 							<Sun />
@@ -164,7 +173,7 @@
 			</div>
 			<div class="filter-row">
 				<div class="filter-group">
-					<span class="filter-label">STATUS</span>
+					<span class="filter-label">Status</span>
 					{#each STATUSES as option (option)}
 						<button
 							onclick={() => (status = status === option ? "all" : option)}
@@ -176,7 +185,7 @@
 					{/each}
 				</div>
 				<div class="filter-group priority-group">
-					<span class="filter-label">PRIORITY</span>
+					<span class="filter-label">Priority</span>
 					{#each PRIORITIES as option (option)}
 						<button
 							onclick={() => (priority = priority === option ? "all" : option)}
