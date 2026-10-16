@@ -83,3 +83,95 @@
 		</div>
 	{/if}
 </div>
+
+<style>
+	.tag-filter {
+		position: relative;
+	}
+
+	.tag-menu {
+		position: absolute;
+		top: calc(100% + var(--space-1));
+		left: 0;
+		z-index: 20;
+		min-width: 13rem;
+		max-height: 16rem;
+		overflow-y: auto;
+		display: flex;
+		flex-direction: column;
+		padding: var(--space-1);
+		border: 1px solid var(--border-strong);
+		border-radius: var(--radius);
+		background: var(--panel);
+		box-shadow: 0 0.625rem 1.5rem rgb(0 0 0 / 0.35);
+	}
+
+	.tag-option {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		padding: var(--space-2);
+		border: 0;
+		border-radius: var(--radius-sm);
+		background: transparent;
+		color: var(--text-secondary);
+		font-size: var(--text-sm);
+		text-align: left;
+	}
+
+	.tag-option:hover {
+		background: var(--hover);
+		color: var(--foreground);
+	}
+
+	.tag-option.active {
+		color: var(--foreground);
+	}
+
+	.tag-option-check {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 1rem;
+		height: 1rem;
+		flex: none;
+		color: var(--accent);
+	}
+
+	.tag-option-check :global(svg) {
+		width: 1rem;
+		height: 1rem;
+	}
+
+	.tag-option-name {
+		flex: 1 1 auto;
+	}
+
+	.tag-option-count {
+		color: var(--text-muted);
+		font-size: var(--text-xs);
+		font-variant-numeric: tabular-nums;
+	}
+
+	.tag-menu-empty {
+		margin: 0;
+		padding: var(--space-2);
+		color: var(--text-muted);
+		font-size: var(--text-sm);
+	}
+
+	.tag-menu-clear {
+		margin-top: var(--space-1);
+		padding: var(--space-2);
+		border: 0;
+		border-top: 1px solid var(--border);
+		border-radius: 0;
+		background: transparent;
+		color: var(--text-muted);
+		font-size: var(--text-sm);
+	}
+
+	.tag-menu-clear:hover {
+		color: var(--foreground);
+	}
+</style>

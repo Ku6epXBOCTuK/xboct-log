@@ -143,3 +143,77 @@
 		placeholder="Description"
 		aria-label="Description"></textarea>
 </div>
+
+<style>
+	label {
+		color: var(--text-muted);
+		font-size: var(--text-xs);
+		font-weight: 600;
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+		min-width: 0;
+	}
+
+	input,
+	select {
+		width: 100%;
+		border: 1px solid var(--border-strong);
+		background: var(--field);
+		color: var(--foreground);
+		border-radius: var(--radius);
+		padding: var(--space-2) var(--space-3);
+		min-height: var(--control-h);
+		outline: none;
+		font-size: var(--text-md);
+		font-weight: 400;
+	}
+
+	textarea {
+		width: 100%;
+		border: 1px solid var(--border-strong);
+		background: var(--field);
+		color: var(--foreground);
+		border-radius: var(--radius);
+		padding: var(--space-3);
+		outline: none;
+		font-size: var(--text-md);
+		font-weight: 400;
+		resize: vertical;
+		min-height: 8rem;
+		line-height: 1.55;
+	}
+
+	input:read-only {
+		background: var(--hover);
+		border-color: var(--border);
+		color: var(--text-secondary);
+	}
+
+	input:focus,
+	select:focus,
+	textarea:focus {
+		border-color: var(--accent);
+	}
+
+	.progress-meta {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		margin: var(--space-5) 0 var(--space-3);
+		color: var(--text-secondary);
+		font-size: var(--text-xs);
+	}
+
+	.muted {
+		color: var(--text-muted);
+		margin-left: auto;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.description {
+		margin: 0 0 var(--space-4);
+		color: var(--text-secondary);
+		font-size: var(--text-md);
+	}
+</style>

@@ -59,3 +59,39 @@
 		</button>
 	</div>
 </form>
+
+<style>
+	.project-create {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+		margin-bottom: var(--space-3);
+	}
+
+	.project-create input {
+		width: 100%;
+		border: 1px solid var(--border-strong);
+		background: var(--field);
+		color: var(--foreground);
+		border-radius: var(--radius);
+		padding: var(--space-2) var(--space-3);
+		min-height: var(--control-h);
+		outline: none;
+		font-size: var(--text-md);
+	}
+
+	.project-create input:focus {
+		border-color: var(--accent);
+		box-shadow: inset 0 0 0 1px var(--accent);
+	}
+
+	.project-create-actions {
+		display: flex;
+		gap: var(--space-2);
+	}
+
+	.project-create-actions button {
+		flex: 1;
+		justify-content: center;
+	}
+</style>

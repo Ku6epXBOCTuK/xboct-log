@@ -37,3 +37,35 @@
 		</button>
 	</div>
 </div>
+
+<style>
+	.title-row {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: var(--space-4);
+		margin-bottom: var(--space-5);
+	}
+
+	.title-row h1 {
+		margin: 0;
+		font-size: var(--text-2xl);
+		line-height: 1.1;
+		letter-spacing: -0.02em;
+	}
+
+	.header-actions {
+		display: flex;
+		gap: var(--space-2);
+	}
+
+	@media (max-width: 560px) {
+		.title-row h1 {
+			font-size: var(--text-xl);
+		}
+
+		.header-actions .icon-button {
+			display: none;
+		}
+	}
+</style>

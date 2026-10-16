@@ -207,3 +207,74 @@
 		</button>
 	</div>
 </form>
+
+<style>
+	label {
+		color: var(--text-muted);
+		font-size: var(--text-xs);
+		font-weight: 600;
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+		min-width: 0;
+	}
+
+	input,
+	select {
+		width: 100%;
+		border: 1px solid var(--border-strong);
+		background: var(--field);
+		color: var(--foreground);
+		border-radius: var(--radius);
+		padding: var(--space-2) var(--space-3);
+		min-height: var(--control-h);
+		outline: none;
+		font-size: var(--text-md);
+		font-weight: 400;
+	}
+
+	textarea {
+		width: 100%;
+		border: 1px solid var(--border-strong);
+		background: var(--field);
+		color: var(--foreground);
+		border-radius: var(--radius);
+		padding: var(--space-3);
+		outline: none;
+		font-size: var(--text-md);
+		font-weight: 400;
+		resize: vertical;
+		min-height: 8rem;
+		line-height: 1.55;
+	}
+
+	input:focus,
+	select:focus,
+	textarea:focus {
+		border-color: var(--accent);
+	}
+
+	.modal-actions {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		margin-top: var(--space-5);
+	}
+
+	.modal-check {
+		flex-direction: row;
+		align-items: center;
+		gap: var(--space-2);
+		margin-right: auto;
+		color: var(--text-secondary);
+		font-size: var(--text-sm);
+		font-weight: 400;
+	}
+
+	.modal-check input {
+		width: auto;
+		min-height: 0;
+		margin: 0;
+		accent-color: var(--accent);
+	}
+</style>

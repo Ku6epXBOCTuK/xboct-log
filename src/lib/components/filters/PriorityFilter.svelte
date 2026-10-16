@@ -20,3 +20,19 @@
 		</button>
 	{/each}
 </div>
+
+<style>
+	.priority-critical {
+		color: var(--accent-ink);
+	}
+
+	.priority-high {
+		color: var(--priority-high);
+	}
+
+	@media (max-width: 820px) {
+		.priority-group {
+			display: none;
+		}
+	}
+</style>

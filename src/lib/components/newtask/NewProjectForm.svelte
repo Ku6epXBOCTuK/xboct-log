@@ -65,3 +65,38 @@
 <button class="icon-button" type="button" onclick={submit} disabled={creating}>
 	{creating ? "creating…" : "Create project"}
 </button>
+
+<style>
+	label {
+		color: var(--text-muted);
+		font-size: var(--text-xs);
+		font-weight: 600;
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+		min-width: 0;
+	}
+
+	input {
+		width: 100%;
+		border: 1px solid var(--border-strong);
+		background: var(--field);
+		color: var(--foreground);
+		border-radius: var(--radius);
+		padding: var(--space-2) var(--space-3);
+		min-height: var(--control-h);
+		outline: none;
+		font-size: var(--text-md);
+		font-weight: 400;
+	}
+
+	input:focus {
+		border-color: var(--accent);
+	}
+
+	.modal-hint {
+		margin: 0 0 var(--space-4);
+		color: var(--text-secondary);
+		font-size: var(--text-sm);
+	}
+</style>

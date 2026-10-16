@@ -44,3 +44,23 @@
 		countEpic={(epicId) => countTasksInEpic(tasks.tasks, epicId)}
 	/>
 </header>
+
+<style>
+	.workspace-header {
+		flex: none;
+		padding: var(--space-6) var(--space-6) var(--space-5);
+		border-bottom: 1px solid var(--border);
+	}
+
+	@media (max-width: 1100px) {
+		.workspace-header {
+			padding-inline: var(--space-5);
+		}
+	}
+
+	@media (max-width: 560px) {
+		.workspace-header {
+			padding: var(--space-5) var(--space-3) var(--space-4);
+		}
+	}
+</style>

@@ -20,3 +20,40 @@
 		<button onclick={onnew}>New task</button>
 	</div>
 </div>
+
+<style>
+	.empty-state {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: var(--space-3);
+		padding: var(--space-12) var(--space-6);
+		color: var(--text-muted);
+		text-align: center;
+	}
+
+	.empty-state :global(svg) {
+		width: 1.5rem;
+		height: 1.5rem;
+	}
+
+	.empty-state button {
+		background: transparent;
+		border: 1px solid var(--border-strong);
+		color: var(--text-secondary);
+		padding: 0 var(--space-3);
+		min-height: var(--control-h);
+		border-radius: var(--radius);
+		font-size: var(--text-sm);
+	}
+
+	.empty-state button:hover {
+		background: var(--hover);
+		color: var(--foreground);
+	}
+
+	.empty-actions {
+		display: flex;
+		gap: var(--space-2);
+	}
+</style>

@@ -35,3 +35,47 @@
 		{visibleCount} visible / {total} total
 	</span>
 </div>
+
+<style>
+	.meta-row {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		margin-top: var(--space-3);
+	}
+
+	.result-count {
+		margin-left: auto;
+		color: var(--text-muted);
+		font-size: var(--text-xs);
+		font-variant-numeric: tabular-nums;
+	}
+
+	@media (max-width: 560px) {
+		.meta-row {
+			flex-wrap: wrap;
+			overflow: visible;
+			row-gap: var(--space-2);
+		}
+
+		.meta-row :global(.select-filter) {
+			max-width: 100%;
+			min-width: 0;
+		}
+
+		.meta-row :global(.tag-filter) {
+			flex: 1 1 100%;
+		}
+
+		.meta-row :global(.tag-menu) {
+			left: 0;
+			right: 0;
+			min-width: 0;
+			width: auto;
+		}
+
+		.result-count {
+			display: none;
+		}
+	}
+</style>

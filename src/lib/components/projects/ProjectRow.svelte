@@ -76,3 +76,112 @@
 		{/if}
 	</div>
 {/if}
+
+<style>
+	.project-row {
+		display: flex;
+		align-items: center;
+		gap: var(--space-1);
+	}
+
+	.project-row .project-item {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.project-row.selected .project-item {
+		color: var(--foreground);
+	}
+
+	.project-item {
+		border: 0;
+		background: transparent;
+		color: var(--text-secondary);
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		width: 100%;
+		padding: var(--space-2);
+		text-align: left;
+		font-size: var(--text-sm);
+		border-radius: var(--radius-sm);
+	}
+
+	.project-item:hover,
+	.project-item.selected {
+		color: var(--foreground);
+	}
+
+	.project-item:hover {
+		background: var(--hover);
+	}
+
+	.project-item > span:not(.project-check):not(.project-count) {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.project-check {
+		width: 1rem;
+		height: 1rem;
+		display: grid;
+		place-items: center;
+		border-radius: var(--radius-sm);
+		background: var(--accent);
+		color: var(--on-accent);
+		flex: none;
+	}
+
+	.project-check :global(svg) {
+		width: 0.75rem;
+		height: 0.75rem;
+		stroke-width: 3;
+	}
+
+	.project-count {
+		margin-left: auto;
+		color: var(--text-muted);
+		font-size: var(--text-xs);
+		font-variant-numeric: tabular-nums;
+	}
+
+	.project-icon {
+		border: 0;
+		background: transparent;
+		color: var(--text-muted);
+		border-radius: var(--radius-sm);
+		width: var(--control-h-sm);
+		height: var(--control-h-sm);
+		flex: none;
+		display: grid;
+		place-items: center;
+	}
+
+	.project-icon:hover {
+		color: var(--foreground);
+		background: var(--hover);
+	}
+
+	.project-icon :global(svg) {
+		width: 1rem;
+		height: 1rem;
+	}
+
+	.project-rename {
+		width: 100%;
+		border: 1px solid var(--border-strong);
+		background: var(--field);
+		color: var(--foreground);
+		border-radius: var(--radius);
+		padding: var(--space-2) var(--space-3);
+		min-height: var(--control-h);
+		outline: none;
+		font-size: var(--text-md);
+	}
+
+	.project-rename:focus {
+		border-color: var(--accent);
+		box-shadow: inset 0 0 0 1px var(--accent);
+	}
+</style>

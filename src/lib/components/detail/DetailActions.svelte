@@ -60,3 +60,63 @@
 		{/if}
 	</div>
 </div>
+
+<style>
+	label {
+		color: var(--text-muted);
+		font-size: var(--text-xs);
+		font-weight: 600;
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+		min-width: 0;
+	}
+
+	.detail-actions {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-3);
+		margin-top: var(--space-5);
+	}
+
+	.action-group {
+		display: flex;
+		align-items: flex-end;
+		gap: var(--space-2);
+		min-width: 0;
+	}
+
+	.action-group:last-child {
+		justify-content: flex-end;
+	}
+
+	.close-reason {
+		flex: 1 1 auto;
+		min-width: 0;
+	}
+
+	.danger {
+		border: 1px solid color-mix(in oklch, var(--accent) 45%, transparent);
+		background: transparent;
+		color: var(--accent-ink);
+		border-radius: var(--radius);
+		padding: 0 var(--space-3);
+		min-height: var(--control-h);
+		font-size: var(--text-sm);
+	}
+
+	.danger:hover {
+		background: var(--danger-surface);
+	}
+
+	.danger.armed {
+		background: var(--accent);
+		border-color: var(--accent);
+		color: var(--on-accent);
+		font-weight: 600;
+	}
+
+	.danger.armed:hover {
+		background: var(--accent);
+	}
+</style>

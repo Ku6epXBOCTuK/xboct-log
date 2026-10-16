@@ -25,3 +25,65 @@
 		<BarChart3 /> Statistics
 	</button>
 </nav>
+
+<style>
+	.primary-nav {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-1);
+	}
+
+	.nav-item {
+		border: 0;
+		background: transparent;
+		color: var(--text-secondary);
+		text-align: left;
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		padding: var(--space-2) var(--space-3);
+		border-radius: var(--radius);
+		font-size: var(--text-md);
+		font-weight: 500;
+		width: 100%;
+	}
+
+	.nav-item:hover {
+		background: var(--hover);
+		color: var(--foreground);
+	}
+
+	.nav-item :global(svg) {
+		width: 1rem;
+		height: 1rem;
+		flex: none;
+	}
+
+	.nav-item.active {
+		color: var(--foreground);
+		background: var(--selected);
+	}
+
+	.nav-count {
+		margin-left: auto;
+		color: var(--text-muted);
+		font-size: var(--text-xs);
+		font-variant-numeric: tabular-nums;
+	}
+
+	@media (max-width: 820px) {
+		.nav-item {
+			justify-content: center;
+			font-size: 0;
+		}
+
+		.nav-item :global(svg) {
+			width: 1.125rem;
+			height: 1.125rem;
+		}
+
+		.nav-count {
+			display: none;
+		}
+	}
+</style>

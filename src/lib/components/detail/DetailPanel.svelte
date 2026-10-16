@@ -174,3 +174,66 @@
 		/>
 	</aside>
 {/if}
+
+<style>
+	.detail-panel {
+		width: var(--detail-w);
+		min-width: var(--detail-w);
+		height: 100%;
+		border-left: 1px solid var(--border);
+		background: var(--panel);
+		padding: var(--space-6) var(--space-6) var(--space-8);
+		overflow: auto;
+	}
+
+	.detail-top {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+	}
+
+	.title-input {
+		width: 100%;
+		font-size: var(--text-xl);
+		line-height: 1.25;
+		margin: var(--space-3) 0 var(--space-5);
+		letter-spacing: -0.02em;
+		font-weight: 600;
+		color: var(--foreground);
+		background: transparent;
+		border: 0;
+		border-bottom: 1px solid transparent;
+		border-radius: 0;
+		padding: 0 0 var(--space-1);
+		min-height: 2.5rem;
+	}
+
+	.title-input:focus {
+		border-bottom-color: var(--accent);
+		box-shadow: none;
+	}
+
+	@media (max-width: 1100px) {
+		.detail-panel {
+			padding-inline: var(--space-5);
+		}
+	}
+
+	@media (max-width: 820px) {
+		.detail-panel {
+			position: fixed;
+			right: 0;
+			top: 0;
+			width: min(var(--detail-w), calc(100vw - var(--sidebar-w)));
+			min-width: 0;
+			box-shadow: -0.9375rem 0 2.5rem rgb(0 0 0 / 0.5);
+			z-index: 5;
+		}
+	}
+
+	@media (max-width: 560px) {
+		.detail-panel {
+			width: calc(100vw - var(--sidebar-w));
+		}
+	}
+</style>

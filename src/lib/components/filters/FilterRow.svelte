@@ -22,3 +22,19 @@
 		<X /> Clear
 	</button>
 </div>
+
+<style>
+	.filter-row {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-5);
+		margin-top: var(--space-4);
+	}
+
+	@media (max-width: 820px) {
+		.filter-row {
+			gap: var(--space-3);
+		}
+	}
+</style>

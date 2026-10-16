@@ -85,3 +85,31 @@
 		oncreated={(task) => (selected = task)}
 	/>
 </main>
+
+<style>
+	.app-shell {
+		display: flex;
+		height: 100vh;
+		height: 100dvh;
+		overflow: hidden;
+		background: var(--background);
+	}
+
+	.workspace {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+		flex: 1 1 auto;
+		height: 100%;
+	}
+
+	.workspace.with-detail {
+		max-width: calc(100vw - var(--sidebar-w) - var(--detail-w));
+	}
+
+	@media (max-width: 560px) {
+		.workspace.with-detail {
+			max-width: calc(100vw - var(--sidebar-w));
+		}
+	}
+</style>

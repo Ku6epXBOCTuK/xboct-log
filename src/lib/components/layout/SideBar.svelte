@@ -31,3 +31,22 @@
 	/>
 	<LanguageSwitch />
 </aside>
+
+<style>
+	.sidebar {
+		width: var(--sidebar-w);
+		min-width: var(--sidebar-w);
+		display: flex;
+		flex-direction: column;
+		padding: var(--space-6) var(--space-3) var(--space-4);
+		border-right: 1px solid var(--border);
+		background: var(--surface);
+		overflow-y: auto;
+	}
+
+	@media (max-width: 820px) {
+		.sidebar {
+			padding-inline: var(--space-2);
+		}
+	}
+</style>
