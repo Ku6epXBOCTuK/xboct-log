@@ -127,14 +127,18 @@
 	function onkeydown(event: KeyboardEvent) {
 		if (event.key !== "Escape") return;
 		if (selected === null) return;
-		if (event.target instanceof HTMLSelectElement) return;
 		if (document.querySelector("dialog[open]") !== null) return;
 
 		// NOTE: fields commit on change (blur), so the focused control must be
 		// blurred before closing or its edit is lost.
-		if (document.activeElement instanceof HTMLElement) {
-			document.activeElement.blur();
+		const active = document.activeElement;
+		if (active instanceof HTMLElement) {
+			active.blur();
 		}
+
+		// NOTE: a focused select swallows Escape (it belongs to the native
+		// dropdown), so the first press only releases it; the second closes.
+		if (active instanceof HTMLSelectElement) return;
 
 		onclear();
 	}
