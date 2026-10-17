@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { countTasksInProject } from "#lib/tasks/filter.ts";
+	import { countActiveTasksInProject } from "#lib/tasks/filter.ts";
 	import type { Project, Task } from "#lib/types.ts";
 	import ProjectItem from "./ProjectItem.svelte";
 	import ProjectRow from "./ProjectRow.svelte";
@@ -26,7 +26,7 @@
 <div class="project-all">
 	<ProjectItem
 		active={activeProject === "all"}
-		count={tasks.length}
+		count={countActiveTasksInProject(tasks, "all")}
 		onselect={() => onselect("all")}
 	>
 		All projects
@@ -37,7 +37,7 @@
 	<ProjectRow
 		{project}
 		active={activeProject === project.id}
-		count={countTasksInProject(tasks, project.id)}
+		count={countActiveTasksInProject(tasks, project.id)}
 		onselect={() => onselect(project.id)}
 		onarchive={() => onarchive(project)}
 		onsettings={() => onsettings(project)}

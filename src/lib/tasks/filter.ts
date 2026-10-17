@@ -1,3 +1,4 @@
+import type { Filters } from "#lib/state/filters.svelte.ts";
 import {
 	CLOSED_STATUSES,
 	type Priority,
@@ -87,7 +88,27 @@ export function collectTags(tasks: Task[]): TagCount[] {
 }
 
 export function countTasksInProject(tasks: Task[], projectId: string): number {
+	if (projectId === "all") return tasks.length;
 	return tasks.filter((task) => task.project_id === projectId).length;
+}
+
+export function countActiveTasksInProject(
+	tasks: Task[],
+	projectId: string,
+): number {
+	if (projectId === "all")
+		return tasks.filter((task) => !CLOSED_STATUSES.includes(task.status))
+			.length;
+	return tasks.filter(
+		(task) =>
+			task.project_id === projectId && !CLOSED_STATUSES.includes(task.status),
+	).length;
+}
+
+export function getActiveTotal(tasks: Task[], filters: Filters): number {
+	return filters.activeProject === "all"
+		? tasks.length
+		: countTasksInProject(tasks, filters.activeProject);
 }
 
 export function countTasksInEpic(tasks: Task[], epicId: string): number {

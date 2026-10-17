@@ -12,6 +12,7 @@
 	import { createScopeStore } from "#lib/state/scopes.svelte.ts";
 	import { createTaskStore } from "#lib/state/tasks.svelte.ts";
 	import { createTheme } from "#lib/state/theme.svelte.ts";
+	import { getActiveTotal } from "#lib/tasks/filter.ts";
 	import type { Task } from "#lib/types.ts";
 	import { goto } from "$app/navigation";
 	import { resolve } from "$app/paths";
@@ -44,6 +45,8 @@
 	);
 
 	const visibleTasks = $derived(filters.visible(tasks.tasks));
+
+	const total = $derived(getActiveTotal(tasks.tasks, filters));
 
 	const createDefaults = $derived({
 		projectId:
@@ -123,7 +126,7 @@
 			sortOrder={filters.sortOrder}
 			onsort={(key) => filters.setSort(key)}
 			onselect={(id) => (selectedId = id)}
-			total={tasks.tasks.length}
+			{total}
 			onclear={() => filters.clear()}
 			onnew={openNew}
 			onepic={(id) => (filters.epic = id)}

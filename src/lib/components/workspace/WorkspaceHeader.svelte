@@ -10,6 +10,7 @@
 	import {
 		collectTags,
 		countTasksInEpic,
+		countTasksInProject,
 		countTasksInScope,
 	} from "#lib/tasks/filter.ts";
 
@@ -30,6 +31,10 @@
 		filters.activeProject === "all"
 			? scopes.all
 			: scopes.listFor(filters.activeProject),
+	);
+
+	const total = $derived(
+		countTasksInProject(tasks.tasks, filters.activeProject),
 	);
 </script>
 
@@ -54,7 +59,7 @@
 		scopes={scopeOptions}
 		{tags}
 		{visibleCount}
-		total={tasks.tasks.length}
+		{total}
 		countEpic={(epicId) => countTasksInEpic(tasks.tasks, epicId)}
 		countScope={(scopeId) => countTasksInScope(tasks.tasks, scopeId)}
 	/>

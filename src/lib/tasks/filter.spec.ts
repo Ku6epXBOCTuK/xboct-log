@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	collectEpicProgress,
+	countActiveTasksInProject,
 	filterTasks,
 	type FilterCriteria,
 } from "./filter";
@@ -92,6 +93,23 @@ describe("hideClosed", () => {
 		);
 
 		expect(visible.map((item) => item.id)).toEqual(["X-2"]);
+	});
+});
+
+describe("countActiveTasksInProject", () => {
+	it("counts only non-closed tasks in the project", () => {
+		const projectTasks = [
+			task({ id: "P-1", project_id: "proj-1", status: "open" }),
+			task({ id: "P-2", project_id: "proj-1", status: "in-progress" }),
+			task({ id: "P-3", project_id: "proj-1", status: "blocked" }),
+			task({ id: "P-4", project_id: "proj-1", status: "done" }),
+			task({ id: "P-5", project_id: "proj-1", status: "cancelled" }),
+			task({ id: "P-6", project_id: "proj-2", status: "open" }),
+		];
+
+		expect(countActiveTasksInProject(projectTasks, "proj-1")).toBe(3);
+		expect(countActiveTasksInProject(projectTasks, "proj-2")).toBe(1);
+		expect(countActiveTasksInProject(projectTasks, "proj-3")).toBe(0);
 	});
 });
 
