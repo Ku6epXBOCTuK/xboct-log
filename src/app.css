@@ -62,6 +62,7 @@
 	--violet-ink: light-dark(#6b3fc9, #cbb0ff);
 	--violet-surface: light-dark(#efe7ff, #2c2140);
 	--violet-row: light-dark(#f2ecff, #221c33);
+	--on-violet: light-dark(#ffffff, #1c1626);
 
 	--status-open: light-dark(#5f6873, #c3cad2);
 	--status-in-progress: light-dark(#0b5cff, #7ab0ff);

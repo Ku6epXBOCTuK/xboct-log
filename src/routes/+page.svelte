@@ -116,6 +116,7 @@
 		/>
 		<TaskTable
 			tasks={visibleTasks}
+			allTasks={tasks.tasks}
 			{scopes}
 			{selectedId}
 			sortKey={filters.sortKey}

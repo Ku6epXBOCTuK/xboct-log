@@ -1,6 +1,7 @@
 <script lang="ts">
 	import StatusDot from "#lib/components/ui/StatusDot.svelte";
 	import { STATUS_LABELS, formatDate } from "#lib/tasks/display.ts";
+	import type { EpicProgress } from "#lib/tasks/filter.ts";
 	import type { Scope, Task } from "#lib/types.ts";
 
 	interface Props {
@@ -8,11 +9,13 @@
 		scoped: boolean;
 		scope: Scope | null;
 		isselected: boolean;
+		progress: EpicProgress | null;
 		onselect: () => void;
 		onepic?: (id: string) => void;
 	}
 
-	let { task, scoped, scope, isselected, onselect, onepic }: Props = $props();
+	let { task, scoped, scope, isselected, progress, onselect, onepic }: Props =
+		$props();
 
 	function filterEpic(event: MouseEvent, epicId: string | null) {
 		event.stopPropagation();
@@ -26,7 +29,18 @@
 	<td class="task-id">{task.id}</td>
 	<td class="task-title">
 		{task.title}
-		{#if task.epic_id !== null}
+		{#if task.is_epic}
+			<button
+				class="epic-badge epic-marker"
+				title="Show tasks of this epic"
+				onclick={(event) => filterEpic(event, task.id)}
+			>
+				EPIC
+			</button>
+			{#if progress !== null && progress.total > 0}
+				<span class="epic-progress">{progress.done}/{progress.total} done</span>
+			{/if}
+		{:else if task.epic_id !== null}
 			<button
 				class="epic-badge epic-filter"
 				title="Show tasks of this epic"
@@ -101,13 +115,37 @@
 	}
 
 	.epic-filter {
-		border: 0;
+		border: 1px solid color-mix(in oklch, var(--violet) 45%, transparent);
+		background: transparent;
+		color: var(--violet-ink);
 		cursor: pointer;
 		font-family: var(--font-mono);
 	}
 
 	.epic-filter:hover {
-		background: color-mix(in oklch, var(--violet) 32%, var(--violet-surface));
+		background: var(--violet-surface);
+	}
+
+	.epic-marker {
+		border: 0;
+		background: var(--violet);
+		color: var(--on-violet);
+		cursor: pointer;
+		font-family: var(--font-mono);
+		font-weight: 600;
+		letter-spacing: 0.04em;
+	}
+
+	.epic-marker:hover {
+		background: color-mix(in oklch, var(--violet) 78%, var(--violet-ink));
+	}
+
+	.epic-progress {
+		margin-left: var(--space-2);
+		color: var(--text-muted);
+		font-size: var(--text-xs);
+		font-variant-numeric: tabular-nums;
+		white-space: nowrap;
 	}
 
 	.scope-badge {

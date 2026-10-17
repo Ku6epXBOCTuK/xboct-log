@@ -94,6 +94,34 @@ export function countTasksInEpic(tasks: Task[], epicId: string): number {
 	return tasks.filter((task) => task.epic_id === epicId).length;
 }
 
+export interface EpicProgress {
+	done: number;
+	total: number;
+}
+
+export function collectEpicProgress(tasks: Task[]): Map<string, EpicProgress> {
+	const progress = new Map<string, EpicProgress>();
+
+	for (const task of tasks) {
+		if (task.epic_id === null) continue;
+
+		const entry = progress.get(task.epic_id);
+
+		if (entry === undefined) {
+			progress.set(task.epic_id, {
+				done: task.status === "done" ? 1 : 0,
+				total: 1,
+			});
+			continue;
+		}
+
+		entry.total += 1;
+		if (task.status === "done") entry.done += 1;
+	}
+
+	return progress;
+}
+
 export function countTasksInScope(tasks: Task[], scopeId: number): number {
 	return tasks.filter((task) => task.scope_id === scopeId).length;
 }

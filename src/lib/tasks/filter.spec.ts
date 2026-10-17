@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { filterTasks, type FilterCriteria } from "./filter";
+import {
+	collectEpicProgress,
+	filterTasks,
+	type FilterCriteria,
+} from "./filter";
 import type { Task } from "#lib/types.ts";
 
 function task(overrides: Partial<Task>): Task {
@@ -88,5 +92,30 @@ describe("hideClosed", () => {
 		);
 
 		expect(visible.map((item) => item.id)).toEqual(["X-2"]);
+	});
+});
+
+describe("collectEpicProgress", () => {
+	it("counts children and done children per epic", () => {
+		const progress = collectEpicProgress([
+			task({ id: "E-1", is_epic: true }),
+			task({ id: "A-1", epic_id: "E-1" }),
+			task({ id: "A-2", epic_id: "E-1", status: "done" }),
+			task({ id: "A-3", epic_id: "E-1", status: "in-progress" }),
+		]);
+
+		expect(progress.get("E-1")).toEqual({ done: 1, total: 3 });
+	});
+
+	it("ignores tasks without an epic", () => {
+		const progress = collectEpicProgress([task({ id: "X-1" })]);
+
+		expect(progress.size).toBe(0);
+	});
+
+	it("has no entry for an epic without children", () => {
+		const progress = collectEpicProgress([task({ id: "E-1", is_epic: true })]);
+
+		expect(progress.get("E-1")).toBeUndefined();
 	});
 });

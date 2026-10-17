@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
+	import { collectEpicProgress } from "#lib/tasks/filter.ts";
 	import type { SortOrder, TaskSortKey } from "#lib/tasks/sort.ts";
 	import type { Task } from "#lib/types.ts";
 	import ArrowDown from "~icons/lucide/arrow-down";
@@ -10,6 +11,7 @@
 
 	interface Props {
 		tasks: Task[];
+		allTasks: Task[];
 		scopes: ScopeStore;
 		selectedId: string | null;
 		total: number;
@@ -24,6 +26,7 @@
 
 	let {
 		tasks,
+		allTasks,
 		scopes,
 		selectedId,
 		total,
@@ -35,6 +38,8 @@
 		onselect,
 		onsort,
 	}: Props = $props();
+
+	const epicProgress = $derived(collectEpicProgress(allTasks));
 </script>
 
 {#snippet sortHeader(key: TaskSortKey, label: string, className: string)}
@@ -79,6 +84,7 @@
 						? null
 						: (scopes.all.find((scope) => scope.id === task.scope_id) ?? null)}
 					isselected={selectedId === task.id}
+					progress={epicProgress.get(task.id) ?? null}
 					onselect={() => onselect(task.id)}
 					{onepic}
 				/>
