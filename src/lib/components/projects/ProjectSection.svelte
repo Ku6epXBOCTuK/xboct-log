@@ -35,15 +35,6 @@
 			: (projects.all.find((project) => project.id === settingsFor) ?? null),
 	);
 
-	async function rename(id: string, name: string) {
-		failure = null;
-		try {
-			await projects.rename(id, name);
-		} catch (error) {
-			failure = messageOf(error);
-		}
-	}
-
 	async function toggleArchived(project: Project) {
 		failure = null;
 		try {
@@ -92,7 +83,6 @@
 			tasks={tasks.tasks}
 			{activeProject}
 			{onselect}
-			onrename={rename}
 			onarchive={toggleArchived}
 			onsettings={(project) => (settingsFor = project.id)}
 		/>

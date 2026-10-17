@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { countTasksInProject } from "#lib/tasks/filter.ts";
 	import type { Project, Task } from "#lib/types.ts";
+	import ProjectItem from "./ProjectItem.svelte";
 	import ProjectRow from "./ProjectRow.svelte";
 
 	interface Props {
@@ -8,7 +9,6 @@
 		tasks: Task[];
 		activeProject: string;
 		onselect: (projectId: string) => void;
-		onrename: (id: string, name: string) => void;
 		onarchive: (project: Project) => void;
 		onsettings: (project: Project) => void;
 	}
@@ -18,11 +18,20 @@
 		tasks,
 		activeProject,
 		onselect,
-		onrename,
 		onarchive,
 		onsettings,
 	}: Props = $props();
 </script>
+
+<div class="project-all">
+	<ProjectItem
+		active={activeProject === "all"}
+		count={tasks.length}
+		onselect={() => onselect("all")}
+	>
+		All projects
+	</ProjectItem>
+</div>
 
 {#each projects as project (project.id)}
 	<ProjectRow
@@ -30,8 +39,14 @@
 		active={activeProject === project.id}
 		count={countTasksInProject(tasks, project.id)}
 		onselect={() => onselect(project.id)}
-		onrename={(name) => onrename(project.id, name)}
 		onarchive={() => onarchive(project)}
 		onsettings={() => onsettings(project)}
 	/>
 {/each}
+
+<style>
+	.project-all {
+		display: flex;
+		margin-bottom: var(--space-1);
+	}
+</style>
