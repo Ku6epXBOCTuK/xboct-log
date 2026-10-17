@@ -6,6 +6,7 @@
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
 	import { messageOf } from "#lib/tasks/display.ts";
 	import {
+		epicsForProject,
 		validateTaskDraft,
 		type TaskFieldValues,
 		type TaskPatch,
@@ -69,7 +70,7 @@
 	let formElement = $state<HTMLFormElement | null>(null);
 
 	const epicOptions = $derived(
-		tasks.epics.filter((epic) => epic.project_id === draft.project_id),
+		epicsForProject(tasks.epics, draft.project_id, draft.epic_id),
 	);
 	const scopeOptions = $derived(scopes.listFor(draft.project_id));
 
