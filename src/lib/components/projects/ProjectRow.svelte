@@ -1,4 +1,5 @@
 <script lang="ts">
+	import IconButton from "#lib/components/ui/IconButton.svelte";
 	import { INBOX_PROJECT_ID, type Project } from "#lib/types.ts";
 	import Check from "~icons/lucide/check";
 	import Pencil from "~icons/lucide/pencil";
@@ -63,33 +64,24 @@
 			<span>{project.name}</span>
 			<span class="project-count">{count}</span>
 		</button>
-		<button
-			class="project-icon"
-			type="button"
-			onclick={onsettings}
-			aria-label={`Settings for ${project.name}`}
-		>
+		<IconButton label={`Settings for ${project.name}`} onclick={onsettings}>
 			<Settings />
-		</button>
-		<button
-			class="project-icon"
-			type="button"
+		</IconButton>
+		<IconButton
+			label={`Rename ${project.name}`}
 			onclick={() => (editing = true)}
-			aria-label={`Rename ${project.name}`}
 		>
 			<Pencil />
-		</button>
+		</IconButton>
 		{#if project.id !== INBOX_PROJECT_ID}
-			<button
-				class="project-icon"
-				type="button"
-				onclick={onarchive}
-				aria-label={project.archived_at === null
+			<IconButton
+				label={project.archived_at === null
 					? `Archive ${project.name}`
 					: `Restore ${project.name}`}
+				onclick={onarchive}
 			>
-				<Trash2 class="delete-icon" />
-			</button>
+				<Trash2 />
+			</IconButton>
 		{/if}
 	</div>
 {/if}
@@ -161,28 +153,6 @@
 		color: var(--text-muted);
 		font-size: var(--text-xs);
 		font-variant-numeric: tabular-nums;
-	}
-
-	.project-icon {
-		border: 0;
-		background: transparent;
-		color: var(--text-muted);
-		border-radius: var(--radius-sm);
-		width: var(--control-h-sm);
-		height: var(--control-h-sm);
-		flex: none;
-		display: grid;
-		place-items: center;
-	}
-
-	.project-icon:hover {
-		color: var(--foreground);
-		background: var(--hover);
-	}
-
-	.project-icon :global(svg) {
-		width: 1rem;
-		height: 1rem;
 	}
 
 	.project-rename {

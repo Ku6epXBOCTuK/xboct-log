@@ -1,6 +1,7 @@
 <script lang="ts">
 	import NewProjectForm from "#lib/components/newtask/NewProjectForm.svelte";
 	import TaskForm from "#lib/components/newtask/TaskForm.svelte";
+	import IconButton from "#lib/components/ui/IconButton.svelte";
 	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
@@ -49,14 +50,9 @@
 >
 	<div class="modal-top">
 		<h2>New task</h2>
-		<button
-			class="close-detail"
-			type="button"
-			onclick={close}
-			aria-label="Close new task form"
-		>
+		<IconButton label="Close new task form" onclick={close}>
 			<X />
-		</button>
+		</IconButton>
 	</div>
 
 	{#if open && projects.active.length === 0}

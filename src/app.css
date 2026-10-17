@@ -348,27 +348,6 @@ input.field-control:read-only {
 	color: var(--text-secondary);
 }
 
-.close-detail {
-	border: 0;
-	background: transparent;
-	color: var(--text-muted);
-	display: grid;
-	place-items: center;
-	width: var(--control-h-sm);
-	height: var(--control-h-sm);
-	border-radius: var(--radius-sm);
-}
-
-.close-detail:hover {
-	color: var(--foreground);
-	background: var(--hover);
-}
-
-.close-detail svg {
-	width: 1.125rem;
-	height: 1.125rem;
-}
-
 .epic-badge {
 	display: inline-block;
 	background: var(--violet-surface);

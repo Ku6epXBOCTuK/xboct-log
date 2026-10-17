@@ -1,5 +1,6 @@
 <script lang="ts">
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
+	import IconButton from "#lib/components/ui/IconButton.svelte";
 	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
@@ -66,17 +67,16 @@
 		{tasks.tasks.length}
 		{tasks.tasks.length === 1 ? "task" : "tasks"}
 	</span>
-	<button
-		class="project-icon"
+	<IconButton
+		label="New project"
+		expanded={creating}
 		onclick={() => {
 			creating = !creating;
 			failure = null;
 		}}
-		aria-label="New project"
-		aria-expanded={creating}
 	>
 		<Plus />
-	</button>
+	</IconButton>
 </div>
 {#if open}
 	<div class="project-list">

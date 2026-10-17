@@ -1,5 +1,6 @@
 <script lang="ts">
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
+	import IconButton from "#lib/components/ui/IconButton.svelte";
 	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
@@ -121,14 +122,9 @@
 	{#if project !== null}
 		<div class="modal-top">
 			<h2>Project settings</h2>
-			<button
-				class="close-detail"
-				type="button"
-				onclick={() => panel?.close()}
-				aria-label="Close project settings"
-			>
+			<IconButton label="Close project settings" onclick={() => panel?.close()}>
 				<X />
-			</button>
+			</IconButton>
 		</div>
 
 		<section class="settings-section">
@@ -199,14 +195,12 @@
 								Cancel
 							</button>
 						{:else}
-							<button
-								class="project-icon"
-								type="button"
+							<IconButton
+								label={`Delete ${scope.name}`}
 								onclick={() => (confirmingId = scope.id)}
-								aria-label={`Delete ${scope.name}`}
 							>
 								<Trash2 />
-							</button>
+							</IconButton>
 						{/if}
 					</li>
 				{/each}

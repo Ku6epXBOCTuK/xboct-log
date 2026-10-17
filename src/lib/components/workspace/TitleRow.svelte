@@ -1,4 +1,5 @@
 <script lang="ts">
+	import IconButton from "#lib/components/ui/IconButton.svelte";
 	import Moon from "~icons/lucide/moon";
 	import PanelLeftClose from "~icons/lucide/panel-left-close";
 	import Plus from "~icons/lucide/plus";
@@ -16,22 +17,22 @@
 <div class="title-row">
 	<h1>Projects</h1>
 	<div class="header-actions">
-		<button
-			class="icon-button"
-			onclick={ontoggle}
-			aria-label={appearance === "light"
+		<IconButton
+			label={appearance === "light"
 				? "Switch to dark theme"
 				: "Switch to light theme"}
+			size="md"
+			onclick={ontoggle}
 		>
 			{#if appearance === "light"}
 				<Moon />
 			{:else}
 				<Sun />
 			{/if}
-		</button>
-		<button class="icon-button" aria-label="Collapse sidebar">
+		</IconButton>
+		<IconButton label="Collapse sidebar" size="md">
 			<PanelLeftClose />
-		</button>
+		</IconButton>
 		<button class="new-task" onclick={onnew}>
 			<Plus data-icon="inline-start" /> New task
 		</button>
@@ -64,7 +65,7 @@
 			font-size: var(--text-xl);
 		}
 
-		.header-actions .icon-button {
+		.header-actions :global(.icon-btn) {
 			display: none;
 		}
 	}

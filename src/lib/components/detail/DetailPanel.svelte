@@ -2,6 +2,7 @@
 	import DetailActions from "#lib/components/detail/DetailActions.svelte";
 	import TaskFields from "#lib/components/task/TaskFields.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
+	import IconButton from "#lib/components/ui/IconButton.svelte";
 	import StatusDot from "#lib/components/ui/StatusDot.svelte";
 	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
@@ -140,13 +141,12 @@
 								: `updated ${formatDate(selected.updated_at)}`}
 					</span>
 				</div>
-				<button
-					class="close-detail"
+				<IconButton
+					label="Close task details"
 					onclick={() => (selected = null)}
-					aria-label="Close task details"
 				>
 					<X />
-				</button>
+				</IconButton>
 			</div>
 			<input
 				class="title-input"
