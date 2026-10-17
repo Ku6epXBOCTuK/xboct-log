@@ -68,7 +68,7 @@
 <style>
 	.detail-actions {
 		display: flex;
-		flex-direction: column;
+		align-items: flex-end;
 		gap: var(--space-3);
 		flex: none;
 		padding: var(--space-4) var(--edge-pad) var(--edge-pad);
@@ -82,12 +82,17 @@
 		min-width: 0;
 	}
 
+	.action-group:first-child {
+		flex: 1 1 auto;
+	}
+
 	.action-group:last-child {
+		flex: none;
 		justify-content: flex-end;
 	}
 
 	.close-reason {
-		flex: 1 1 auto;
+		flex: 0 1 14rem;
 		min-width: 0;
 	}
 

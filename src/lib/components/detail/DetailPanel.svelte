@@ -1,8 +1,8 @@
 <script lang="ts">
-	import TaskFields from "#lib/components/task/TaskFields.svelte";
 	import DetailActions from "#lib/components/detail/DetailActions.svelte";
-	import StatusDot from "#lib/components/ui/StatusDot.svelte";
+	import TaskFields from "#lib/components/task/TaskFields.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
+	import StatusDot from "#lib/components/ui/StatusDot.svelte";
 	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
@@ -13,6 +13,7 @@
 		type TaskPatch,
 	} from "#lib/tasks/fields.ts";
 	import type { ClosedReason, Task } from "#lib/types.ts";
+	import { cubicOut } from "svelte/easing";
 	import X from "~icons/lucide/x";
 
 	interface Props {
@@ -101,10 +102,30 @@
 			saving = false;
 		}
 	}
+
+	function slideRight(node: HTMLElement) {
+		const width = node.offsetWidth;
+
+		return {
+			duration: 100,
+			easing: cubicOut,
+			css: (t: number) => `transform: translateX(${(1 - t) * width}px)`,
+		};
+	}
+
+	function onkeydown(event: KeyboardEvent) {
+		if (event.key !== "Escape") return;
+		if (selected === null) return;
+		if (event.target instanceof HTMLSelectElement) return;
+		if (document.querySelector("dialog[open]") !== null) return;
+		selected = null;
+	}
 </script>
 
+<svelte:window {onkeydown} />
+
 {#if selected !== null}
-	<aside class="detail-panel" aria-label="Task details">
+	<aside class="detail-panel" transition:slideRight aria-label="Task details">
 		<div class="detail-head">
 			<div class="detail-top">
 				<div class="detail-id">
