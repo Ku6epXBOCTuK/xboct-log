@@ -16,6 +16,20 @@ export type TaskPatch = Partial<
 	>
 >;
 
+export type TaskFieldValues = Pick<
+	Task,
+	| "project_id"
+	| "priority"
+	| "is_epic"
+	| "epic_id"
+	| "scope_id"
+	| "source_file"
+	| "source_line"
+	| "tags"
+	| "description"
+> &
+	Partial<Pick<Task, "status" | "closed_at" | "closed_reason" | "updated_at">>;
+
 export function splitTags(raw: string): string[] {
 	return raw
 		.split(",")
@@ -34,18 +48,25 @@ export function toSourceFile(raw: string): string | null {
 }
 
 export function validateTaskDraft(draft: {
-	title: string;
-	source_file: string;
-	source_line: string;
+	title?: string;
+	source_file?: string;
+	source_line?: string;
 }): string | null {
-	if (draft.title.trim() === "") return "title cannot be empty";
+	if (draft.title !== undefined && draft.title.trim() === "") {
+		return "title cannot be empty";
+	}
 
-	const line = toSourceLine(draft.source_line);
+	const line =
+		draft.source_line === undefined ? null : toSourceLine(draft.source_line);
 	if (line !== null && !Number.isInteger(line)) {
 		return "source line must be a whole number";
 	}
 
-	if (line !== null && toSourceFile(draft.source_file) === null) {
+	if (
+		line !== null &&
+		draft.source_file !== undefined &&
+		toSourceFile(draft.source_file) === null
+	) {
 		return "source line requires source file";
 	}
 

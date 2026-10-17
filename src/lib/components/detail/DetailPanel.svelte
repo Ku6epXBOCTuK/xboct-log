@@ -1,15 +1,13 @@
 <script lang="ts">
+	import TaskFields from "#lib/components/task/TaskFields.svelte";
 	import DetailActions from "#lib/components/detail/DetailActions.svelte";
-	import DetailFields from "#lib/components/detail/DetailFields.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
 	import { messageOf } from "#lib/tasks/display.ts";
 	import {
-		splitTags,
-		toSourceFile,
-		toSourceLine,
+		siblingEpics,
 		validateTaskDraft,
 		type TaskPatch,
 	} from "#lib/tasks/fields.ts";
@@ -55,26 +53,9 @@
 		void perform(current.id, () => tasks.save(current.id, patch));
 	}
 
-	function draftOf(overrides: {
-		title?: string;
-		source_file?: string;
-		source_line?: string;
-	}) {
-		const current = selected;
-		return {
-			title: overrides.title ?? current?.title ?? "",
-			source_file: overrides.source_file ?? current?.source_file ?? "",
-			source_line:
-				overrides.source_line ??
-				(current?.source_line === null || current?.source_line === undefined
-					? ""
-					: String(current.source_line)),
-		};
-	}
-
 	function saveTitle(event: Event) {
 		const input = event.currentTarget as HTMLInputElement;
-		const invalid = validateTaskDraft(draftOf({ title: input.value }));
+		const invalid = validateTaskDraft({ title: input.value });
 
 		if (invalid !== null) {
 			failure = invalid;
@@ -85,50 +66,9 @@
 		save({ title: input.value.trim() });
 	}
 
-	function saveSourceFile(event: Event) {
-		const input = event.currentTarget as HTMLInputElement;
-		const invalid = validateTaskDraft(draftOf({ source_file: input.value }));
-
-		if (invalid !== null) {
-			failure = invalid;
-			input.value = selected?.source_file ?? "";
-			return;
-		}
-
-		save({ source_file: toSourceFile(input.value) });
-	}
-
-	function saveSourceLine(event: Event) {
-		const input = event.currentTarget as HTMLInputElement;
-		const invalid = validateTaskDraft(draftOf({ source_line: input.value }));
-
-		if (invalid !== null) {
-			failure = invalid;
-			input.value =
-				selected?.source_line === null || selected?.source_line === undefined
-					? ""
-					: String(selected.source_line);
-			return;
-		}
-
-		save({ source_line: toSourceLine(input.value) });
-	}
-
-	function saveTags(event: Event) {
-		save({ tags: splitTags((event.currentTarget as HTMLInputElement).value) });
-	}
-
-	function saveDescription(event: Event) {
-		save({ description: (event.currentTarget as HTMLTextAreaElement).value });
-	}
-
-	function moveTo(event: Event) {
+	function moveTo(projectId: string) {
 		const current = selected;
-		if (current === null) return;
-
-		const projectId = (event.currentTarget as HTMLSelectElement).value;
-		if (projectId === current.project_id) return;
-
+		if (current === null || projectId === current.project_id) return;
 		void perform(current.id, () => tasks.moveTo(current.id, projectId));
 	}
 
@@ -181,22 +121,16 @@
 			aria-label="Title"
 		/>
 		<ErrorNote message={failure} />
-		<DetailFields
-			task={selected}
+		<TaskFields
+			value={selected}
 			projects={projects.all}
-			epics={tasks.epics}
+			epics={siblingEpics(tasks.epics, selected)}
 			scopes={scopes.listFor(selected.project_id)}
+			editing
 			{saving}
-			onstatus={(status) => save({ status })}
-			onpriority={(priority) => save({ priority })}
-			ontype={(isEpic) => save({ is_epic: isEpic })}
+			onfield={save}
 			onproject={moveTo}
-			onepic={(epicId) => save({ epic_id: epicId })}
-			onscope={(scopeId) => save({ scope_id: scopeId })}
-			ontags={saveTags}
-			onsourcefile={saveSourceFile}
-			onsourceline={saveSourceLine}
-			ondescription={saveDescription}
+			onerror={(message) => (failure = message)}
 		/>
 		<DetailActions
 			closed={selected.closed_at !== null}

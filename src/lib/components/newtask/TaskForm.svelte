@@ -1,21 +1,15 @@
 <script lang="ts">
+	import TaskFields from "#lib/components/task/TaskFields.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
 	import { messageOf } from "#lib/tasks/display.ts";
 	import {
-		splitTags,
-		toSourceFile,
-		toSourceLine,
 		validateTaskDraft,
+		type TaskFieldValues,
+		type TaskPatch,
 	} from "#lib/tasks/fields.ts";
-	import {
-		INBOX_PROJECT_ID,
-		PRIORITIES,
-		type Priority,
-		type Project,
-		type Task,
-	} from "#lib/types.ts";
+	import { INBOX_PROJECT_ID, type Project, type Task } from "#lib/types.ts";
 
 	interface Props {
 		tasks: TaskStore;
@@ -37,66 +31,76 @@
 		return projects[0]?.id ?? "";
 	}
 
-	let projectId = $state(defaultProject());
+	function blankDraft(): TaskFieldValues {
+		return {
+			project_id: defaultProject(),
+			priority: "medium",
+			is_epic: false,
+			epic_id: null,
+			scope_id: null,
+			source_file: null,
+			source_line: null,
+			tags: [],
+			description: "",
+		};
+	}
+
+	let draft = $state<TaskFieldValues>(blankDraft());
 	let title = $state("");
-	let description = $state("");
-	let priority = $state<Priority>("medium");
-	let type = $state<"task" | "epic">("task");
-	let epicId = $state("");
-	let scopeId = $state("");
-	let sourceFile = $state("");
-	let sourceLine = $state("");
-	let tags = $state("");
 	let keepOpen = $state(false);
 	let saving = $state(false);
 	let failure = $state<string | null>(null);
+	let invalidField = $state(false);
 	let titleInput = $state<HTMLInputElement | null>(null);
-	let scopeProject: string | undefined = undefined;
 
 	const epicOptions = $derived(
-		tasks.epics.filter((epic) => epic.project_id === projectId),
+		tasks.epics.filter((epic) => epic.project_id === draft.project_id),
 	);
-	const scopeOptions = $derived(scopes.listFor(projectId));
+	const scopeOptions = $derived(scopes.listFor(draft.project_id));
 
 	$effect(() => {
 		titleInput?.focus();
 	});
 
-	$effect(() => {
-		if (scopeProject === projectId) return;
-		scopeProject = projectId;
-		scopeId = "";
-	});
-
 	function reset() {
-		projectId = defaultProject();
+		draft = blankDraft();
 		title = "";
-		description = "";
-		priority = "medium";
-		type = "task";
-		epicId = "";
-		scopeId = "";
-		sourceFile = "";
-		sourceLine = "";
-		tags = "";
 		failure = null;
+		invalidField = false;
+	}
+
+	function onfield(patch: TaskPatch) {
+		Object.assign(draft, patch);
+		failure = null;
+		invalidField = false;
+	}
+
+	function onproject(projectId: string) {
+		Object.assign(draft, {
+			project_id: projectId,
+			epic_id: null,
+			scope_id: null,
+		});
+		failure = null;
+		invalidField = false;
 	}
 
 	async function submit(event: SubmitEvent) {
 		event.preventDefault();
+
+		if (invalidField) return;
+
 		failure = null;
 
-		const cleanTitle = title.trim();
-
-		if (projectId === "") {
+		if (draft.project_id === "") {
 			failure = "create a project first";
 			return;
 		}
 
 		const invalid = validateTaskDraft({
 			title,
-			source_file: sourceFile,
-			source_line: sourceLine,
+			source_file: draft.source_file ?? "",
+			source_line: draft.source_line === null ? "" : String(draft.source_line),
 		});
 
 		if (invalid !== null) {
@@ -104,23 +108,20 @@
 			return;
 		}
 
-		const line = toSourceLine(sourceLine);
-		const file = toSourceFile(sourceFile);
-
 		saving = true;
 
 		try {
 			const created = await tasks.create({
-				project_id: projectId,
-				title: cleanTitle,
-				description,
-				priority,
-				is_epic: type === "epic",
-				epic_id: type === "epic" || epicId === "" ? null : epicId,
-				scope_id: scopeId === "" ? null : Number(scopeId),
-				source_file: file,
-				source_line: line,
-				tags: splitTags(tags),
+				project_id: draft.project_id,
+				title: title.trim(),
+				description: draft.description,
+				priority: draft.priority,
+				is_epic: draft.is_epic,
+				epic_id: draft.is_epic ? null : draft.epic_id,
+				scope_id: draft.scope_id,
+				source_file: draft.source_file,
+				source_line: draft.source_line,
+				tags: draft.tags,
 			});
 
 			oncreated(created);
@@ -140,15 +141,6 @@
 
 <form onsubmit={submit}>
 	<label class="field detail-field">
-		Project
-		<select class="field-control" bind:value={projectId}>
-			{#each projects as project (project.id)}
-				<option value={project.id}>{project.name}</option>
-			{/each}
-		</select>
-	</label>
-
-	<label class="field detail-field">
 		Title
 		<input
 			class="field-control"
@@ -158,79 +150,18 @@
 		/>
 	</label>
 
-	<label class="field detail-field">
-		Description
-		<textarea
-			class="field-control"
-			bind:value={description}
-			placeholder="Markdown"></textarea>
-	</label>
-
-	<div class="detail-grid">
-		<label class="field">
-			Priority
-			<select class="field-control" bind:value={priority}>
-				{#each PRIORITIES as option (option)}
-					<option value={option}>{option}</option>
-				{/each}
-			</select>
-		</label>
-		<label class="field">
-			Type
-			<select class="field-control" bind:value={type}>
-				<option value="task">task</option>
-				<option value="epic">epic</option>
-			</select>
-		</label>
-	</div>
-
-	{#if type === "task"}
-		<label class="field detail-field">
-			Epic
-			<select class="field-control" bind:value={epicId}>
-				<option value="">none</option>
-				{#each epicOptions as epic (epic.id)}
-					<option value={epic.id}>{epic.id} — {epic.title}</option>
-				{/each}
-			</select>
-		</label>
-	{/if}
-
-	{#if scopeOptions.length > 0}
-		<label class="field detail-field">
-			Scope
-			<select class="field-control" bind:value={scopeId}>
-				<option value="">not selected</option>
-				{#each scopeOptions as scope (scope.id)}
-					<option value={String(scope.id)}>{scope.name}</option>
-				{/each}
-			</select>
-		</label>
-	{/if}
-
-	<label class="field detail-field">
-		Comma-separated tags
-		<input
-			class="field-control"
-			bind:value={tags}
-			placeholder="checkout, payments"
-		/>
-	</label>
-
-	<div class="detail-grid">
-		<label class="field">
-			Source file
-			<input
-				class="field-control"
-				bind:value={sourceFile}
-				placeholder="src/app/PaymentForm.tsx"
-			/>
-		</label>
-		<label class="field">
-			Source line
-			<input class="field-control" bind:value={sourceLine} placeholder="112" />
-		</label>
-	</div>
+	<TaskFields
+		value={draft}
+		{projects}
+		epics={epicOptions}
+		scopes={scopeOptions}
+		{onfield}
+		{onproject}
+		onerror={(message) => {
+			failure = message;
+			invalidField = true;
+		}}
+	/>
 
 	<ErrorNote message={failure} />
 
