@@ -7,6 +7,7 @@ process.env.PORT ??= "45881";
 process.env.HOST ??= "0.0.0.0";
 process.env.PROTOCOL_HEADER ??= "x-forwarded-proto";
 process.env.XBOCT_LOG_DB ??= join(homedir(), ".xboct-log", "xboct-log.db");
+process.env.XBOCT_LOG_MIGRATIONS ??= join(import.meta.dirname, "migrations");
 
 const port = Number(process.env.PORT);
 const host = process.env.HOST;

@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@ku6epxboctuk/sqlite-up':
+        specifier: ^0.6.1
+        version: 0.6.1
       neverthrow:
         specifier: ^8.2.0
         version: 8.2.0
@@ -179,6 +182,10 @@ packages:
 
   '@keyv/serialize@1.1.1':
     resolution: {integrity: sha512-dXn3FZhPv0US+7dtJsIi2R+c7qWYiReoEh5zUntWCf4oSpMNib8FDhSoed6m3QyZdx5hK7iLFkYk3rNxwt8vTA==}
+
+  '@ku6epxboctuk/sqlite-up@0.6.1':
+    resolution: {integrity: sha512-+IleoV/tCZcXyDT989DFNHw90n3Kj2GA+NlXb7Uv9oygSgZdSACeJ09fSIiY16y5QX77X9wwM9pwPwhWOGRVIw==}
+    engines: {node: '>=24.0.0'}
 
   '@oxc-project/types@0.153.0':
     resolution: {integrity: sha512-jSNrRIyvPVLL5E1z/tS5zLAprosGz/FuI1PWwEOz59j3E4TTTzSpqKb/RDGqJhhW0QHYISGXxq582wGx6T11Tw==}
@@ -1366,6 +1373,8 @@ snapshots:
       keyv: 5.6.0
 
   '@keyv/serialize@1.1.1': {}
+
+  '@ku6epxboctuk/sqlite-up@0.6.1': {}
 
   '@oxc-project/types@0.153.0': {}
 

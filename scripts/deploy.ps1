@@ -1,6 +1,6 @@
 $ErrorActionPreference = "Stop"
 
-$Repo     = "C:\+XBOCTuK\+life_projects\git-processes\backlog"
+$Repo     = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $AppDir   = Join-Path $env:USERPROFILE ".xboct-log\app"
 $Service  = "xboct-log"
 $Temp     = Join-Path $env:TEMP ("xboct-log-build-" + [guid]::NewGuid().ToString("N"))
@@ -32,14 +32,17 @@ try {
 
 	New-Item -ItemType Directory -Force $AppDir | Out-Null
 	New-Item -ItemType Directory -Force (Join-Path $AppDir "logs") | Out-Null
-	Copy-Item (Join-Path $Temp "package.json"), (Join-Path $Temp "pnpm-lock.yaml") $AppDir -Force
-	Copy-Item (Join-Path $Repo "scripts\start-prod.mjs") (Join-Path $AppDir "start.mjs") -Force
+	Copy-Item (Join-Path $Temp "package.json"), (Join-Path $Temp "pnpm-lock.yaml"), (Join-Path $Temp "pnpm-workspace.yaml") $AppDir -Force
+	Copy-Item (Join-Path $Temp "scripts\start-prod.mjs") (Join-Path $AppDir "start.mjs") -Force
 
 	Push-Location $AppDir
 	pnpm install --prod --frozen-lockfile
 	Pop-Location
 
-	if ((nssm status $Service).Trim() -eq "SERVICE_RUNNING") { nssm stop $Service | Out-Null }
+	$null = robocopy (Join-Path $Temp "migrations") (Join-Path $AppDir "migrations") /MIR /NFL /NDL /NJH /NJS
+	if ($LASTEXITCODE -ge 8) { throw "robocopy migrations failed (exit $LASTEXITCODE)" }
+
+	if ((nssm status $Service).Trim() -ne "SERVICE_STOPPED") { nssm stop $Service | Out-Null }
 
 	$null = robocopy (Join-Path $Temp "build") (Join-Path $AppDir "build") /MIR /NFL /NDL /NJH /NJS
 	if ($LASTEXITCODE -ge 8) { throw "robocopy failed (exit $LASTEXITCODE)" }

@@ -1,2 +1,5 @@
 allowBuilds:
   esbuild: true
+
+minimumReleaseAgeExclude:
+  - "@ku6epxboctuk/sqlite-up"

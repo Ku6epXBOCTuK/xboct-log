@@ -18,7 +18,12 @@
 		"lint": "prettier --check . && eslint .",
 		"format": "prettier --write . --log-level=warn",
 		"test:unit": "vitest",
-		"test": "npm run test:unit -- --run"
+		"test": "npm run test:unit -- --run",
+		"migrate": "node scripts/migrate.mjs",
+		"migrate:status": "node scripts/migrate.mjs status",
+		"migrate:rollback": "node scripts/migrate.mjs rollback",
+		"migrate:baseline": "node scripts/migrate.mjs baseline",
+		"migrate:unlock": "node scripts/migrate.mjs unlock"
 	},
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",
@@ -46,6 +51,7 @@
 		"#lib/*": "./src/lib/*"
 	},
 	"dependencies": {
+		"@ku6epxboctuk/sqlite-up": "^0.6.1",
 		"neverthrow": "^8.2.0",
 		"zod": "^4.6.7"
 	}

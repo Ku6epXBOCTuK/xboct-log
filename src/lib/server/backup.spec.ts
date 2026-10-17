@@ -13,7 +13,7 @@ import {
 	runBackup,
 	runScheduled,
 } from "./backup";
-import { openDatabase } from "./db";
+import { openMigratedDatabase } from "./migrations";
 
 function tempDir(): string {
 	return mkdtempSync(join(tmpdir(), "xboct-backup-"));
@@ -54,7 +54,7 @@ describe("backup names", () => {
 describe("runBackup", () => {
 	it("writes a dated copy into the daily folder", async () => {
 		const dir = tempDir();
-		const db = openDatabase(":memory:");
+		const db = await openMigratedDatabase(":memory:");
 		const result = await runBackup(
 			db,
 			testConfig(dir),
@@ -70,7 +70,7 @@ describe("runBackup", () => {
 
 	it("does nothing when disabled", async () => {
 		const dir = tempDir();
-		const db = openDatabase(":memory:");
+		const db = await openMigratedDatabase(":memory:");
 		const config = { ...testConfig(dir), disabled: true };
 		const result = await runBackup(db, config, "daily", new Date(2026, 0, 5));
 
@@ -100,7 +100,7 @@ describe("prune", () => {
 
 	it("rotates daily files down to the keep limit", async () => {
 		const dir = tempDir();
-		const db = openDatabase(":memory:");
+		const db = await openMigratedDatabase(":memory:");
 		const config = testConfig(dir);
 		await runBackup(db, config, "daily", new Date(2026, 0, 1));
 		await runBackup(db, config, "daily", new Date(2026, 0, 2));
@@ -116,7 +116,7 @@ describe("prune", () => {
 describe("runScheduled", () => {
 	it("adds a weekly copy on the configured weekday", async () => {
 		const dir = tempDir();
-		const db = openDatabase(":memory:");
+		const db = await openMigratedDatabase(":memory:");
 		const sunday = new Date(2026, 0, 4);
 		const result = await runScheduled(db, testConfig(dir), sunday);
 
@@ -126,7 +126,7 @@ describe("runScheduled", () => {
 
 	it("skips the weekly copy on other days", async () => {
 		const dir = tempDir();
-		const db = openDatabase(":memory:");
+		const db = await openMigratedDatabase(":memory:");
 		const result = await runScheduled(
 			db,
 			testConfig(dir),
@@ -141,7 +141,7 @@ describe("runScheduled", () => {
 describe("catchUp", () => {
 	it("skips before the scheduled time", async () => {
 		const dir = tempDir();
-		const db = openDatabase(":memory:");
+		const db = await openMigratedDatabase(":memory:");
 		const config = { ...testConfig(dir), hour: 23 };
 		const result = await catchUp(db, config, new Date(2026, 0, 5, 10, 0));
 
@@ -151,7 +151,7 @@ describe("catchUp", () => {
 
 	it("runs once when the daily copy is missing", async () => {
 		const dir = tempDir();
-		const db = openDatabase(":memory:");
+		const db = await openMigratedDatabase(":memory:");
 		const config = testConfig(dir);
 		const first = await catchUp(db, config, new Date(2026, 0, 5, 10, 0));
 		const second = await catchUp(db, config, new Date(2026, 0, 5, 11, 0));

@@ -1,7 +1,7 @@
 import type { Result } from "neverthrow";
 import type { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
-import { openDatabase } from "./db";
+import { openMigratedDatabase } from "./migrations";
 import { type AppError } from "./errors";
 import {
 	createProject,
@@ -30,15 +30,15 @@ function failure(result: Result<unknown, AppError>): AppError {
 	return result._unsafeUnwrapErr();
 }
 
-function setup(): DatabaseSync {
-	const db = openDatabase(":memory:");
+async function setup(): Promise<DatabaseSync> {
+	const db = await openMigratedDatabase(":memory:");
 	unwrap(createProject(db, { id: "spa", name: "Shop", prefix: "SPA" }));
 	return db;
 }
 
 describe("projects", () => {
-	it("creates a project and reads it back", () => {
-		const db = openDatabase(":memory:");
+	it("creates a project and reads it back", async () => {
+		const db = await openMigratedDatabase(":memory:");
 		const project = unwrap(
 			createProject(db, { id: "spa", name: "Shop", prefix: "SPA" }),
 		);
@@ -48,8 +48,8 @@ describe("projects", () => {
 		expect(getProject(db, "spa")).toEqual(project);
 	});
 
-	it("returns a conflict for a duplicate prefix", () => {
-		const db = setup();
+	it("returns a conflict for a duplicate prefix", async () => {
+		const db = await setup();
 		const error = failure(
 			createProject(db, { id: "other", name: "Other", prefix: "SPA" }),
 		);
@@ -58,8 +58,8 @@ describe("projects", () => {
 		expect(error.status).toBe(409);
 	});
 
-	it("returns a validation error for an invalid id", () => {
-		const db = openDatabase(":memory:");
+	it("returns a validation error for an invalid id", async () => {
+		const db = await openMigratedDatabase(":memory:");
 		const error = failure(
 			createProject(db, { id: "bad id!", name: "Bad", prefix: "BAD" }),
 		);
@@ -68,23 +68,23 @@ describe("projects", () => {
 		expect(error.message).toContain("latin letters");
 	});
 
-	it("returns not_found when updating a missing project", () => {
-		const db = openDatabase(":memory:");
+	it("returns not_found when updating a missing project", async () => {
+		const db = await openMigratedDatabase(":memory:");
 		const error = failure(updateProject(db, "ghost", { name: "Ghost" }));
 
 		expect(error.kind).toBe("not_found");
 	});
 
-	it("archives a project and hides it from the default list", () => {
-		const db = setup();
+	it("archives a project and hides it from the default list", async () => {
+		const db = await setup();
 		unwrap(updateProject(db, "spa", { archived: true }));
 
 		expect(listProjects(db)).toHaveLength(0);
 		expect(listProjects(db, { includeArchived: true })).toHaveLength(1);
 	});
 
-	it("renames and restores a project", () => {
-		const db = setup();
+	it("renames and restores a project", async () => {
+		const db = await setup();
 		expect(
 			unwrap(updateProject(db, "spa", { archived: true })).archived_at,
 		).not.toBeNull();
@@ -100,8 +100,8 @@ describe("projects", () => {
 });
 
 describe("tasks", () => {
-	it("generates sequential ids per project", () => {
-		const db = setup();
+	it("generates sequential ids per project", async () => {
+		const db = await setup();
 		const first = unwrap(createTask(db, { project_id: "spa", title: "First" }));
 		const second = unwrap(
 			createTask(db, { project_id: "spa", title: "Second" }),
@@ -112,8 +112,8 @@ describe("tasks", () => {
 		expect(first.number).toBe(1);
 	});
 
-	it("applies defaults and round-trips arrays and source", () => {
-		const db = setup();
+	it("applies defaults and round-trips arrays and source", async () => {
+		const db = await setup();
 		const task = unwrap(
 			createTask(db, {
 				project_id: "spa",
@@ -133,15 +133,15 @@ describe("tasks", () => {
 		expect(getTask(db, task.id)).toEqual(task);
 	});
 
-	it("returns not_found for an unknown project", () => {
-		const db = openDatabase(":memory:");
+	it("returns not_found for an unknown project", async () => {
+		const db = await openMigratedDatabase(":memory:");
 		const error = failure(createTask(db, { project_id: "ghost", title: "X" }));
 
 		expect(error.kind).toBe("not_found");
 	});
 
-	it("returns a validation error when source_line has no source_file", () => {
-		const db = setup();
+	it("returns a validation error when source_line has no source_file", async () => {
+		const db = await setup();
 		const error = failure(
 			createTask(db, { project_id: "spa", title: "X", source_line: 3 }),
 		);
@@ -150,8 +150,8 @@ describe("tasks", () => {
 		expect(error.message).toBe("source_line requires source_file");
 	});
 
-	it("stamps closed_at on close and clears it on reopen", () => {
-		const db = setup();
+	it("stamps closed_at on close and clears it on reopen", async () => {
+		const db = await setup();
 		const task = unwrap(createTask(db, { project_id: "spa", title: "Ship" }));
 
 		const closed = unwrap(updateTask(db, task.id, { status: "done" }));
@@ -161,8 +161,8 @@ describe("tasks", () => {
 		expect(reopened.closed_at).toBeNull();
 	});
 
-	it("closes with a reason and clears it on reopen", () => {
-		const db = setup();
+	it("closes with a reason and clears it on reopen", async () => {
+		const db = await setup();
 		const task = unwrap(createTask(db, { project_id: "spa", title: "Ship" }));
 
 		const closed = unwrap(closeTask(db, task.id, "obsolete"));
@@ -175,21 +175,21 @@ describe("tasks", () => {
 		expect(reopened.closed_reason).toBeNull();
 	});
 
-	it("maps the fixed reason to done", () => {
-		const db = setup();
+	it("maps the fixed reason to done", async () => {
+		const db = await setup();
 		const task = unwrap(createTask(db, { project_id: "spa", title: "Ship" }));
 
 		expect(unwrap(closeTask(db, task.id, "fixed")).status).toBe("done");
 	});
 
-	it("returns not_found when closing a missing task", () => {
-		const db = setup();
+	it("returns not_found when closing a missing task", async () => {
+		const db = await setup();
 
 		expect(failure(closeTask(db, "SPA-9", "fixed")).kind).toBe("not_found");
 	});
 
-	it("deletes a task and detaches its epic children", () => {
-		const db = setup();
+	it("deletes a task and detaches its epic children", async () => {
+		const db = await setup();
 		const epic = unwrap(
 			createTask(db, { project_id: "spa", title: "Revamp", is_epic: true }),
 		);
@@ -203,8 +203,8 @@ describe("tasks", () => {
 		expect(failure(deleteTask(db, epic.id)).kind).toBe("not_found");
 	});
 
-	it("rejects an epic from another project", () => {
-		const db = setup();
+	it("rejects an epic from another project", async () => {
+		const db = await setup();
 		unwrap(createProject(db, { id: "bil", name: "Billing", prefix: "BIL" }));
 		const epic = unwrap(
 			createTask(db, { project_id: "bil", title: "Big", is_epic: true }),
@@ -216,8 +216,8 @@ describe("tasks", () => {
 		expect(error.message).toBe("epic must belong to the same project");
 	});
 
-	it("rejects a non-epic as epic parent", () => {
-		const db = setup();
+	it("rejects a non-epic as epic parent", async () => {
+		const db = await setup();
 		const plain = unwrap(createTask(db, { project_id: "spa", title: "Plain" }));
 		const error = failure(
 			createTask(db, { project_id: "spa", title: "X", epic_id: plain.id }),
@@ -226,8 +226,8 @@ describe("tasks", () => {
 		expect(error.message).toContain("is not an epic");
 	});
 
-	it("rejects a task as its own epic", () => {
-		const db = setup();
+	it("rejects a task as its own epic", async () => {
+		const db = await setup();
 		const task = unwrap(createTask(db, { project_id: "spa", title: "Loop" }));
 		const error = failure(
 			updateTask(db, task.id, { is_epic: true, epic_id: task.id }),
@@ -236,8 +236,8 @@ describe("tasks", () => {
 		expect(error.message).toBe("a task cannot be its own epic");
 	});
 
-	it("filters by status, tag and text", () => {
-		const db = setup();
+	it("filters by status, tag and text", async () => {
+		const db = await setup();
 		unwrap(
 			createTask(db, { project_id: "spa", title: "Alpha bug", tags: ["perf"] }),
 		);
@@ -252,8 +252,8 @@ describe("tasks", () => {
 		expect(listTasks(db, { project_id: "spa" })).toHaveLength(2);
 	});
 
-	it("filters epics and their children", () => {
-		const db = setup();
+	it("filters epics and their children", async () => {
+		const db = await setup();
 		const epic = unwrap(
 			createTask(db, { project_id: "spa", title: "Revamp", is_epic: true }),
 		);
@@ -275,8 +275,8 @@ describe("tasks", () => {
 		).toEqual(["Child"]);
 	});
 
-	it("sorts by priority severity, most severe first", () => {
-		const db = setup();
+	it("sorts by priority severity, most severe first", async () => {
+		const db = await setup();
 		unwrap(
 			createTask(db, { project_id: "spa", title: "Low", priority: "low" }),
 		);
@@ -298,8 +298,8 @@ describe("tasks", () => {
 		]);
 	});
 
-	it("counts tasks by status", () => {
-		const db = setup();
+	it("counts tasks by status", async () => {
+		const db = await setup();
 		unwrap(createTask(db, { project_id: "spa", title: "A" }));
 		const b = unwrap(
 			createTask(db, { project_id: "spa", title: "B", priority: "high" }),
@@ -317,8 +317,8 @@ describe("tasks", () => {
 });
 
 describe("task moves", () => {
-	it("assigns the next number in the target project", () => {
-		const db = setup();
+	it("assigns the next number in the target project", async () => {
+		const db = await setup();
 		unwrap(createProject(db, { id: "bil", name: "Billing", prefix: "BIL" }));
 		unwrap(createTask(db, { project_id: "bil", title: "Existing" }));
 		const task = unwrap(createTask(db, { project_id: "spa", title: "Move" }));
@@ -330,8 +330,8 @@ describe("task moves", () => {
 		expect(getTask(db, task.id)).toBeUndefined();
 	});
 
-	it("detaches a child moved to another project", () => {
-		const db = setup();
+	it("detaches a child moved to another project", async () => {
+		const db = await setup();
 		unwrap(createProject(db, { id: "bil", name: "Billing", prefix: "BIL" }));
 		const epic = unwrap(
 			createTask(db, { project_id: "spa", title: "Revamp", is_epic: true }),
@@ -350,8 +350,8 @@ describe("task moves", () => {
 		expect(moved.epic_id).toBeNull();
 	});
 
-	it("moves an epic with its subtree and rewires the links", () => {
-		const db = setup();
+	it("moves an epic with its subtree and rewires the links", async () => {
+		const db = await setup();
 		unwrap(createProject(db, { id: "bil", name: "Billing", prefix: "BIL" }));
 		const epic = unwrap(
 			createTask(db, { project_id: "spa", title: "Revamp", is_epic: true }),
@@ -378,8 +378,8 @@ describe("task moves", () => {
 		expect(getTask(db, leaf.id)).toBeUndefined();
 	});
 
-	it("returns the task unchanged when the project matches", () => {
-		const db = setup();
+	it("returns the task unchanged when the project matches", async () => {
+		const db = await setup();
 		const task = unwrap(createTask(db, { project_id: "spa", title: "Stay" }));
 
 		const moved = unwrap(moveTask(db, task.id, "spa"));
@@ -388,8 +388,8 @@ describe("task moves", () => {
 		expect(moved.updated_at).toBe(task.updated_at);
 	});
 
-	it("returns not_found for an unknown task or project", () => {
-		const db = setup();
+	it("returns not_found for an unknown task or project", async () => {
+		const db = await setup();
 
 		expect(failure(moveTask(db, "SPA-9", "spa")).kind).toBe("not_found");
 		const task = unwrap(createTask(db, { project_id: "spa", title: "X" }));
@@ -398,8 +398,8 @@ describe("task moves", () => {
 });
 
 describe("task numbering", () => {
-	it("does not reuse the number of a deleted task", () => {
-		const db = setup();
+	it("does not reuse the number of a deleted task", async () => {
+		const db = await setup();
 		const first = unwrap(createTask(db, { project_id: "spa", title: "A" }));
 		unwrap(deleteTask(db, first.id));
 
@@ -408,8 +408,8 @@ describe("task numbering", () => {
 		expect(next.id).toBe("SPA-2");
 	});
 
-	it("does not reuse the number of a task moved away", () => {
-		const db = setup();
+	it("does not reuse the number of a task moved away", async () => {
+		const db = await setup();
 		unwrap(createProject(db, { id: "bil", name: "Billing", prefix: "BIL" }));
 		const first = unwrap(createTask(db, { project_id: "spa", title: "A" }));
 		unwrap(moveTask(db, first.id, "bil"));
@@ -419,8 +419,8 @@ describe("task numbering", () => {
 		expect(next.id).toBe("SPA-2");
 	});
 
-	it("does not reuse a number in the project a task moved out of", () => {
-		const db = setup();
+	it("does not reuse a number in the project a task moved out of", async () => {
+		const db = await setup();
 		unwrap(createProject(db, { id: "bil", name: "Billing", prefix: "BIL" }));
 		const moved = unwrap(createTask(db, { project_id: "bil", title: "A" }));
 		unwrap(moveTask(db, moved.id, "spa"));
