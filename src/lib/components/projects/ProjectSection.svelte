@@ -1,28 +1,38 @@
 <script lang="ts">
-	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
-	import { messageOf } from "#lib/tasks/display.ts";
-	import type { Project, Task } from "#lib/types.ts";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
+	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
+	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
+	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
+	import { messageOf } from "#lib/tasks/display.ts";
+	import type { Project } from "#lib/types.ts";
 	import ChevronDown from "~icons/lucide/chevron-down";
 	import Plus from "~icons/lucide/plus";
 	import ProjectCreateForm from "./ProjectCreateForm.svelte";
 	import ProjectList from "./ProjectList.svelte";
+	import ProjectSettingsDialog from "./ProjectSettingsDialog.svelte";
 
 	interface Props {
 		projects: ProjectStore;
-		tasks: Task[];
+		scopes: ScopeStore;
+		tasks: TaskStore;
 		activeProject: string;
 		onselect: (projectId: string) => void;
 	}
 
-	let { projects, tasks, activeProject, onselect }: Props = $props();
+	let { projects, scopes, tasks, activeProject, onselect }: Props = $props();
 
 	let open = $state(true);
 	let showArchived = $state(false);
 	let creating = $state(false);
 	let failure = $state<string | null>(null);
+	let settingsFor = $state<string | null>(null);
 
 	const visible = $derived(showArchived ? projects.all : projects.active);
+	const settingsProject = $derived(
+		settingsFor === null
+			? null
+			: (projects.all.find((project) => project.id === settingsFor) ?? null),
+	);
 
 	async function rename(id: string, name: string) {
 		failure = null;
@@ -52,7 +62,10 @@
 		<ChevronDown class={open ? "" : "-rotate-90"} data-icon="inline-start" />
 		Projects
 	</button>
-	<span>{tasks.length} {tasks.length === 1 ? "task" : "tasks"}</span>
+	<span>
+		{tasks.tasks.length}
+		{tasks.tasks.length === 1 ? "task" : "tasks"}
+	</span>
 	<button
 		class="project-icon"
 		onclick={() => {
@@ -76,11 +89,12 @@
 		<ErrorNote message={failure} class="project-error" />
 		<ProjectList
 			projects={visible}
-			{tasks}
+			tasks={tasks.tasks}
 			{activeProject}
 			{onselect}
 			onrename={rename}
 			onarchive={toggleArchived}
+			onsettings={(project) => (settingsFor = project.id)}
 		/>
 		{#if projects.archived.length > 0}
 			<button
@@ -94,6 +108,15 @@
 		{/if}
 	</div>
 {/if}
+
+<ProjectSettingsDialog
+	open={settingsFor !== null}
+	project={settingsProject}
+	{projects}
+	{scopes}
+	{tasks}
+	onclose={() => (settingsFor = null)}
+/>
 
 <style>
 	.projects-heading {

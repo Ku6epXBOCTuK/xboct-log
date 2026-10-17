@@ -2,6 +2,7 @@
 	import { INBOX_PROJECT_ID, type Project } from "#lib/types.ts";
 	import Check from "~icons/lucide/check";
 	import Pencil from "~icons/lucide/pencil";
+	import Settings from "~icons/lucide/settings";
 	import Trash2 from "~icons/lucide/trash-2";
 
 	interface Props {
@@ -11,10 +12,18 @@
 		onselect: () => void;
 		onrename: (name: string) => void;
 		onarchive: () => void;
+		onsettings: () => void;
 	}
 
-	let { project, active, count, onselect, onrename, onarchive }: Props =
-		$props();
+	let {
+		project,
+		active,
+		count,
+		onselect,
+		onrename,
+		onarchive,
+		onsettings,
+	}: Props = $props();
 
 	let editing = $state(false);
 	let input = $state<HTMLInputElement | null>(null);
@@ -53,6 +62,14 @@
 			</span>
 			<span>{project.name}</span>
 			<span class="project-count">{count}</span>
+		</button>
+		<button
+			class="project-icon"
+			type="button"
+			onclick={onsettings}
+			aria-label={`Settings for ${project.name}`}
+		>
+			<Settings />
 		</button>
 		<button
 			class="project-icon"

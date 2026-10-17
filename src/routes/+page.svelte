@@ -75,7 +75,8 @@
 <main class={`app-shell ${theme.themeClass}`}>
 	<SideBar
 		{projects}
-		tasks={tasks.tasks}
+		{scopes}
+		{tasks}
 		activeProject={filters.activeProject}
 		onprojectselect={setActiveProject}
 	/>

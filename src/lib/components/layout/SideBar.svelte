@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { countInProgress } from "#lib/tasks/filter.ts";
 	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
-	import type { Task } from "#lib/types.ts";
+	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
+	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
 	import ProjectSection from "#lib/components/projects/ProjectSection.svelte";
 	import BrandMark from "./BrandMark.svelte";
 	import LanguageSwitch from "./LanguageSwitch.svelte";
@@ -9,22 +10,25 @@
 
 	interface Props {
 		projects: ProjectStore;
-		tasks: Task[];
+		scopes: ScopeStore;
+		tasks: TaskStore;
 		activeProject: string;
 		onprojectselect?: (projectId: string) => void;
 	}
 
-	let { projects, tasks, activeProject, onprojectselect }: Props = $props();
+	let { projects, scopes, tasks, activeProject, onprojectselect }: Props =
+		$props();
 </script>
 
 <aside class="sidebar">
 	<BrandMark />
 	<PrimaryNav
-		taskCount={tasks.length}
-		inProgressCount={countInProgress(tasks)}
+		taskCount={tasks.tasks.length}
+		inProgressCount={countInProgress(tasks.tasks)}
 	/>
 	<ProjectSection
 		{projects}
+		{scopes}
 		{tasks}
 		{activeProject}
 		onselect={onprojectselect ?? (() => {})}

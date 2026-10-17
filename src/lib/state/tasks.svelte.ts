@@ -55,6 +55,11 @@ export function createTaskStore(initial: Task[]) {
 			await deleteTask(id);
 			tasks = tasks.filter((task) => task.id !== id);
 		},
+		clearScope(scopeId: number) {
+			tasks = tasks.map((task) =>
+				task.scope_id === scopeId ? { ...task, scope_id: null } : task,
+			);
+		},
 	};
 }
 

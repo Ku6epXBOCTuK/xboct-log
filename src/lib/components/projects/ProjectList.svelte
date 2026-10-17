@@ -10,10 +10,18 @@
 		onselect: (projectId: string) => void;
 		onrename: (id: string, name: string) => void;
 		onarchive: (project: Project) => void;
+		onsettings: (project: Project) => void;
 	}
 
-	let { projects, tasks, activeProject, onselect, onrename, onarchive }: Props =
-		$props();
+	let {
+		projects,
+		tasks,
+		activeProject,
+		onselect,
+		onrename,
+		onarchive,
+		onsettings,
+	}: Props = $props();
 </script>
 
 {#each projects as project (project.id)}
@@ -24,5 +32,6 @@
 		onselect={() => onselect(project.id)}
 		onrename={(name) => onrename(project.id, name)}
 		onarchive={() => onarchive(project)}
+		onsettings={() => onsettings(project)}
 	/>
 {/each}
