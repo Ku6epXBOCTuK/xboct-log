@@ -59,6 +59,16 @@ function attach(
 
 	const messages = panel.webview.onDidReceiveMessage((message) => {
 		if (isMessage(message, "xboct-log:retry")) void render(panel);
+		if (isMessage(message, "xboct-log:next-tab")) {
+			void vscode.commands.executeCommand(
+				"workbench.action.openNextRecentlyUsedEditorInGroup",
+			);
+		}
+		if (isMessage(message, "xboct-log:prev-tab")) {
+			void vscode.commands.executeCommand(
+				"workbench.action.openPreviousRecentlyUsedEditorInGroup",
+			);
+		}
 	});
 
 	panel.onDidDispose(
@@ -160,6 +170,7 @@ function boardHtml(theme: "light" | "dark"): string {
 		<script nonce="${nonce}">
 			const frame = document.getElementById("board");
 			const base = frame.getAttribute("src");
+			const api = acquireVsCodeApi();
 
 			window.addEventListener("message", (event) => {
 				const data = event.data;
@@ -171,6 +182,14 @@ function boardHtml(theme: "light" | "dark"): string {
 
 				if (data.type === "xboct-log:reload") {
 					frame.setAttribute("src", base + "&_=" + Date.now());
+				}
+
+				if (data.type === "xboct-log:next-tab") {
+					api.postMessage({ type: "xboct-log:next-tab" });
+				}
+
+				if (data.type === "xboct-log:prev-tab") {
+					api.postMessage({ type: "xboct-log:prev-tab" });
 				}
 			});
 		</script>
