@@ -35,9 +35,13 @@
 			: null,
 	);
 
-	let selected: Task | null = $state(null);
+	let selectedId = $state<string | null>(null);
 	let creating = $state(false);
 	let childEpic = $state<Task | null>(null);
+
+	const selected = $derived(
+		tasks.tasks.find((task) => task.id === selectedId) ?? null,
+	);
 
 	const visibleTasks = $derived(filters.visible(tasks.tasks));
 
@@ -67,13 +71,6 @@
 		) {
 			filters.scope = "any";
 		}
-	});
-
-	$effect(() => {
-		const current = selected;
-		if (current === null) return;
-		const live = tasks.tasks.find((task) => task.id === current.id);
-		if (live !== undefined && live !== current) selected = live;
 	});
 
 	function setActiveProject(projectId: string) {
@@ -120,7 +117,8 @@
 		<TaskTable
 			tasks={visibleTasks}
 			{scopes}
-			bind:selected
+			{selectedId}
+			onselect={(id) => (selectedId = id)}
 			total={tasks.tasks.length}
 			onclear={() => filters.clear()}
 			onnew={openNew}
@@ -129,10 +127,11 @@
 	</section>
 
 	<DetailPanel
-		bind:selected
+		{selected}
 		{tasks}
 		{projects}
 		{scopes}
+		onclear={() => (selectedId = null)}
 		ondelete={forgetEpic}
 		oncreatechild={openChild}
 	/>

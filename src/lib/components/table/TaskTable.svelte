@@ -7,21 +7,23 @@
 	interface Props {
 		tasks: Task[];
 		scopes: ScopeStore;
-		selected: Task | null;
+		selectedId: string | null;
 		total: number;
 		onclear?: () => void;
 		onnew?: () => void;
 		onepic?: (id: string) => void;
+		onselect: (id: string) => void;
 	}
 
 	let {
 		tasks,
 		scopes,
-		selected = $bindable(),
+		selectedId,
 		total,
 		onclear,
 		onnew,
 		onepic,
+		onselect,
 	}: Props = $props();
 </script>
 
@@ -45,8 +47,8 @@
 					scope={task.scope_id === null
 						? null
 						: (scopes.all.find((scope) => scope.id === task.scope_id) ?? null)}
-					isselected={selected?.id === task.id}
-					onselect={() => (selected = task)}
+					isselected={selectedId === task.id}
+					onselect={() => onselect(task.id)}
 					{onepic}
 				/>
 			{/each}

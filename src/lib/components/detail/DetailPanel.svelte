@@ -23,15 +23,17 @@
 		tasks: TaskStore;
 		projects: ProjectStore;
 		scopes: ScopeStore;
+		onclear: () => void;
 		ondelete?: (id: string) => void;
 		oncreatechild?: (task: Task) => void;
 	}
 
 	let {
-		selected = $bindable(),
+		selected,
 		tasks,
 		projects,
 		scopes,
+		onclear,
 		ondelete,
 		oncreatechild,
 	}: Props = $props();
@@ -39,13 +41,12 @@
 	let saving = $state(false);
 	let failure = $state<string | null>(null);
 
-	async function perform(id: string, work: () => Promise<Task>) {
+	async function perform(work: () => Promise<Task>) {
 		saving = true;
 		failure = null;
 
 		try {
-			const updated = await work();
-			if (selected?.id === id) selected = updated;
+			await work();
 		} catch (error) {
 			failure = messageOf(error);
 		} finally {
@@ -56,7 +57,7 @@
 	function save(patch: TaskPatch) {
 		const current = selected;
 		if (current === null) return;
-		void perform(current.id, () => tasks.save(current.id, patch));
+		void perform(() => tasks.save(current.id, patch));
 	}
 
 	function saveTitle(event: Event) {
@@ -75,7 +76,7 @@
 	function moveTo(projectId: string) {
 		const current = selected;
 		if (current === null || projectId === current.project_id) return;
-		void perform(current.id, () => tasks.moveTo(current.id, projectId));
+		void perform(() => tasks.moveTo(current.id, projectId));
 	}
 
 	function createChild() {
@@ -87,7 +88,7 @@
 	function close(reason: ClosedReason) {
 		const current = selected;
 		if (current === null) return;
-		void perform(current.id, () => tasks.close(current.id, reason));
+		void perform(() => tasks.close(current.id, reason));
 	}
 
 	function reopen() {
@@ -104,7 +105,7 @@
 
 		try {
 			await tasks.destroy(id);
-			if (selected?.id === id) selected = null;
+			onclear();
 			ondelete?.(id);
 		} catch (error) {
 			failure = messageOf(error);
@@ -135,7 +136,7 @@
 			document.activeElement.blur();
 		}
 
-		selected = null;
+		onclear();
 	}
 </script>
 
@@ -157,10 +158,7 @@
 								: `updated ${formatDate(selected.updated_at)}`}
 					</span>
 				</div>
-				<IconButton
-					label="Close task details"
-					onclick={() => (selected = null)}
-				>
+				<IconButton label="Close task details" onclick={onclear}>
 					<X />
 				</IconButton>
 			</div>
