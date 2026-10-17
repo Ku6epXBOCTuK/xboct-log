@@ -1,10 +1,12 @@
 <script lang="ts">
+	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { Task } from "#lib/types.ts";
 	import EmptyState from "./EmptyState.svelte";
 	import TaskRow from "./TaskRow.svelte";
 
 	interface Props {
 		tasks: Task[];
+		scopes: ScopeStore;
 		selected: Task | null;
 		total: number;
 		onclear?: () => void;
@@ -14,6 +16,7 @@
 
 	let {
 		tasks,
+		scopes,
 		selected = $bindable(),
 		total,
 		onclear,
@@ -38,6 +41,10 @@
 			{#each tasks as task (task.id)}
 				<TaskRow
 					{task}
+					scoped={scopes.hasProject(task.project_id)}
+					scope={task.scope_id === null
+						? null
+						: (scopes.all.find((scope) => scope.id === task.scope_id) ?? null)}
 					isselected={selected?.id === task.id}
 					onselect={() => (selected = task)}
 					{onepic}

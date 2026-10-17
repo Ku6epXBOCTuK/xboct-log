@@ -3,6 +3,7 @@
 	import DetailFields from "#lib/components/detail/DetailFields.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
+	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
 	import { messageOf } from "#lib/tasks/display.ts";
 	import {
@@ -18,10 +19,17 @@
 		selected: Task | null;
 		tasks: TaskStore;
 		projects: ProjectStore;
+		scopes: ScopeStore;
 		ondelete?: (id: string) => void;
 	}
 
-	let { selected = $bindable(), tasks, projects, ondelete }: Props = $props();
+	let {
+		selected = $bindable(),
+		tasks,
+		projects,
+		scopes,
+		ondelete,
+	}: Props = $props();
 
 	let saving = $state(false);
 	let failure = $state<string | null>(null);
@@ -154,12 +162,14 @@
 			task={selected}
 			projects={projects.all}
 			epics={tasks.epics}
+			scopes={scopes.listFor(selected.project_id)}
 			{saving}
 			onstatus={(status) => save({ status })}
 			onpriority={(priority) => save({ priority })}
 			ontype={(isEpic) => save({ is_epic: isEpic })}
 			onproject={moveTo}
 			onepic={(epicId) => save({ epic_id: epicId })}
+			onscope={(scopeId) => save({ scope_id: scopeId })}
 			ontags={saveTags}
 			onsourcefile={saveSourceFile}
 			onsourceline={saveSourceLine}

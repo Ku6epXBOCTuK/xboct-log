@@ -1,5 +1,6 @@
 <script lang="ts">
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
+	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
 	import { messageOf } from "#lib/tasks/display.ts";
 	import { splitTags, toSourceFile, toSourceLine } from "#lib/tasks/fields.ts";
@@ -14,12 +15,14 @@
 	interface Props {
 		tasks: TaskStore;
 		projects: Project[];
+		scopes: ScopeStore;
 		initialProject?: string;
 		oncreated: (task: Task) => void;
 		onclose: () => void;
 	}
 
-	let { tasks, projects, initialProject, oncreated, onclose }: Props = $props();
+	let { tasks, projects, scopes, initialProject, oncreated, onclose }: Props =
+		$props();
 
 	function defaultProject(): string {
 		if (initialProject !== undefined) return initialProject;
@@ -35,6 +38,7 @@
 	let priority = $state<Priority>("medium");
 	let type = $state<"task" | "epic">("task");
 	let epicId = $state("");
+	let scopeId = $state("");
 	let sourceFile = $state("");
 	let sourceLine = $state("");
 	let tags = $state("");
@@ -42,13 +46,21 @@
 	let saving = $state(false);
 	let failure = $state<string | null>(null);
 	let titleInput = $state<HTMLInputElement | null>(null);
+	let scopeProject: string | undefined = undefined;
 
 	const epicOptions = $derived(
 		tasks.epics.filter((epic) => epic.project_id === projectId),
 	);
+	const scopeOptions = $derived(scopes.listFor(projectId));
 
 	$effect(() => {
 		titleInput?.focus();
+	});
+
+	$effect(() => {
+		if (scopeProject === projectId) return;
+		scopeProject = projectId;
+		scopeId = "";
 	});
 
 	function reset() {
@@ -58,6 +70,7 @@
 		priority = "medium";
 		type = "task";
 		epicId = "";
+		scopeId = "";
 		sourceFile = "";
 		sourceLine = "";
 		tags = "";
@@ -102,6 +115,7 @@
 				priority,
 				is_epic: type === "epic",
 				epic_id: type === "epic" || epicId === "" ? null : epicId,
+				scope_id: scopeId === "" ? null : Number(scopeId),
 				source_file: file,
 				source_line: line,
 				tags: splitTags(tags),
@@ -171,6 +185,18 @@
 				<option value="">none</option>
 				{#each epicOptions as epic (epic.id)}
 					<option value={epic.id}>{epic.id} — {epic.title}</option>
+				{/each}
+			</select>
+		</label>
+	{/if}
+
+	{#if scopeOptions.length > 0}
+		<label class="detail-field">
+			Scope
+			<select bind:value={scopeId}>
+				<option value="">not selected</option>
+				{#each scopeOptions as scope (scope.id)}
+					<option value={String(scope.id)}>{scope.name}</option>
 				{/each}
 			</select>
 		</label>

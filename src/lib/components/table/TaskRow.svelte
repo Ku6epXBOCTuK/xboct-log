@@ -1,16 +1,18 @@
 <script lang="ts">
 	import StatusDot from "#lib/components/ui/StatusDot.svelte";
 	import { STATUS_LABELS, formatDate } from "#lib/tasks/display.ts";
-	import type { Task } from "#lib/types.ts";
+	import type { Scope, Task } from "#lib/types.ts";
 
 	interface Props {
 		task: Task;
+		scoped: boolean;
+		scope: Scope | null;
 		isselected: boolean;
 		onselect: () => void;
 		onepic?: (id: string) => void;
 	}
 
-	let { task, isselected, onselect, onepic }: Props = $props();
+	let { task, scoped, scope, isselected, onselect, onepic }: Props = $props();
 
 	function filterEpic(event: MouseEvent, epicId: string | null) {
 		event.stopPropagation();
@@ -32,6 +34,13 @@
 			>
 				{task.epic_id}
 			</button>
+		{/if}
+		{#if scoped}
+			{#if scope !== null}
+				<span class="scope-badge">{scope.name}</span>
+			{:else}
+				<span class="scope-badge scope-missing">no scope</span>
+			{/if}
 		{/if}
 	</td>
 	<td class="optional-column">
@@ -99,6 +108,22 @@
 
 	.epic-filter:hover {
 		background: color-mix(in oklch, var(--violet) 32%, var(--violet-surface));
+	}
+
+	.scope-badge {
+		margin-left: var(--space-2);
+		border: 1px solid var(--border);
+		color: var(--text-muted);
+		border-radius: var(--radius-sm);
+		padding: 0 var(--space-2);
+		font-size: var(--text-xs);
+		line-height: 1.5;
+		white-space: nowrap;
+	}
+
+	.scope-missing {
+		border-color: color-mix(in oklch, var(--accent) 55%, transparent);
+		color: var(--accent-ink);
 	}
 
 	.tag-list {

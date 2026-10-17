@@ -50,9 +50,17 @@
 		}
 	});
 
+	$effect(() => {
+		const current = selected;
+		if (current === null) return;
+		const live = tasks.tasks.find((task) => task.id === current.id);
+		if (live !== undefined && live !== current) selected = live;
+	});
+
 	function setActiveProject(projectId: string) {
 		filters.activeProject = projectId;
 		filters.epic = "any";
+		filters.scope = "any";
 
 		const url = new URL(page.url.href);
 		if (projectId === "all") {
@@ -85,12 +93,14 @@
 		<WorkspaceHeader
 			{tasks}
 			{filters}
+			{scopes}
 			{theme}
 			visibleCount={visibleTasks.length}
 			onnew={() => (creating = true)}
 		/>
 		<TaskTable
 			tasks={visibleTasks}
+			{scopes}
 			bind:selected
 			total={tasks.tasks.length}
 			onclear={() => filters.clear()}
@@ -99,11 +109,18 @@
 		/>
 	</section>
 
-	<DetailPanel bind:selected {tasks} {projects} ondelete={forgetEpic} />
+	<DetailPanel
+		bind:selected
+		{tasks}
+		{projects}
+		{scopes}
+		ondelete={forgetEpic}
+	/>
 
 	<NewTaskModal
 		bind:open={creating}
 		{projects}
+		{scopes}
 		{tasks}
 		oncreated={(task) => (selected = task)}
 	/>

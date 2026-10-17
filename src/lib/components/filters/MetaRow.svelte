@@ -1,21 +1,32 @@
 <script lang="ts">
 	import EpicFilter from "#lib/components/filters/EpicFilter.svelte";
+	import ScopeFilter from "#lib/components/filters/ScopeFilter.svelte";
 	import TagFilter from "#lib/components/filters/TagFilter.svelte";
 	import type { Filters } from "#lib/state/filters.svelte.ts";
 	import type { TagCount } from "#lib/tasks/filter.ts";
-	import type { Task } from "#lib/types.ts";
+	import type { Scope, Task } from "#lib/types.ts";
 
 	interface Props {
 		filters: Filters;
 		epics: Task[];
+		scopes: Scope[];
 		tags: TagCount[];
 		visibleCount: number;
 		total: number;
 		countEpic: (epicId: string) => number;
+		countScope: (scopeId: number) => number;
 	}
 
-	let { filters, epics, tags, visibleCount, total, countEpic }: Props =
-		$props();
+	let {
+		filters,
+		epics,
+		scopes,
+		tags,
+		visibleCount,
+		total,
+		countEpic,
+		countScope,
+	}: Props = $props();
 </script>
 
 <div class="meta-row">
@@ -25,6 +36,14 @@
 		{countEpic}
 		onselect={(value) => (filters.epic = value)}
 	/>
+	{#if scopes.length > 0}
+		<ScopeFilter
+			value={filters.scope}
+			{scopes}
+			{countScope}
+			onselect={(value) => (filters.scope = value)}
+		/>
+	{/if}
 	<TagFilter
 		{tags}
 		selected={filters.selectedTags}

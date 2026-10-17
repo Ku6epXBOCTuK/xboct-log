@@ -2,19 +2,21 @@
 	import StatusDot from "#lib/components/ui/StatusDot.svelte";
 	import { STATUS_LABELS, formatDate } from "#lib/tasks/display.ts";
 	import { siblingEpics } from "#lib/tasks/fields.ts";
-	import type { Priority, Project, Status, Task } from "#lib/types.ts";
+	import type { Priority, Project, Scope, Status, Task } from "#lib/types.ts";
 	import { PRIORITIES, STATUSES } from "#lib/types.ts";
 
 	interface Props {
 		task: Task;
 		projects: Project[];
 		epics: Task[];
+		scopes: Scope[];
 		saving: boolean;
 		onstatus: (status: Status) => void;
 		onpriority: (priority: Priority) => void;
 		ontype: (isEpic: boolean) => void;
 		onproject: (event: Event) => void;
 		onepic: (epicId: string | null) => void;
+		onscope: (scopeId: number | null) => void;
 		ontags: (event: Event) => void;
 		onsourcefile: (event: Event) => void;
 		onsourceline: (event: Event) => void;
@@ -25,12 +27,14 @@
 		task,
 		projects,
 		epics,
+		scopes,
 		saving,
 		onstatus,
 		onpriority,
 		ontype,
 		onproject,
 		onepic,
+		onscope,
 		ontags,
 		onsourcefile,
 		onsourceline,
@@ -112,6 +116,27 @@
 		{/each}
 	</select>
 </label>
+{#if scopes.length > 0}
+	<label
+		class={`detail-field ${task.scope_id === null ? "scope-missing" : ""}`}
+	>
+		Scope
+		<select
+			value={task.scope_id === null ? "" : String(task.scope_id)}
+			onchange={(event) =>
+				onscope(
+					event.currentTarget.value === ""
+						? null
+						: Number(event.currentTarget.value),
+				)}
+		>
+			<option value="">not selected</option>
+			{#each scopes as scope (scope.id)}
+				<option value={scope.id}>{scope.name}</option>
+			{/each}
+		</select>
+	</label>
+{/if}
 <label class="detail-field">
 	Comma-separated tags
 	<input value={task.tags.join(", ")} onchange={ontags} />
@@ -215,5 +240,10 @@
 		margin: 0 0 var(--space-4);
 		color: var(--text-secondary);
 		font-size: var(--text-md);
+	}
+
+	.scope-missing select {
+		border-color: color-mix(in oklch, var(--accent) 55%, transparent);
+		color: var(--accent-ink);
 	}
 </style>

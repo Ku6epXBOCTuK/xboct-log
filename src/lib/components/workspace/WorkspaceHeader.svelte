@@ -4,22 +4,33 @@
 	import SearchBar from "#lib/components/filters/SearchBar.svelte";
 	import TitleRow from "#lib/components/workspace/TitleRow.svelte";
 	import type { Filters } from "#lib/state/filters.svelte.ts";
+	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
 	import type { Theme } from "#lib/state/theme.svelte.ts";
-	import { collectTags, countTasksInEpic } from "#lib/tasks/filter.ts";
+	import {
+		collectTags,
+		countTasksInEpic,
+		countTasksInScope,
+	} from "#lib/tasks/filter.ts";
 
 	interface Props {
 		tasks: TaskStore;
 		filters: Filters;
+		scopes: ScopeStore;
 		theme: Theme;
 		visibleCount: number;
 		onnew: () => void;
 	}
 
-	let { tasks, filters, theme, visibleCount, onnew }: Props = $props();
+	let { tasks, filters, scopes, theme, visibleCount, onnew }: Props = $props();
 
 	const epics = $derived(tasks.epics);
 	const tags = $derived(collectTags(tasks.tasks));
+	const scopeOptions = $derived(
+		filters.activeProject === "all"
+			? scopes.all
+			: scopes.listFor(filters.activeProject),
+	);
 </script>
 
 <header class="workspace-header">
@@ -38,10 +49,12 @@
 	<MetaRow
 		{filters}
 		{epics}
+		scopes={scopeOptions}
 		{tags}
 		{visibleCount}
 		total={tasks.tasks.length}
 		countEpic={(epicId) => countTasksInEpic(tasks.tasks, epicId)}
+		countScope={(scopeId) => countTasksInScope(tasks.tasks, scopeId)}
 	/>
 </header>
 

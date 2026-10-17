@@ -2,6 +2,7 @@
 	import NewProjectForm from "#lib/components/newtask/NewProjectForm.svelte";
 	import TaskForm from "#lib/components/newtask/TaskForm.svelte";
 	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
+	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
 	import type { Task } from "#lib/types.ts";
 	import X from "~icons/lucide/x";
@@ -9,11 +10,18 @@
 	interface Props {
 		open: boolean;
 		projects: ProjectStore;
+		scopes: ScopeStore;
 		tasks: TaskStore;
 		oncreated: (task: Task) => void;
 	}
 
-	let { open = $bindable(), projects, tasks, oncreated }: Props = $props();
+	let {
+		open = $bindable(),
+		projects,
+		scopes,
+		tasks,
+		oncreated,
+	}: Props = $props();
 
 	let panel: HTMLDialogElement | undefined = $state();
 	let initialProject = $state<string | undefined>(undefined);
@@ -59,6 +67,7 @@
 	{:else if open}
 		<TaskForm
 			{tasks}
+			{scopes}
 			projects={projects.active}
 			{initialProject}
 			{oncreated}

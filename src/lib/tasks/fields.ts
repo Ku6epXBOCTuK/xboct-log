@@ -9,6 +9,7 @@ export type TaskPatch = Partial<
 		| "priority"
 		| "is_epic"
 		| "epic_id"
+		| "scope_id"
 		| "source_file"
 		| "source_line"
 		| "tags"
