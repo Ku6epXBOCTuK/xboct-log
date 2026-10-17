@@ -1,5 +1,6 @@
 <script lang="ts">
 	import DetailActions from "#lib/components/detail/DetailActions.svelte";
+	import ProjectScopeFields from "#lib/components/task/ProjectScopeFields.svelte";
 	import TaskFields from "#lib/components/task/TaskFields.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import IconButton from "#lib/components/ui/IconButton.svelte";
@@ -23,6 +24,7 @@
 		projects: ProjectStore;
 		scopes: ScopeStore;
 		ondelete?: (id: string) => void;
+		oncreatechild?: (task: Task) => void;
 	}
 
 	let {
@@ -31,6 +33,7 @@
 		projects,
 		scopes,
 		ondelete,
+		oncreatechild,
 	}: Props = $props();
 
 	let saving = $state(false);
@@ -73,6 +76,12 @@
 		const current = selected;
 		if (current === null || projectId === current.project_id) return;
 		void perform(current.id, () => tasks.moveTo(current.id, projectId));
+	}
+
+	function createChild() {
+		const current = selected;
+		if (current === null) return;
+		oncreatechild?.(current);
 	}
 
 	function close(reason: ClosedReason) {
@@ -157,15 +166,21 @@
 			<ErrorNote message={failure} />
 		</div>
 		<div class="panel-body">
-			<TaskFields
+			<ProjectScopeFields
 				value={selected}
 				projects={projects.all}
-				epics={siblingEpics(tasks.epics, selected)}
 				scopes={scopes.listFor(selected.project_id)}
 				editing
 				onfield={save}
 				onproject={moveTo}
+			/>
+			<TaskFields
+				value={selected}
+				epics={siblingEpics(tasks.epics, selected)}
+				editing
+				onfield={save}
 				onerror={(message) => (failure = message)}
+				oncreatechild={createChild}
 			/>
 		</div>
 		<DetailActions

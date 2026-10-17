@@ -12,16 +12,27 @@
 		projects: ProjectStore;
 		scopes: ScopeStore;
 		tasks: TaskStore;
+		initialProject?: string;
+		initialEpic?: string | null;
+		initialScope?: number | null;
 	}
 
-	let { open = $bindable(), projects, scopes, tasks }: Props = $props();
+	let {
+		open = $bindable(),
+		projects,
+		scopes,
+		tasks,
+		initialProject,
+		initialEpic = null,
+		initialScope = null,
+	}: Props = $props();
 
 	let panel: HTMLDialogElement | undefined = $state();
-	let initialProject = $state<string | undefined>(undefined);
+	let createdProject = $state<string | undefined>(undefined);
 
 	$effect(() => {
 		if (open && panel !== undefined && !panel.open) {
-			initialProject = undefined;
+			createdProject = undefined;
 			panel.showModal();
 			return;
 		}
@@ -51,7 +62,7 @@
 		<div class="panel-body">
 			<NewProjectForm
 				{projects}
-				oncreated={(project) => (initialProject = project.id)}
+				oncreated={(project) => (createdProject = project.id)}
 			/>
 		</div>
 	{:else if open}
@@ -59,7 +70,9 @@
 			{tasks}
 			{scopes}
 			projects={projects.active}
-			{initialProject}
+			initialProject={createdProject ?? initialProject}
+			{initialEpic}
+			{initialScope}
 			onclose={close}
 		/>
 	{/if}

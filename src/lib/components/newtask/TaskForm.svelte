@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ProjectScopeFields from "#lib/components/task/ProjectScopeFields.svelte";
 	import TaskFields from "#lib/components/task/TaskFields.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
@@ -16,13 +17,28 @@
 		projects: Project[];
 		scopes: ScopeStore;
 		initialProject?: string;
+		initialEpic?: string | null;
+		initialScope?: number | null;
 		onclose: () => void;
 	}
 
-	let { tasks, projects, scopes, initialProject, onclose }: Props = $props();
+	let {
+		tasks,
+		projects,
+		scopes,
+		initialProject,
+		initialEpic = null,
+		initialScope = null,
+		onclose,
+	}: Props = $props();
 
 	function defaultProject(): string {
-		if (initialProject !== undefined) return initialProject;
+		if (
+			initialProject !== undefined &&
+			projects.some((project) => project.id === initialProject)
+		) {
+			return initialProject;
+		}
 		if (projects.some((project) => project.id === INBOX_PROJECT_ID)) {
 			return INBOX_PROJECT_ID;
 		}
@@ -34,8 +50,8 @@
 			project_id: defaultProject(),
 			priority: "medium",
 			is_epic: false,
-			epic_id: null,
-			scope_id: null,
+			epic_id: initialEpic,
+			scope_id: initialScope,
 			source_file: null,
 			source_line: null,
 			tags: [],
@@ -62,7 +78,11 @@
 	});
 
 	function reset() {
-		draft = blankDraft();
+		draft = {
+			...blankDraft(),
+			project_id: draft.project_id,
+			scope_id: draft.scope_id,
+		};
 		title = "";
 		failure = null;
 		invalidField = false;
@@ -151,6 +171,14 @@
 
 <form bind:this={formElement} onsubmit={submit}>
 	<div class="panel-body">
+		<ProjectScopeFields
+			value={draft}
+			{projects}
+			scopes={scopeOptions}
+			{onfield}
+			{onproject}
+		/>
+
 		<label class="field detail-field">
 			Title
 			<input
@@ -163,11 +191,8 @@
 
 		<TaskFields
 			value={draft}
-			{projects}
 			epics={epicOptions}
-			scopes={scopeOptions}
 			{onfield}
-			{onproject}
 			onerror={(message) => {
 				failure = message;
 				invalidField = true;

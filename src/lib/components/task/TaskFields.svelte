@@ -8,29 +8,26 @@
 		type TaskFieldValues,
 		type TaskPatch,
 	} from "#lib/tasks/fields.ts";
-	import type { Priority, Project, Scope, Status, Task } from "#lib/types.ts";
+	import type { Priority, Status, Task } from "#lib/types.ts";
 	import { PRIORITIES, STATUSES } from "#lib/types.ts";
+	import Plus from "~icons/lucide/plus";
 
 	interface Props {
 		value: TaskFieldValues;
-		projects: Project[];
 		epics: Task[];
-		scopes: Scope[];
 		editing?: boolean;
 		onfield: (patch: TaskPatch) => void;
-		onproject: (projectId: string) => void;
 		onerror: (message: string) => void;
+		oncreatechild?: () => void;
 	}
 
 	let {
 		value,
-		projects,
 		epics,
-		scopes,
 		editing = false,
 		onfield,
-		onproject,
 		onerror,
+		oncreatechild,
 	}: Props = $props();
 
 	function changePriority(event: Event) {
@@ -51,18 +48,9 @@
 		});
 	}
 
-	function changeProject(event: Event) {
-		onproject((event.currentTarget as HTMLSelectElement).value);
-	}
-
 	function changeEpic(event: Event) {
 		const picked = (event.currentTarget as HTMLSelectElement).value;
 		onfield({ epic_id: picked === "" ? null : picked });
-	}
-
-	function changeScope(event: Event) {
-		const picked = (event.currentTarget as HTMLSelectElement).value;
-		onfield({ scope_id: picked === "" ? null : Number(picked) });
 	}
 
 	function changeTags(event: Event) {
@@ -162,43 +150,17 @@
 			<option value="epic">epic</option>
 		</select>
 	</label>
+	{#if editing && value.is_epic && oncreatechild}
+		<div class="field-action">
+			<button class="icon-button" onclick={oncreatechild}>
+				<Plus data-icon="inline-start" /> Create child task
+			</button>
+		</div>
+	{/if}
 	{#if editing && value.closed_at != null}
 		<label class="field">
 			Closed
 			<input class="field-control" value={closedLabel()} readOnly />
-		</label>
-	{/if}
-</div>
-
-<div class="detail-grid">
-	<label class={`field${scopes.length === 0 ? " wide" : ""}`}>
-		Project
-		<select
-			class="field-control"
-			value={value.project_id}
-			onchange={changeProject}
-			aria-label="Project"
-		>
-			{#each projects as project (project.id)}
-				<option value={project.id}>{project.name}</option>
-			{/each}
-		</select>
-	</label>
-	{#if scopes.length > 0}
-		<label
-			class={`field ${editing && value.scope_id === null ? "scope-missing" : ""}`}
-		>
-			Scope
-			<select
-				class="field-control"
-				value={value.scope_id === null ? "" : String(value.scope_id)}
-				onchange={changeScope}
-			>
-				<option value="">not selected</option>
-				{#each scopes as scope (scope.id)}
-					<option value={String(scope.id)}>{scope.name}</option>
-				{/each}
-			</select>
 		</label>
 	{/if}
 </div>
@@ -254,12 +216,9 @@
 		font-size: var(--text-md);
 	}
 
-	.wide {
-		grid-column: 1 / -1;
-	}
-
-	.scope-missing .field-control {
-		border-color: color-mix(in oklch, var(--accent) 55%, transparent);
-		color: var(--accent-ink);
+	.field-action {
+		display: flex;
+		align-items: flex-end;
+		min-width: 0;
 	}
 </style>

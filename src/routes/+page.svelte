@@ -37,8 +37,27 @@
 
 	let selected: Task | null = $state(null);
 	let creating = $state(false);
+	let childEpic = $state<Task | null>(null);
 
 	const visibleTasks = $derived(filters.visible(tasks.tasks));
+
+	const createDefaults = $derived({
+		projectId:
+			childEpic?.project_id ??
+			(filters.activeProject === "all" ? undefined : filters.activeProject),
+		epicId: childEpic?.id ?? null,
+		scopeId: childEpic?.scope_id ?? null,
+	});
+
+	function openNew() {
+		childEpic = null;
+		creating = true;
+	}
+
+	function openChild(task: Task) {
+		childEpic = task;
+		creating = true;
+	}
 
 	$effect(() => {
 		const current = filters.scope;
@@ -96,7 +115,7 @@
 			{scopes}
 			{theme}
 			visibleCount={visibleTasks.length}
-			onnew={() => (creating = true)}
+			onnew={openNew}
 		/>
 		<TaskTable
 			tasks={visibleTasks}
@@ -104,7 +123,7 @@
 			bind:selected
 			total={tasks.tasks.length}
 			onclear={() => filters.clear()}
-			onnew={() => (creating = true)}
+			onnew={openNew}
 			onepic={(id) => (filters.epic = id)}
 		/>
 	</section>
@@ -115,9 +134,18 @@
 		{projects}
 		{scopes}
 		ondelete={forgetEpic}
+		oncreatechild={openChild}
 	/>
 
-	<NewTaskModal bind:open={creating} {projects} {scopes} {tasks} />
+	<NewTaskModal
+		bind:open={creating}
+		{projects}
+		{scopes}
+		{tasks}
+		initialProject={createDefaults.projectId}
+		initialEpic={createDefaults.epicId}
+		initialScope={createDefaults.scopeId}
+	/>
 </main>
 
 <style>
