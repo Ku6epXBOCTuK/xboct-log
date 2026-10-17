@@ -204,6 +204,8 @@
 
 <style>
 	.detail-panel {
+		position: relative;
+		z-index: 10;
 		width: var(--detail-w);
 		min-width: var(--detail-w);
 		height: 100%;
