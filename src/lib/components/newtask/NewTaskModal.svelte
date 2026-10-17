@@ -60,10 +60,12 @@
 	</div>
 
 	{#if open && projects.active.length === 0}
-		<NewProjectForm
-			{projects}
-			oncreated={(project) => (initialProject = project.id)}
-		/>
+		<div class="panel-body">
+			<NewProjectForm
+				{projects}
+				oncreated={(project) => (initialProject = project.id)}
+			/>
+		</div>
 	{:else if open}
 		<TaskForm
 			{tasks}
@@ -78,15 +80,20 @@
 
 <style>
 	.modal-panel {
-		width: 560px;
+		width: 720px;
 		max-width: calc(100vw - var(--space-8));
-		max-height: calc(100vh - var(--space-12));
+		max-height: calc(100dvh - 2 * var(--edge-pad));
 		border: 1px solid var(--border);
 		border-radius: var(--radius-lg);
 		background: var(--panel);
 		color: var(--foreground);
-		padding: var(--space-6);
 		box-shadow: 0 1.5rem 3.75rem rgb(0 0 0 / 0.55);
+		overflow: hidden;
+	}
+
+	.modal-panel[open] {
+		display: flex;
+		flex-direction: column;
 	}
 
 	.modal-panel::backdrop {
@@ -97,7 +104,8 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		margin-bottom: var(--space-5);
+		flex: none;
+		padding: var(--edge-pad) var(--edge-pad) var(--space-4);
 	}
 
 	.modal-top h2 {
@@ -105,5 +113,9 @@
 		font-size: var(--text-lg);
 		letter-spacing: -0.01em;
 		color: var(--foreground);
+	}
+
+	.panel-body {
+		padding: 0 var(--edge-pad) var(--space-5);
 	}
 </style>

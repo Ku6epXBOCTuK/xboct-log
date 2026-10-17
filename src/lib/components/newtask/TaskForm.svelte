@@ -140,51 +140,72 @@
 </script>
 
 <form onsubmit={submit}>
-	<label class="field detail-field">
-		Title
-		<input
-			class="field-control"
-			bind:this={titleInput}
-			bind:value={title}
-			placeholder="What needs to be done"
-		/>
-	</label>
-
-	<TaskFields
-		value={draft}
-		{projects}
-		epics={epicOptions}
-		scopes={scopeOptions}
-		{onfield}
-		{onproject}
-		onerror={(message) => {
-			failure = message;
-			invalidField = true;
-		}}
-	/>
-
-	<ErrorNote message={failure} />
-
-	<div class="modal-actions">
-		<label class="modal-check">
-			<input type="checkbox" bind:checked={keepOpen} />
-			Create another
+	<div class="panel-body">
+		<label class="field detail-field">
+			Title
+			<input
+				class="field-control"
+				bind:this={titleInput}
+				bind:value={title}
+				placeholder="What needs to be done"
+			/>
 		</label>
-		<button class="icon-button" type="button" onclick={onclose}>
-			Cancel
-		</button>
-		<button class="new-task" type="submit" disabled={saving}>
-			{saving ? "creating…" : "Create task"}
-		</button>
+
+		<TaskFields
+			value={draft}
+			{projects}
+			epics={epicOptions}
+			scopes={scopeOptions}
+			{onfield}
+			{onproject}
+			onerror={(message) => {
+				failure = message;
+				invalidField = true;
+			}}
+		/>
+	</div>
+
+	<div class="modal-foot">
+		<ErrorNote message={failure} />
+
+		<div class="modal-actions">
+			<label class="modal-check">
+				<input type="checkbox" bind:checked={keepOpen} />
+				Create another
+			</label>
+			<button class="icon-button" type="button" onclick={onclose}>
+				Cancel
+			</button>
+			<button class="new-task" type="submit" disabled={saving}>
+				{saving ? "creating…" : "Create task"}
+			</button>
+		</div>
 	</div>
 </form>
 
 <style>
+	form {
+		display: flex;
+		flex-direction: column;
+		flex: 1 1 auto;
+		min-height: 0;
+	}
+
+	.panel-body {
+		padding: 0 var(--edge-pad);
+	}
+
+	.modal-foot {
+		flex: none;
+		padding: 0 var(--edge-pad) var(--edge-pad);
+	}
+
 	.modal-actions {
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
-		margin-top: var(--space-5);
+		padding-top: var(--space-3);
+		border-top: 1px solid var(--border);
 	}
 
 	.modal-check {

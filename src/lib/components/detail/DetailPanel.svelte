@@ -1,11 +1,12 @@
 <script lang="ts">
 	import TaskFields from "#lib/components/task/TaskFields.svelte";
 	import DetailActions from "#lib/components/detail/DetailActions.svelte";
+	import StatusDot from "#lib/components/ui/StatusDot.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
-	import { messageOf } from "#lib/tasks/display.ts";
+	import { STATUS_LABELS, formatDate, messageOf } from "#lib/tasks/display.ts";
 	import {
 		siblingEpics,
 		validateTaskDraft,
@@ -104,34 +105,48 @@
 
 {#if selected !== null}
 	<aside class="detail-panel" aria-label="Task details">
-		<div class="detail-top">
-			<span class="epic-badge">{selected.id}</span>
-			<button
-				class="close-detail"
-				onclick={() => (selected = null)}
-				aria-label="Close task details"
-			>
-				<X />
-			</button>
+		<div class="detail-head">
+			<div class="detail-top">
+				<div class="detail-id">
+					<span class="epic-badge">{selected.id}</span>
+					<StatusDot status={selected.status} />
+					<span>{STATUS_LABELS[selected.status]}</span>
+					<span class="muted">
+						{saving
+							? "saving…"
+							: selected.updated_at == null
+								? ""
+								: `updated ${formatDate(selected.updated_at)}`}
+					</span>
+				</div>
+				<button
+					class="close-detail"
+					onclick={() => (selected = null)}
+					aria-label="Close task details"
+				>
+					<X />
+				</button>
+			</div>
+			<input
+				class="title-input"
+				value={selected.title}
+				onchange={saveTitle}
+				aria-label="Title"
+			/>
+			<ErrorNote message={failure} />
 		</div>
-		<input
-			class="title-input"
-			value={selected.title}
-			onchange={saveTitle}
-			aria-label="Title"
-		/>
-		<ErrorNote message={failure} />
-		<TaskFields
-			value={selected}
-			projects={projects.all}
-			epics={siblingEpics(tasks.epics, selected)}
-			scopes={scopes.listFor(selected.project_id)}
-			editing
-			{saving}
-			onfield={save}
-			onproject={moveTo}
-			onerror={(message) => (failure = message)}
-		/>
+		<div class="panel-body">
+			<TaskFields
+				value={selected}
+				projects={projects.all}
+				epics={siblingEpics(tasks.epics, selected)}
+				scopes={scopes.listFor(selected.project_id)}
+				editing
+				onfield={save}
+				onproject={moveTo}
+				onerror={(message) => (failure = message)}
+			/>
+		</div>
 		<DetailActions
 			closed={selected.closed_at !== null}
 			{saving}
@@ -149,21 +164,44 @@
 		height: 100%;
 		border-left: 1px solid var(--border);
 		background: var(--panel);
-		padding: var(--space-6) var(--space-6) var(--space-8);
-		overflow: auto;
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
+	}
+
+	.detail-head {
+		flex: none;
+		padding: var(--edge-pad) var(--edge-pad) 0;
+	}
+
+	.panel-body {
+		padding: var(--space-4) var(--edge-pad) var(--space-5);
 	}
 
 	.detail-top {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
+		gap: var(--space-2);
+	}
+
+	.detail-id {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		min-width: 0;
+	}
+
+	.muted {
+		color: var(--text-muted);
+		font-variant-numeric: tabular-nums;
 	}
 
 	.title-input {
 		width: 100%;
 		font-size: var(--text-xl);
 		line-height: 1.25;
-		margin: var(--space-3) 0 var(--space-5);
+		margin: var(--space-3) 0 0;
 		letter-spacing: -0.02em;
 		font-weight: 600;
 		color: var(--foreground);
@@ -178,12 +216,6 @@
 	.title-input:focus {
 		border-bottom-color: var(--accent);
 		box-shadow: none;
-	}
-
-	@media (max-width: 1100px) {
-		.detail-panel {
-			padding-inline: var(--space-5);
-		}
 	}
 
 	@media (max-width: 820px) {

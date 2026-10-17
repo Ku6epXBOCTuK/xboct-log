@@ -302,6 +302,12 @@ textarea:focus-visible {
 	margin-bottom: var(--space-4);
 }
 
+.panel-body {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+}
+
 .field {
 	display: flex;
 	flex-direction: column;

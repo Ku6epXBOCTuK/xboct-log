@@ -1,5 +1,4 @@
 <script lang="ts">
-	import StatusDot from "#lib/components/ui/StatusDot.svelte";
 	import { STATUS_LABELS, formatDate } from "#lib/tasks/display.ts";
 	import {
 		splitTags,
@@ -18,7 +17,6 @@
 		epics: Task[];
 		scopes: Scope[];
 		editing?: boolean;
-		saving?: boolean;
 		onfield: (patch: TaskPatch) => void;
 		onproject: (projectId: string) => void;
 		onerror: (message: string) => void;
@@ -30,7 +28,6 @@
 		epics,
 		scopes,
 		editing = false,
-		saving = false,
 		onfield,
 		onproject,
 		onerror,
@@ -111,7 +108,21 @@
 
 		onfield({ source_line: toSourceLine(input.value) });
 	}
+
+	function closedLabel(): string {
+		if (value.closed_at == null) return "";
+		return `${formatDate(value.closed_at)} ${value.closed_reason ?? ""}`.trim();
+	}
 </script>
+
+<div class="description">
+	<textarea
+		class="field-control"
+		value={value.description}
+		onchange={changeDescription}
+		placeholder="Description"
+		aria-label="Description"></textarea>
+</div>
 
 <div class="detail-grid">
 	{#if editing}
@@ -151,38 +162,46 @@
 			<option value="epic">epic</option>
 		</select>
 	</label>
-	{#if editing}
+	{#if editing && value.closed_at != null}
 		<label class="field">
 			Closed
-			<input
-				class="field-control"
-				value={value.closed_at == null ? "" : formatDate(value.closed_at)}
-				readOnly
-			/>
+			<input class="field-control" value={closedLabel()} readOnly />
 		</label>
 	{/if}
 </div>
 
-{#if editing && value.closed_at != null}
-	<label class="field detail-field">
-		Closed reason
-		<input class="field-control" value={value.closed_reason ?? ""} readOnly />
+<div class="detail-grid">
+	<label class={`field${scopes.length === 0 ? " wide" : ""}`}>
+		Project
+		<select
+			class="field-control"
+			value={value.project_id}
+			onchange={changeProject}
+			aria-label="Project"
+		>
+			{#each projects as project (project.id)}
+				<option value={project.id}>{project.name}</option>
+			{/each}
+		</select>
 	</label>
-{/if}
-
-<label class="field detail-field">
-	Project
-	<select
-		class="field-control"
-		value={value.project_id}
-		onchange={changeProject}
-		aria-label="Project"
-	>
-		{#each projects as project (project.id)}
-			<option value={project.id}>{project.name}</option>
-		{/each}
-	</select>
-</label>
+	{#if scopes.length > 0}
+		<label
+			class={`field ${editing && value.scope_id === null ? "scope-missing" : ""}`}
+		>
+			Scope
+			<select
+				class="field-control"
+				value={value.scope_id === null ? "" : String(value.scope_id)}
+				onchange={changeScope}
+			>
+				<option value="">not selected</option>
+				{#each scopes as scope (scope.id)}
+					<option value={String(scope.id)}>{scope.name}</option>
+				{/each}
+			</select>
+		</label>
+	{/if}
+</div>
 
 {#if !value.is_epic}
 	<label class="field detail-field">
@@ -195,24 +214,6 @@
 			<option value="">none</option>
 			{#each epics as epic (epic.id)}
 				<option value={epic.id}>{epic.id} — {epic.title}</option>
-			{/each}
-		</select>
-	</label>
-{/if}
-
-{#if scopes.length > 0}
-	<label
-		class={`field detail-field ${editing && value.scope_id === null ? "scope-missing" : ""}`}
-	>
-		Scope
-		<select
-			class="field-control"
-			value={value.scope_id === null ? "" : String(value.scope_id)}
-			onchange={changeScope}
-		>
-			<option value="">not selected</option>
-			{#each scopes as scope (scope.id)}
-				<option value={String(scope.id)}>{scope.name}</option>
 			{/each}
 		</select>
 	</label>
@@ -246,49 +247,15 @@
 	</label>
 </div>
 
-{#if editing}
-	<div class="progress-meta">
-		<StatusDot status={value.status ?? "open"} />
-		<span>{STATUS_LABELS[value.status ?? "open"]}</span>
-		<span class="muted">
-			{saving
-				? "saving…"
-				: value.updated_at == null
-					? ""
-					: `updated ${formatDate(value.updated_at)}`}
-		</span>
-	</div>
-{/if}
-
-<div class="description">
-	<textarea
-		class="field-control"
-		value={value.description}
-		onchange={changeDescription}
-		placeholder="Description"
-		aria-label="Description"></textarea>
-</div>
-
 <style>
-	.progress-meta {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		margin: var(--space-5) 0 var(--space-3);
-		color: var(--text-secondary);
-		font-size: var(--text-xs);
-	}
-
-	.muted {
-		color: var(--text-muted);
-		margin-left: auto;
-		font-variant-numeric: tabular-nums;
-	}
-
 	.description {
 		margin: 0 0 var(--space-4);
 		color: var(--text-secondary);
 		font-size: var(--text-md);
+	}
+
+	.wide {
+		grid-column: 1 / -1;
 	}
 
 	.scope-missing .field-control {

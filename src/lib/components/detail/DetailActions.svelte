@@ -70,7 +70,9 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-3);
-		margin-top: var(--space-5);
+		flex: none;
+		padding: var(--space-4) var(--edge-pad) var(--edge-pad);
+		border-top: 1px solid var(--border);
 	}
 
 	.action-group {
