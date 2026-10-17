@@ -128,6 +128,13 @@
 		if (selected === null) return;
 		if (event.target instanceof HTMLSelectElement) return;
 		if (document.querySelector("dialog[open]") !== null) return;
+
+		// NOTE: fields commit on change (blur), so the focused control must be
+		// blurred before closing or its edit is lost.
+		if (document.activeElement instanceof HTMLElement) {
+			document.activeElement.blur();
+		}
+
 		selected = null;
 	}
 </script>

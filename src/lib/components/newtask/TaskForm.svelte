@@ -112,6 +112,12 @@
 
 		if (saving) return;
 
+		// NOTE: fields commit on change (blur), so the focused control must be
+		// blurred before submit or its edit is missing from the draft.
+		if (document.activeElement instanceof HTMLElement) {
+			document.activeElement.blur();
+		}
+
 		formElement?.requestSubmit();
 	}
 
