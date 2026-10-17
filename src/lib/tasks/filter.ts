@@ -5,6 +5,7 @@ export interface FilterCriteria {
 	status: Status | "all";
 	priority: Priority | "all";
 	epic: string;
+	scope: "any" | "none" | number;
 	selectedTags: string[];
 	query: string;
 }
@@ -30,6 +31,14 @@ export function filterTasks(tasks: Task[], criteria: FilterCriteria): Task[] {
 			criteria.epic !== "any" &&
 			criteria.epic !== "none" &&
 			task.epic_id !== criteria.epic
+		) {
+			return false;
+		}
+		if (criteria.scope === "none" && task.scope_id !== null) return false;
+		if (
+			criteria.scope !== "any" &&
+			criteria.scope !== "none" &&
+			task.scope_id !== criteria.scope
 		) {
 			return false;
 		}
@@ -74,6 +83,10 @@ export function countTasksInProject(tasks: Task[], projectId: string): number {
 
 export function countTasksInEpic(tasks: Task[], epicId: string): number {
 	return tasks.filter((task) => task.epic_id === epicId).length;
+}
+
+export function countTasksInScope(tasks: Task[], scopeId: number): number {
+	return tasks.filter((task) => task.scope_id === scopeId).length;
 }
 
 export function countInProgress(tasks: Task[]): number {

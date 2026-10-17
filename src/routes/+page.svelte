@@ -5,9 +5,11 @@
 	import TaskTable from "#lib/components/table/TaskTable.svelte";
 	import WorkspaceHeader from "#lib/components/workspace/WorkspaceHeader.svelte";
 	import { getProjects } from "#lib/remote/projects.remote.ts";
+	import { getScopedProjectIds, getScopes } from "#lib/remote/scopes.remote.ts";
 	import { getTasks } from "#lib/remote/tasks.remote.ts";
 	import { createFilters } from "#lib/state/filters.svelte.ts";
 	import { createProjectStore } from "#lib/state/projects.svelte.ts";
+	import { createScopeStore } from "#lib/state/scopes.svelte.ts";
 	import { createTaskStore } from "#lib/state/tasks.svelte.ts";
 	import { createTheme } from "#lib/state/theme.svelte.ts";
 	import type { Task } from "#lib/types.ts";
@@ -17,9 +19,14 @@
 
 	const loadedProjects = await getProjects({ includeArchived: true });
 	const loadedTasks = await getTasks({ limit: 1000 });
+	const scopedProjectIds = await getScopedProjectIds();
+	const loadedScopes = (
+		await Promise.all(scopedProjectIds.map((id) => getScopes(id)))
+	).flat();
 
 	const tasks = createTaskStore(loadedTasks);
 	const projects = createProjectStore(loadedProjects);
+	const scopes = createScopeStore(loadedScopes);
 	const filters = createFilters(page.url.searchParams.get("project") ?? "all");
 	const requestedTheme = page.url.searchParams.get("theme");
 	const theme = createTheme(
@@ -32,6 +39,16 @@
 	let creating = $state(false);
 
 	const visibleTasks = $derived(filters.visible(tasks.tasks));
+
+	$effect(() => {
+		const current = filters.scope;
+		if (
+			typeof current === "number" &&
+			!scopes.all.some((scope) => scope.id === current)
+		) {
+			filters.scope = "any";
+		}
+	});
 
 	function setActiveProject(projectId: string) {
 		filters.activeProject = projectId;

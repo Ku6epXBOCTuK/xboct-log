@@ -6,6 +6,7 @@ export function createFilters(initialProject: string) {
 	let status = $state<Status | "all">("all");
 	let priority = $state<Priority | "all">("all");
 	let epic = $state("any");
+	let scope = $state<"any" | "none" | number>("any");
 	let query = $state("");
 	let selectedTags = $state<string[]>([]);
 
@@ -34,6 +35,12 @@ export function createFilters(initialProject: string) {
 		set epic(value: string) {
 			epic = value;
 		},
+		get scope() {
+			return scope;
+		},
+		set scope(value: "any" | "none" | number) {
+			scope = value;
+		},
 		get query() {
 			return query;
 		},
@@ -55,6 +62,7 @@ export function createFilters(initialProject: string) {
 			status = "all";
 			priority = "all";
 			epic = "any";
+			scope = "any";
 			query = "";
 			selectedTags = [];
 		},
@@ -64,6 +72,7 @@ export function createFilters(initialProject: string) {
 				status,
 				priority,
 				epic,
+				scope,
 				selectedTags,
 				query,
 			});
