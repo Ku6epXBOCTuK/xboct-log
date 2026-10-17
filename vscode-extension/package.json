@@ -2,10 +2,16 @@
 	"name": "xboct-log",
 	"displayName": "Xboct Log",
 	"description": "Открывает борд xboct-log во вкладке редактора.",
-	"version": "0.0.1",
+	"version": "0.0.3",
 	"type": "commonjs",
 	"publisher": "xboct-log",
 	"license": "MIT",
+	"icon": "media/icon.png",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/Ku6epXBOCTuK/xboct-log.git",
+		"directory": "vscode-extension"
+	},
 	"engines": {
 		"vscode": "^1.90.0"
 	},
@@ -26,6 +32,30 @@
 				"command": "xboctLog.reload",
 				"title": "Xboct Log: Reload",
 				"icon": "$(refresh)"
+			}
+		],
+		"viewsContainers": {
+			"activitybar": [
+				{
+					"id": "xboctLog",
+					"title": "Xboct Log",
+					"icon": "media/icon.svg"
+				}
+			]
+		},
+		"views": {
+			"xboctLog": [
+				{
+					"id": "xboctLog.board",
+					"name": "Xboct Log",
+					"icon": "media/icon.svg"
+				}
+			]
+		},
+		"viewsWelcome": [
+			{
+				"view": "xboctLog.board",
+				"contents": "Борд открывается в отдельной вкладке редактора.\n[Открыть борд](command:xboctLog.open)"
 			}
 		],
 		"menus": {
@@ -56,7 +86,7 @@
 	"devDependencies": {
 		"@types/node": "^24",
 		"@types/vscode": "^1.90.0",
-		"@vscode/vsce": "^3",
+		"@vscode/vsce": "^4",
 		"typescript": "^6.0.3"
 	}
 }

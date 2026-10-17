@@ -34,7 +34,7 @@ SQLite, ни серверную логику.
 | Прод-рантайм        | `C:\Users\Ku6epXBOCTuK\.xboct-log\app`             |
 | Служба              | `xboct-log` (NSSM), порт `45881`                   |
 | Код расширения      | `<repo>\vscode-extension`                          |
-| Артефакт расширения | `<repo>\vscode-extension\xboct-log-0.0.1.vsix`     |
+| Артефакт расширения | `<repo>\vscode-extension\xboct-log-0.0.2.vsix`     |
 
 ## Ключевые технические факты
 
@@ -126,10 +126,30 @@ export function GET() {
   вкладки, `when: activeWebviewPanelId == xboctLog`
 - `contributes.configuration` → `xboctLog.serverUrl`, default
   `http://127.0.0.1:45881`
-- `activationEvents`: `onWebviewPanel:xboctLog` (для восстановления вкладки)
+- `contributes.viewsContainers.activitybar` → иконка `media/icon.svg` в левой
+  панели, `contributes.views` → вид `xboctLog.board` (тоже с `icon`),
+  `contributes.viewsWelcome` → содержимое вида со ссылкой
+  `[Открыть борд](command:xboctLog.open)`. Провайдер вида не нужен: VS Code сам
+  рисует welcome-контент у вида без источника данных.
+- `media/icon.svg` — монохромная копия геометрии
+  `src/lib/components/layout/BrandMark.svelte` (три скруглённые полосы шириной
+  18, 13 и 9). Акцентный цвет `BrandMark` не переносится: activity bar рисует
+  иконку одним цветом темы.
+- `activationEvents`: только `onWebviewPanel:xboctLog` (для восстановления
+  вкладки). События для команд и видов объявлять не нужно — с VS Code 1.74 они
+  генерируются автоматически из `contributes`, а лишние строки редактор помечает
+  подсказкой.
 
 Зависимости (все в `devDependencies`, рантайм-зависимостей нет):
 `@types/vscode`, `@types/node`, `typescript`, `@vscode/vsce`.
+
+### Иконка в левой панели
+
+Клик по иконке в activity bar всегда разворачивает контейнер в сайдбаре —
+заставить её открыть вкладку редактора нельзя. Поэтому вид `xboctLog.board`
+показывает одну ссылку-кнопку «Открыть борд», а сам борд по-прежнему живёт в
+широкой вкладке редактора. Так приложение остаётся в единственном экземпляре:
+сайдбар — только точка входа.
 
 ## Шаг 3. `WebviewPanel` с iframe
 
@@ -220,9 +240,9 @@ default-src 'none'; frame-src http://127.0.0.1:45881; script-src 'nonce-<n>'; st
 
 ```json
 "scripts": {
-	"compile": "tsc -p .",
-	"watch": "tsc -p . -w",
-	"package": "vsce package"
+  "compile": "tsc -p .",
+  "watch": "tsc -p . -w",
+  "package": "vsce package"
 }
 ```
 
@@ -232,7 +252,7 @@ default-src 'none'; frame-src http://127.0.0.1:45881; script-src 'nonce-<n>'; st
 проект, `F5` (нужен `.vscode/launch.json` внутри неё) поднимает Extension
 Development Host.
 
-Установка: `code --install-extension vscode-extension\xboct-log-0.0.1.vsix`,
+Установка: `code --install-extension vscode-extension\xboct-log-0.0.2.vsix`,
 затем Reload Window.
 
 ## Шаг 7. Проверка
