@@ -3,7 +3,12 @@
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
 	import { messageOf } from "#lib/tasks/display.ts";
-	import { splitTags, toSourceFile, toSourceLine } from "#lib/tasks/fields.ts";
+	import {
+		splitTags,
+		toSourceFile,
+		toSourceLine,
+		validateTaskDraft,
+	} from "#lib/tasks/fields.ts";
 	import {
 		INBOX_PROJECT_ID,
 		PRIORITIES,
@@ -88,22 +93,19 @@
 			return;
 		}
 
-		if (cleanTitle === "") {
-			failure = "title cannot be empty";
+		const invalid = validateTaskDraft({
+			title,
+			source_file: sourceFile,
+			source_line: sourceLine,
+		});
+
+		if (invalid !== null) {
+			failure = invalid;
 			return;
 		}
 
 		const line = toSourceLine(sourceLine);
-		if (line !== null && !Number.isInteger(line)) {
-			failure = "source line must be a whole number";
-			return;
-		}
-
 		const file = toSourceFile(sourceFile);
-		if (line !== null && file === null) {
-			failure = "source line requires source file";
-			return;
-		}
 
 		saving = true;
 

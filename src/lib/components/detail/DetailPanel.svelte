@@ -10,6 +10,7 @@
 		splitTags,
 		toSourceFile,
 		toSourceLine,
+		validateTaskDraft,
 		type TaskPatch,
 	} from "#lib/tasks/fields.ts";
 	import type { ClosedReason, Task } from "#lib/types.ts";
@@ -54,33 +55,55 @@
 		void perform(current.id, () => tasks.save(current.id, patch));
 	}
 
+	function draftOf(overrides: {
+		title?: string;
+		source_file?: string;
+		source_line?: string;
+	}) {
+		const current = selected;
+		return {
+			title: overrides.title ?? current?.title ?? "",
+			source_file: overrides.source_file ?? current?.source_file ?? "",
+			source_line:
+				overrides.source_line ??
+				(current?.source_line === null || current?.source_line === undefined
+					? ""
+					: String(current.source_line)),
+		};
+	}
+
 	function saveTitle(event: Event) {
 		const input = event.currentTarget as HTMLInputElement;
-		const title = input.value.trim();
+		const invalid = validateTaskDraft(draftOf({ title: input.value }));
 
-		if (title === "") {
-			failure = "title cannot be empty";
+		if (invalid !== null) {
+			failure = invalid;
 			input.value = selected?.title ?? "";
 			return;
 		}
 
-		save({ title });
+		save({ title: input.value.trim() });
 	}
 
 	function saveSourceFile(event: Event) {
-		save({
-			source_file: toSourceFile(
-				(event.currentTarget as HTMLInputElement).value,
-			),
-		});
+		const input = event.currentTarget as HTMLInputElement;
+		const invalid = validateTaskDraft(draftOf({ source_file: input.value }));
+
+		if (invalid !== null) {
+			failure = invalid;
+			input.value = selected?.source_file ?? "";
+			return;
+		}
+
+		save({ source_file: toSourceFile(input.value) });
 	}
 
 	function saveSourceLine(event: Event) {
 		const input = event.currentTarget as HTMLInputElement;
-		const line = toSourceLine(input.value);
+		const invalid = validateTaskDraft(draftOf({ source_line: input.value }));
 
-		if (line !== null && !Number.isInteger(line)) {
-			failure = "source line must be a whole number";
+		if (invalid !== null) {
+			failure = invalid;
 			input.value =
 				selected?.source_line === null || selected?.source_line === undefined
 					? ""
@@ -88,7 +111,7 @@
 			return;
 		}
 
-		save({ source_line: line });
+		save({ source_line: toSourceLine(input.value) });
 	}
 
 	function saveTags(event: Event) {

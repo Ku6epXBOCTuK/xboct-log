@@ -33,6 +33,25 @@ export function toSourceFile(raw: string): string | null {
 	return trimmed === "" ? null : trimmed;
 }
 
+export function validateTaskDraft(draft: {
+	title: string;
+	source_file: string;
+	source_line: string;
+}): string | null {
+	if (draft.title.trim() === "") return "title cannot be empty";
+
+	const line = toSourceLine(draft.source_line);
+	if (line !== null && !Number.isInteger(line)) {
+		return "source line must be a whole number";
+	}
+
+	if (line !== null && toSourceFile(draft.source_file) === null) {
+		return "source line requires source file";
+	}
+
+	return null;
+}
+
 export function epicsForProject(epics: Task[], projectId: string): Task[] {
 	return epics.filter((epic) => epic.project_id === projectId);
 }
