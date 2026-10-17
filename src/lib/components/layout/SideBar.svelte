@@ -42,7 +42,7 @@
 		min-width: var(--sidebar-w);
 		display: flex;
 		flex-direction: column;
-		padding: var(--space-6) var(--space-3) var(--space-4);
+		padding: var(--edge-pad) var(--space-3) var(--edge-pad);
 		border-right: 1px solid var(--border);
 		background: var(--surface);
 		overflow-y: auto;

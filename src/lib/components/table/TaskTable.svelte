@@ -87,11 +87,11 @@
 
 	.id-col {
 		width: 100px;
-		padding-left: var(--space-6);
+		padding-left: var(--edge-pad);
 	}
 
 	.date-col {
-		padding-right: var(--space-6);
+		padding-right: var(--edge-pad);
 	}
 
 	:global(.compact-table) table {
@@ -116,11 +116,11 @@
 		}
 
 		.id-col {
-			padding-left: var(--space-4);
+			padding-left: var(--edge-pad);
 		}
 
 		.date-col {
-			padding-right: var(--space-4);
+			padding-right: var(--edge-pad);
 		}
 	}
 </style>
