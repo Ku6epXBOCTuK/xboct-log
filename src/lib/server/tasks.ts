@@ -25,6 +25,7 @@ interface TaskRow {
 	priority: string;
 	is_epic: number;
 	epic_id: string | null;
+	scope_id: number | null;
 	source_file: string | null;
 	source_line: number | null;
 	tags: string;
@@ -42,6 +43,7 @@ export interface NewTask {
 	priority?: Priority;
 	is_epic?: boolean;
 	epic_id?: string | null;
+	scope_id?: number | null;
 	source_file?: string | null;
 	source_line?: number | null;
 	tags?: string[];
@@ -54,6 +56,7 @@ export interface TaskPatch {
 	priority?: Priority;
 	is_epic?: boolean;
 	epic_id?: string | null;
+	scope_id?: number | null;
 	source_file?: string | null;
 	source_line?: number | null;
 	tags?: string[];
@@ -66,6 +69,7 @@ export interface TaskQuery {
 	tag?: string[];
 	is_epic?: boolean;
 	epic_id?: string | null;
+	scope_id?: number | null;
 	q?: string;
 	sort?: "updated_at" | "created_at" | "priority";
 	order?: "asc" | "desc";
@@ -84,6 +88,7 @@ function mapTask(row: TaskRow): Task {
 		priority: row.priority as Priority,
 		is_epic: row.is_epic === 1,
 		epic_id: row.epic_id,
+		scope_id: row.scope_id,
 		source_file: row.source_file,
 		source_line: row.source_line,
 		tags: JSON.parse(row.tags) as string[],
@@ -148,6 +153,23 @@ function validateEpic(
 	}
 	if (epic.project_id !== projectId) {
 		return invalid("epic must belong to the same project");
+	}
+	return null;
+}
+
+function validateScope(
+	db: DatabaseSync,
+	scopeId: number,
+	projectId: string,
+): AppError | null {
+	const scope = db
+		.prepare("SELECT project_id FROM scopes WHERE id = ?")
+		.get(scopeId) as { project_id: string } | undefined;
+	if (!scope) {
+		return notFound(`scope ${scopeId} not found`);
+	}
+	if (scope.project_id !== projectId) {
+		return invalid("scope must belong to the same project");
 	}
 	return null;
 }
@@ -218,6 +240,14 @@ export function createTask(
 		}
 	}
 
+	const scopeId = input.scope_id ?? null;
+	if (scopeId !== null) {
+		const scopeError = validateScope(db, scopeId, project.id);
+		if (scopeError) {
+			return err(scopeError);
+		}
+	}
+
 	const now = new Date().toISOString();
 	const closedAt = CLOSED_STATUSES.includes(status) ? now : null;
 
@@ -230,8 +260,8 @@ export function createTask(
 			db.prepare(
 				`INSERT INTO tasks (
 					id, project_id, number, title, description, status, priority, is_epic,
-					epic_id, source_file, source_line, tags, created_at, updated_at, closed_at
-				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+					epic_id, scope_id, source_file, source_line, tags, created_at, updated_at, closed_at
+				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			).run(
 				id,
 				project.id,
@@ -242,6 +272,7 @@ export function createTask(
 				priority,
 				input.is_epic ? 1 : 0,
 				epicId,
+				scopeId,
 				sourceFile,
 				sourceLine,
 				JSON.stringify(tags),
@@ -284,6 +315,14 @@ export function listTasks(db: DatabaseSync, query: TaskQuery = {}): Task[] {
 		} else {
 			where.push("epic_id = ?");
 			params.push(query.epic_id);
+		}
+	}
+	if (query.scope_id !== undefined) {
+		if (query.scope_id === null) {
+			where.push("scope_id IS NULL");
+		} else {
+			where.push("scope_id = ?");
+			params.push(query.scope_id);
 		}
 	}
 	if (query.tag?.length) {
@@ -441,6 +480,18 @@ export function updateTask(
 		params.push(epicId);
 	}
 
+	if (patch.scope_id !== undefined) {
+		const scopeId = patch.scope_id;
+		if (scopeId !== null) {
+			const scopeError = validateScope(db, scopeId, current.project_id);
+			if (scopeError) {
+				return err(scopeError);
+			}
+		}
+		sets.push("scope_id = ?");
+		params.push(scopeId);
+	}
+
 	sets.push("updated_at = ?");
 	params.push(now);
 
@@ -534,7 +585,7 @@ export function moveTask(
 					node.oldEpicId === null ? null : (newIds.get(node.oldEpicId) ?? null);
 				db.prepare(
 					`UPDATE tasks
-					 SET id = ?, project_id = ?, number = ?, epic_id = ?, updated_at = ?
+					 SET id = ?, project_id = ?, number = ?, epic_id = ?, scope_id = NULL, updated_at = ?
 					 WHERE id = ?`,
 				).run(node.newId, target.id, node.number, newEpicId, now, node.oldId);
 			}

@@ -42,6 +42,13 @@ export interface Project {
 	archived_at: string | null;
 }
 
+export interface Scope {
+	id: number;
+	project_id: string;
+	name: string;
+	created_at: string;
+}
+
 export interface Task {
 	id: string;
 	project_id: string;
@@ -52,6 +59,7 @@ export interface Task {
 	priority: Priority;
 	is_epic: boolean;
 	epic_id: string | null;
+	scope_id: number | null;
 	source_file: string | null;
 	source_line: number | null;
 	tags: string[];
