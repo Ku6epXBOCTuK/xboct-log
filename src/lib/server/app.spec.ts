@@ -188,7 +188,7 @@ describe("tasks", () => {
 		expect(failure(closeTask(db, "SPA-9", "fixed")).kind).toBe("not_found");
 	});
 
-	it("deletes a task and detaches its epic children", async () => {
+	it("soft deletes a task and detaches its epic children", async () => {
 		const db = await setup();
 		const epic = unwrap(
 			createTask(db, { project_id: "spa", title: "Revamp", is_epic: true }),
@@ -199,8 +199,35 @@ describe("tasks", () => {
 
 		expect(unwrap(deleteTask(db, epic.id))).toBe(epic.id);
 		expect(getTask(db, epic.id)).toBeUndefined();
+		expect(listTasks(db)).toHaveLength(1);
 		expect(getTask(db, child.id)?.epic_id).toBeNull();
 		expect(failure(deleteTask(db, epic.id)).kind).toBe("not_found");
+	});
+
+	it("keeps a deleted task in the table with deleted_at set", async () => {
+		const db = await setup();
+		const task = unwrap(createTask(db, { project_id: "spa", title: "Trash" }));
+
+		unwrap(deleteTask(db, task.id));
+
+		expect(listTasks(db)).toHaveLength(0);
+		const [deleted] = listTasks(db, { include_deleted: true });
+		expect(deleted.id).toBe(task.id);
+		expect(deleted.deleted_at).not.toBeNull();
+	});
+
+	it("rejects a deleted task as an epic parent", async () => {
+		const db = await setup();
+		const epic = unwrap(
+			createTask(db, { project_id: "spa", title: "Gone", is_epic: true }),
+		);
+		unwrap(deleteTask(db, epic.id));
+
+		const error = failure(
+			createTask(db, { project_id: "spa", title: "X", epic_id: epic.id }),
+		);
+
+		expect(error.kind).toBe("not_found");
 	});
 
 	it("rejects an epic from another project", async () => {

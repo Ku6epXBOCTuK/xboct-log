@@ -54,7 +54,11 @@ export function createTaskStore(initial: Task[]) {
 		},
 		async destroy(id: string) {
 			await deleteTask(id);
-			tasks = tasks.filter((task) => task.id !== id);
+			tasks = tasks
+				.filter((task) => task.id !== id)
+				.map((task) =>
+					task.epic_id === id ? { ...task, epic_id: null } : task,
+				);
 		},
 		clearScope(scopeId: number) {
 			tasks = tasks.map((task) =>

@@ -33,6 +33,7 @@ interface TaskRow {
 	updated_at: string;
 	closed_at: string | null;
 	closed_reason: string | null;
+	deleted_at: string | null;
 }
 
 export interface NewTask {
@@ -75,6 +76,7 @@ export interface TaskQuery {
 	order?: "asc" | "desc";
 	limit?: number;
 	offset?: number;
+	include_deleted?: boolean;
 }
 
 function mapTask(row: TaskRow): Task {
@@ -96,6 +98,7 @@ function mapTask(row: TaskRow): Task {
 		updated_at: row.updated_at,
 		closed_at: row.closed_at,
 		closed_reason: row.closed_reason as ClosedReason | null,
+		deleted_at: row.deleted_at,
 	};
 }
 
@@ -143,9 +146,13 @@ function validateEpic(
 		return invalid("a task cannot be its own epic");
 	}
 	const epic = db
-		.prepare("SELECT id, project_id, is_epic FROM tasks WHERE id = ?")
-		.get(epicId) as { project_id: string; is_epic: number } | undefined;
-	if (!epic) {
+		.prepare(
+			"SELECT id, project_id, is_epic, deleted_at FROM tasks WHERE id = ?",
+		)
+		.get(epicId) as
+		| { project_id: string; is_epic: number; deleted_at: string | null }
+		| undefined;
+	if (!epic || epic.deleted_at !== null) {
 		return notFound(`epic ${epicId} not found`);
 	}
 	if (epic.is_epic !== 1) {
@@ -182,7 +189,8 @@ function taskById(db: DatabaseSync, id: string): Task | undefined {
 }
 
 export function getTask(db: DatabaseSync, id: string): Task | undefined {
-	return taskById(db, id);
+	const task = taskById(db, id);
+	return task && task.deleted_at === null ? task : undefined;
 }
 
 function allocateNumber(db: DatabaseSync, projectId: string): number {
@@ -293,6 +301,10 @@ export function listTasks(db: DatabaseSync, query: TaskQuery = {}): Task[] {
 	const where: string[] = [];
 	const params: (string | number)[] = [];
 
+	if (!query.include_deleted) {
+		where.push("deleted_at IS NULL");
+	}
+
 	if (query.project_id) {
 		where.push("project_id = ?");
 		params.push(query.project_id);
@@ -375,7 +387,7 @@ export function countTasksByStatus(
 ): Record<Status, number> {
 	const rows = db
 		.prepare(
-			"SELECT status, COUNT(*) AS count FROM tasks WHERE project_id = ? GROUP BY status",
+			"SELECT status, COUNT(*) AS count FROM tasks WHERE project_id = ? AND deleted_at IS NULL GROUP BY status",
 		)
 		.all(projectId) as { status: string; count: number }[];
 
@@ -606,11 +618,17 @@ export function deleteTask(
 		return err(notFound(`task ${id} not found`));
 	}
 
+	const now = new Date().toISOString();
+
 	return guard(() => {
 		db.exec("BEGIN IMMEDIATE");
 		try {
-			db.prepare("UPDATE tasks SET epic_id = NULL WHERE epic_id = ?").run(id);
-			db.prepare("DELETE FROM tasks WHERE id = ?").run(id);
+			db.prepare(
+				"UPDATE tasks SET epic_id = NULL, updated_at = ? WHERE epic_id = ?",
+			).run(now, id);
+			db.prepare(
+				"UPDATE tasks SET deleted_at = ?, updated_at = ? WHERE id = ?",
+			).run(now, now, id);
 			db.exec("COMMIT");
 			return id;
 		} catch (error) {

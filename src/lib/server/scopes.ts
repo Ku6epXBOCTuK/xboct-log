@@ -58,7 +58,7 @@ export function countTasksByScope(
 		.prepare(
 			`SELECT scope_id, COUNT(*) AS count
 			 FROM tasks
-			 WHERE project_id = ? AND scope_id IS NOT NULL
+			 WHERE project_id = ? AND scope_id IS NOT NULL AND deleted_at IS NULL
 			 GROUP BY scope_id`,
 		)
 		.all(projectId) as { scope_id: number; count: number }[];

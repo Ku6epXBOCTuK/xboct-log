@@ -67,4 +67,5 @@ export interface Task {
 	updated_at: string;
 	closed_at: string | null;
 	closed_reason: ClosedReason | null;
+	deleted_at: string | null;
 }
