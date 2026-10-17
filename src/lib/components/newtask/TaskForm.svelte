@@ -9,19 +9,17 @@
 		type TaskFieldValues,
 		type TaskPatch,
 	} from "#lib/tasks/fields.ts";
-	import { INBOX_PROJECT_ID, type Project, type Task } from "#lib/types.ts";
+	import { INBOX_PROJECT_ID, type Project } from "#lib/types.ts";
 
 	interface Props {
 		tasks: TaskStore;
 		projects: Project[];
 		scopes: ScopeStore;
 		initialProject?: string;
-		oncreated: (task: Task) => void;
 		onclose: () => void;
 	}
 
-	let { tasks, projects, scopes, initialProject, oncreated, onclose }: Props =
-		$props();
+	let { tasks, projects, scopes, initialProject, onclose }: Props = $props();
 
 	function defaultProject(): string {
 		if (initialProject !== undefined) return initialProject;
@@ -123,7 +121,7 @@
 		saving = true;
 
 		try {
-			const created = await tasks.create({
+			await tasks.create({
 				project_id: draft.project_id,
 				title: title.trim(),
 				description: draft.description,
@@ -135,8 +133,6 @@
 				source_line: draft.source_line,
 				tags: draft.tags,
 			});
-
-			oncreated(created);
 
 			if (keepOpen) {
 				reset();

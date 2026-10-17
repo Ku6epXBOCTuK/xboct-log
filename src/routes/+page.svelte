@@ -117,13 +117,7 @@
 		ondelete={forgetEpic}
 	/>
 
-	<NewTaskModal
-		bind:open={creating}
-		{projects}
-		{scopes}
-		{tasks}
-		oncreated={(task) => (selected = task)}
-	/>
+	<NewTaskModal bind:open={creating} {projects} {scopes} {tasks} />
 </main>
 
 <style>

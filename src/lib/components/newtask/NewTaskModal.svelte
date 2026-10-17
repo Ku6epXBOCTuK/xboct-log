@@ -5,7 +5,6 @@
 	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
-	import type { Task } from "#lib/types.ts";
 	import X from "~icons/lucide/x";
 
 	interface Props {
@@ -13,16 +12,9 @@
 		projects: ProjectStore;
 		scopes: ScopeStore;
 		tasks: TaskStore;
-		oncreated: (task: Task) => void;
 	}
 
-	let {
-		open = $bindable(),
-		projects,
-		scopes,
-		tasks,
-		oncreated,
-	}: Props = $props();
+	let { open = $bindable(), projects, scopes, tasks }: Props = $props();
 
 	let panel: HTMLDialogElement | undefined = $state();
 	let initialProject = $state<string | undefined>(undefined);
@@ -68,7 +60,6 @@
 			{scopes}
 			projects={projects.active}
 			{initialProject}
-			{oncreated}
 			onclose={close}
 		/>
 	{/if}
