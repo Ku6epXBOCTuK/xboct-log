@@ -52,6 +52,7 @@
 	let failure = $state<string | null>(null);
 	let invalidField = $state(false);
 	let titleInput = $state<HTMLInputElement | null>(null);
+	let formElement = $state<HTMLFormElement | null>(null);
 
 	const epicOptions = $derived(
 		tasks.epics.filter((epic) => epic.project_id === draft.project_id),
@@ -83,6 +84,17 @@
 		});
 		failure = null;
 		invalidField = false;
+	}
+
+	function onkeydown(event: KeyboardEvent) {
+		if (event.key !== "Enter") return;
+		if (!event.ctrlKey && !event.metaKey) return;
+
+		event.preventDefault();
+
+		if (saving) return;
+
+		formElement?.requestSubmit();
 	}
 
 	async function submit(event: SubmitEvent) {
@@ -139,7 +151,9 @@
 	}
 </script>
 
-<form onsubmit={submit}>
+<svelte:window {onkeydown} />
+
+<form bind:this={formElement} onsubmit={submit}>
 	<div class="panel-body">
 		<label class="field detail-field">
 			Title
