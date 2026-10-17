@@ -1,10 +1,16 @@
 import { filterTasks } from "#lib/tasks/filter.ts";
-import type { Priority, Status, Task } from "#lib/types.ts";
+import {
+	CLOSED_STATUSES,
+	type Priority,
+	type Status,
+	type Task,
+} from "#lib/types.ts";
 
 export function createFilters(initialProject: string) {
 	let activeProject = $state(initialProject);
 	let status = $state<Status | "all">("all");
 	let priority = $state<Priority | "all">("all");
+	let hideClosed = $state(true);
 	let epic = $state("any");
 	let scope = $state<"any" | "none" | number>("any");
 	let query = $state("");
@@ -22,6 +28,15 @@ export function createFilters(initialProject: string) {
 		},
 		set status(value: Status | "all") {
 			status = value;
+			if (value !== "all" && CLOSED_STATUSES.includes(value)) {
+				hideClosed = false;
+			}
+		},
+		get hideClosed() {
+			return hideClosed;
+		},
+		toggleClosed() {
+			hideClosed = !hideClosed;
 		},
 		get priority() {
 			return priority;
@@ -61,6 +76,7 @@ export function createFilters(initialProject: string) {
 		clear() {
 			status = "all";
 			priority = "all";
+			hideClosed = true;
 			epic = "any";
 			scope = "any";
 			query = "";
@@ -71,6 +87,7 @@ export function createFilters(initialProject: string) {
 				activeProject,
 				status,
 				priority,
+				hideClosed,
 				epic,
 				scope,
 				selectedTags,

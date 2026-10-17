@@ -7,16 +7,31 @@
 	interface Props {
 		status: Status | "all";
 		priority: Priority | "all";
+		hideClosed: boolean;
 		onstatus: (value: Status | "all") => void;
 		onpriority: (value: Priority | "all") => void;
+		ontoggleclosed: () => void;
 		onclear: () => void;
 	}
 
-	let { status, priority, onstatus, onpriority, onclear }: Props = $props();
+	let {
+		status,
+		priority,
+		hideClosed,
+		onstatus,
+		onpriority,
+		ontoggleclosed,
+		onclear,
+	}: Props = $props();
 </script>
 
 <div class="filter-row">
-	<StatusFilter value={status} onselect={onstatus} />
+	<StatusFilter
+		value={status}
+		onselect={onstatus}
+		{hideClosed}
+		{ontoggleclosed}
+	/>
 	<PriorityFilter value={priority} onselect={onpriority} />
 	<button class="clear-filters" onclick={onclear}>
 		<X /> Clear

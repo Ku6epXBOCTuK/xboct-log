@@ -42,8 +42,10 @@
 	<FilterRow
 		status={filters.status}
 		priority={filters.priority}
+		hideClosed={filters.hideClosed}
 		onstatus={(value) => (filters.status = value)}
 		onpriority={(value) => (filters.priority = value)}
+		ontoggleclosed={() => filters.toggleClosed()}
 		onclear={() => filters.clear()}
 	/>
 	<MetaRow

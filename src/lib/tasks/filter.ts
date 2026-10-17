@@ -1,9 +1,15 @@
-import type { Priority, Status, Task } from "#lib/types.ts";
+import {
+	CLOSED_STATUSES,
+	type Priority,
+	type Status,
+	type Task,
+} from "#lib/types.ts";
 
 export interface FilterCriteria {
 	activeProject: string;
 	status: Status | "all";
 	priority: Priority | "all";
+	hideClosed: boolean;
 	epic: string;
 	scope: "any" | "none" | number;
 	selectedTags: string[];
@@ -21,6 +27,9 @@ export function filterTasks(tasks: Task[], criteria: FilterCriteria): Task[] {
 			return false;
 		}
 		if (criteria.status !== "all" && task.status !== criteria.status) {
+			return false;
+		}
+		if (criteria.hideClosed && CLOSED_STATUSES.includes(task.status)) {
 			return false;
 		}
 		if (criteria.priority !== "all" && task.priority !== criteria.priority) {
