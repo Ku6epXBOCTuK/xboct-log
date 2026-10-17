@@ -137,41 +137,45 @@
 </script>
 
 <form onsubmit={submit}>
-	<label class="detail-field">
+	<label class="field detail-field">
 		Project
-		<select bind:value={projectId}>
+		<select class="field-control" bind:value={projectId}>
 			{#each projects as project (project.id)}
 				<option value={project.id}>{project.name}</option>
 			{/each}
 		</select>
 	</label>
 
-	<label class="detail-field">
+	<label class="field detail-field">
 		Title
 		<input
+			class="field-control"
 			bind:this={titleInput}
 			bind:value={title}
 			placeholder="What needs to be done"
 		/>
 	</label>
 
-	<label class="detail-field">
+	<label class="field detail-field">
 		Description
-		<textarea bind:value={description} placeholder="Markdown"></textarea>
+		<textarea
+			class="field-control"
+			bind:value={description}
+			placeholder="Markdown"></textarea>
 	</label>
 
 	<div class="detail-grid">
-		<label>
+		<label class="field">
 			Priority
-			<select bind:value={priority}>
+			<select class="field-control" bind:value={priority}>
 				{#each PRIORITIES as option (option)}
 					<option value={option}>{option}</option>
 				{/each}
 			</select>
 		</label>
-		<label>
+		<label class="field">
 			Type
-			<select bind:value={type}>
+			<select class="field-control" bind:value={type}>
 				<option value="task">task</option>
 				<option value="epic">epic</option>
 			</select>
@@ -179,9 +183,9 @@
 	</div>
 
 	{#if type === "task"}
-		<label class="detail-field">
+		<label class="field detail-field">
 			Epic
-			<select bind:value={epicId}>
+			<select class="field-control" bind:value={epicId}>
 				<option value="">none</option>
 				{#each epicOptions as epic (epic.id)}
 					<option value={epic.id}>{epic.id} — {epic.title}</option>
@@ -191,9 +195,9 @@
 	{/if}
 
 	{#if scopeOptions.length > 0}
-		<label class="detail-field">
+		<label class="field detail-field">
 			Scope
-			<select bind:value={scopeId}>
+			<select class="field-control" bind:value={scopeId}>
 				<option value="">not selected</option>
 				{#each scopeOptions as scope (scope.id)}
 					<option value={String(scope.id)}>{scope.name}</option>
@@ -202,19 +206,27 @@
 		</label>
 	{/if}
 
-	<label class="detail-field">
+	<label class="field detail-field">
 		Comma-separated tags
-		<input bind:value={tags} placeholder="checkout, payments" />
+		<input
+			class="field-control"
+			bind:value={tags}
+			placeholder="checkout, payments"
+		/>
 	</label>
 
 	<div class="detail-grid">
-		<label>
+		<label class="field">
 			Source file
-			<input bind:value={sourceFile} placeholder="src/app/PaymentForm.tsx" />
+			<input
+				class="field-control"
+				bind:value={sourceFile}
+				placeholder="src/app/PaymentForm.tsx"
+			/>
 		</label>
-		<label>
+		<label class="field">
 			Source line
-			<input bind:value={sourceLine} placeholder="112" />
+			<input class="field-control" bind:value={sourceLine} placeholder="112" />
 		</label>
 	</div>
 
@@ -235,51 +247,6 @@
 </form>
 
 <style>
-	label {
-		color: var(--text-muted);
-		font-size: var(--text-xs);
-		font-weight: 600;
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-2);
-		min-width: 0;
-	}
-
-	input,
-	select {
-		width: 100%;
-		border: 1px solid var(--border-strong);
-		background: var(--field);
-		color: var(--foreground);
-		border-radius: var(--radius);
-		padding: var(--space-2) var(--space-3);
-		min-height: var(--control-h);
-		outline: none;
-		font-size: var(--text-md);
-		font-weight: 400;
-	}
-
-	textarea {
-		width: 100%;
-		border: 1px solid var(--border-strong);
-		background: var(--field);
-		color: var(--foreground);
-		border-radius: var(--radius);
-		padding: var(--space-3);
-		outline: none;
-		font-size: var(--text-md);
-		font-weight: 400;
-		resize: vertical;
-		min-height: 8rem;
-		line-height: 1.55;
-	}
-
-	input:focus,
-	select:focus,
-	textarea:focus {
-		border-color: var(--accent);
-	}
-
 	.modal-actions {
 		display: flex;
 		align-items: center;
@@ -288,6 +255,7 @@
 	}
 
 	.modal-check {
+		display: flex;
 		flex-direction: row;
 		align-items: center;
 		gap: var(--space-2);

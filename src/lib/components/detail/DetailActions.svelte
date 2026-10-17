@@ -22,9 +22,13 @@
 <div class="detail-actions">
 	<div class="action-group">
 		{#if !closed}
-			<label class="close-reason">
+			<label class="field close-reason">
 				Close reason
-				<select bind:value={reason} aria-label="Close reason">
+				<select
+					class="field-control"
+					bind:value={reason}
+					aria-label="Close reason"
+				>
 					{#each CLOSED_REASONS as option (option)}
 						<option value={option}>
 							{option} → {STATUS_BY_REASON[option]}
@@ -62,16 +66,6 @@
 </div>
 
 <style>
-	label {
-		color: var(--text-muted);
-		font-size: var(--text-xs);
-		font-weight: 600;
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-2);
-		min-width: 0;
-	}
-
 	.detail-actions {
 		display: flex;
 		flex-direction: column;

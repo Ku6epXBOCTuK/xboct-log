@@ -45,9 +45,10 @@
 </script>
 
 <div class="detail-grid">
-	<label>
+	<label class="field">
 		Status
 		<select
+			class="field-control"
 			value={task.status}
 			onchange={(event) => onstatus(event.currentTarget.value as Status)}
 		>
@@ -56,9 +57,10 @@
 			{/each}
 		</select>
 	</label>
-	<label>
+	<label class="field">
 		Priority
 		<select
+			class="field-control"
 			value={task.priority}
 			onchange={(event) => onpriority(event.currentTarget.value as Priority)}
 		>
@@ -69,9 +71,10 @@
 	</label>
 </div>
 <div class="detail-grid">
-	<label>
+	<label class="field">
 		Type
 		<select
+			class="field-control"
 			value={task.is_epic ? "epic" : "task"}
 			onchange={(event) => ontype(event.currentTarget.value === "epic")}
 		>
@@ -79,31 +82,38 @@
 			<option value="epic">epic</option>
 		</select>
 	</label>
-	<label>
+	<label class="field">
 		Closed
 		<input
+			class="field-control"
 			value={task.closed_at === null ? "" : formatDate(task.closed_at)}
 			readOnly
 		/>
 	</label>
 </div>
 {#if task.closed_at !== null}
-	<label class="detail-field">
+	<label class="field detail-field">
 		Closed reason
-		<input value={task.closed_reason ?? ""} readOnly />
+		<input class="field-control" value={task.closed_reason ?? ""} readOnly />
 	</label>
 {/if}
-<label class="detail-field">
+<label class="field detail-field">
 	Project
-	<select value={task.project_id} onchange={onproject} aria-label="Project">
+	<select
+		class="field-control"
+		value={task.project_id}
+		onchange={onproject}
+		aria-label="Project"
+	>
 		{#each projects as project (project.id)}
 			<option value={project.id}>{project.name}</option>
 		{/each}
 	</select>
 </label>
-<label class="detail-field">
+<label class="field detail-field">
 	Epic
 	<select
+		class="field-control"
 		value={task.epic_id ?? ""}
 		onchange={(event) =>
 			onepic(
@@ -118,10 +128,11 @@
 </label>
 {#if scopes.length > 0}
 	<label
-		class={`detail-field ${task.scope_id === null ? "scope-missing" : ""}`}
+		class={`field detail-field ${task.scope_id === null ? "scope-missing" : ""}`}
 	>
 		Scope
 		<select
+			class="field-control"
 			value={task.scope_id === null ? "" : String(task.scope_id)}
 			onchange={(event) =>
 				onscope(
@@ -137,18 +148,23 @@
 		</select>
 	</label>
 {/if}
-<label class="detail-field">
+<label class="field detail-field">
 	Comma-separated tags
-	<input value={task.tags.join(", ")} onchange={ontags} />
+	<input class="field-control" value={task.tags.join(", ")} onchange={ontags} />
 </label>
 <div class="detail-grid">
-	<label>
+	<label class="field">
 		Source file
-		<input value={task.source_file ?? ""} onchange={onsourcefile} />
+		<input
+			class="field-control"
+			value={task.source_file ?? ""}
+			onchange={onsourcefile}
+		/>
 	</label>
-	<label>
+	<label class="field">
 		Source line
 		<input
+			class="field-control"
 			value={task.source_line === null ? "" : String(task.source_line)}
 			onchange={onsourceline}
 		/>
@@ -163,6 +179,7 @@
 </div>
 <div class="description">
 	<textarea
+		class="field-control"
 		value={task.description}
 		onchange={ondescription}
 		placeholder="Description"
@@ -170,57 +187,6 @@
 </div>
 
 <style>
-	label {
-		color: var(--text-muted);
-		font-size: var(--text-xs);
-		font-weight: 600;
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-2);
-		min-width: 0;
-	}
-
-	input,
-	select {
-		width: 100%;
-		border: 1px solid var(--border-strong);
-		background: var(--field);
-		color: var(--foreground);
-		border-radius: var(--radius);
-		padding: var(--space-2) var(--space-3);
-		min-height: var(--control-h);
-		outline: none;
-		font-size: var(--text-md);
-		font-weight: 400;
-	}
-
-	textarea {
-		width: 100%;
-		border: 1px solid var(--border-strong);
-		background: var(--field);
-		color: var(--foreground);
-		border-radius: var(--radius);
-		padding: var(--space-3);
-		outline: none;
-		font-size: var(--text-md);
-		font-weight: 400;
-		resize: vertical;
-		min-height: 8rem;
-		line-height: 1.55;
-	}
-
-	input:read-only {
-		background: var(--hover);
-		border-color: var(--border);
-		color: var(--text-secondary);
-	}
-
-	input:focus,
-	select:focus,
-	textarea:focus {
-		border-color: var(--accent);
-	}
-
 	.progress-meta {
 		display: flex;
 		align-items: center;
@@ -242,7 +208,7 @@
 		font-size: var(--text-md);
 	}
 
-	.scope-missing select {
+	.scope-missing .field-control {
 		border-color: color-mix(in oklch, var(--accent) 55%, transparent);
 		color: var(--accent-ink);
 	}
