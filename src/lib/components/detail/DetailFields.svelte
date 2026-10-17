@@ -132,7 +132,7 @@
 		>
 			<option value="">not selected</option>
 			{#each scopes as scope (scope.id)}
-				<option value={scope.id}>{scope.name}</option>
+				<option value={String(scope.id)}>{scope.name}</option>
 			{/each}
 		</select>
 	</label>

@@ -32,7 +32,7 @@
 		<option value="any">Scope: any</option>
 		<option value="none">Scope: none</option>
 		{#each scopes as scope (scope.id)}
-			<option value={scope.id}>
+			<option value={String(scope.id)}>
 				{multiProject ? `${scope.project_id}: ` : ""}{scope.name} ({countScope(
 					scope.id,
 				)})
