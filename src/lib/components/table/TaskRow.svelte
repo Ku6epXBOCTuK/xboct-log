@@ -17,6 +17,8 @@
 	let { task, scoped, scope, isselected, progress, onselect, onepic }: Props =
 		$props();
 
+	const epicEmpty = $derived(progress === null || progress.total === 0);
+
 	function filterEpic(event: MouseEvent, epicId: string | null) {
 		event.stopPropagation();
 		if (epicId !== null) {
@@ -31,8 +33,8 @@
 		{task.title}
 		{#if task.is_epic}
 			<button
-				class="epic-badge epic-marker"
-				title="Show tasks of this epic"
+				class={`epic-badge epic-marker${epicEmpty ? " epic-marker-empty" : ""}`}
+				title={epicEmpty ? "No tasks yet" : "Show tasks of this epic"}
 				onclick={(event) => filterEpic(event, task.id)}
 			>
 				EPIC
@@ -115,15 +117,15 @@
 	}
 
 	.epic-filter {
-		border: 1px solid color-mix(in oklch, var(--violet) 45%, transparent);
-		background: transparent;
-		color: var(--violet-ink);
+		border: 0;
+		background: var(--green-surface);
+		color: var(--green-ink);
 		cursor: pointer;
 		font-family: var(--font-mono);
 	}
 
 	.epic-filter:hover {
-		background: var(--violet-surface);
+		background: color-mix(in oklch, var(--green) 28%, var(--green-surface));
 	}
 
 	.epic-marker {
@@ -138,6 +140,16 @@
 
 	.epic-marker:hover {
 		background: color-mix(in oklch, var(--violet) 78%, var(--violet-ink));
+	}
+
+	.epic-marker-empty {
+		border: 1px solid color-mix(in oklch, var(--violet) 45%, transparent);
+		background: transparent;
+		color: var(--violet-ink);
+	}
+
+	.epic-marker-empty:hover {
+		background: var(--violet-surface);
 	}
 
 	.epic-progress {

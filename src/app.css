@@ -64,6 +64,10 @@
 	--violet-row: light-dark(#f2ecff, #221c33);
 	--on-violet: light-dark(#ffffff, #1c1626);
 
+	--green: light-dark(#2f8a4d, #7fd99b);
+	--green-ink: light-dark(#1f7a3d, #9ce8b4);
+	--green-surface: light-dark(#e4f6ea, #16301f);
+
 	--status-open: light-dark(#5f6873, #c3cad2);
 	--status-in-progress: light-dark(#0b5cff, #7ab0ff);
 	--status-blocked: light-dark(#e5231b, #ff877a);
