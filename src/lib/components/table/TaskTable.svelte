@@ -1,6 +1,10 @@
 <script lang="ts">
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
+	import type { SortOrder, TaskSortKey } from "#lib/tasks/sort.ts";
 	import type { Task } from "#lib/types.ts";
+	import ArrowDown from "~icons/lucide/arrow-down";
+	import ArrowUp from "~icons/lucide/arrow-up";
+	import ArrowUpDown from "~icons/lucide/arrow-up-down";
 	import EmptyState from "./EmptyState.svelte";
 	import TaskRow from "./TaskRow.svelte";
 
@@ -9,10 +13,13 @@
 		scopes: ScopeStore;
 		selectedId: string | null;
 		total: number;
+		sortKey: TaskSortKey;
+		sortOrder: SortOrder;
 		onclear?: () => void;
 		onnew?: () => void;
 		onepic?: (id: string) => void;
 		onselect: (id: string) => void;
+		onsort: (key: TaskSortKey) => void;
 	}
 
 	let {
@@ -20,23 +27,47 @@
 		scopes,
 		selectedId,
 		total,
+		sortKey,
+		sortOrder,
 		onclear,
 		onnew,
 		onepic,
 		onselect,
+		onsort,
 	}: Props = $props();
 </script>
+
+{#snippet sortHeader(key: TaskSortKey, label: string, className: string)}
+	<th class={className}>
+		<button
+			class={`sort-button ${sortKey === key ? "active" : ""}`}
+			onclick={() => onsort(key)}
+			title={`Sort by ${label}`}
+		>
+			{label}
+			{#if sortKey === key}
+				{#if sortOrder === "asc"}
+					<ArrowUp />
+				{:else}
+					<ArrowDown />
+				{/if}
+			{:else}
+				<span class="sort-hint"><ArrowUpDown /></span>
+			{/if}
+		</button>
+	</th>
+{/snippet}
 
 <div class="table-wrap">
 	<table>
 		<thead>
 			<tr>
-				<th class="id-col">ID</th>
+				{@render sortHeader("id", "ID", "id-col")}
 				<th>Task</th>
 				<th class="optional-column">Tags</th>
-				<th>Status</th>
-				<th class="optional-column">Priority</th>
-				<th class="date-col optional-column">Created</th>
+				{@render sortHeader("status", "Status", "")}
+				{@render sortHeader("priority", "Priority", "optional-column")}
+				{@render sortHeader("created", "Created", "date-col optional-column")}
 			</tr>
 		</thead>
 		<tbody>
@@ -94,6 +125,31 @@
 
 	.date-col {
 		padding-right: var(--edge-pad);
+	}
+
+	.sort-button {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-1);
+	}
+
+	.sort-button:hover,
+	.sort-button.active {
+		color: var(--foreground);
+	}
+
+	.sort-button :global(svg) {
+		width: 0.875rem;
+		height: 0.875rem;
+	}
+
+	.sort-hint {
+		display: inline-flex;
+		opacity: 0.45;
+	}
+
+	.sort-button:hover .sort-hint {
+		opacity: 1;
 	}
 
 	:global(.compact-table) table {

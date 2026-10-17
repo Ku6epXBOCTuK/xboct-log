@@ -1,5 +1,13 @@
 import { filterTasks } from "#lib/tasks/filter.ts";
 import {
+	DEFAULT_SORT_KEY,
+	DEFAULT_SORT_ORDER,
+	defaultOrderFor,
+	sortTasks,
+	type SortOrder,
+	type TaskSortKey,
+} from "#lib/tasks/sort.ts";
+import {
 	CLOSED_STATUSES,
 	type Priority,
 	type Status,
@@ -15,6 +23,8 @@ export function createFilters(initialProject: string) {
 	let scope = $state<"any" | "none" | number>("any");
 	let query = $state("");
 	let selectedTags = $state<string[]>([]);
+	let sortKey = $state<TaskSortKey>(DEFAULT_SORT_KEY);
+	let sortOrder = $state<SortOrder>(DEFAULT_SORT_ORDER);
 
 	return {
 		get activeProject() {
@@ -73,6 +83,20 @@ export function createFilters(initialProject: string) {
 		clearTags() {
 			selectedTags = [];
 		},
+		get sortKey() {
+			return sortKey;
+		},
+		get sortOrder() {
+			return sortOrder;
+		},
+		setSort(key: TaskSortKey) {
+			if (key === sortKey) {
+				sortOrder = sortOrder === "asc" ? "desc" : "asc";
+				return;
+			}
+			sortKey = key;
+			sortOrder = defaultOrderFor(key);
+		},
 		clear() {
 			status = "all";
 			priority = "all";
@@ -83,16 +107,20 @@ export function createFilters(initialProject: string) {
 			selectedTags = [];
 		},
 		visible(tasks: Task[]) {
-			return filterTasks(tasks, {
-				activeProject,
-				status,
-				priority,
-				hideClosed,
-				epic,
-				scope,
-				selectedTags,
-				query,
-			});
+			return sortTasks(
+				filterTasks(tasks, {
+					activeProject,
+					status,
+					priority,
+					hideClosed,
+					epic,
+					scope,
+					selectedTags,
+					query,
+				}),
+				sortKey,
+				sortOrder,
+			);
 		},
 	};
 }

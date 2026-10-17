@@ -118,6 +118,9 @@
 			tasks={visibleTasks}
 			{scopes}
 			{selectedId}
+			sortKey={filters.sortKey}
+			sortOrder={filters.sortOrder}
+			onsort={(key) => filters.setSort(key)}
 			onselect={(id) => (selectedId = id)}
 			total={tasks.tasks.length}
 			onclear={() => filters.clear()}

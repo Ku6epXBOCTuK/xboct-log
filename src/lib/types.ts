@@ -8,6 +8,14 @@ export const STATUSES = [
 
 export type Status = (typeof STATUSES)[number];
 
+export const STATUS_RANK: Record<Status, number> = {
+	open: 0,
+	"in-progress": 1,
+	blocked: 2,
+	done: 3,
+	cancelled: 4,
+};
+
 export const CLOSED_STATUSES: readonly Status[] = ["done", "cancelled"];
 
 export const CLOSED_REASONS = ["fixed", "obsolete", "duplicate"] as const;
