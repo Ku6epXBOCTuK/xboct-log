@@ -23,11 +23,13 @@
 
 <style>
 	.priority-critical {
-		color: var(--accent-ink);
+		color: var(--priority-critical);
+		font-weight: 600;
 	}
 
 	.priority-high {
 		color: var(--priority-high);
+		font-weight: 600;
 	}
 
 	@media (max-width: 820px) {

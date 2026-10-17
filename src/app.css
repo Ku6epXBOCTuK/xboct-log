@@ -63,12 +63,14 @@
 	--violet-surface: light-dark(#efe7ff, #2c2140);
 	--violet-row: light-dark(#f2ecff, #221c33);
 
-	--status-open: light-dark(#7b848c, #9aa2a9);
-	--status-in-progress: light-dark(#2f353b, #e6e8ea);
-	--status-blocked: var(--accent);
-	--status-done: light-dark(#1c8a63, #63c89d);
+	--status-open: light-dark(#5f6873, #c3cad2);
+	--status-in-progress: light-dark(#0b5cff, #7ab0ff);
+	--status-blocked: light-dark(#e5231b, #ff877a);
+	--status-done: light-dark(#17872b, #00ff00);
+	--status-cancelled: light-dark(#7b4ddb, #a87cff);
 
-	--priority-high: light-dark(#9a6a24, #e4b47b);
+	--priority-high: light-dark(#a06a00, #f5c44d);
+	--priority-critical: light-dark(#cc2418, #ff7a68);
 	--focus: light-dark(#c03a22, #ff9788);
 }
 

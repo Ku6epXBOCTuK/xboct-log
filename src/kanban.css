@@ -60,8 +60,8 @@
 }
 
 .column-status-dot {
-	width: 0.5625rem;
-	height: 0.5625rem;
+	width: 0.6875rem;
+	height: 0.6875rem;
 	border-radius: 50%;
 	background: var(--status-open);
 }
@@ -76,6 +76,10 @@
 
 .done .column-status-dot {
 	background: var(--status-done);
+}
+
+.cancelled .column-status-dot {
+	background: var(--status-cancelled);
 }
 
 .column-cards {

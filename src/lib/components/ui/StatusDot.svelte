@@ -13,8 +13,8 @@
 
 <style>
 	.status-dot {
-		width: 0.4375rem;
-		height: 0.4375rem;
+		width: 0.5625rem;
+		height: 0.5625rem;
 		border-radius: 50%;
 		display: inline-block;
 		background: var(--status-open);
@@ -31,5 +31,9 @@
 
 	.status-dot.done {
 		background: var(--status-done);
+	}
+
+	.status-dot.cancelled {
+		background: var(--status-cancelled);
 	}
 </style>
