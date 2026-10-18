@@ -119,6 +119,7 @@
 			{tasks}
 			{filters}
 			{scopes}
+			{projects}
 			{theme}
 			visibleCount={visibleTasks.length}
 			onnew={openNew}

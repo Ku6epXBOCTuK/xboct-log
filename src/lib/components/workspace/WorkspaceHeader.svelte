@@ -4,6 +4,7 @@
 	import SearchBar from "#lib/components/filters/SearchBar.svelte";
 	import TitleRow from "#lib/components/workspace/TitleRow.svelte";
 	import type { Filters } from "#lib/state/filters.svelte.ts";
+	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
 	import type { Theme } from "#lib/state/theme.svelte.ts";
@@ -18,13 +19,15 @@
 	interface Props {
 		tasks: TaskStore;
 		filters: Filters;
+		projects: ProjectStore;
 		scopes: ScopeStore;
 		theme: Theme;
 		visibleCount: number;
 		onnew: () => void;
 	}
 
-	let { tasks, filters, scopes, theme, visibleCount, onnew }: Props = $props();
+	let { tasks, filters, projects, scopes, theme, visibleCount, onnew }: Props =
+		$props();
 
 	const epics = $derived(
 		epicsForProject(tasks.epics, filters.activeProject, filters.epic),
@@ -35,10 +38,19 @@
 	const total = $derived(
 		countTasksInProject(tasks.tasks, filters.activeProject),
 	);
+
+	const activeProjectName = $derived(
+		projects.all.find((project) => project.id === filters.activeProject)?.name,
+	);
 </script>
 
 <header class="workspace-header">
-	<TitleRow appearance={theme.appearance} ontoggle={theme.toggle} {onnew} />
+	<TitleRow
+		appearance={theme.appearance}
+		ontoggle={theme.toggle}
+		{onnew}
+		projectName={activeProjectName}
+	/>
 	<SearchBar
 		value={filters.query}
 		oninput={(value) => (filters.query = value)}

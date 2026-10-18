@@ -9,13 +9,14 @@
 		appearance: "light" | "dark";
 		ontoggle: () => void;
 		onnew: () => void;
+		projectName?: string;
 	}
 
-	let { appearance, ontoggle, onnew }: Props = $props();
+	let { appearance, ontoggle, onnew, projectName }: Props = $props();
 </script>
 
 <div class="title-row">
-	<h1>Projects</h1>
+	<h1>{projectName ?? "Projects"}</h1>
 	<div class="header-actions">
 		<IconButton
 			label={appearance === "light"
