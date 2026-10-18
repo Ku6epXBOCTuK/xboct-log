@@ -78,4 +78,5 @@ export interface Task {
 	closed_at: string | null;
 	closed_reason: ClosedReason | null;
 	deleted_at: string | null;
+	project_name?: string;
 }

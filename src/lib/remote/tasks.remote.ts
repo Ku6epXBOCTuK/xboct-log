@@ -14,7 +14,30 @@ const taskFilters = z
 		is_epic: z.boolean().optional(),
 		epic_id: z.string().nullable().optional(),
 		scope_id: z.number().int().nullable().optional(),
-		q: z.string().optional(),
+		q: z
+			.string()
+			.optional()
+			.describe(
+				"Поиск по фрагменту текста в заголовке, описании или ID задачи.",
+			),
+		title: z
+			.string()
+			.optional()
+			.describe("Поиск по фрагменту заголовка задачи (регистронезависимо)."),
+		title_exact: z
+			.string()
+			.optional()
+			.describe("Точное совпадение заголовка задачи (регистронезависимо)."),
+		fields: z
+			.string()
+			.optional()
+			.describe(
+				"Список полей через запятую для сокращения размера ответа (например id,number,title,status).",
+			),
+		include_project: z
+			.boolean()
+			.optional()
+			.describe("Добавить к каждой задаче имя проекта (project_name)."),
 		sort: z.enum(["updated_at", "created_at", "priority"]).optional(),
 		order: z.enum(["asc", "desc"]).optional(),
 		limit: z.number().int().positive().max(1000).optional(),
@@ -52,10 +75,25 @@ const taskPatch = z.object({
 export const getTasks = defineQuery({
 	name: "tasks_list",
 	description:
-		"List tasks with filters (project, status, priority, tags, epic, scope, text query), sorting and pagination.",
+		"List tasks with filters (project, status, priority, tags, epic, scope, text query, title, title_exact), sorting and pagination. Use fields to limit returned columns and include_project to attach project names.",
 	kind: "query",
 	input: taskFilters,
 	handler: (filters) => repo.listTasks(getDb(), filters),
+});
+
+export const getTasksByIds = defineQuery({
+	name: "tasks_get_many",
+	description:
+		"Get multiple tasks by their IDs in a single call. Use this instead of calling tasks_get in a loop.",
+	kind: "query",
+	input: z.object({
+		ids: z
+			.array(z.string().min(1))
+			.min(1)
+			.max(100)
+			.describe("List of task IDs to fetch."),
+	}),
+	handler: ({ ids }) => repo.getTasksByIds(getDb(), ids),
 });
 
 export const getTask = defineQuery({
@@ -70,6 +108,26 @@ export const getTask = defineQuery({
 		}
 		return task;
 	},
+});
+
+export const findTasks = defineQuery({
+	name: "tasks_find",
+	description:
+		"Find tasks by a fragment of their title. Returns id, number, title, status, project_id, updated_at — enough to locate a task ID without scanning the full list.",
+	kind: "query",
+	input: z.object({
+		title: z
+			.string()
+			.min(1)
+			.describe("Fragment of the task title to search for (case-insensitive)."),
+		limit: z.number().int().positive().max(100).optional().default(20),
+	}),
+	handler: ({ title, limit }) =>
+		repo.listTasks(getDb(), {
+			title,
+			fields: "id,number,title,status,project_id,updated_at",
+			limit,
+		}),
 });
 
 export const createTask = defineCommand({

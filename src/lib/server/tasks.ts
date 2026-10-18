@@ -34,6 +34,7 @@ interface TaskRow {
 	closed_at: string | null;
 	closed_reason: string | null;
 	deleted_at: string | null;
+	project_name?: string;
 }
 
 export interface NewTask {
@@ -72,6 +73,10 @@ export interface TaskQuery {
 	epic_id?: string | null;
 	scope_id?: number | null;
 	q?: string;
+	title?: string;
+	title_exact?: string;
+	fields?: string;
+	include_project?: boolean;
 	sort?: "updated_at" | "created_at" | "priority";
 	order?: "asc" | "desc";
 	limit?: number;
@@ -99,6 +104,7 @@ function mapTask(row: TaskRow): Task {
 		closed_at: row.closed_at,
 		closed_reason: row.closed_reason as ClosedReason | null,
 		deleted_at: row.deleted_at,
+		project_name: row.project_name ?? undefined,
 	};
 }
 
@@ -191,6 +197,18 @@ function taskById(db: DatabaseSync, id: string): Task | undefined {
 export function getTask(db: DatabaseSync, id: string): Task | undefined {
 	const task = taskById(db, id);
 	return task && task.deleted_at === null ? task : undefined;
+}
+
+export function getTasksByIds(db: DatabaseSync, ids: string[]): Task[] {
+	if (ids.length === 0) {
+		return [];
+	}
+	const rows = db
+		.prepare(
+			`SELECT * FROM tasks WHERE id IN (${ids.map(() => "?").join(", ")}) AND deleted_at IS NULL`,
+		)
+		.all(...ids) as unknown as TaskRow[];
+	return rows.map(mapTask);
 }
 
 function allocateNumber(db: DatabaseSync, projectId: string): number {
@@ -300,6 +318,7 @@ export function createTask(
 export function listTasks(db: DatabaseSync, query: TaskQuery = {}): Task[] {
 	const where: string[] = [];
 	const params: (string | number)[] = [];
+	let joins = "";
 
 	if (!query.include_deleted) {
 		where.push("deleted_at IS NULL");
@@ -352,8 +371,32 @@ export function listTasks(db: DatabaseSync, query: TaskQuery = {}): Task[] {
 		);
 		params.push(like, like, like);
 	}
+	if (query.title) {
+		const like = `%${query.title.toLowerCase()}%`;
+		where.push("LOWER(title) LIKE ?");
+		params.push(like);
+	}
+	if (query.title_exact) {
+		where.push("LOWER(title) = LOWER(?)");
+		params.push(query.title_exact);
+	}
+	if (query.include_project) {
+		joins = " LEFT JOIN projects ON tasks.project_id = projects.id";
+		where.push("projects.deleted_at IS NULL");
+	}
 
-	let sql = "SELECT * FROM tasks";
+	const selectFields = query.fields
+		?.split(",")
+		.map((f) => f.trim())
+		.filter(Boolean);
+	const hasCustomFields = selectFields && selectFields.length > 0;
+	const selectSql = hasCustomFields
+		? `SELECT ${selectFields.map((f) => `tasks.${f}`).join(", ")}`
+		: query.include_project
+			? "SELECT tasks.*, projects.name AS project_name"
+			: "SELECT tasks.*";
+
+	let sql = `${selectSql} FROM tasks${joins}`;
 	if (where.length > 0) {
 		sql += ` WHERE ${where.join(" AND ")}`;
 	}
