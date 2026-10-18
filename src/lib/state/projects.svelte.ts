@@ -35,6 +35,9 @@ export function createProjectStore(initial: Project[]) {
 		get archived() {
 			return archived;
 		},
+		replaceAll(next: Project[]) {
+			projects = sortProjects(next);
+		},
 		async create(input: NewProjectInput) {
 			const project = await createProject(input);
 			projects = sortProjects([...projects, project]);

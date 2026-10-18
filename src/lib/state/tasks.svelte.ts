@@ -32,6 +32,9 @@ export function createTaskStore(initial: Task[]) {
 		get epics() {
 			return epics;
 		},
+		replaceAll(next: Task[]) {
+			tasks = next;
+		},
 		async create(input: NewTaskInput) {
 			const task = await createTask(input);
 			tasks = [task, ...tasks];

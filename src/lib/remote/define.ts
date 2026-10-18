@@ -1,4 +1,5 @@
 import { command, query } from "$app/server";
+import { entityOf, publishChange } from "#lib/server/events.ts";
 import type { z, ZodType } from "zod";
 import { Err, Ok, type Result } from "neverthrow";
 import type { AppError } from "../server/errors";
@@ -28,7 +29,14 @@ export async function runOp(
 ): Promise<unknown> {
 	const parsed = op.input.parse(input);
 	const value = await op.handler(parsed as never);
-	return isAppResult(value) ? unwrap(value) : value;
+	const result = isAppResult(value) ? unwrap(value) : value;
+	if (op.kind === "command") {
+		const entity = entityOf(op.name);
+		if (entity) {
+			publishChange(entity, op.name);
+		}
+	}
+	return result;
 }
 
 export function defineQuery<TSchema extends ZodType, TResult>(

@@ -42,6 +42,9 @@ export function createScopeStore(initial: Scope[]) {
 		get byProject() {
 			return byProject;
 		},
+		replaceAll(next: Scope[]) {
+			scopes = sortScopes(next);
+		},
 		listFor(projectId: ProjectFilter) {
 			return projectId === null ? scopes : (byProject[projectId] ?? []);
 		},

@@ -12,6 +12,7 @@
 	import { createScopeStore } from "#lib/state/scopes.svelte.ts";
 	import { createTaskStore } from "#lib/state/tasks.svelte.ts";
 	import { createTheme } from "#lib/state/theme.svelte.ts";
+	import { startLiveSync } from "#lib/state/live.ts";
 	import { getActiveTotal } from "#lib/tasks/filter.ts";
 	import type { ProjectFilter, Task } from "#lib/types.ts";
 	import { goto } from "$app/navigation";
@@ -65,6 +66,11 @@
 		childEpic = task;
 		creating = true;
 	}
+
+	$effect(() => {
+		const stop = startLiveSync({ tasks, projects, scopes });
+		return stop;
+	});
 
 	$effect(() => {
 		const current = filters.scope;
