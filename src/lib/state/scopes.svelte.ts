@@ -59,7 +59,7 @@ export function createScopeStore(initial: Scope[]) {
 			return updated;
 		},
 		async destroy(id: number) {
-			await deleteScopeRemote(id);
+			await deleteScopeRemote({ id });
 			scopes = scopes.filter((scope) => scope.id !== id);
 		},
 	};

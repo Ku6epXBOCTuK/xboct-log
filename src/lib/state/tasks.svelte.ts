@@ -53,7 +53,7 @@ export function createTaskStore(initial: Task[]) {
 			return updated;
 		},
 		async destroy(id: string) {
-			await deleteTask(id);
+			await deleteTask({ id });
 			tasks = tasks
 				.filter((task) => task.id !== id)
 				.map((task) =>

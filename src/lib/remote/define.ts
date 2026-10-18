@@ -1,8 +1,22 @@
 import { command, query } from "$app/server";
+import type { z, ZodType } from "zod";
 import { Err, Ok, type Result } from "neverthrow";
 import type { AppError } from "../server/errors";
-import { registerOp, type OpDefinition } from "./registry";
+import { registerOp, type OpDefinition, type OpKind } from "./registry";
 import { unwrap } from "./result";
+
+export interface OpSpec<TSchema extends ZodType = ZodType, TResult = unknown> {
+	name: string;
+	description: string;
+	kind: OpKind;
+	input: TSchema;
+	handler: (
+		input: z.infer<TSchema>,
+	) =>
+		| TResult
+		| Result<TResult, AppError>
+		| Promise<TResult | Result<TResult, AppError>>;
+}
 
 function isAppResult(value: unknown): value is Result<unknown, AppError> {
 	return value instanceof Ok || value instanceof Err;
@@ -17,12 +31,16 @@ export async function runOp(
 	return isAppResult(value) ? unwrap(value) : value;
 }
 
-export function defineQuery(op: OpDefinition) {
+export function defineQuery<TSchema extends ZodType, TResult>(
+	op: OpSpec<TSchema, TResult>,
+) {
 	registerOp(op);
-	return query(op.input, (input) => runOp(op, input));
+	return query(op.input, (input) => runOp(op, input) as Promise<TResult>);
 }
 
-export function defineCommand(op: OpDefinition) {
+export function defineCommand<TSchema extends ZodType, TResult>(
+	op: OpSpec<TSchema, TResult>,
+) {
 	registerOp(op);
-	return command(op.input, (input) => runOp(op, input));
+	return command(op.input, (input) => runOp(op, input) as Promise<TResult>);
 }

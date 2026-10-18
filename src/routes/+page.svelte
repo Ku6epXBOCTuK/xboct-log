@@ -20,9 +20,11 @@
 
 	const loadedProjects = await getProjects({ includeArchived: true });
 	const loadedTasks = await getTasks({ limit: 1000 });
-	const scopedProjectIds = await getScopedProjectIds();
+	const scopedProjectIds = await getScopedProjectIds({});
 	const loadedScopes = (
-		await Promise.all(scopedProjectIds.map((id) => getScopes(id)))
+		await Promise.all(
+			scopedProjectIds.map((id) => getScopes({ project_id: id })),
+		)
 	).flat();
 
 	const tasks = createTaskStore(loadedTasks);

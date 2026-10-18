@@ -1,41 +1,56 @@
 import { error } from "@sveltejs/kit";
-import { command, query } from "$app/server";
 import { z } from "zod";
 import { getDb } from "../server/db";
 import * as projects from "../server/projects";
 import { countTasksByStatus } from "../server/tasks";
-import { unwrap } from "./result";
+import { defineCommand, defineQuery } from "./define";
 
-export const getProjects = query(
-	z.object({ includeArchived: z.boolean().optional() }).default({}),
-	(options) => projects.listProjects(getDb(), options),
-);
-
-export const getProject = query(z.string().min(1), (id) => {
-	const db = getDb();
-	const project = projects.getProject(db, id);
-	if (!project) {
-		error(404, `project ${id} not found`);
-	}
-	return { ...project, task_counts: countTasksByStatus(db, id) };
+export const getProjects = defineQuery({
+	name: "projects_list",
+	description:
+		"List projects; set includeArchived to also return archived ones.",
+	kind: "query",
+	input: z.object({ includeArchived: z.boolean().optional() }).default({}),
+	handler: (options) => projects.listProjects(getDb(), options),
 });
 
-export const createProject = command(
-	z.object({
+export const getProject = defineQuery({
+	name: "projects_get",
+	description: "Get a single project by id, including task counts by status.",
+	kind: "query",
+	input: z.object({ id: z.string().min(1) }),
+	handler: ({ id }) => {
+		const db = getDb();
+		const project = projects.getProject(db, id);
+		if (!project) {
+			error(404, `project ${id} not found`);
+		}
+		return { ...project, task_counts: countTasksByStatus(db, id) };
+	},
+});
+
+export const createProject = defineCommand({
+	name: "projects_create",
+	description: "Create a project. id, name and prefix are required.",
+	kind: "command",
+	input: z.object({
 		id: z.string().min(1),
 		name: z.string().min(1),
 		prefix: z.string().min(1),
 	}),
-	(input) => unwrap(projects.createProject(getDb(), input)),
-);
+	handler: (input) => projects.createProject(getDb(), input),
+});
 
-export const updateProject = command(
-	z.object({
+export const updateProject = defineCommand({
+	name: "projects_update",
+	description: "Rename a project or change its archived flag.",
+	kind: "command",
+	input: z.object({
 		id: z.string().min(1),
 		patch: z.object({
 			name: z.string().optional(),
 			archived: z.boolean().optional(),
 		}),
 	}),
-	({ id, patch }) => unwrap(projects.updateProject(getDb(), id, patch)),
-);
+	handler: ({ id, patch }) => projects.updateProject(getDb(), id, patch),
+});

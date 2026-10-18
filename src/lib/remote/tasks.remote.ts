@@ -1,10 +1,9 @@
 import { error } from "@sveltejs/kit";
-import { command, query } from "$app/server";
 import { z } from "zod";
 import { getDb } from "../server/db";
 import * as repo from "../server/tasks";
 import { CLOSED_REASONS, PRIORITIES, STATUSES } from "../types";
-import { unwrap } from "./result";
+import { defineCommand, defineQuery } from "./define";
 
 const taskFilters = z
 	.object({
@@ -50,37 +49,66 @@ const taskPatch = z.object({
 	tags: z.array(z.string()).optional(),
 });
 
-export const getTasks = query(taskFilters, (filters) =>
-	repo.listTasks(getDb(), filters),
-);
-
-export const getTask = query(z.string().min(1), (id) => {
-	const task = repo.getTask(getDb(), id);
-	if (!task) {
-		error(404, `task ${id} not found`);
-	}
-	return task;
+export const getTasks = defineQuery({
+	name: "tasks_list",
+	description:
+		"List tasks with filters (project, status, priority, tags, epic, scope, text query), sorting and pagination.",
+	kind: "query",
+	input: taskFilters,
+	handler: (filters) => repo.listTasks(getDb(), filters),
 });
 
-export const createTask = command(newTask, (input) =>
-	unwrap(repo.createTask(getDb(), input)),
-);
+export const getTask = defineQuery({
+	name: "tasks_get",
+	description: "Get a single task by its id.",
+	kind: "query",
+	input: z.object({ id: z.string().min(1) }),
+	handler: ({ id }) => {
+		const task = repo.getTask(getDb(), id);
+		if (!task) {
+			error(404, `task ${id} not found`);
+		}
+		return task;
+	},
+});
 
-export const updateTask = command(
-	z.object({ id: z.string().min(1), patch: taskPatch }),
-	({ id, patch }) => unwrap(repo.updateTask(getDb(), id, patch)),
-);
+export const createTask = defineCommand({
+	name: "tasks_create",
+	description:
+		"Create a task. Requires project_id and title; status, priority, epic, scope, tags are optional.",
+	kind: "command",
+	input: newTask,
+	handler: (input) => repo.createTask(getDb(), input),
+});
 
-export const closeTask = command(
-	z.object({ id: z.string().min(1), reason: z.enum(CLOSED_REASONS) }),
-	({ id, reason }) => unwrap(repo.closeTask(getDb(), id, reason)),
-);
+export const updateTask = defineCommand({
+	name: "tasks_update",
+	description: "Update fields of an existing task by id.",
+	kind: "command",
+	input: z.object({ id: z.string().min(1), patch: taskPatch }),
+	handler: ({ id, patch }) => repo.updateTask(getDb(), id, patch),
+});
 
-export const deleteTask = command(z.string().min(1), (id) =>
-	unwrap(repo.deleteTask(getDb(), id)),
-);
+export const closeTask = defineCommand({
+	name: "tasks_close",
+	description: "Close a task with a closed reason (done, wontfix, duplicate).",
+	kind: "command",
+	input: z.object({ id: z.string().min(1), reason: z.enum(CLOSED_REASONS) }),
+	handler: ({ id, reason }) => repo.closeTask(getDb(), id, reason),
+});
 
-export const moveTask = command(
-	z.object({ id: z.string().min(1), project_id: z.string().min(1) }),
-	({ id, project_id }) => unwrap(repo.moveTask(getDb(), id, project_id)),
-);
+export const deleteTask = defineCommand({
+	name: "tasks_delete",
+	description: "Soft-delete a task by id.",
+	kind: "command",
+	input: z.object({ id: z.string().min(1) }),
+	handler: ({ id }) => repo.deleteTask(getDb(), id),
+});
+
+export const moveTask = defineCommand({
+	name: "tasks_move",
+	description: "Move a task to another project.",
+	kind: "command",
+	input: z.object({ id: z.string().min(1), project_id: z.string().min(1) }),
+	handler: ({ id, project_id }) => repo.moveTask(getDb(), id, project_id),
+});
