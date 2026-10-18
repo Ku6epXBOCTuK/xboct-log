@@ -54,6 +54,7 @@
 		text-overflow: ellipsis;
 		white-space: nowrap;
 		min-width: 0;
+		padding-right: var(--project-actions-w, 0);
 	}
 
 	.project-mark {
@@ -87,5 +88,8 @@
 		color: var(--text-muted);
 		font-size: var(--text-xs);
 		font-variant-numeric: tabular-nums;
+		min-width: var(--project-count-w, 1.75rem);
+		text-align: right;
+		flex: none;
 	}
 </style>
