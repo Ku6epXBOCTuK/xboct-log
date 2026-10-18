@@ -10,12 +10,13 @@ import {
 import {
 	CLOSED_STATUSES,
 	type Priority,
+	type ProjectFilter,
 	type Status,
 	type Task,
 } from "#lib/types.ts";
 
-export function createFilters(initialProject: string) {
-	let activeProject = $state(initialProject);
+export function createFilters(initialProject: ProjectFilter) {
+	let activeProject = $state<ProjectFilter>(initialProject);
 	let status = $state<Status | "all">("all");
 	let priority = $state<Priority | "all">("all");
 	let hideClosed = $state(true);
@@ -30,7 +31,7 @@ export function createFilters(initialProject: string) {
 		get activeProject() {
 			return activeProject;
 		},
-		set activeProject(value: string) {
+		set activeProject(value: ProjectFilter) {
 			activeProject = value;
 		},
 		get status() {

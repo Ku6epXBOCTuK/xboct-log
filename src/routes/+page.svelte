@@ -13,7 +13,7 @@
 	import { createTaskStore } from "#lib/state/tasks.svelte.ts";
 	import { createTheme } from "#lib/state/theme.svelte.ts";
 	import { getActiveTotal } from "#lib/tasks/filter.ts";
-	import type { Task } from "#lib/types.ts";
+	import type { ProjectFilter, Task } from "#lib/types.ts";
 	import { goto } from "$app/navigation";
 	import { resolve } from "$app/paths";
 	import { page } from "$app/state";
@@ -28,7 +28,7 @@
 	const tasks = createTaskStore(loadedTasks);
 	const projects = createProjectStore(loadedProjects);
 	const scopes = createScopeStore(loadedScopes);
-	const filters = createFilters(page.url.searchParams.get("project") ?? "all");
+	const filters = createFilters(page.url.searchParams.get("project"));
 	const requestedTheme = page.url.searchParams.get("theme");
 	const theme = createTheme(
 		requestedTheme === "light" || requestedTheme === "dark"
@@ -49,9 +49,7 @@
 	const total = $derived(getActiveTotal(tasks.tasks, filters));
 
 	const createDefaults = $derived({
-		projectId:
-			childEpic?.project_id ??
-			(filters.activeProject === "all" ? undefined : filters.activeProject),
+		projectId: childEpic?.project_id ?? filters.activeProject ?? undefined,
 		epicId: childEpic?.id ?? null,
 		scopeId: childEpic?.scope_id ?? null,
 	});
@@ -76,13 +74,13 @@
 		}
 	});
 
-	function setActiveProject(projectId: string) {
+	function setActiveProject(projectId: ProjectFilter) {
 		filters.activeProject = projectId;
 		filters.epic = "any";
 		filters.scope = "any";
 
 		const url = new URL(page.url.href);
-		if (projectId === "all") {
+		if (projectId === null) {
 			url.searchParams.delete("project");
 		} else {
 			url.searchParams.set("project", projectId);

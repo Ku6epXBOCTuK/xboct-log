@@ -3,7 +3,7 @@ import {
 	deleteScope as deleteScopeRemote,
 	updateScope as updateScopeRemote,
 } from "#lib/remote/scopes.remote.ts";
-import type { Scope } from "#lib/types.ts";
+import type { ProjectFilter, Scope } from "#lib/types.ts";
 
 export interface NewScopeInput {
 	project_id: string;
@@ -42,8 +42,8 @@ export function createScopeStore(initial: Scope[]) {
 		get byProject() {
 			return byProject;
 		},
-		listFor(projectId: string) {
-			return byProject[projectId] ?? [];
+		listFor(projectId: ProjectFilter) {
+			return projectId === null ? scopes : (byProject[projectId] ?? []);
 		},
 		hasProject(projectId: string) {
 			return (byProject[projectId]?.length ?? 0) > 0;

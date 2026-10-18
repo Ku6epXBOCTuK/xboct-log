@@ -7,6 +7,7 @@
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
 	import type { Theme } from "#lib/state/theme.svelte.ts";
+	import { epicsForProject } from "#lib/tasks/fields.ts";
 	import {
 		collectTags,
 		countTasksInEpic,
@@ -25,13 +26,11 @@
 
 	let { tasks, filters, scopes, theme, visibleCount, onnew }: Props = $props();
 
-	const epics = $derived(tasks.epics);
-	const tags = $derived(collectTags(tasks.tasks));
-	const scopeOptions = $derived(
-		filters.activeProject === "all"
-			? scopes.all
-			: scopes.listFor(filters.activeProject),
+	const epics = $derived(
+		epicsForProject(tasks.epics, filters.activeProject, filters.epic),
 	);
+	const tags = $derived(collectTags(tasks.tasks));
+	const scopeOptions = $derived(scopes.listFor(filters.activeProject));
 
 	const total = $derived(
 		countTasksInProject(tasks.tasks, filters.activeProject),

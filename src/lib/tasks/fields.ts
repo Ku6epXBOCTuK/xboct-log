@@ -1,4 +1,4 @@
-import { CLOSED_STATUSES, type Task } from "#lib/types.ts";
+import { CLOSED_STATUSES, type ProjectFilter, type Task } from "#lib/types.ts";
 
 export type TaskPatch = Partial<
 	Pick<
@@ -75,12 +75,12 @@ export function validateTaskDraft(draft: {
 
 export function epicsForProject(
 	epics: Task[],
-	projectId: string,
+	projectId: ProjectFilter,
 	keepId: string | null = null,
 ): Task[] {
 	return epics.filter(
 		(epic) =>
-			epic.project_id === projectId &&
+			(projectId === null || epic.project_id === projectId) &&
 			(!CLOSED_STATUSES.includes(epic.status) || epic.id === keepId),
 	);
 }

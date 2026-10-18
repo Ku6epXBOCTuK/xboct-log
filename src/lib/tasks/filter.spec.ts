@@ -33,7 +33,7 @@ function task(overrides: Partial<Task>): Task {
 
 function criteria(overrides: Partial<FilterCriteria> = {}): FilterCriteria {
 	return {
-		activeProject: "all",
+		activeProject: null,
 		status: "all",
 		priority: "all",
 		hideClosed: true,

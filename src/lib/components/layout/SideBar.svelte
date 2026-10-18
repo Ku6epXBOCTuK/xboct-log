@@ -3,6 +3,7 @@
 	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
+	import type { ProjectFilter } from "#lib/types.ts";
 	import ProjectSection from "#lib/components/projects/ProjectSection.svelte";
 	import BrandMark from "./BrandMark.svelte";
 	import LanguageSwitch from "./LanguageSwitch.svelte";
@@ -12,8 +13,8 @@
 		projects: ProjectStore;
 		scopes: ScopeStore;
 		tasks: TaskStore;
-		activeProject: string;
-		onprojectselect?: (projectId: string) => void;
+		activeProject: ProjectFilter;
+		onprojectselect?: (projectId: ProjectFilter) => void;
 	}
 
 	let { projects, scopes, tasks, activeProject, onprojectselect }: Props =

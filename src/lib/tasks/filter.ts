@@ -2,12 +2,13 @@ import type { Filters } from "#lib/state/filters.svelte.ts";
 import {
 	CLOSED_STATUSES,
 	type Priority,
+	type ProjectFilter,
 	type Status,
 	type Task,
 } from "#lib/types.ts";
 
 export interface FilterCriteria {
-	activeProject: string;
+	activeProject: ProjectFilter;
 	status: Status | "all";
 	priority: Priority | "all";
 	hideClosed: boolean;
@@ -17,12 +18,18 @@ export interface FilterCriteria {
 	query: string;
 }
 
+export function projectTasks(tasks: Task[], projectId: ProjectFilter): Task[] {
+	return projectId === null
+		? tasks
+		: tasks.filter((task) => task.project_id === projectId);
+}
+
 export function filterTasks(tasks: Task[], criteria: FilterCriteria): Task[] {
 	const needle = criteria.query.trim().toLowerCase();
 
 	return tasks.filter((task) => {
 		if (
-			criteria.activeProject !== "all" &&
+			criteria.activeProject !== null &&
 			task.project_id !== criteria.activeProject
 		) {
 			return false;
@@ -87,26 +94,24 @@ export function collectTags(tasks: Task[]): TagCount[] {
 		.sort((left, right) => left.tag.localeCompare(right.tag));
 }
 
-export function countTasksInProject(tasks: Task[], projectId: string): number {
-	if (projectId === "all") return tasks.length;
-	return tasks.filter((task) => task.project_id === projectId).length;
+export function countTasksInProject(
+	tasks: Task[],
+	projectId: ProjectFilter,
+): number {
+	return projectTasks(tasks, projectId).length;
 }
 
 export function countActiveTasksInProject(
 	tasks: Task[],
-	projectId: string,
+	projectId: ProjectFilter,
 ): number {
-	if (projectId === "all")
-		return tasks.filter((task) => !CLOSED_STATUSES.includes(task.status))
-			.length;
-	return tasks.filter(
-		(task) =>
-			task.project_id === projectId && !CLOSED_STATUSES.includes(task.status),
+	return projectTasks(tasks, projectId).filter(
+		(task) => !CLOSED_STATUSES.includes(task.status),
 	).length;
 }
 
 export function getActiveTotal(tasks: Task[], filters: Filters): number {
-	return filters.activeProject === "all"
+	return filters.activeProject === null
 		? tasks.length
 		: countTasksInProject(tasks, filters.activeProject);
 }

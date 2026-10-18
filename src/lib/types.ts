@@ -50,6 +50,8 @@ export interface Project {
 	archived_at: string | null;
 }
 
+export type ProjectFilter = string | null;
+
 export interface Scope {
 	id: number;
 	project_id: string;

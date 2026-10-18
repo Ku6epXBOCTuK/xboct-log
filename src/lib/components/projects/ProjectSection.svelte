@@ -6,7 +6,7 @@
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
 	import { messageOf } from "#lib/tasks/display.ts";
 	import { countActiveTasksInProject } from "#lib/tasks/filter.ts";
-	import { type Project } from "#lib/types.ts";
+	import { type Project, type ProjectFilter } from "#lib/types.ts";
 	import ChevronDown from "~icons/lucide/chevron-down";
 	import Plus from "~icons/lucide/plus";
 	import ProjectCreateForm from "./ProjectCreateForm.svelte";
@@ -17,8 +17,8 @@
 		projects: ProjectStore;
 		scopes: ScopeStore;
 		tasks: TaskStore;
-		activeProject: string;
-		onselect: (projectId: string) => void;
+		activeProject: ProjectFilter;
+		onselect: (projectId: ProjectFilter) => void;
 	}
 
 	let { projects, scopes, tasks, activeProject, onselect }: Props = $props();
@@ -36,7 +36,7 @@
 			: (projects.all.find((project) => project.id === settingsFor) ?? null),
 	);
 	const totalActiveTasks = $derived(
-		countActiveTasksInProject(tasks.tasks, "all"),
+		countActiveTasksInProject(tasks.tasks, null),
 	);
 
 	async function toggleArchived(project: Project) {
