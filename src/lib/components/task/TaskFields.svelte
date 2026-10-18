@@ -134,7 +134,7 @@
 			value={value.priority}
 			onchange={changePriority}
 		>
-			{#each PRIORITIES as option (option)}
+			{#each [...PRIORITIES].reverse() as option (option)}
 				<option value={option}>{option}</option>
 			{/each}
 		</select>
