@@ -1,4 +1,4 @@
-import type { RequestEvent } from "@sveltejs/kit";
+﻿import type { RequestEvent } from "@sveltejs/kit";
 import { describe, expect, it } from "vitest";
 import { getOps } from "#lib/remote/index.ts";
 import { GET, POST } from "./+server.js";
@@ -18,7 +18,12 @@ async function rpc(
 	method: string,
 	params: unknown,
 ): Promise<{
-	result?: { tools?: { name: string }[]; serverInfo?: { name: string } };
+	result?: {
+		tools?: { name: string }[];
+		serverInfo?: { name: string };
+		structuredContent?: unknown;
+		content?: unknown[];
+	};
 	error?: unknown;
 }> {
 	const response = await POST({
@@ -63,5 +68,33 @@ describe("/mcp endpoint", () => {
 			request: request("GET", undefined),
 		} as unknown as RequestEvent);
 		expect([200, 400, 405]).toContain(response.status);
+	});
+
+	it("accepts status as a string", async () => {
+		const body = await rpc("tools/call", {
+			name: "tasks_list",
+			arguments: { status: "open" },
+		});
+		expect(body.error).toBeUndefined();
+		expect(
+			Array.isArray(
+				(body.result?.structuredContent as { result?: unknown }).result,
+			),
+		).toBe(true);
+		expect(body.result?.structuredContent).toBeDefined();
+	});
+
+	it("returns structuredContent on tool call", async () => {
+		const body = await rpc("tools/call", {
+			name: "tasks_list",
+			arguments: {},
+		});
+		expect(body.error).toBeUndefined();
+		expect(body.result?.structuredContent).toBeDefined();
+		expect(
+			Array.isArray(
+				(body.result?.structuredContent as { result?: unknown }).result,
+			),
+		).toBe(true);
 	});
 });

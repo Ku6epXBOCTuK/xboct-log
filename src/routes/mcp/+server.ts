@@ -26,6 +26,7 @@ function registerTools(server: McpServer): void {
 					const value = await runOp(op, args);
 					return {
 						content: [{ type: "text", text: JSON.stringify(value ?? null) }],
+						structuredContent: value ?? null,
 					};
 				} catch (error) {
 					return {

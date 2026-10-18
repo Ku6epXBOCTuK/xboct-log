@@ -8,9 +8,27 @@ import { defineCommand, defineQuery } from "./define";
 const taskFilters = z
 	.object({
 		project_id: z.string().min(1).optional(),
-		status: z.array(z.enum(STATUSES)).optional(),
-		priority: z.array(z.enum(PRIORITIES)).optional(),
-		tag: z.array(z.string()).optional(),
+		status: z
+			.preprocess(
+				(val) =>
+					val === undefined ? undefined : Array.isArray(val) ? val : [val],
+				z.array(z.enum(STATUSES)).optional(),
+			)
+			.optional(),
+		priority: z
+			.preprocess(
+				(val) =>
+					val === undefined ? undefined : Array.isArray(val) ? val : [val],
+				z.array(z.enum(PRIORITIES)).optional(),
+			)
+			.optional(),
+		tag: z
+			.preprocess(
+				(val) =>
+					val === undefined ? undefined : Array.isArray(val) ? val : [val],
+				z.array(z.string()).optional(),
+			)
+			.optional(),
 		is_epic: z.boolean().optional(),
 		epic_id: z.string().nullable().optional(),
 		scope_id: z.number().int().nullable().optional(),
