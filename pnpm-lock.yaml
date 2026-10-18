@@ -11,6 +11,12 @@ importers:
       '@ku6epxboctuk/sqlite-up':
         specifier: ^0.6.1
         version: 0.6.1
+      '@modelcontextprotocol/server':
+        specifier: ^2.3.1
+        version: 2.3.1
+      mcp-handler:
+        specifier: ^2.3.0
+        version: 2.3.0(@modelcontextprotocol/server@2.3.1)
       neverthrow:
         specifier: ^8.2.0
         version: 8.2.0
@@ -186,6 +192,14 @@ packages:
   '@ku6epxboctuk/sqlite-up@0.6.1':
     resolution: {integrity: sha512-+IleoV/tCZcXyDT989DFNHw90n3Kj2GA+NlXb7Uv9oygSgZdSACeJ09fSIiY16y5QX77X9wwM9pwPwhWOGRVIw==}
     engines: {node: '>=24.0.0'}
+
+  '@modelcontextprotocol/core@2.3.1':
+    resolution: {integrity: sha512-laVmIhPGpWi7rG9q+0UigblRN0Hws/Yjlb6qLFtVqryXVLkc4h+yN8z731POD2LnAGQlFe7/tXhUm7Bi0YB91g==}
+    engines: {node: '>=20'}
+
+  '@modelcontextprotocol/server@2.3.1':
+    resolution: {integrity: sha512-e59MfWuSssj6DoQ96JCTqdW1AXT5/XtnTl0WWd6MU1Ka434fFUGGosCLJbGNySDhHGvxQWoRWK137FXYFkYNWw==}
+    engines: {node: '>=20'}
 
   '@oxc-project/types@0.153.0':
     resolution: {integrity: sha512-jSNrRIyvPVLL5E1z/tS5zLAprosGz/FuI1PWwEOz59j3E4TTTzSpqKb/RDGqJhhW0QHYISGXxq582wGx6T11Tw==}
@@ -484,6 +498,10 @@ packages:
     resolution: {integrity: sha512-XWAtwJ6OHO+tj0EKCs0Y2UamnyOxseZWltU4x2U2wh8g4AigdjwvtUjvLP2tqkA/avxHEtzxNaqGq/YGNwckKg==}
     engines: {node: '>=18'}
 
+  chalk@5.6.2:
+    resolution: {integrity: sha512-7NzBL0rN6fMUW+f7A6Io4h40qQlG+xGmtMxfbnH/K7TAtt8JQWVQK+6g0UXKMeVJoyV5EkkNsErQ8pVD3bLHbA==}
+    engines: {node: ^12.17.0 || ^14.13 || >=16.0.0}
+
   chokidar@4.0.3:
     resolution: {integrity: sha512-Qgzu8kfBvo+cA4962jnP1KkS6Dop5NS6g7R5LFYJr4b8Ub94PPQXUksCw9PvXoeXPRRddRNC5C1JQUR2SMGtnA==}
     engines: {node: '>= 14.16.0'}
@@ -491,6 +509,10 @@ packages:
   clsx@2.1.1:
     resolution: {integrity: sha512-eYm0QWBtUrBWZWG0d386OGAw16Z995PiOVo2B7bjWSbHedGl5e0ZWaq65kOGgUSNesEIDkB9ISbTg/JK9dhCZA==}
     engines: {node: '>=6'}
+
+  commander@11.1.0:
+    resolution: {integrity: sha512-yPVavfyCcRhmorC7rWlkHn15b4wDVgVmBA7kV4QVBsF7kv/9TKJAbAXVTxvTnwP8HHKjRCJDClKbciiYS7p0DQ==}
+    engines: {node: '>=16'}
 
   confbox@0.1.8:
     resolution: {integrity: sha512-RMtmw0iFkeR4YV+fUOSucriAQNb9g8zFR52MWCtl+cCZOFRNL6zeB395vPzFhEjjn4fMxXudmELnl/KF/WrK6w==}
@@ -832,6 +854,17 @@ packages:
 
   magic-string@1.4.3:
     resolution: {integrity: sha512-z12OxmaPGE0F4xlpGdjuAUckipLpQlTAuAmyGhNoD7ODpYUzvDfvtxUbjM/jwznyP178oju/KDdyi220wNJ0RQ==}
+
+  mcp-handler@2.3.0:
+    resolution: {integrity: sha512-mvs+fJTLTa6kFv71CKPr+2ey+yXeuooM6WHz96pHhSvXe9m83qPizswU5NJ0yrUnJ2T+70VFPjsdstZtdB3evQ==}
+    engines: {node: '>=20'}
+    hasBin: true
+    peerDependencies:
+      '@modelcontextprotocol/server': ^2.0.0
+      next: '>=13.0.0'
+    peerDependenciesMeta:
+      next:
+        optional: true
 
   minimatch@10.2.6:
     resolution: {integrity: sha512-vpLQEs+VLCr1nU0BXS07maYoFwlDAH0gngQuuttxIwutDFEMHq2blX+8vpgxDdK3J1PwjCJiep77OitTZ4Ll1A==}
@@ -1376,6 +1409,15 @@ snapshots:
 
   '@ku6epxboctuk/sqlite-up@0.6.1': {}
 
+  '@modelcontextprotocol/core@2.3.1':
+    dependencies:
+      zod: 4.6.7
+
+  '@modelcontextprotocol/server@2.3.1':
+    dependencies:
+      '@modelcontextprotocol/core': 2.3.1
+      zod: 4.6.7
+
   '@oxc-project/types@0.153.0': {}
 
   '@polka/url@1.0.0-next.29': {}
@@ -1651,11 +1693,15 @@ snapshots:
 
   chai@6.3.0: {}
 
+  chalk@5.6.2: {}
+
   chokidar@4.0.3:
     dependencies:
       readdirp: 4.1.2
 
   clsx@2.1.1: {}
+
+  commander@11.1.0: {}
 
   confbox@0.1.8: {}
 
@@ -1955,6 +2001,12 @@ snapshots:
   magic-string@1.4.3:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.6.0
+
+  mcp-handler@2.3.0(@modelcontextprotocol/server@2.3.1):
+    dependencies:
+      '@modelcontextprotocol/server': 2.3.1
+      chalk: 5.6.2
+      commander: 11.1.0
 
   minimatch@10.2.6:
     dependencies:

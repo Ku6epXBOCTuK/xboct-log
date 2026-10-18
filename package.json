@@ -52,6 +52,8 @@
 	},
 	"dependencies": {
 		"@ku6epxboctuk/sqlite-up": "^0.6.1",
+		"@modelcontextprotocol/server": "^2.3.1",
+		"mcp-handler": "^2.3.0",
 		"neverthrow": "^8.2.0",
 		"zod": "^4.6.7"
 	}
