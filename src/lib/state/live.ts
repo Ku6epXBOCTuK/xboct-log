@@ -16,10 +16,20 @@ interface LiveStores {
 	scopes: ScopeStore;
 }
 
+type Refetchable<T> = {
+	refresh: () => Promise<void>;
+	current: T | undefined;
+};
+
+async function refetch<T>(resource: Refetchable<T>): Promise<T> {
+	await resource.refresh();
+	return resource.current as T;
+}
+
 async function loadScopes() {
-	const ids = await getScopedProjectIds({});
+	const ids = await refetch(getScopedProjectIds({}));
 	return (
-		await Promise.all(ids.map((id) => getScopes({ project_id: id })))
+		await Promise.all(ids.map((id) => refetch(getScopes({ project_id: id }))))
 	).flat();
 }
 
@@ -35,15 +45,16 @@ export function startLiveSync(stores: LiveStores): () => void {
 		queue = queue
 			.then(async () => {
 				if (entities.has("tasks")) {
-					stores.tasks.replaceAll(await getTasks({ limit: 1000 }));
+					const next = await refetch(getTasks({ limit: 1000 }));
+					stores.tasks.replaceAll(next);
 				}
 				if (entities.has("projects")) {
-					stores.projects.replaceAll(
-						await getProjects({ includeArchived: true }),
-					);
+					const next = await refetch(getProjects({ includeArchived: true }));
+					stores.projects.replaceAll(next);
 				}
 				if (entities.has("scopes")) {
-					stores.scopes.replaceAll(await loadScopes());
+					const next = await loadScopes();
+					stores.scopes.replaceAll(next);
 				}
 			})
 			.catch(() => {});
@@ -67,9 +78,15 @@ export function startLiveSync(stores: LiveStores): () => void {
 	}
 
 	source.addEventListener("change", (event) => {
-		const data = (event as MessageEvent<{ entity?: string }>).data;
-		if (data && (ENTITIES as readonly string[]).includes(data.entity ?? "")) {
-			schedule(data.entity as Entity);
+		const raw = (event as MessageEvent<string>).data;
+		let entity: string | undefined;
+		try {
+			entity = (JSON.parse(raw) as { entity?: string }).entity;
+		} catch {
+			entity = undefined;
+		}
+		if (entity && (ENTITIES as readonly string[]).includes(entity)) {
+			schedule(entity as Entity);
 		}
 	});
 	source.addEventListener("sync", scheduleAll);
