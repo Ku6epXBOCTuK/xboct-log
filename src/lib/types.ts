@@ -18,12 +18,18 @@ export const STATUS_RANK: Record<Status, number> = {
 
 export const CLOSED_STATUSES: readonly Status[] = ["done", "cancelled"];
 
-export const CLOSED_REASONS = ["fixed", "obsolete", "duplicate"] as const;
+export const CLOSED_REASONS = [
+	"fixed",
+	"wontfix",
+	"obsolete",
+	"duplicate",
+] as const;
 
 export type ClosedReason = (typeof CLOSED_REASONS)[number];
 
 export const STATUS_BY_REASON: Record<ClosedReason, Status> = {
 	fixed: "done",
+	wontfix: "cancelled",
 	obsolete: "cancelled",
 	duplicate: "cancelled",
 };

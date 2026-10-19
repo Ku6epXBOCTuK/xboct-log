@@ -182,6 +182,16 @@ describe("tasks", () => {
 		expect(unwrap(closeTask(db, task.id, "fixed")).status).toBe("done");
 	});
 
+	it("maps the wontfix reason to cancelled", async () => {
+		const db = await setup();
+		const task = unwrap(createTask(db, { project_id: "spa", title: "Ship" }));
+
+		const closed = unwrap(closeTask(db, task.id, "wontfix"));
+
+		expect(closed.status).toBe("cancelled");
+		expect(closed.closed_reason).toBe("wontfix");
+	});
+
 	it("returns not_found when closing a missing task", async () => {
 		const db = await setup();
 

@@ -43,7 +43,8 @@ export const createProject = defineCommand({
 
 export const updateProject = defineCommand({
 	name: "projects_update",
-	description: "Rename a project or change its archived flag.",
+	description:
+		"Rename a project or change its archived flag. The prefix is immutable — it defines task ids.",
 	kind: "command",
 	input: z.object({
 		id: z.string().min(1),

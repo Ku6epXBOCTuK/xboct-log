@@ -36,21 +36,21 @@ const taskFilters = z
 			.string()
 			.optional()
 			.describe(
-				"Поиск по фрагменту текста в заголовке, описании или ID задачи.",
+				"Search by substring across title, description and id (case-insensitive).",
 			),
 		title: z
 			.string()
 			.optional()
-			.describe("Поиск по фрагменту заголовка задачи (регистронезависимо)."),
+			.describe("Case-insensitive substring match on the task title."),
 		title_exact: z
 			.string()
 			.optional()
-			.describe("Точное совпадение заголовка задачи (регистронезависимо)."),
+			.describe("Case-insensitive exact match on the task title."),
 		fields: z
 			.string()
 			.optional()
 			.describe(
-				"Список полей через запятую для сокращения размера ответа (например id,number,title,status).",
+				"Comma-separated list of fields to reduce response size (e.g. id,number,title,status).",
 			),
 		include_project: z
 			.boolean()
@@ -175,7 +175,8 @@ export const updateTask = defineCommand({
 
 export const closeTask = defineCommand({
 	name: "tasks_close",
-	description: "Close a task with a closed reason (done, wontfix, duplicate).",
+	description:
+		"Close a task by id with a reason: 'fixed' → done, 'wontfix' | 'obsolete' | 'duplicate' → cancelled.",
 	kind: "command",
 	input: z.object({ id: z.string().min(1), reason: z.enum(CLOSED_REASONS) }),
 	handler: ({ id, reason }) => repo.closeTask(getDb(), id, reason),
