@@ -1,43 +1,13 @@
 <script lang="ts">
 	import DetailPanel from "#lib/components/detail/DetailPanel.svelte";
-	import SideBar from "#lib/components/layout/SideBar.svelte";
 	import NewTaskModal from "#lib/components/newtask/NewTaskModal.svelte";
 	import TaskTable from "#lib/components/table/TaskTable.svelte";
 	import WorkspaceHeader from "#lib/components/workspace/WorkspaceHeader.svelte";
-	import { getProjects } from "#lib/remote/projects.remote.ts";
-	import { getScopedProjectIds, getScopes } from "#lib/remote/scopes.remote.ts";
-	import { getTasks } from "#lib/remote/tasks.remote.ts";
-	import { createFilters } from "#lib/state/filters.svelte.ts";
-	import { createProjectStore } from "#lib/state/projects.svelte.ts";
-	import { createScopeStore } from "#lib/state/scopes.svelte.ts";
-	import { createTaskStore } from "#lib/state/tasks.svelte.ts";
-	import { createTheme } from "#lib/state/theme.svelte.ts";
-	import { startLiveSync } from "#lib/state/live.ts";
+	import { useBoard } from "#lib/state/board.svelte.ts";
 	import { getActiveTotal } from "#lib/tasks/filter.ts";
-	import type { ProjectFilter, Task } from "#lib/types.ts";
-	import { goto } from "$app/navigation";
-	import { resolve } from "$app/paths";
-	import { page } from "$app/state";
+	import type { Task } from "#lib/types.ts";
 
-	const loadedProjects = await getProjects({ includeArchived: true });
-	const loadedTasks = await getTasks({ limit: 1000 });
-	const scopedProjectIds = await getScopedProjectIds({});
-	const loadedScopes = (
-		await Promise.all(
-			scopedProjectIds.map((id) => getScopes({ project_id: id })),
-		)
-	).flat();
-
-	const tasks = createTaskStore(loadedTasks);
-	const projects = createProjectStore(loadedProjects);
-	const scopes = createScopeStore(loadedScopes);
-	const filters = createFilters(page.url.searchParams.get("project"));
-	const requestedTheme = page.url.searchParams.get("theme");
-	const theme = createTheme(
-		requestedTheme === "light" || requestedTheme === "dark"
-			? requestedTheme
-			: null,
-	);
+	const { tasks, projects, scopes, filters, theme } = useBoard();
 
 	let selectedId = $state<string | null>(null);
 	let creating = $state(false);
@@ -67,109 +37,58 @@
 		creating = true;
 	}
 
-	$effect(() => {
-		const stop = startLiveSync({ tasks, projects, scopes });
-		return stop;
-	});
-
-	$effect(() => {
-		const current = filters.scope;
-		if (
-			typeof current === "number" &&
-			!scopes.all.some((scope) => scope.id === current)
-		) {
-			filters.scope = "any";
-		}
-	});
-
-	function setActiveProject(projectId: ProjectFilter) {
-		filters.activeProject = projectId;
-		filters.epic = "any";
-		filters.scope = "any";
-
-		const url = new URL(page.url.href);
-		if (projectId === null) {
-			url.searchParams.delete("project");
-		} else {
-			url.searchParams.set("project", projectId);
-		}
-
-		const pathname = url.pathname.slice(1);
-		const target = `${pathname}${url.search}` as
-			"" | "kanban" | `?${string}` | `kanban?${string}`;
-		void goto(resolve(target), { replace: true, shallow: true });
-	}
-
 	function forgetEpic(id: string) {
 		if (filters.epic === id) filters.epic = "any";
 	}
 </script>
 
-<main class={`app-shell ${theme.themeClass}`}>
-	<SideBar
-		{projects}
-		{scopes}
+<section class={`workspace ${selected ? "with-detail compact-table" : ""}`}>
+	<WorkspaceHeader
 		{tasks}
-		activeProject={filters.activeProject}
-		onprojectselect={setActiveProject}
-	/>
-
-	<section class={`workspace ${selected ? "with-detail compact-table" : ""}`}>
-		<WorkspaceHeader
-			{tasks}
-			{filters}
-			{scopes}
-			{projects}
-			{theme}
-			visibleCount={visibleTasks.length}
-			onnew={openNew}
-		/>
-		<TaskTable
-			tasks={visibleTasks}
-			allTasks={tasks.tasks}
-			{scopes}
-			{selectedId}
-			sortKey={filters.sortKey}
-			sortOrder={filters.sortOrder}
-			onsort={(key) => filters.setSort(key)}
-			onselect={(id) => (selectedId = id)}
-			{total}
-			onclear={() => filters.clear()}
-			onnew={openNew}
-			onepic={(id) => (filters.epic = id)}
-		/>
-	</section>
-
-	<DetailPanel
-		{selected}
-		{tasks}
-		{projects}
+		{filters}
 		{scopes}
-		onclear={() => (selectedId = null)}
-		ondelete={forgetEpic}
-		oncreatechild={openChild}
-	/>
-
-	<NewTaskModal
-		bind:open={creating}
 		{projects}
-		{scopes}
-		{tasks}
-		initialProject={createDefaults.projectId}
-		initialEpic={createDefaults.epicId}
-		initialScope={createDefaults.scopeId}
+		{theme}
+		visibleCount={visibleTasks.length}
+		onnew={openNew}
 	/>
-</main>
+	<TaskTable
+		tasks={visibleTasks}
+		allTasks={tasks.tasks}
+		{scopes}
+		{selectedId}
+		sortKey={filters.sortKey}
+		sortOrder={filters.sortOrder}
+		onsort={(key) => filters.setSort(key)}
+		onselect={(id) => (selectedId = id)}
+		{total}
+		onclear={() => filters.clear()}
+		onnew={openNew}
+		onepic={(id) => (filters.epic = id)}
+	/>
+</section>
+
+<DetailPanel
+	{selected}
+	{tasks}
+	{projects}
+	{scopes}
+	onclear={() => (selectedId = null)}
+	ondelete={forgetEpic}
+	oncreatechild={openChild}
+/>
+
+<NewTaskModal
+	bind:open={creating}
+	{projects}
+	{scopes}
+	{tasks}
+	initialProject={createDefaults.projectId}
+	initialEpic={createDefaults.epicId}
+	initialScope={createDefaults.scopeId}
+/>
 
 <style>
-	.app-shell {
-		display: flex;
-		height: 100vh;
-		height: 100dvh;
-		overflow: hidden;
-		background: var(--background);
-	}
-
 	.workspace {
 		display: flex;
 		flex-direction: column;
