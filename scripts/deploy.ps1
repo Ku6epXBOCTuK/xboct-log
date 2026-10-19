@@ -2,52 +2,51 @@ $ErrorActionPreference = "Stop"
 
 $Repo     = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $AppDir   = Join-Path $env:USERPROFILE ".xboct-log\app"
+$BuildWt  = Join-Path $env:LOCALAPPDATA "xboct-log\build-wt"
 $Service  = "xboct-log"
-$Temp     = Join-Path $env:TEMP ("xboct-log-build-" + [guid]::NewGuid().ToString("N"))
 $StartDir = (Get-Location).Path
 
-Get-ChildItem $env:TEMP -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "xboct-log-build-*" -or $_.Name -like "xboct-log-trash-*" } | ForEach-Object {
-	$dir = $_
-	try { Remove-Item $dir.FullName -Recurse -Force -ErrorAction Stop }
-	catch {
-		Write-Warning "stale dir kept: $($dir.Name): $($_.Exception.Message)"
-		if ($dir.Name -like "xboct-log-build-*") {
-			$trash = Join-Path $env:TEMP ("xboct-log-trash-" + [guid]::NewGuid().ToString("N"))
-			try { [System.IO.Directory]::Move($dir.FullName, $trash) }
-			catch { Write-Warning "trash move failed: $($_.Exception.Message)" }
-		}
-	}
+git -C $Repo fetch origin
+
+$ready = $false
+if (Test-Path (Join-Path $BuildWt ".git")) {
+	git -C $BuildWt reset --hard origin/main 2>$null
+	$ready = $LASTEXITCODE -eq 0
+}
+if (-not $ready) {
+	git -C $Repo worktree prune 2>$null
+	if (Test-Path $BuildWt) { Remove-Item $BuildWt -Recurse -Force -ErrorAction SilentlyContinue }
+	New-Item -ItemType Directory -Force (Split-Path $BuildWt -Parent) | Out-Null
+	git -C $Repo worktree add --detach $BuildWt origin/main
 }
 
-git -C $Repo fetch origin
-git -C $Repo worktree add --detach $Temp origin/main
 try {
-	Push-Location $Temp
-	pnpm install --frozen-lockfile --package-import-method=copy
+	Push-Location $BuildWt
+	pnpm install --frozen-lockfile
 	pnpm build
 	Pop-Location
 
-	$builtIndex = Join-Path $Temp "build\index.js"
+	$builtIndex = Join-Path $BuildWt "build\index.js"
 	if (-not (Test-Path $builtIndex)) { throw "build output missing: $builtIndex" }
 
 	New-Item -ItemType Directory -Force $AppDir | Out-Null
 	New-Item -ItemType Directory -Force (Join-Path $AppDir "logs") | Out-Null
-	Copy-Item (Join-Path $Temp "package.json"), (Join-Path $Temp "pnpm-lock.yaml"), (Join-Path $Temp "pnpm-workspace.yaml") $AppDir -Force
-	Copy-Item (Join-Path $Temp "scripts\start-prod.mjs") (Join-Path $AppDir "start.mjs") -Force
+	Copy-Item (Join-Path $BuildWt "package.json"), (Join-Path $BuildWt "pnpm-lock.yaml"), (Join-Path $BuildWt "pnpm-workspace.yaml") $AppDir -Force
+	Copy-Item (Join-Path $BuildWt "scripts\start-prod.mjs") (Join-Path $AppDir "start.mjs") -Force
 
 	Push-Location $AppDir
 	pnpm install --prod --frozen-lockfile
 	Pop-Location
 
-	$null = robocopy (Join-Path $Temp "migrations") (Join-Path $AppDir "migrations") /MIR /NFL /NDL /NJH /NJS
+	$null = robocopy (Join-Path $BuildWt "migrations") (Join-Path $AppDir "migrations") /MIR /NFL /NDL /NJH /NJS
 	if ($LASTEXITCODE -ge 8) { throw "robocopy migrations failed (exit $LASTEXITCODE)" }
 
 	if ((nssm status $Service).Trim() -ne "SERVICE_STOPPED") { nssm stop $Service | Out-Null }
 
-	$null = robocopy (Join-Path $Temp "build") (Join-Path $AppDir "build") /MIR /NFL /NDL /NJH /NJS
+	$null = robocopy (Join-Path $BuildWt "build") (Join-Path $AppDir "build") /MIR /NFL /NDL /NJH /NJS
 	if ($LASTEXITCODE -ge 8) { throw "robocopy failed (exit $LASTEXITCODE)" }
 
-	$head = git -C $Temp rev-parse HEAD
+	$head = git -C $BuildWt rev-parse HEAD
 	"$head  $(Get-Date -Format o)" | Set-Content (Join-Path $AppDir "version.txt")
 
 	nssm start $Service | Out-Null
@@ -60,19 +59,4 @@ try {
 }
 finally {
 	Set-Location $StartDir
-	$ErrorActionPreference = "Continue"
-	git -C $Repo worktree remove $Temp --force 2>$null
-	git -C $Repo worktree prune 2>$null
-	for ($i = 0; $i -lt 3 -and (Test-Path $Temp); $i++) {
-		Start-Sleep -Seconds 2
-		Remove-Item $Temp -Recurse -Force -ErrorAction SilentlyContinue
-	}
-	if (Test-Path $Temp) {
-		$trash = Join-Path $env:TEMP ("xboct-log-trash-" + [guid]::NewGuid().ToString("N"))
-		try {
-			[System.IO.Directory]::Move($Temp, $trash)
-			Write-Warning "leftover build dir moved to trash (locked native module): $trash"
-		}
-		catch { Write-Warning "leftover build dir kept: $Temp" }
-	}
 }

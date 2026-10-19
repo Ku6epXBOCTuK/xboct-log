@@ -54,10 +54,12 @@
   `xboct-log`, порт `45881`, `HOST=0.0.0.0`. Старт/стоп идут из обычного
   PowerShell: DACL службы даёт `IU`/`SU` права `RP`/`WP`.
 - **Деплой:** `pnpm run deploy` (не `pnpm deploy` — встроенная команда pnpm
-  перехватывает имя). `scripts/deploy.ps1`: транзитный worktree на `origin/main`
-  → сборка → копирование `build`, `migrations`, манифеста и
-  `scripts/start-prod.mjs` в `app` → `nssm stop`/`start`. Простой — только
-  `robocopy` + рестарт (порядка 2–3 с).
+  перехватывает имя). `scripts/deploy.ps1`: постоянный worktree
+  `%LOCALAPPDATA%\xboct-log\build-wt` на `origin/main` — переиспользуется между
+  деплоями (`reset --hard` + инкрементальный `pnpm install --frozen-lockfile`),
+  не создаётся и не удаляется каждый раз → сборка → копирование `build`,
+  `migrations`, манифеста и `scripts/start-prod.mjs` в `app` →
+  `nssm stop`/`start`. Простой — только `robocopy` + рестарт (порядка 2–3 с).
 - **Костыль схемы запроса.** `adapter-node` без `PROTOCOL_HEADER` считает схему
   `https` и отбивает любой не-GET как cross-site (403
   `Cross-site remote requests are forbidden`). `app/start.mjs` (=
