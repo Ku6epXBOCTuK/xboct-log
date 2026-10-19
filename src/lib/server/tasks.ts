@@ -249,16 +249,34 @@ export function getTask(db: DatabaseSync, id: string): Task | undefined {
 	return task && task.deleted_at === null ? task : undefined;
 }
 
-export function getTasksByIds(db: DatabaseSync, ids: string[]): Task[] {
-	if (ids.length === 0) {
-		return [];
+export interface TasksByIds {
+	items: Task[];
+	missing: string[];
+}
+
+export function getTasksByIds(db: DatabaseSync, ids: string[]): TasksByIds {
+	const unique = [...new Set(ids)];
+	if (unique.length === 0) {
+		return { items: [], missing: [] };
 	}
 	const rows = db
 		.prepare(
-			`SELECT * FROM tasks WHERE id IN (${ids.map(() => "?").join(", ")}) AND deleted_at IS NULL`,
+			`SELECT * FROM tasks WHERE id IN (${unique.map(() => "?").join(", ")}) AND deleted_at IS NULL`,
 		)
-		.all(...ids) as unknown as TaskRow[];
-	return rows.map(mapTask);
+		.all(...unique) as unknown as TaskRow[];
+
+	const byId = new Map(rows.map((row) => [row.id, mapTask(row)]));
+	const items: Task[] = [];
+	const missing: string[] = [];
+	for (const id of unique) {
+		const task = byId.get(id);
+		if (task) {
+			items.push(task);
+		} else {
+			missing.push(id);
+		}
+	}
+	return { items, missing };
 }
 
 function allocateNumber(db: DatabaseSync, projectId: string): number {

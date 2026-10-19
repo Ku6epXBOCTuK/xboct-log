@@ -134,7 +134,7 @@ export const getTasks = defineQuery({
 export const getTasksByIds = defineQuery({
 	name: "tasks_get_many",
 	description:
-		"Get multiple tasks by their IDs in a single call. Use this instead of calling tasks_get in a loop.",
+		"Get multiple tasks by their IDs in a single call. Returns { items, missing }: items follow the requested order, missing lists ids that do not exist or are soft-deleted. Use this instead of calling tasks_get in a loop.",
 	kind: "query",
 	input: z.object({
 		ids: z

@@ -18,6 +18,7 @@ import {
 	createTask,
 	deleteTask,
 	getTask,
+	getTasksByIds,
 	listTasks,
 	moveTask,
 	updateTask,
@@ -241,6 +242,19 @@ describe("tasks", () => {
 			error: { kind: "not_found" },
 		});
 		expect(getTask(db, first.id)?.priority).toBe("high");
+	});
+
+	it("returns requested tasks in order and lists missing ids", async () => {
+		const db = await setup();
+		const first = unwrap(createTask(db, { project_id: "spa", title: "A" }));
+		const second = unwrap(createTask(db, { project_id: "spa", title: "B" }));
+		const gone = unwrap(createTask(db, { project_id: "spa", title: "Gone" }));
+		unwrap(deleteTask(db, gone.id));
+
+		const result = getTasksByIds(db, [second.id, first.id, "SPA-9", gone.id]);
+
+		expect(result.items.map((task) => task.id)).toEqual([second.id, first.id]);
+		expect(result.missing).toEqual(["SPA-9", gone.id]);
 	});
 
 	it("soft deletes a task and detaches its epic children", async () => {
