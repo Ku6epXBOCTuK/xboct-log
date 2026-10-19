@@ -1,7 +1,7 @@
 # xboct-log
 
-A local-first task backlog. Projects, tasks, and a kanban board on top of a
-single SQLite file. Built with SvelteKit and Svelte 5.
+A local-first task backlog. Projects and tasks on top of a single SQLite file.
+Built with SvelteKit and Svelte 5.
 
 ## Features
 
@@ -9,9 +9,9 @@ single SQLite file. Built with SvelteKit and Svelte 5.
   tags, epics, and closed reasons.
 - **Projects** with an id, name, and task prefix. Rename, archive, and restore
   them from the sidebar.
-- **Kanban board** for moving work across `open` / `in-progress` / `blocked` /
-  `done`.
-- **List view** with search and status/priority filters.
+- **Scopes** — optional per-project grouping that turns on once a project has at
+  least one scope.
+- **List view** with search and status, priority, tag, epic, and scope filters.
 - **Detail panel** for editing a task without leaving the list.
 - **Light and dark** themes.
 
@@ -27,23 +27,36 @@ pnpm install
 pnpm dev
 ```
 
-The database is created on first run at `~/.xboct-log/xboct-log.db`.
+`pnpm dev` runs on an isolated clone so it never touches the real database: it
+uses `~/.xboct-log/dev.db`, writes backups to `~/.xboct-log/dev-backups`, and
+leaves `~/.xboct-log/xboct-log.db` (the production database) alone.
 
-Point it somewhere else with `XBOCT_LOG_DB`:
+Refresh the clone from the live production database at any time:
 
 ```sh
-XBOCT_LOG_DB=./tasks.db pnpm dev
+pnpm dev:clone
+```
+
+Use `pnpm dev:vite` for a raw Vite run without the isolation wrapper.
+
+Point the app at a different database with `XBOCT_LOG_DB`:
+
+```sh
+XBOCT_LOG_DB=./tasks.db pnpm dev:vite
 ```
 
 ## Backups
 
-While the server runs it copies the database into `~/.xboct-log/backups`:
+The production server copies the database into `~/.xboct-log/backups`:
 
 - `daily/xboct-log-YYYY-MM-DD.db` — once a day at 03:00.
 - `weekly/xboct-log-YYYY-Www.db` — on Sundays at 03:00.
 
 Old copies are pruned automatically. If the server was off at the scheduled
 time, a catch-up copy runs on the next start.
+
+Development uses a separate directory and turns backups off, so it never
+overwrites a production copy.
 
 | Variable                       | Default                | Meaning                        |
 | ------------------------------ | ---------------------- | ------------------------------ |
@@ -57,15 +70,40 @@ time, a catch-up copy runs on the next start.
 
 ## Scripts
 
-| Command        | Description                         |
-| -------------- | ----------------------------------- |
-| `pnpm dev`     | Start the development server        |
-| `pnpm build`   | Build for production (Node adapter) |
-| `pnpm preview` | Preview the production build        |
-| `pnpm check`   | Type-check with `svelte-check`      |
-| `pnpm lint`    | Prettier check and ESLint           |
-| `pnpm format`  | Format with Prettier                |
-| `pnpm test`    | Run unit tests with Vitest          |
+| Command          | Description                                 |
+| ---------------- | ------------------------------------------- |
+| `pnpm dev`       | Dev server on an isolated clone of the DB   |
+| `pnpm dev:clone` | Copy the prod DB to `~/.xboct-log/dev.db`   |
+| `pnpm dev:vite`  | Raw Vite dev server, no isolation           |
+| `pnpm build`     | Build for production (Node adapter)         |
+| `pnpm preview`   | Preview the production build                |
+| `pnpm deploy`    | Build and deploy to the `xboct-log` service |
+| `pnpm build:ext` | Compile and package the VS Code extension   |
+| `pnpm check`     | Type-check with `svelte-check`              |
+| `pnpm lint`      | Prettier check and ESLint                   |
+| `pnpm format`    | Format with Prettier                        |
+| `pnpm test`      | Run unit tests with Vitest                  |
+| `pnpm migrate`   | Apply pending database migrations           |
+
+The `migrate:*` variants (`status`, `rollback`, `baseline`, `unlock`) are in
+`package.json`.
+
+## MCP
+
+Every operation is exposed as an MCP tool over Streamable HTTP at `/mcp`. Point
+an MCP client at `http://127.0.0.1:45881/mcp`. There is no authentication; the
+deployment is assumed to sit behind a network boundary.
+
+## VS Code extension
+
+`vscode-extension/` is a thin client that opens the board in an editor tab.
+Build it with `pnpm build:ext`, then install the generated `.vsix`. See
+`vscode-extension/README.md`.
+
+## Notes
+
+Architecture map, non-obvious invariants, and deployment details are in
+[`docs/notes.md`](./docs/notes.md).
 
 ## License
 
