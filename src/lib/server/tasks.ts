@@ -382,7 +382,7 @@ export function listTasks(db: DatabaseSync, query: TaskQuery = {}): Task[] {
 	}
 	if (query.include_project) {
 		joins = " LEFT JOIN projects ON tasks.project_id = projects.id";
-		where.push("projects.deleted_at IS NULL");
+		where.push("projects.archived_at IS NULL");
 	}
 
 	const selectFields = query.fields

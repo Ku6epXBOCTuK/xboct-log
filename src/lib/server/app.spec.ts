@@ -302,6 +302,21 @@ describe("tasks", () => {
 		).toEqual(["Child"]);
 	});
 
+	it("attaches project names and skips archived projects", async () => {
+		const db = await setup();
+		unwrap(createTask(db, { project_id: "spa", title: "Alpha" }));
+		unwrap(createProject(db, { id: "old", name: "Old", prefix: "OLD" }));
+		unwrap(createTask(db, { project_id: "old", title: "Legacy" }));
+		unwrap(updateProject(db, "old", { archived: true }));
+
+		const withNames = listTasks(db, { include_project: true });
+
+		expect(withNames.map((task) => task.project_name)).toEqual(["Shop"]);
+		expect(
+			listTasks(db, { include_project: true, project_id: "old" }),
+		).toHaveLength(0);
+	});
+
 	it("sorts by priority severity, most severe first", async () => {
 		const db = await setup();
 		unwrap(
