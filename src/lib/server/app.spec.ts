@@ -287,6 +287,8 @@ describe("tasks", () => {
 		expect(listTasks(db, { status: ["open"] })).toHaveLength(1);
 		expect(listTasks(db, { tag: ["a11y"] })).toHaveLength(1);
 		expect(listTasks(db, { q: "alpha" })).toHaveLength(1);
+		expect(listTasks(db, { q: "a11y" })).toHaveLength(1);
+		expect(listTasks(db, { q: "perf" })).toHaveLength(1);
 		expect(listTasks(db, { project_id: "spa" })).toHaveLength(2);
 	});
 

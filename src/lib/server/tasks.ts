@@ -397,9 +397,10 @@ function buildTaskFilter(query: TaskQuery): TaskFilterSql {
 	if (query.q) {
 		const like = `%${query.q.toLowerCase()}%`;
 		where.push(
-			"(LOWER(title) LIKE ? OR LOWER(description) LIKE ? OR LOWER(id) LIKE ?)",
+			`(LOWER(title) LIKE ? OR LOWER(description) LIKE ? OR LOWER(id) LIKE ?
+			  OR EXISTS (SELECT 1 FROM json_each(tasks.tags) WHERE LOWER(json_each.value) LIKE ?))`,
 		);
-		params.push(like, like, like);
+		params.push(like, like, like, like);
 	}
 	if (query.title) {
 		const like = `%${query.title.toLowerCase()}%`;

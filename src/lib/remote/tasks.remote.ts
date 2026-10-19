@@ -36,7 +36,7 @@ const taskFilters = z
 			.string()
 			.optional()
 			.describe(
-				"Search by substring across title, description and id (case-insensitive).",
+				"Search by substring across title, description, id and tags (case-insensitive).",
 			),
 		title: z
 			.string()
