@@ -77,6 +77,7 @@ export interface TaskQuery {
 	title_exact?: string;
 	fields?: string;
 	include_project?: boolean;
+	project_archived?: boolean;
 	sort?: "updated_at" | "created_at" | "priority";
 	order?: "asc" | "desc";
 	limit?: number;
@@ -123,7 +124,7 @@ function pickFields(task: Task, fields: string[]): Task {
 	const source = task as unknown as Record<string, unknown>;
 	const picked: Record<string, unknown> = {};
 	for (const field of fields) {
-		if (field in source) {
+		if (source[field] !== undefined) {
 			picked[field] = source[field];
 		}
 	}
@@ -403,8 +404,12 @@ export function listTasks(db: DatabaseSync, query: TaskQuery = {}): Task[] {
 		where.push("LOWER(title) = LOWER(?)");
 		params.push(query.title_exact);
 	}
-	if (query.include_project) {
+	if (query.include_project === true || query.project_archived !== undefined) {
 		joins = " LEFT JOIN projects ON tasks.project_id = projects.id";
+	}
+	if (query.project_archived === true) {
+		where.push("projects.archived_at IS NOT NULL");
+	} else if (query.project_archived === false) {
 		where.push("projects.archived_at IS NULL");
 	}
 

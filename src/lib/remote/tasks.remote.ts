@@ -55,7 +55,15 @@ const taskFilters = z
 		include_project: z
 			.boolean()
 			.optional()
-			.describe("Добавить к каждой задаче имя проекта (project_name)."),
+			.describe(
+				"Attach the project name (project_name) to each task. Does not filter by project archival; use project_archived for that.",
+			),
+		project_archived: z
+			.boolean()
+			.optional()
+			.describe(
+				"Filter by project archival: false — active projects only, true — archived projects only. Omitted — both.",
+			),
 		sort: z.enum(["updated_at", "created_at", "priority"]).optional(),
 		order: z.enum(["asc", "desc"]).optional(),
 		limit: z.number().int().positive().max(1000).optional(),
@@ -93,7 +101,7 @@ const taskPatch = z.object({
 export const getTasks = defineQuery({
 	name: "tasks_list",
 	description:
-		"List tasks with filters (project, status, priority, tags, epic, scope, text query, title, title_exact), sorting and pagination. Use fields to limit returned columns and include_project to attach project names.",
+		"List tasks with filters (project, status, priority, tags, epic, scope, text query, title, title_exact), sorting and pagination. Use fields to limit returned columns. include_project attaches project names and never filters; project_archived filters by project archival.",
 	kind: "query",
 	input: taskFilters,
 	handler: (filters) => repo.listTasks(getDb(), filters),

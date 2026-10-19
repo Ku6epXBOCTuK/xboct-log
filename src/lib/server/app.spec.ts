@@ -302,7 +302,7 @@ describe("tasks", () => {
 		).toEqual(["Child"]);
 	});
 
-	it("attaches project names and skips archived projects", async () => {
+	it("attaches project names without hiding archived projects", async () => {
 		const db = await setup();
 		unwrap(createTask(db, { project_id: "spa", title: "Alpha" }));
 		unwrap(createProject(db, { id: "old", name: "Old", prefix: "OLD" }));
@@ -311,10 +311,25 @@ describe("tasks", () => {
 
 		const withNames = listTasks(db, { include_project: true });
 
-		expect(withNames.map((task) => task.project_name)).toEqual(["Shop"]);
+		expect(withNames.map((task) => task.project_name).sort()).toEqual([
+			"Old",
+			"Shop",
+		]);
 		expect(
-			listTasks(db, { include_project: true, project_id: "old" }),
-		).toHaveLength(0);
+			listTasks(db, { project_archived: false }).map((task) => task.title),
+		).toEqual(["Alpha"]);
+		expect(
+			listTasks(db, { project_archived: true }).map((task) => task.title),
+		).toEqual(["Legacy"]);
+	});
+
+	it("omits project_name unless the project is joined", async () => {
+		const db = await setup();
+		unwrap(createTask(db, { project_id: "spa", title: "Alpha" }));
+
+		const [task] = listTasks(db, { fields: "id,project_name" });
+
+		expect(Object.keys(task)).toEqual(["id"]);
 	});
 
 	it("limits the response to the requested fields", async () => {
