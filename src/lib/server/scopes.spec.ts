@@ -8,6 +8,7 @@ import {
 	countTasksByScope,
 	createScope,
 	deleteScope,
+	getScope,
 	listScopes,
 	scopedProjectIds,
 	updateScope,
@@ -137,6 +138,50 @@ describe("scopes", () => {
 		expect(countTasksByScope(db, "spa")).toEqual({
 			[frontend.id]: 2,
 			[backend.id]: 1,
+		});
+	});
+
+	it("lists scopes across projects when no project is given", async () => {
+		const db = await setup();
+		unwrap(createProject(db, { id: "bil", name: "Billing", prefix: "BIL" }));
+		unwrap(createScope(db, { project_id: "spa", name: "frontend" }));
+		unwrap(createScope(db, { project_id: "bil", name: "billing" }));
+
+		expect(listScopes(db).map((scope) => scope.name)).toEqual([
+			"billing",
+			"frontend",
+		]);
+	});
+
+	it("gets a single scope by id", async () => {
+		const db = await setup();
+		const scope = unwrap(
+			createScope(db, { project_id: "spa", name: "frontend" }),
+		);
+
+		expect(getScope(db, scope.id)?.name).toBe("frontend");
+		expect(getScope(db, 999)).toBeUndefined();
+	});
+
+	it("counts tasks by scope across projects", async () => {
+		const db = await setup();
+		unwrap(createProject(db, { id: "bil", name: "Billing", prefix: "BIL" }));
+		const frontend = unwrap(
+			createScope(db, { project_id: "spa", name: "frontend" }),
+		);
+		const billing = unwrap(
+			createScope(db, { project_id: "bil", name: "billing" }),
+		);
+		unwrap(
+			createTask(db, { project_id: "spa", title: "A", scope_id: frontend.id }),
+		);
+		unwrap(
+			createTask(db, { project_id: "bil", title: "B", scope_id: billing.id }),
+		);
+
+		expect(countTasksByScope(db)).toEqual({
+			[frontend.id]: 1,
+			[billing.id]: 1,
 		});
 	});
 });

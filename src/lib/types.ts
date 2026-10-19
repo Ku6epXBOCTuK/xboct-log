@@ -63,6 +63,7 @@ export interface Scope {
 	project_id: string;
 	name: string;
 	created_at: string;
+	task_count?: number;
 }
 
 export interface Task {

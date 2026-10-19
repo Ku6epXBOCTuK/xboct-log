@@ -29,17 +29,22 @@ function mapScope(row: ScopeRow): Scope {
 	};
 }
 
-function scopeById(db: DatabaseSync, id: number): Scope | undefined {
+export function getScope(db: DatabaseSync, id: number): Scope | undefined {
 	const row = db
 		.prepare("SELECT * FROM scopes WHERE id = ?")
 		.get(id) as unknown as ScopeRow | undefined;
 	return row ? mapScope(row) : undefined;
 }
 
-export function listScopes(db: DatabaseSync, projectId: string): Scope[] {
-	const rows = db
-		.prepare("SELECT * FROM scopes WHERE project_id = ? ORDER BY name")
-		.all(projectId) as unknown as ScopeRow[];
+export function listScopes(db: DatabaseSync, projectId?: string): Scope[] {
+	const rows =
+		projectId === undefined
+			? (db
+					.prepare("SELECT * FROM scopes ORDER BY project_id, name")
+					.all() as unknown as ScopeRow[])
+			: (db
+					.prepare("SELECT * FROM scopes WHERE project_id = ? ORDER BY name")
+					.all(projectId) as unknown as ScopeRow[]);
 	return rows.map(mapScope);
 }
 
@@ -52,16 +57,22 @@ export function scopedProjectIds(db: DatabaseSync): string[] {
 
 export function countTasksByScope(
 	db: DatabaseSync,
-	projectId: string,
+	projectId?: string,
 ): Record<number, number> {
+	const where = ["scope_id IS NOT NULL", "deleted_at IS NULL"];
+	const params: string[] = [];
+	if (projectId !== undefined) {
+		where.push("project_id = ?");
+		params.push(projectId);
+	}
 	const rows = db
 		.prepare(
 			`SELECT scope_id, COUNT(*) AS count
 			 FROM tasks
-			 WHERE project_id = ? AND scope_id IS NOT NULL AND deleted_at IS NULL
+			 WHERE ${where.join(" AND ")}
 			 GROUP BY scope_id`,
 		)
-		.all(projectId) as { scope_id: number; count: number }[];
+		.all(...params) as { scope_id: number; count: number }[];
 
 	const counts: Record<number, number> = {};
 	for (const row of rows) {
@@ -106,7 +117,7 @@ export function createScope(
 				"INSERT INTO scopes (project_id, name, created_at) VALUES (?, ?, ?)",
 			)
 			.run(input.project_id, name, createdAt);
-		return scopeById(db, Number(result.lastInsertRowid))!;
+		return getScope(db, Number(result.lastInsertRowid))!;
 	});
 }
 
@@ -115,7 +126,7 @@ export function updateScope(
 	id: number,
 	patch: ScopePatch,
 ): Result<Scope, AppError> {
-	const current = scopeById(db, id);
+	const current = getScope(db, id);
 	if (!current) {
 		return err(notFound(`scope ${id} not found`));
 	}
@@ -134,7 +145,7 @@ export function updateScope(
 
 	return guard(() => {
 		db.prepare("UPDATE scopes SET name = ? WHERE id = ?").run(name, id);
-		return scopeById(db, id)!;
+		return getScope(db, id)!;
 	});
 }
 
@@ -142,7 +153,7 @@ export function deleteScope(
 	db: DatabaseSync,
 	id: number,
 ): Result<number, AppError> {
-	if (!scopeById(db, id)) {
+	if (!getScope(db, id)) {
 		return err(notFound(`scope ${id} not found`));
 	}
 
