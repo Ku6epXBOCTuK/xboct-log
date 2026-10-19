@@ -12,6 +12,7 @@ import {
 import { createScope } from "./scopes";
 import {
 	closeTask,
+	closeTasksMany,
 	countTasks,
 	countTasksByStatus,
 	createTask,
@@ -20,6 +21,7 @@ import {
 	listTasks,
 	moveTask,
 	updateTask,
+	updateTasksMany,
 } from "./tasks";
 
 function unwrap<T>(result: Result<T, AppError>): T {
@@ -198,6 +200,47 @@ describe("tasks", () => {
 		const db = await setup();
 
 		expect(failure(closeTask(db, "SPA-9", "fixed")).kind).toBe("not_found");
+	});
+
+	it("closes several tasks and reports per-item results", async () => {
+		const db = await setup();
+		const first = unwrap(createTask(db, { project_id: "spa", title: "A" }));
+		const second = unwrap(createTask(db, { project_id: "spa", title: "B" }));
+
+		const results = closeTasksMany(db, [
+			{ id: first.id, reason: "fixed" },
+			{ id: "SPA-9", reason: "fixed" },
+			{ id: second.id, reason: "wontfix" },
+		]);
+
+		expect(results).toHaveLength(3);
+		expect(results[0]).toMatchObject({ id: first.id, ok: true });
+		expect(results[1]).toMatchObject({
+			id: "SPA-9",
+			ok: false,
+			error: { kind: "not_found" },
+		});
+		expect(results[2]).toMatchObject({ id: second.id, ok: true });
+		expect(getTask(db, first.id)?.status).toBe("done");
+		expect(getTask(db, second.id)?.status).toBe("cancelled");
+	});
+
+	it("updates several tasks and skips failing items", async () => {
+		const db = await setup();
+		const first = unwrap(createTask(db, { project_id: "spa", title: "A" }));
+
+		const results = updateTasksMany(db, [
+			{ id: first.id, patch: { priority: "high" } },
+			{ id: "SPA-9", patch: { priority: "low" } },
+		]);
+
+		expect(results[0]).toMatchObject({ id: first.id, ok: true });
+		expect(results[1]).toMatchObject({
+			id: "SPA-9",
+			ok: false,
+			error: { kind: "not_found" },
+		});
+		expect(getTask(db, first.id)?.priority).toBe("high");
 	});
 
 	it("soft deletes a task and detaches its epic children", async () => {

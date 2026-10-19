@@ -12,7 +12,7 @@ import {
 	type Status,
 	type Task,
 } from "../types";
-import { AppError, guard, invalid, notFound } from "./errors";
+import { AppError, guard, invalid, notFound, type ErrorKind } from "./errors";
 import { getProject } from "./projects";
 
 interface TaskRow {
@@ -671,6 +671,43 @@ export function closeTask(
 		).run(STATUS_BY_REASON[reason], now, reason, now, id);
 		return taskById(db, id)!;
 	});
+}
+
+export interface BatchError {
+	kind: ErrorKind;
+	message: string;
+}
+
+export type BatchItem =
+	| { id: string; ok: true; task: Task }
+	| { id: string; ok: false; error: BatchError };
+
+function batchItem(id: string, result: Result<Task, AppError>): BatchItem {
+	return result.isOk()
+		? { id, ok: true, task: result.value }
+		: {
+				id,
+				ok: false,
+				error: { kind: result.error.kind, message: result.error.message },
+			};
+}
+
+export function closeTasksMany(
+	db: DatabaseSync,
+	items: { id: string; reason: ClosedReason }[],
+): BatchItem[] {
+	return items.map((item) =>
+		batchItem(item.id, closeTask(db, item.id, item.reason)),
+	);
+}
+
+export function updateTasksMany(
+	db: DatabaseSync,
+	items: { id: string; patch: TaskPatch }[],
+): BatchItem[] {
+	return items.map((item) =>
+		batchItem(item.id, updateTask(db, item.id, item.patch)),
+	);
 }
 
 function collectSubtree(db: DatabaseSync, rootId: string): string[] {

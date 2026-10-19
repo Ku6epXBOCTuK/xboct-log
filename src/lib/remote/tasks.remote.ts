@@ -177,6 +177,25 @@ export const updateTask = defineCommand({
 	handler: ({ id, patch }) => repo.updateTask(getDb(), id, patch),
 });
 
+function summarize(items: repo.BatchItem[]) {
+	const succeeded = items.filter((item) => item.ok).length;
+	return { items, succeeded, failed: items.length - succeeded };
+}
+
+export const updateTasks = defineCommand({
+	name: "tasks_update_many",
+	description:
+		"Update several tasks in one call. Each item is applied independently and the response reports ok/error per item; a failing item does not cancel the others.",
+	kind: "command",
+	input: z.object({
+		items: z
+			.array(z.object({ id: z.string().min(1), patch: taskPatch }))
+			.min(1)
+			.max(100),
+	}),
+	handler: ({ items }) => summarize(repo.updateTasksMany(getDb(), items)),
+});
+
 export const closeTask = defineCommand({
 	name: "tasks_close",
 	description:
@@ -184,6 +203,22 @@ export const closeTask = defineCommand({
 	kind: "command",
 	input: z.object({ id: z.string().min(1), reason: z.enum(CLOSED_REASONS) }),
 	handler: ({ id, reason }) => repo.closeTask(getDb(), id, reason),
+});
+
+export const closeTasks = defineCommand({
+	name: "tasks_close_many",
+	description:
+		"Close several tasks in one call. Each item is applied independently and the response reports ok/error per item; a failing item does not cancel the others.",
+	kind: "command",
+	input: z.object({
+		items: z
+			.array(
+				z.object({ id: z.string().min(1), reason: z.enum(CLOSED_REASONS) }),
+			)
+			.min(1)
+			.max(100),
+	}),
+	handler: ({ items }) => summarize(repo.closeTasksMany(getDb(), items)),
 });
 
 export const deleteTask = defineCommand({
