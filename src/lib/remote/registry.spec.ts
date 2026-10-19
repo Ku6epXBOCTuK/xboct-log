@@ -22,4 +22,12 @@ describe("remote op registry", () => {
 			expect(json.type).toBe("object");
 		}
 	});
+
+	it("tasks_list applies a default limit of 100", () => {
+		const op = getOps().get("tasks_list");
+		const input = op?.input as unknown as {
+			parse: (value: unknown) => { limit?: number };
+		};
+		expect(input.parse({}).limit).toBe(100);
+	});
 });

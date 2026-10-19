@@ -66,10 +66,18 @@ const taskFilters = z
 			),
 		sort: z.enum(["updated_at", "created_at", "priority"]).optional(),
 		order: z.enum(["asc", "desc"]).optional(),
-		limit: z.number().int().positive().max(1000).optional(),
+		limit: z
+			.number()
+			.int()
+			.positive()
+			.max(1000)
+			.default(100)
+			.describe(
+				"Maximum number of tasks to return (default 100, max 1000). Combine with offset and the response total to paginate.",
+			),
 		offset: z.number().int().nonnegative().optional(),
 	})
-	.default({});
+	.default({ limit: 100 });
 
 const newTask = z.object({
 	project_id: z.string().min(1),
@@ -101,7 +109,7 @@ const taskPatch = z.object({
 export const getTasks = defineQuery({
 	name: "tasks_list",
 	description:
-		"List tasks with filters (project, status, priority, tags, epic, scope, text query, title, title_exact), sorting and pagination. Returns {items, total} where total is the count of all matching tasks before limit/offset. Use fields to limit returned columns. include_project attaches project names and never filters; project_archived filters by project archival.",
+		"List tasks with filters (project, status, priority, tags, epic, scope, text query, title, title_exact), sorting and pagination. Returns {items, total} where total is the count of all matching tasks before limit/offset. limit defaults to 100 (max 1000); use offset and total to paginate. Use fields to limit returned columns. include_project attaches project names and never filters; project_archived filters by project archival.",
 	kind: "query",
 	input: taskFilters,
 	handler: (filters) => {
