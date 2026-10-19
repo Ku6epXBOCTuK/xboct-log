@@ -11,6 +11,7 @@ import {
 } from "./projects";
 import {
 	closeTask,
+	countTasks,
 	countTasksByStatus,
 	createTask,
 	deleteTask,
@@ -287,6 +288,19 @@ describe("tasks", () => {
 		expect(listTasks(db, { tag: ["a11y"] })).toHaveLength(1);
 		expect(listTasks(db, { q: "alpha" })).toHaveLength(1);
 		expect(listTasks(db, { project_id: "spa" })).toHaveLength(2);
+	});
+
+	it("counts all matches ignoring limit and offset", async () => {
+		const db = await setup();
+		unwrap(createTask(db, { project_id: "spa", title: "Alpha" }));
+		unwrap(createTask(db, { project_id: "spa", title: "Beta" }));
+		unwrap(createTask(db, { project_id: "spa", title: "Gamma" }));
+
+		expect(countTasks(db, { project_id: "spa" })).toBe(3);
+		expect(countTasks(db, { q: "a" })).toBe(3);
+		expect(listTasks(db, { project_id: "spa", limit: 1 })).toHaveLength(1);
+		expect(countTasks(db, { project_id: "spa", limit: 1, offset: 1 })).toBe(3);
+		expect(countTasks(db, { project_id: "spa", q: "alpha" })).toBe(1);
 	});
 
 	it("filters epics and their children", async () => {

@@ -339,7 +339,13 @@ export function createTask(
 	});
 }
 
-export function listTasks(db: DatabaseSync, query: TaskQuery = {}): Task[] {
+interface TaskFilterSql {
+	where: string[];
+	params: (string | number)[];
+	joins: string;
+}
+
+function buildTaskFilter(query: TaskQuery): TaskFilterSql {
 	const where: string[] = [];
 	const params: (string | number)[] = [];
 	let joins = "";
@@ -413,6 +419,12 @@ export function listTasks(db: DatabaseSync, query: TaskQuery = {}): Task[] {
 		where.push("projects.archived_at IS NULL");
 	}
 
+	return { where, params, joins };
+}
+
+export function listTasks(db: DatabaseSync, query: TaskQuery = {}): Task[] {
+	const { where, params, joins } = buildTaskFilter(query);
+
 	const selectSql = query.include_project
 		? "SELECT tasks.*, projects.name AS project_name"
 		: "SELECT tasks.*";
@@ -449,6 +461,16 @@ export function listTasks(db: DatabaseSync, query: TaskQuery = {}): Task[] {
 	return selectedFields
 		? tasks.map((task) => pickFields(task, selectedFields))
 		: tasks;
+}
+
+export function countTasks(db: DatabaseSync, query: TaskQuery = {}): number {
+	const { where, params, joins } = buildTaskFilter(query);
+	let sql = `SELECT COUNT(*) AS count FROM tasks${joins}`;
+	if (where.length > 0) {
+		sql += ` WHERE ${where.join(" AND ")}`;
+	}
+	const row = db.prepare(sql).get(...params) as { count: number };
+	return row.count;
 }
 
 export function countTasksByStatus(

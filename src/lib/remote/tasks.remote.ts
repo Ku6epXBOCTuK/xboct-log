@@ -101,10 +101,16 @@ const taskPatch = z.object({
 export const getTasks = defineQuery({
 	name: "tasks_list",
 	description:
-		"List tasks with filters (project, status, priority, tags, epic, scope, text query, title, title_exact), sorting and pagination. Use fields to limit returned columns. include_project attaches project names and never filters; project_archived filters by project archival.",
+		"List tasks with filters (project, status, priority, tags, epic, scope, text query, title, title_exact), sorting and pagination. Returns {items, total} where total is the count of all matching tasks before limit/offset. Use fields to limit returned columns. include_project attaches project names and never filters; project_archived filters by project archival.",
 	kind: "query",
 	input: taskFilters,
-	handler: (filters) => repo.listTasks(getDb(), filters),
+	handler: (filters) => {
+		const db = getDb();
+		return {
+			items: repo.listTasks(db, filters),
+			total: repo.countTasks(db, filters),
+		};
+	},
 });
 
 export const getTasksByIds = defineQuery({

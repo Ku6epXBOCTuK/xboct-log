@@ -13,5 +13,5 @@ export const load: LayoutLoad = async () => {
 		)
 	).flat();
 
-	return { projects, tasks, scopes };
+	return { projects, tasks: tasks.items, scopes };
 };

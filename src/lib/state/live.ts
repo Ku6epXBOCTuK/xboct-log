@@ -45,8 +45,8 @@ export function startLiveSync(stores: LiveStores): () => void {
 		queue = queue
 			.then(async () => {
 				if (entities.has("tasks")) {
-					const next = await refetch(getTasks({ limit: 1000 }));
-					stores.tasks.replaceAll(next);
+					const { items } = await refetch(getTasks({ limit: 1000 }));
+					stores.tasks.replaceAll(items);
 				}
 				if (entities.has("projects")) {
 					const next = await refetch(getProjects({ includeArchived: true }));

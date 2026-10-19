@@ -76,12 +76,12 @@ describe("/mcp endpoint", () => {
 			arguments: { status: "open" },
 		});
 		expect(body.error).toBeUndefined();
-		expect(
-			Array.isArray(
-				(body.result?.structuredContent as { result?: unknown }).result,
-			),
-		).toBe(true);
-		expect(body.result?.structuredContent).toBeDefined();
+		const structured = body.result?.structuredContent as {
+			items?: unknown;
+			total?: unknown;
+		};
+		expect(Array.isArray(structured.items)).toBe(true);
+		expect(typeof structured.total).toBe("number");
 	});
 
 	it("returns structuredContent on tool call", async () => {
@@ -91,10 +91,9 @@ describe("/mcp endpoint", () => {
 		});
 		expect(body.error).toBeUndefined();
 		expect(body.result?.structuredContent).toBeDefined();
-		expect(
-			Array.isArray(
-				(body.result?.structuredContent as { result?: unknown }).result,
-			),
-		).toBe(true);
+		const structured = body.result?.structuredContent as {
+			items?: unknown;
+		};
+		expect(Array.isArray(structured.items)).toBe(true);
 	});
 });
