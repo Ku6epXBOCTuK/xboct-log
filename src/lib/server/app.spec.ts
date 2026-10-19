@@ -276,7 +276,7 @@ describe("tasks", () => {
 
 	it("filters by status, tag and text", async () => {
 		const db = await setup();
-		unwrap(
+		const alpha = unwrap(
 			createTask(db, { project_id: "spa", title: "Alpha bug", tags: ["perf"] }),
 		);
 		const beta = unwrap(
@@ -287,6 +287,7 @@ describe("tasks", () => {
 		expect(listTasks(db, { status: ["open"] })).toHaveLength(1);
 		expect(listTasks(db, { tag: ["a11y"] })).toHaveLength(1);
 		expect(listTasks(db, { q: "alpha" })).toHaveLength(1);
+		expect(listTasks(db, { q: alpha.id })).toHaveLength(1);
 		expect(listTasks(db, { q: "a11y" })).toHaveLength(1);
 		expect(listTasks(db, { q: "perf" })).toHaveLength(1);
 		expect(listTasks(db, { project_id: "spa" })).toHaveLength(2);

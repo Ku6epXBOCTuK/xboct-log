@@ -109,7 +109,7 @@ const taskPatch = z.object({
 export const getTasks = defineQuery({
 	name: "tasks_list",
 	description:
-		"List tasks with filters (project, status, priority, tags, epic, scope, text query, title, title_exact), sorting and pagination. Returns {items, total} where total is the count of all matching tasks before limit/offset. limit defaults to 100 (max 1000); use offset and total to paginate. Use fields to limit returned columns. include_project attaches project names and never filters; project_archived filters by project archival.",
+		"List tasks with filters (project, status, priority, tags, epic, scope, text query, title, title_exact), sorting and pagination. Use q to locate a task by id, title, description or tag (e.g. q='LOG-4'). Returns {items, total} where total is the count of all matching tasks before limit/offset. limit defaults to 100 (max 1000); use offset and total to paginate. Use fields to limit returned columns. include_project attaches project names and never filters; project_archived filters by project archival.",
 	kind: "query",
 	input: taskFilters,
 	handler: (filters) => {
@@ -148,26 +148,6 @@ export const getTask = defineQuery({
 		}
 		return task;
 	},
-});
-
-export const findTasks = defineQuery({
-	name: "tasks_find",
-	description:
-		"Find tasks by a fragment of their title. Returns id, number, title, status, project_id, updated_at — enough to locate a task ID without scanning the full list.",
-	kind: "query",
-	input: z.object({
-		title: z
-			.string()
-			.min(1)
-			.describe("Fragment of the task title to search for (case-insensitive)."),
-		limit: z.number().int().positive().max(100).optional().default(20),
-	}),
-	handler: ({ title, limit }) =>
-		repo.listTasks(getDb(), {
-			title,
-			fields: "id,number,title,status,project_id,updated_at",
-			limit,
-		}),
 });
 
 export const createTask = defineCommand({
