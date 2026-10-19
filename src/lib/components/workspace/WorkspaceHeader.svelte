@@ -24,10 +24,19 @@
 		theme: Theme;
 		visibleCount: number;
 		onnew: () => void;
+		onreload: () => void;
 	}
 
-	let { tasks, filters, projects, scopes, theme, visibleCount, onnew }: Props =
-		$props();
+	let {
+		tasks,
+		filters,
+		projects,
+		scopes,
+		theme,
+		visibleCount,
+		onnew,
+		onreload,
+	}: Props = $props();
 
 	const epics = $derived(
 		epicsForProject(tasks.epics, filters.activeProject, filters.epic),
@@ -49,6 +58,7 @@
 		appearance={theme.appearance}
 		ontoggle={theme.toggle}
 		{onnew}
+		{onreload}
 		projectName={activeProjectName}
 	/>
 	<SearchBar

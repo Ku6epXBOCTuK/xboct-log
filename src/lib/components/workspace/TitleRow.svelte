@@ -1,18 +1,19 @@
 <script lang="ts">
 	import IconButton from "#lib/components/ui/IconButton.svelte";
 	import Moon from "~icons/lucide/moon";
-	import PanelLeftClose from "~icons/lucide/panel-left-close";
 	import Plus from "~icons/lucide/plus";
+	import RefreshCw from "~icons/lucide/refresh-cw";
 	import Sun from "~icons/lucide/sun";
 
 	interface Props {
 		appearance: "light" | "dark";
 		ontoggle: () => void;
 		onnew: () => void;
+		onreload: () => void;
 		projectName?: string;
 	}
 
-	let { appearance, ontoggle, onnew, projectName }: Props = $props();
+	let { appearance, ontoggle, onnew, onreload, projectName }: Props = $props();
 </script>
 
 <div class="title-row">
@@ -31,8 +32,8 @@
 				<Sun />
 			{/if}
 		</IconButton>
-		<IconButton label="Collapse sidebar" size="md">
-			<PanelLeftClose />
+		<IconButton label="Reload" size="md" class="reload" onclick={onreload}>
+			<RefreshCw />
 		</IconButton>
 		<button class="new-task" onclick={onnew}>
 			<Plus data-icon="inline-start" /> New task
@@ -59,6 +60,15 @@
 	.header-actions {
 		display: flex;
 		gap: var(--space-2);
+	}
+
+	.header-actions :global(.icon-btn.reload) {
+		color: var(--accent-ink);
+	}
+
+	.header-actions :global(.icon-btn.reload:hover:not(:disabled)) {
+		color: var(--accent-ink);
+		background: var(--danger-surface);
 	}
 
 	@media (max-width: 560px) {

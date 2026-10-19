@@ -3,6 +3,7 @@
 	import NewTaskModal from "#lib/components/newtask/NewTaskModal.svelte";
 	import TaskTable from "#lib/components/table/TaskTable.svelte";
 	import WorkspaceHeader from "#lib/components/workspace/WorkspaceHeader.svelte";
+	import { reloadApp } from "#lib/reload.ts";
 	import { useBoard } from "#lib/state/board.svelte.ts";
 	import { getActiveTotal } from "#lib/tasks/filter.ts";
 	import type { Task } from "#lib/types.ts";
@@ -51,6 +52,7 @@
 		{theme}
 		visibleCount={visibleTasks.length}
 		onnew={openNew}
+		onreload={reloadApp}
 	/>
 	<TaskTable
 		tasks={visibleTasks}
