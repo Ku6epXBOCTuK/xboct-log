@@ -317,6 +317,38 @@ describe("tasks", () => {
 		).toHaveLength(0);
 	});
 
+	it("limits the response to the requested fields", async () => {
+		const db = await setup();
+		unwrap(createTask(db, { project_id: "spa", title: "Alpha" }));
+
+		const found = listTasks(db, {
+			title: "alpha",
+			fields: "id,number,title,status,project_id,updated_at",
+		});
+
+		expect(found).toHaveLength(1);
+		expect(Object.keys(found[0]).sort()).toEqual([
+			"id",
+			"number",
+			"project_id",
+			"status",
+			"title",
+			"updated_at",
+		]);
+	});
+
+	it("ignores unknown field names", async () => {
+		const db = await setup();
+		unwrap(createTask(db, { project_id: "spa", title: "Alpha" }));
+
+		const [task] = listTasks(db, { fields: "id,bogus" });
+
+		expect(Object.keys(task)).toEqual(["id"]);
+		expect(listTasks(db, { fields: "bogus" }).map((item) => item.id)).toEqual([
+			"SPA-1",
+		]);
+	});
+
 	it("sorts by priority severity, most severe first", async () => {
 		const db = await setup();
 		unwrap(

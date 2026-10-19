@@ -108,6 +108,29 @@ function mapTask(row: TaskRow): Task {
 	};
 }
 
+function parseFields(fields: string | undefined): string[] | null {
+	if (!fields) {
+		return null;
+	}
+	const requested = fields
+		.split(",")
+		.map((field) => field.trim())
+		.filter(Boolean);
+	return requested.length > 0 ? [...new Set(requested)] : null;
+}
+
+function pickFields(task: Task, fields: string[]): Task {
+	const source = task as unknown as Record<string, unknown>;
+	const picked: Record<string, unknown> = {};
+	for (const field of fields) {
+		if (field in source) {
+			picked[field] = source[field];
+		}
+	}
+	const pickedTask = picked as unknown as Task;
+	return Object.keys(picked).length > 0 ? pickedTask : task;
+}
+
 function isStatus(value: string): value is Status {
 	return (STATUSES as readonly string[]).includes(value);
 }
@@ -385,16 +408,9 @@ export function listTasks(db: DatabaseSync, query: TaskQuery = {}): Task[] {
 		where.push("projects.archived_at IS NULL");
 	}
 
-	const selectFields = query.fields
-		?.split(",")
-		.map((f) => f.trim())
-		.filter(Boolean);
-	const hasCustomFields = selectFields && selectFields.length > 0;
-	const selectSql = hasCustomFields
-		? `SELECT ${selectFields.map((f) => `tasks.${f}`).join(", ")}`
-		: query.include_project
-			? "SELECT tasks.*, projects.name AS project_name"
-			: "SELECT tasks.*";
+	const selectSql = query.include_project
+		? "SELECT tasks.*, projects.name AS project_name"
+		: "SELECT tasks.*";
 
 	let sql = `${selectSql} FROM tasks${joins}`;
 	if (where.length > 0) {
@@ -421,7 +437,13 @@ export function listTasks(db: DatabaseSync, query: TaskQuery = {}): Task[] {
 		params.push(query.offset);
 	}
 
-	return (db.prepare(sql).all(...params) as unknown as TaskRow[]).map(mapTask);
+	const tasks = (db.prepare(sql).all(...params) as unknown as TaskRow[]).map(
+		mapTask,
+	);
+	const selectedFields = parseFields(query.fields);
+	return selectedFields
+		? tasks.map((task) => pickFields(task, selectedFields))
+		: tasks;
 }
 
 export function countTasksByStatus(
