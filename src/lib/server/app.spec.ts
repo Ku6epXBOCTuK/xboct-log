@@ -391,6 +391,72 @@ describe("tasks", () => {
 		]);
 	});
 
+	it("returns short_description instead of the full description by default", async () => {
+		const db = await setup();
+		unwrap(
+			createTask(db, {
+				project_id: "spa",
+				title: "Alpha",
+				description: "first line\nsecond line",
+			}),
+		);
+
+		const [task] = listTasks(db, { title: "alpha" });
+
+		expect(task.description).toBeUndefined();
+		expect(task.short_description).toBe("first line");
+	});
+
+	it("includes the full description when asked", async () => {
+		const db = await setup();
+		unwrap(
+			createTask(db, {
+				project_id: "spa",
+				title: "Alpha",
+				description: "first line\nsecond line",
+			}),
+		);
+
+		const [task] = listTasks(db, { title: "alpha", include_description: true });
+
+		expect(task.description).toBe("first line\nsecond line");
+		expect(task.short_description).toBe("first line");
+	});
+
+	it("keeps the full description when fields request it", async () => {
+		const db = await setup();
+		unwrap(
+			createTask(db, {
+				project_id: "spa",
+				title: "Alpha",
+				description: "line one\nline two",
+			}),
+		);
+
+		const [task] = listTasks(db, { title: "alpha", fields: "id,description" });
+
+		expect(task.description).toBe("line one\nline two");
+	});
+
+	it("truncates a long short_description and handles an empty one", async () => {
+		const db = await setup();
+		unwrap(
+			createTask(db, {
+				project_id: "spa",
+				title: "Long",
+				description: "x".repeat(200),
+			}),
+		);
+		unwrap(createTask(db, { project_id: "spa", title: "Empty" }));
+
+		const [longTask] = listTasks(db, { title: "Long" });
+		const [emptyTask] = listTasks(db, { title: "Empty" });
+
+		expect(longTask.short_description).toHaveLength(121);
+		expect(longTask.short_description?.endsWith("…")).toBe(true);
+		expect(emptyTask.short_description).toBe("");
+	});
+
 	it("sorts by priority severity, most severe first", async () => {
 		const db = await setup();
 		unwrap(

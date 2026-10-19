@@ -83,6 +83,7 @@ export interface TaskQuery {
 	limit?: number;
 	offset?: number;
 	include_deleted?: boolean;
+	include_description?: boolean;
 }
 
 function mapTask(row: TaskRow): Task {
@@ -130,6 +131,28 @@ function pickFields(task: Task, fields: string[]): Task {
 	}
 	const pickedTask = picked as unknown as Task;
 	return Object.keys(picked).length > 0 ? pickedTask : task;
+}
+
+const SHORT_DESCRIPTION_LENGTH = 120;
+
+function shortDescription(description: string): string {
+	const firstLine = description.split("\n")[0].trim();
+	return firstLine.length > SHORT_DESCRIPTION_LENGTH
+		? `${firstLine.slice(0, SHORT_DESCRIPTION_LENGTH)}…`
+		: firstLine;
+}
+
+function taskWithShortDescription(
+	task: Task,
+	includeDescription: boolean,
+): Task {
+	const short_description = shortDescription(task.description);
+	if (includeDescription) {
+		return { ...task, short_description };
+	}
+	const result: Record<string, unknown> = { ...task, short_description };
+	delete result.description;
+	return result as unknown as Task;
 }
 
 function isStatus(value: string): value is Status {
@@ -459,9 +482,15 @@ export function listTasks(db: DatabaseSync, query: TaskQuery = {}): Task[] {
 		mapTask,
 	);
 	const selectedFields = parseFields(query.fields);
+	const includeDescription =
+		query.include_description === true ||
+		(selectedFields?.includes("description") ?? false);
+	const described = tasks.map((task) =>
+		taskWithShortDescription(task, includeDescription),
+	);
 	return selectedFields
-		? tasks.map((task) => pickFields(task, selectedFields))
-		: tasks;
+		? described.map((task) => pickFields(task, selectedFields))
+		: described;
 }
 
 export function countTasks(db: DatabaseSync, query: TaskQuery = {}): number {

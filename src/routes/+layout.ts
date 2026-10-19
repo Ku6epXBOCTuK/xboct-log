@@ -5,7 +5,7 @@ import type { LayoutLoad } from "./$types";
 
 export const load: LayoutLoad = async () => {
 	const projects = await getProjects({ includeArchived: true });
-	const tasks = await getTasks({ limit: 1000 });
+	const tasks = await getTasks({ limit: 1000, include_description: true });
 	const scopedProjectIds = await getScopedProjectIds({});
 	const scopes = (
 		await Promise.all(
