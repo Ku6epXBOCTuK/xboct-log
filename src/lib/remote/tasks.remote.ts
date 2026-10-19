@@ -64,6 +64,10 @@ const taskFilters = z
 			.describe(
 				"Attach the project name (project_name) to each task. Does not filter by project archival; use project_archived for that.",
 			),
+		include_scope: z
+			.boolean()
+			.optional()
+			.describe("Attach the scope name (scope_name) to each task."),
 		project_archived: z
 			.boolean()
 			.optional()
@@ -115,7 +119,7 @@ const taskPatch = z.object({
 export const getTasks = defineQuery({
 	name: "tasks_list",
 	description:
-		"List tasks with filters (project, status, priority, tags, epic, scope, text query, title, title_exact), sorting and pagination. Use q to locate a task by id, title, description or tag (e.g. q='LOG-4'). Returns {items, total} where total is the count of all matching tasks before limit/offset. limit defaults to 100 (max 1000); use offset and total to paginate. Use fields to limit returned columns. By default each task carries short_description (first line, ~120 chars) instead of the full description; set include_description to get the full text. include_project attaches project names and never filters; project_archived filters by project archival.",
+		"List tasks with filters (project, status, priority, tags, epic, scope, text query, title, title_exact), sorting and pagination. Use q to locate a task by id, title, description or tag (e.g. q='LOG-4'). Returns {items, total} where total is the count of all matching tasks before limit/offset. limit defaults to 100 (max 1000); use offset and total to paginate. Use fields to limit returned columns. By default each task carries short_description (first line, ~120 chars) instead of the full description; set include_description to get the full text. include_project attaches project names, include_scope attaches scope names, and neither filters; project_archived filters by project archival.",
 	kind: "query",
 	input: taskFilters,
 	handler: (filters) => {

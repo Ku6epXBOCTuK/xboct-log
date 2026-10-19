@@ -9,6 +9,7 @@ import {
 	listProjects,
 	updateProject,
 } from "./projects";
+import { createScope } from "./scopes";
 import {
 	closeTask,
 	countTasks,
@@ -357,6 +358,22 @@ describe("tasks", () => {
 		const [task] = listTasks(db, { fields: "id,project_name" });
 
 		expect(Object.keys(task)).toEqual(["id"]);
+	});
+
+	it("attaches scope names when requested", async () => {
+		const db = await setup();
+		const scope = unwrap(createScope(db, { project_id: "spa", name: "ux" }));
+		unwrap(
+			createTask(db, { project_id: "spa", title: "Alpha", scope_id: scope.id }),
+		);
+		unwrap(createTask(db, { project_id: "spa", title: "Beta" }));
+
+		const tasks = listTasks(db, { include_scope: true });
+
+		expect(tasks.find((task) => task.title === "Alpha")?.scope_name).toBe("ux");
+		expect(
+			tasks.find((task) => task.title === "Beta")?.scope_name,
+		).toBeUndefined();
 	});
 
 	it("limits the response to the requested fields", async () => {

@@ -85,5 +85,6 @@ export interface Task {
 	closed_reason: ClosedReason | null;
 	deleted_at: string | null;
 	project_name?: string;
+	scope_name?: string;
 	short_description?: string;
 }

@@ -35,6 +35,7 @@ interface TaskRow {
 	closed_reason: string | null;
 	deleted_at: string | null;
 	project_name?: string;
+	scope_name?: string;
 }
 
 export interface NewTask {
@@ -77,6 +78,7 @@ export interface TaskQuery {
 	title_exact?: string;
 	fields?: string;
 	include_project?: boolean;
+	include_scope?: boolean;
 	project_archived?: boolean;
 	sort?: "updated_at" | "created_at" | "priority";
 	order?: "asc" | "desc";
@@ -107,6 +109,7 @@ function mapTask(row: TaskRow): Task {
 		closed_reason: row.closed_reason as ClosedReason | null,
 		deleted_at: row.deleted_at,
 		project_name: row.project_name ?? undefined,
+		scope_name: row.scope_name ?? undefined,
 	};
 }
 
@@ -435,7 +438,10 @@ function buildTaskFilter(query: TaskQuery): TaskFilterSql {
 		params.push(query.title_exact);
 	}
 	if (query.include_project === true || query.project_archived !== undefined) {
-		joins = " LEFT JOIN projects ON tasks.project_id = projects.id";
+		joins += " LEFT JOIN projects ON tasks.project_id = projects.id";
+	}
+	if (query.include_scope === true) {
+		joins += " LEFT JOIN scopes ON tasks.scope_id = scopes.id";
 	}
 	if (query.project_archived === true) {
 		where.push("projects.archived_at IS NOT NULL");
@@ -449,9 +455,14 @@ function buildTaskFilter(query: TaskQuery): TaskFilterSql {
 export function listTasks(db: DatabaseSync, query: TaskQuery = {}): Task[] {
 	const { where, params, joins } = buildTaskFilter(query);
 
-	const selectSql = query.include_project
-		? "SELECT tasks.*, projects.name AS project_name"
-		: "SELECT tasks.*";
+	const columns = ["tasks.*"];
+	if (query.include_project) {
+		columns.push("projects.name AS project_name");
+	}
+	if (query.include_scope) {
+		columns.push("scopes.name AS scope_name");
+	}
+	const selectSql = `SELECT ${columns.join(", ")}`;
 
 	let sql = `${selectSql} FROM tasks${joins}`;
 	if (where.length > 0) {
