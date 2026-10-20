@@ -5,6 +5,7 @@
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
 	import { messageOf } from "#lib/tasks/display.ts";
+	import { collectTags } from "#lib/tasks/filter.ts";
 	import {
 		epicsForProject,
 		validateTaskDraft,
@@ -61,6 +62,7 @@
 	}
 
 	let draft = $state<TaskFieldValues>(blankDraft());
+	let tagSuggestions = $derived(collectTags(tasks.tasks).map((tag) => tag.tag));
 	let title = $state("");
 	let keepOpen = $state(false);
 	let saving = $state(false);
@@ -199,6 +201,7 @@
 		<TaskFields
 			value={draft}
 			epics={epicOptions}
+			{tagSuggestions}
 			{onfield}
 			onerror={(message) => {
 				failure = message;

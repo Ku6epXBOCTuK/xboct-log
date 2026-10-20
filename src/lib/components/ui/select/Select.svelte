@@ -267,6 +267,7 @@
 		background: var(--field);
 		color: var(--foreground);
 		font-size: var(--text-md);
+		font-weight: 400;
 	}
 
 	.select-popover {

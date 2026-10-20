@@ -178,7 +178,11 @@
 		flex: 1 1 5rem;
 		min-width: 5rem;
 		min-height: var(--control-h-sm);
+		margin: 0;
 		padding: 0 var(--space-1);
+		border: 0;
+		border-radius: 0;
+		appearance: none;
 		background: transparent;
 		color: var(--foreground);
 		font-size: var(--text-sm);

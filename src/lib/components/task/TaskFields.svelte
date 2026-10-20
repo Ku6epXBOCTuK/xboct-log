@@ -1,20 +1,28 @@
 <script lang="ts">
+	import SingleSelect from "#lib/components/ui/select/SingleSelect.svelte";
+	import TagInput from "#lib/components/ui/select/TagInput.svelte";
 	import { STATUS_LABELS, formatDate } from "#lib/tasks/display.ts";
 	import {
-		splitTags,
 		toSourceFile,
 		toSourceLine,
 		validateTaskDraft,
 		type TaskFieldValues,
 		type TaskPatch,
 	} from "#lib/tasks/fields.ts";
-	import type { Priority, Status, Task } from "#lib/types.ts";
+	import type { Task } from "#lib/types.ts";
 	import { PRIORITIES, STATUSES } from "#lib/types.ts";
 	import Plus from "~icons/lucide/plus";
+
+	interface EpicChoice {
+		key: string;
+		label: string;
+		keywords: string;
+	}
 
 	interface Props {
 		value: TaskFieldValues;
 		epics: Task[];
+		tagSuggestions?: string[];
 		editing?: boolean;
 		onfield: (patch: TaskPatch) => void;
 		onerror: (message: string) => void;
@@ -24,40 +32,28 @@
 	let {
 		value,
 		epics,
+		tagSuggestions = [],
 		editing = false,
 		onfield,
 		onerror,
 		oncreatechild,
 	}: Props = $props();
 
-	function changePriority(event: Event) {
-		onfield({
-			priority: (event.currentTarget as HTMLSelectElement).value as Priority,
-		});
-	}
+	const TASK_TYPES: ("task" | "epic")[] = ["task", "epic"];
 
-	function changeType(event: Event) {
-		onfield({
-			is_epic: (event.currentTarget as HTMLSelectElement).value === "epic",
-		});
-	}
+	let epicChoices = $derived<EpicChoice[]>([
+		{ key: "", label: "none", keywords: "" },
+		...epics.map((epic) => ({
+			key: epic.id,
+			label: `${epic.id} — ${epic.title}`,
+			keywords: `${epic.id} ${epic.title}`,
+		})),
+	]);
 
-	function changeStatus(event: Event) {
-		onfield({
-			status: (event.currentTarget as HTMLSelectElement).value as Status,
-		});
-	}
-
-	function changeEpic(event: Event) {
-		const picked = (event.currentTarget as HTMLSelectElement).value;
-		onfield({ epic_id: picked === "" ? null : picked });
-	}
-
-	function changeTags(event: Event) {
-		onfield({
-			tags: splitTags((event.currentTarget as HTMLInputElement).value),
-		});
-	}
+	let epicChoice = $derived(
+		epicChoices.find((choice) => choice.key === (value.epic_id ?? "")) ??
+			epicChoices[0],
+	);
 
 	function changeDescription(event: Event) {
 		onfield({
@@ -114,42 +110,44 @@
 
 <div class="detail-grid">
 	{#if editing}
-		<label class="field">
+		<div class="field">
 			Status
-			<select
-				class="field-control"
-				value={value.status}
-				onchange={changeStatus}
-			>
-				{#each STATUSES as option (option)}
-					<option value={option}>{STATUS_LABELS[option]}</option>
-				{/each}
-			</select>
-		</label>
+			<SingleSelect
+				items={[...STATUSES]}
+				value={value.status ?? null}
+				getKey={(status) => status}
+				getLabel={(status) => STATUS_LABELS[status]}
+				onselect={(status) => onfield({ status })}
+				variant="field"
+				ariaLabel="Status"
+				placeholder="Status"
+			/>
+		</div>
 	{/if}
-	<label class="field">
+	<div class="field">
 		Priority
-		<select
-			class="field-control"
+		<SingleSelect
+			items={[...PRIORITIES].reverse()}
 			value={value.priority}
-			onchange={changePriority}
-		>
-			{#each [...PRIORITIES].reverse() as option (option)}
-				<option value={option}>{option}</option>
-			{/each}
-		</select>
-	</label>
-	<label class="field">
+			getKey={(priority) => priority}
+			getLabel={(priority) => priority}
+			onselect={(priority) => onfield({ priority })}
+			variant="field"
+			ariaLabel="Priority"
+		/>
+	</div>
+	<div class="field">
 		Type
-		<select
-			class="field-control"
+		<SingleSelect
+			items={TASK_TYPES}
 			value={value.is_epic ? "epic" : "task"}
-			onchange={changeType}
-		>
-			<option value="task">task</option>
-			<option value="epic">epic</option>
-		</select>
-	</label>
+			getKey={(type) => type}
+			getLabel={(type) => type}
+			onselect={(type) => onfield({ is_epic: type === "epic" })}
+			variant="field"
+			ariaLabel="Type"
+		/>
+	</div>
 	{#if editing && value.is_epic && oncreatechild}
 		<div class="field-action">
 			<button class="icon-button" onclick={oncreatechild}>
@@ -166,29 +164,33 @@
 </div>
 
 {#if !value.is_epic}
-	<label class="field detail-field">
+	<div class="field detail-field">
 		Epic
-		<select
-			class="field-control"
-			value={value.epic_id ?? ""}
-			onchange={changeEpic}
-		>
-			<option value="">none</option>
-			{#each epics as epic (epic.id)}
-				<option value={epic.id}>{epic.id} — {epic.title}</option>
-			{/each}
-		</select>
-	</label>
+		<SingleSelect
+			items={epicChoices}
+			value={epicChoice}
+			getKey={(choice) => choice.key}
+			getLabel={(choice) => choice.label}
+			getKeywords={(choice) => choice.keywords}
+			onselect={(choice) =>
+				onfield({ epic_id: choice.key === "" ? null : choice.key })}
+			variant="field"
+			searchable
+			searchPlaceholder="Search epics"
+			ariaLabel="Epic"
+		/>
+	</div>
 {/if}
 
-<label class="field detail-field">
-	Comma-separated tags
-	<input
-		class="field-control"
-		value={value.tags.join(", ")}
-		onchange={changeTags}
+<div class="field detail-field">
+	Tags
+	<TagInput
+		value={value.tags}
+		suggestions={tagSuggestions}
+		onchange={(tags) => onfield({ tags })}
+		ariaLabel="Tags"
 	/>
-</label>
+</div>
 
 <div class="detail-grid">
 	<label class="field">

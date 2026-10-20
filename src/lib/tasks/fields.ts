@@ -30,13 +30,6 @@ export type TaskFieldValues = Pick<
 > &
 	Partial<Pick<Task, "status" | "closed_at" | "closed_reason" | "updated_at">>;
 
-export function splitTags(raw: string): string[] {
-	return raw
-		.split(",")
-		.map((tag) => tag.trim())
-		.filter((tag) => tag !== "");
-}
-
 export function toSourceLine(raw: string): number | null {
 	const trimmed = raw.trim();
 	return trimmed === "" ? null : Number(trimmed);

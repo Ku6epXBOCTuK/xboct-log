@@ -9,6 +9,7 @@
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
 	import { STATUS_LABELS, formatDate, messageOf } from "#lib/tasks/display.ts";
+	import { collectTags } from "#lib/tasks/filter.ts";
 	import {
 		siblingEpics,
 		validateTaskDraft,
@@ -40,6 +41,7 @@
 
 	let saving = $state(false);
 	let failure = $state<string | null>(null);
+	let tagSuggestions = $derived(collectTags(tasks.tasks).map((tag) => tag.tag));
 
 	async function perform(work: () => Promise<Task>) {
 		saving = true;
@@ -186,6 +188,7 @@
 			<TaskFields
 				value={selected}
 				epics={siblingEpics(tasks.epics, selected)}
+				{tagSuggestions}
 				editing
 				onfield={save}
 				onerror={(message) => (failure = message)}

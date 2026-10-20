@@ -1,4 +1,5 @@
 <script lang="ts">
+	import SingleSelect from "#lib/components/ui/select/SingleSelect.svelte";
 	import {
 		CLOSED_REASONS,
 		STATUS_BY_REASON,
@@ -22,20 +23,18 @@
 <div class="detail-actions">
 	<div class="action-group">
 		{#if !closed}
-			<label class="field close-reason">
+			<div class="field close-reason">
 				Close reason
-				<select
-					class="field-control"
-					bind:value={reason}
-					aria-label="Close reason"
-				>
-					{#each CLOSED_REASONS as option (option)}
-						<option value={option}>
-							{option} → {STATUS_BY_REASON[option]}
-						</option>
-					{/each}
-				</select>
-			</label>
+				<SingleSelect
+					items={[...CLOSED_REASONS]}
+					value={reason}
+					getKey={(option) => option}
+					getLabel={(option) => `${option} → ${STATUS_BY_REASON[option]}`}
+					onselect={(option) => (reason = option)}
+					variant="field"
+					ariaLabel="Close reason"
+				/>
+			</div>
 			<button
 				class="new-task"
 				onclick={() => onclose(reason)}
