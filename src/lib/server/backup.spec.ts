@@ -48,6 +48,9 @@ describe("backup names", () => {
 		expect(backupFileName("weekly", new Date(2026, 0, 5))).toBe(
 			"xboct-log-2026-W02.db",
 		);
+		expect(backupFileName("manual", new Date(2026, 0, 5, 14, 30, 55))).toBe(
+			"xboct-log-2026-01-05-143055.db",
+		);
 	});
 });
 
@@ -66,6 +69,38 @@ describe("runBackup", () => {
 		expect(readdirSync(join(dir, "daily"))).toEqual([
 			"xboct-log-2026-01-05.db",
 		]);
+	});
+
+	it("writes a manual copy into the manual folder and keeps every file", async () => {
+		const dir = tempDir();
+		const db = await openMigratedDatabase(":memory:");
+		const config = testConfig(dir);
+
+		await runBackup(db, config, "manual", new Date(2026, 0, 5, 14, 30, 55));
+		await runBackup(db, config, "manual", new Date(2026, 0, 5, 14, 31, 55));
+
+		expect(readdirSync(join(dir, "manual")).sort()).toEqual([
+			"xboct-log-2026-01-05-143055.db",
+			"xboct-log-2026-01-05-143155.db",
+		]);
+	});
+
+	it("runs a manual backup even when scheduled backups are disabled", async () => {
+		const dir = tempDir();
+		const db = await openMigratedDatabase(":memory:");
+		const config = { ...testConfig(dir), disabled: true };
+
+		const result = await runBackup(
+			db,
+			config,
+			"manual",
+			new Date(2026, 0, 5, 14, 30, 55),
+		);
+
+		expect(result.isOk()).toBe(true);
+		expect(result._unsafeUnwrap()).toBe(
+			join(dir, "manual", "xboct-log-2026-01-05-143055.db"),
+		);
 	});
 
 	it("does nothing when disabled", async () => {

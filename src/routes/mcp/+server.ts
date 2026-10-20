@@ -44,7 +44,8 @@ const handler = createMcpHandler(registerTools, {
 	instructions:
 		"Task backlog server for a single user. Use tasks_*, projects_* and " +
 		"scopes_* tools to list, create, update and delete tasks, projects " +
-		"and scopes. All tools accept a single JSON object argument.",
+		"and scopes. backup_create makes a manual database backup. " +
+		"All tools accept a single JSON object argument.",
 });
 
 async function handle({ request }: RequestEvent): Promise<Response> {

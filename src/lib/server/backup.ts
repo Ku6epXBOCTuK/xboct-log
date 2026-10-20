@@ -9,7 +9,7 @@ import { defaultDbPath } from "./paths";
 const APP_NAME = "xboct-log";
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export type BackupKind = "daily" | "weekly";
+export type BackupKind = "daily" | "weekly" | "manual";
 
 export interface BackupConfig {
 	dir: string;
@@ -65,8 +65,17 @@ export function isoWeek(date: Date): string {
 	return `${day.getUTCFullYear()}-W${pad(week)}`;
 }
 
+export function localTime(date: Date): string {
+	return `${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
+}
+
 export function backupFileName(kind: BackupKind, date: Date): string {
-	const stamp = kind === "daily" ? localDate(date) : isoWeek(date);
+	const stamp =
+		kind === "daily"
+			? localDate(date)
+			: kind === "weekly"
+				? isoWeek(date)
+				: `${localDate(date)}-${localTime(date)}`;
 	return `${APP_NAME}-${stamp}.db`;
 }
 
@@ -96,7 +105,9 @@ export async function runBackup(
 	kind: BackupKind,
 	now: Date = new Date(),
 ): Promise<Result<string, AppError>> {
-	if (config.disabled) {
+	// NOTE: XBOCT_LOG_BACKUP_DISABLED stops the scheduler, but an explicit
+	// manual request is still honoured.
+	if (config.disabled && kind !== "manual") {
 		return ok("");
 	}
 	const dir = join(config.dir, kind);
@@ -108,7 +119,11 @@ export async function runBackup(
 	} catch (error) {
 		return err(unexpected(error));
 	}
-	prune(dir, kind === "daily" ? config.dailyKeep : config.weeklyKeep);
+	if (kind === "daily") {
+		prune(dir, config.dailyKeep);
+	} else if (kind === "weekly") {
+		prune(dir, config.weeklyKeep);
+	}
 	return ok(target);
 }
 

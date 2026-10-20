@@ -6,7 +6,7 @@
 	import type { ProjectFilter } from "#lib/types.ts";
 	import ProjectSection from "#lib/components/projects/ProjectSection.svelte";
 	import BrandMark from "./BrandMark.svelte";
-	import LanguageSwitch from "./LanguageSwitch.svelte";
+	import BackupControl from "./BackupControl.svelte";
 	import PrimaryNav from "./PrimaryNav.svelte";
 
 	interface Props {
@@ -34,7 +34,7 @@
 		{activeProject}
 		onselect={onprojectselect ?? (() => {})}
 	/>
-	<LanguageSwitch />
+	<BackupControl />
 </aside>
 
 <style>
