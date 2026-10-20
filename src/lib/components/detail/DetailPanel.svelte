@@ -1,4 +1,5 @@
 <script lang="ts">
+	import BlockingFields from "#lib/components/task/BlockingFields.svelte";
 	import DetailActions from "#lib/components/detail/DetailActions.svelte";
 	import ProjectScopeFields from "#lib/components/task/ProjectScopeFields.svelte";
 	import TaskFields from "#lib/components/task/TaskFields.svelte";
@@ -9,13 +10,14 @@
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
 	import { STATUS_LABELS, formatDate, messageOf } from "#lib/tasks/display.ts";
+	import { blockingCandidates } from "#lib/tasks/blocking.ts";
 	import { collectTags } from "#lib/tasks/filter.ts";
 	import {
 		siblingEpics,
 		validateTaskDraft,
 		type TaskPatch,
 	} from "#lib/tasks/fields.ts";
-	import type { ClosedReason, Task } from "#lib/types.ts";
+	import type { ClosedReason, Status, Task } from "#lib/types.ts";
 	import { cubicOut } from "svelte/easing";
 	import X from "~icons/lucide/x";
 
@@ -42,6 +44,9 @@
 	let saving = $state(false);
 	let failure = $state<string | null>(null);
 	let tagSuggestions = $derived(collectTags(tasks.tasks).map((tag) => tag.tag));
+	let blockerCandidates = $derived(
+		selected === null ? [] : blockingCandidates(tasks.tasks, selected),
+	);
 
 	async function perform(work: () => Promise<Task>) {
 		saving = true;
@@ -91,6 +96,22 @@
 		const current = selected;
 		if (current === null) return;
 		void perform(() => tasks.close(current.id, reason));
+	}
+
+	function setStatus(status: Status) {
+		save({ status });
+	}
+
+	function addBlocker(blockerId: string) {
+		const current = selected;
+		if (current === null) return;
+		void perform(() => tasks.addBlocker(current.id, blockerId));
+	}
+
+	function removeBlocker(blockerId: string) {
+		const current = selected;
+		if (current === null) return;
+		void perform(() => tasks.removeBlocker(current.id, blockerId));
 	}
 
 	function reopen() {
@@ -184,6 +205,15 @@
 				editing
 				onfield={save}
 				onproject={moveTo}
+			/>
+			<BlockingFields
+				status={selected.status}
+				blockedBy={selected.blocked_by ?? []}
+				candidates={blockerCandidates}
+				busy={saving}
+				onstatus={setStatus}
+				onadd={addBlocker}
+				onremove={removeBlocker}
 			/>
 			<TaskFields
 				value={selected}

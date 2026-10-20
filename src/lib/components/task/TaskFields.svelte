@@ -1,11 +1,7 @@
 <script lang="ts">
 	import SingleSelect from "#lib/components/ui/select/SingleSelect.svelte";
 	import TagInput from "#lib/components/ui/select/TagInput.svelte";
-	import {
-		CLOSED_REASON_LABELS,
-		STATUS_LABELS,
-		formatDate,
-	} from "#lib/tasks/display.ts";
+	import { CLOSED_REASON_LABELS, formatDate } from "#lib/tasks/display.ts";
 	import {
 		toSourceFile,
 		toSourceLine,
@@ -14,7 +10,7 @@
 		type TaskPatch,
 	} from "#lib/tasks/fields.ts";
 	import type { Task } from "#lib/types.ts";
-	import { PRIORITIES, STATUSES } from "#lib/types.ts";
+	import { PRIORITIES } from "#lib/types.ts";
 	import Plus from "~icons/lucide/plus";
 
 	interface EpicChoice {
@@ -117,21 +113,6 @@
 </div>
 
 <div class="detail-grid">
-	{#if editing}
-		<div class="field">
-			Status
-			<SingleSelect
-				items={[...STATUSES]}
-				value={value.status ?? null}
-				getKey={(status) => status}
-				getLabel={(status) => STATUS_LABELS[status]}
-				onselect={(status) => onfield({ status })}
-				variant="field"
-				ariaLabel="Status"
-				placeholder="Status"
-			/>
-		</div>
-	{/if}
 	<div class="field">
 		Priority
 		<SingleSelect

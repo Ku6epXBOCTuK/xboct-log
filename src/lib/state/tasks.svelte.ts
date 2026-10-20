@@ -1,4 +1,8 @@
 import {
+	addBlocker as addBlockerCommand,
+	removeBlocker as removeBlockerCommand,
+} from "#lib/remote/blockers.remote.ts";
+import {
 	closeTask,
 	createTask,
 	deleteTask,
@@ -62,6 +66,40 @@ export function createTaskStore(initial: Task[]) {
 				.map((task) =>
 					task.epic_id === id ? { ...task, epic_id: null } : task,
 				);
+		},
+		async addBlocker(id: string, blockerId: string) {
+			const updated = await addBlockerCommand({ id, blocked_by: blockerId });
+			tasks = tasks.map((task) => {
+				if (task.id === updated.id) return updated;
+				if (task.id === blockerId) {
+					const blocks = task.blocks ?? [];
+					return {
+						...task,
+						blocks: blocks.includes(updated.id)
+							? blocks
+							: [...blocks, updated.id].sort(),
+					};
+				}
+				return task;
+			});
+			return updated;
+		},
+		async removeBlocker(id: string, blockerId: string) {
+			const updated = await removeBlockerCommand({
+				id,
+				blocked_by: blockerId,
+			});
+			tasks = tasks.map((task) => {
+				if (task.id === updated.id) return updated;
+				if (task.id === blockerId) {
+					return {
+						...task,
+						blocks: (task.blocks ?? []).filter((item) => item !== updated.id),
+					};
+				}
+				return task;
+			});
+			return updated;
 		},
 		clearScope(scopeId: number) {
 			tasks = tasks.map((task) =>

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
+	import { openBlockers } from "#lib/tasks/blocking.ts";
 	import { collectEpicProgress } from "#lib/tasks/filter.ts";
 	import type { SortOrder, TaskSortKey } from "#lib/tasks/sort.ts";
 	import type { Task } from "#lib/types.ts";
@@ -40,6 +41,9 @@
 	}: Props = $props();
 
 	const epicProgress = $derived(collectEpicProgress(allTasks));
+	const blockers = $derived(
+		new Map(allTasks.map((task) => [task.id, openBlockers(allTasks, task)])),
+	);
 </script>
 
 {#snippet sortHeader(key: TaskSortKey, label: string, className: string)}
@@ -85,6 +89,7 @@
 						: (scopes.all.find((scope) => scope.id === task.scope_id) ?? null)}
 					isselected={selectedId === task.id}
 					progress={epicProgress.get(task.id) ?? null}
+					blockers={blockers.get(task.id) ?? []}
 					onselect={() => onselect(task.id)}
 					{onepic}
 				/>

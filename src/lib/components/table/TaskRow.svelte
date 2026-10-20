@@ -10,12 +10,21 @@
 		scope: Scope | null;
 		isselected: boolean;
 		progress: EpicProgress | null;
+		blockers: string[];
 		onselect: () => void;
 		onepic?: (id: string) => void;
 	}
 
-	let { task, scoped, scope, isselected, progress, onselect, onepic }: Props =
-		$props();
+	let {
+		task,
+		scoped,
+		scope,
+		isselected,
+		progress,
+		blockers,
+		onselect,
+		onepic,
+	}: Props = $props();
 
 	const epicEmpty = $derived(progress === null || progress.total === 0);
 
@@ -57,6 +66,11 @@
 			{:else}
 				<span class="scope-badge scope-missing">no scope</span>
 			{/if}
+		{/if}
+		{#if blockers.length > 0}
+			<span class="blocker-badge" title={`Blocked by ${blockers.join(", ")}`}>
+				blocked by {blockers.join(", ")}
+			</span>
 		{/if}
 	</td>
 	<td class="optional-column">
@@ -174,6 +188,18 @@
 	.scope-missing {
 		border-color: color-mix(in oklch, var(--accent) 55%, transparent);
 		color: var(--accent-ink);
+	}
+
+	.blocker-badge {
+		margin-left: var(--space-2);
+		border: 1px solid color-mix(in oklch, var(--accent) 55%, transparent);
+		color: var(--accent-ink);
+		border-radius: var(--radius-sm);
+		padding: 0 var(--space-2);
+		font-family: var(--font-mono);
+		font-size: var(--text-xs);
+		line-height: 1.5;
+		white-space: nowrap;
 	}
 
 	.tag-list {

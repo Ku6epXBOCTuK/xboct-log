@@ -1,7 +1,10 @@
 import { error } from "@sveltejs/kit";
 import { z } from "zod";
 import { getDb } from "../server/db";
-import { addBlocker, removeBlocker } from "../server/blockers";
+import {
+	addBlocker as addBlockerLink,
+	removeBlocker as removeBlockerLink,
+} from "../server/blockers";
 import * as repo from "../server/tasks";
 import { defineCommand } from "./define";
 
@@ -26,7 +29,7 @@ function resolveId(
 	return resolved.value;
 }
 
-export const addBlockerCommand = defineCommand({
+export const addBlocker = defineCommand({
 	name: "tasks_add_blocker",
 	description:
 		"Link two tasks: the task `id` becomes blocked by the task `blocked_by` (that is the blocker). Both ids accept the full 'PREFIX-NUMBER' form or a bare task number; bare numbers are resolved inside in_project when it is given, otherwise they must be unique across the whole backlog. The blocker may live in another project. A task cannot block itself and cycles are rejected. The blocked task keeps its current status: set status 'blocked' with tasks_update yourself. Returns the updated blocked task with its blocked_by and blocks lists.",
@@ -40,7 +43,7 @@ export const addBlockerCommand = defineCommand({
 		const db = getDb();
 		const blockedId = resolveId(db, id, in_project);
 		const blockerId = resolveId(db, blocked_by, in_project);
-		const result = addBlocker(db, blockerId, blockedId);
+		const result = addBlockerLink(db, blockerId, blockedId);
 		if (result.isErr()) {
 			error(result.error.status, result.error.message);
 		}
@@ -48,7 +51,7 @@ export const addBlockerCommand = defineCommand({
 	},
 });
 
-export const removeBlockerCommand = defineCommand({
+export const removeBlocker = defineCommand({
 	name: "tasks_remove_blocker",
 	description:
 		"Remove a blocking link: the task `id` is no longer blocked by the task `blocked_by`. Both ids accept the full 'PREFIX-NUMBER' form or a bare task number; bare numbers are resolved inside in_project when it is given, otherwise they must be unique across the whole backlog. If no open blocker remains, the blocked task goes from status 'blocked' back to 'open'. Returns the updated blocked task with its blocked_by and blocks lists.",
@@ -62,7 +65,7 @@ export const removeBlockerCommand = defineCommand({
 		const db = getDb();
 		const blockedId = resolveId(db, id, in_project);
 		const blockerId = resolveId(db, blocked_by, in_project);
-		const result = removeBlocker(db, blockerId, blockedId);
+		const result = removeBlockerLink(db, blockerId, blockedId);
 		if (result.isErr()) {
 			error(result.error.status, result.error.message);
 		}
