@@ -47,7 +47,8 @@ export const getProject = defineQuery({
 
 export const createProject = defineCommand({
 	name: "projects_create",
-	description: "Create a project. id, name and prefix are required.",
+	description:
+		"Create a project. id, name and prefix are required. The prefix is stored uppercase and defines the task ids of the project.",
 	kind: "command",
 	input: z.object({
 		id: z.string().min(1),

@@ -51,7 +51,7 @@ export function createProject(
 ): Result<Project, AppError> {
 	const id = input.id?.trim() ?? "";
 	const name = input.name?.trim() ?? "";
-	const prefix = input.prefix?.trim() ?? "";
+	const prefix = (input.prefix?.trim() ?? "").toUpperCase();
 
 	if (!ID_PATTERN.test(id)) {
 		return err(
@@ -66,7 +66,9 @@ export function createProject(
 	}
 
 	const clash = db
-		.prepare("SELECT 1 FROM projects WHERE id = ? OR prefix = ? LIMIT 1")
+		.prepare(
+			"SELECT 1 FROM projects WHERE id = ? OR prefix = ? COLLATE NOCASE LIMIT 1",
+		)
 		.get(id, prefix);
 	if (clash) {
 		return err(conflict("project id or prefix already exists"));
@@ -94,7 +96,7 @@ export function ensureInbox(db: DatabaseSync): Project {
 	}
 
 	const clash = db
-		.prepare("SELECT id, name FROM projects WHERE prefix = ?")
+		.prepare("SELECT id, name FROM projects WHERE prefix = ? COLLATE NOCASE")
 		.get(INBOX_PROJECT_PREFIX) as unknown as
 		{ id: string; name: string } | undefined;
 	if (clash) {

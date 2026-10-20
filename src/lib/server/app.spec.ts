@@ -65,6 +65,47 @@ describe("projects", () => {
 		expect(error.status).toBe(409);
 	});
 
+	it("stores the prefix uppercase and rejects a case-insensitive clash", async () => {
+		const db = await setup();
+		const project = unwrap(
+			createProject(db, { id: "blog", name: "Blog", prefix: "blog" }),
+		);
+
+		expect(project.prefix).toBe("BLOG");
+		expect(unwrap(createTask(db, { project_id: "blog", title: "A" })).id).toBe(
+			"BLOG-1",
+		);
+
+		const error = failure(
+			createProject(db, { id: "blog2", name: "Blog 2", prefix: "BlOg" }),
+		);
+		expect(error.kind).toBe("conflict");
+	});
+
+	it("blocks a case-variant prefix inserted directly in the database", async () => {
+		const db = await setup();
+
+		expect(() =>
+			db
+				.prepare(
+					"INSERT INTO projects (id, name, prefix, created_at) VALUES (?, ?, ?, ?)",
+				)
+				.run("manual", "Manual", "spa", new Date().toISOString()),
+		).toThrow();
+	});
+
+	it("blocks a lowercase prefix inserted directly in the database", async () => {
+		const db = await setup();
+
+		expect(() =>
+			db
+				.prepare(
+					"INSERT INTO projects (id, name, prefix, created_at) VALUES (?, ?, ?, ?)",
+				)
+				.run("manual", "Manual", "man", new Date().toISOString()),
+		).toThrow(/uppercase/);
+	});
+
 	it("returns a validation error for an invalid id", async () => {
 		const db = await openMigratedDatabase(":memory:");
 		const error = failure(

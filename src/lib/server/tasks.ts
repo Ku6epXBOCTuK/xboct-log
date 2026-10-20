@@ -225,12 +225,18 @@ export function resolveEpicId(
 			return err(notFound(`epic ${trimmed} not found in project ${projectId}`));
 		}
 	} else {
-		row = db
-			.prepare(
-				"SELECT id, project_id, is_epic, deleted_at FROM tasks WHERE id = ?",
-			)
-			.get(trimmed) as typeof row;
-		if (!row || row.deleted_at !== null) {
+		for (const candidate of taskIdCandidates(trimmed)) {
+			const found = db
+				.prepare(
+					"SELECT id, project_id, is_epic, deleted_at FROM tasks WHERE id = ?",
+				)
+				.get(candidate) as typeof row;
+			if (found && found.deleted_at === null) {
+				row = found;
+				break;
+			}
+		}
+		if (!row) {
 			return err(notFound(`epic ${trimmed} not found`));
 		}
 	}
@@ -271,6 +277,44 @@ function taskById(db: DatabaseSync, id: string): Task | undefined {
 }
 
 const TASK_NUMBER_PATTERN = /^\d+$/;
+
+function normalizeTaskIdInput(id: string): string {
+	const dash = id.lastIndexOf("-");
+	if (dash <= 0) {
+		return id;
+	}
+	const number = id.slice(dash + 1);
+	if (!TASK_NUMBER_PATTERN.test(number)) {
+		return id;
+	}
+	return `${id.slice(0, dash).toUpperCase()}-${number}`;
+}
+
+function taskIdCandidates(id: string): string[] {
+	const candidates = [id];
+	const normalized = normalizeTaskIdInput(id);
+	if (normalized !== id) {
+		candidates.push(normalized);
+	}
+	return candidates;
+}
+
+function findTaskRow(
+	db: DatabaseSync,
+	id: string,
+): { id: string; project_id: string } | undefined {
+	for (const candidate of taskIdCandidates(id)) {
+		const found = db
+			.prepare(
+				"SELECT id, project_id FROM tasks WHERE id = ? AND deleted_at IS NULL",
+			)
+			.get(candidate) as { id: string; project_id: string } | undefined;
+		if (found) {
+			return found;
+		}
+	}
+	return undefined;
+}
 
 export function resolveTaskId(
 	db: DatabaseSync,
@@ -315,11 +359,7 @@ export function resolveTaskId(
 		}
 		return ok(rows[0].id);
 	}
-	const row = db
-		.prepare(
-			"SELECT id, project_id FROM tasks WHERE id = ? AND deleted_at IS NULL",
-		)
-		.get(trimmed) as { id: string; project_id: string } | undefined;
+	const row = findTaskRow(db, trimmed);
 	if (!row) {
 		return err(notFound(`task ${trimmed} not found`));
 	}

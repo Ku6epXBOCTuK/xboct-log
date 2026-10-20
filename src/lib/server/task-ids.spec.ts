@@ -12,6 +12,7 @@ import {
 	getTasksByIds,
 	listTasks,
 	moveTask,
+	resolveEpicId,
 	resolveTaskId,
 	updateTask,
 } from "./tasks";
@@ -39,6 +40,23 @@ describe("task id resolution", () => {
 
 		expect(unwrap(resolveTaskId(db, task.id))).toBe(task.id);
 		expect(failure(resolveTaskId(db, "SPA-99")).kind).toBe("not_found");
+	});
+
+	it("resolves a full id regardless of the prefix case", async () => {
+		const db = await setup();
+		const task = unwrap(createTask(db, { project_id: "spa", title: "A" }));
+
+		expect(unwrap(resolveTaskId(db, "spa-1"))).toBe(task.id);
+		expect(unwrap(resolveTaskId(db, "Spa-1"))).toBe(task.id);
+	});
+
+	it("resolves an epic id regardless of the prefix case", async () => {
+		const db = await setup();
+		const epic = unwrap(
+			createTask(db, { project_id: "spa", title: "Epic", is_epic: true }),
+		);
+
+		expect(unwrap(resolveEpicId(db, "spa-1", "spa"))).toBe(epic.id);
 	});
 
 	it("resolves a bare number when it is unique", async () => {
