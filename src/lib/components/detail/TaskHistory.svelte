@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ActivityChanges from "#lib/components/activity/ActivityChanges.svelte";
 	import { activityFieldLabel, activityOpLabel } from "#lib/activity/labels.ts";
 	import { getTaskHistory } from "#lib/remote/activity.remote.ts";
 	import { fetchFresh } from "#lib/remote/fresh.ts";
@@ -72,7 +73,9 @@
 								{/if}
 							</td>
 							<td class="fields">
-								{#if item.fields.length > 0}
+								{#if item.changes.length > 0}
+									<ActivityChanges changes={item.changes} />
+								{:else if item.fields.length > 0}
 									<span class="field-chip"
 										>{activityFieldLabel(item.fields[0])}</span
 									>

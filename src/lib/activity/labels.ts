@@ -1,3 +1,5 @@
+import type { ActivityValue } from "#lib/types.ts";
+
 const FIELD_LABELS: Record<string, string> = {
 	title: "Title",
 	description: "Description",
@@ -13,12 +15,23 @@ const FIELD_LABELS: Record<string, string> = {
 	closed_reason: "Closed reason",
 	deleted_at: "Deleted",
 	blocked_by: "Blocked by",
+	comments: "Comments",
 	name: "Name",
 	prefix: "Prefix",
 	archived: "Archived",
 };
 
+const OP_LABELS: Record<string, string> = {
+	tasks_comments_add: "Comment added",
+	tasks_comments_edit: "Comment edited",
+	tasks_comments_delete: "Comment deleted",
+};
+
 export function activityOpLabel(op: string): string {
+	const explicit = OP_LABELS[op];
+	if (explicit !== undefined) {
+		return explicit;
+	}
 	const action = op
 		.replace(/^(tasks|projects|scopes)_/, "")
 		.replace(/_many$/, "");
@@ -29,4 +42,14 @@ export function activityOpLabel(op: string): string {
 
 export function activityFieldLabel(field: string): string {
 	return FIELD_LABELS[field] ?? field;
+}
+
+export function activityValueLabel(value: ActivityValue): string {
+	if (value === null) {
+		return "—";
+	}
+	if (Array.isArray(value)) {
+		return value.length === 0 ? "—" : value.join(", ");
+	}
+	return String(value);
 }
