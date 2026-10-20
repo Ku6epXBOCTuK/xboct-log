@@ -9,6 +9,7 @@ import { migrateDatabase } from "../server/migrations";
 import { createProject } from "../server/projects";
 import { createTask } from "../server/tasks";
 import type { ActivitySource } from "../server/activity";
+import type { ActivityItem } from "../types";
 import { runOp } from "./define";
 import { getOps } from "./index.js";
 
@@ -282,6 +283,55 @@ describe("activity log", () => {
 			["tasks_add_blocker", blocked.id, ["blocked_by"]],
 			["tasks_remove_blocker", blocked.id, ["blocked_by"]],
 		]);
+	});
+
+	it("reads the history of a task without logging the read", async () => {
+		const db = getDb();
+		const task = unwrap(
+			createTask(db, { project_id: "spa", title: "History" }),
+		);
+		clear();
+
+		await call(
+			"tasks_update",
+			{ id: task.id, patch: { status: "done" } },
+			"mcp",
+		);
+		const history = (await call("tasks_history", { id: task.id })) as {
+			items: ActivityItem[];
+			total: number;
+		};
+
+		expect(history.total).toBe(1);
+		expect(history.items[0]).toMatchObject({
+			source: "mcp",
+			op: "tasks_update",
+			fields: ["status"],
+			old_id: null,
+		});
+		expect(rows()).toHaveLength(1);
+	});
+
+	it("follows the history of a moved task and accepts a bare number", async () => {
+		const db = getDb();
+		const task = unwrap(createTask(db, { project_id: "spa", title: "Mover" }));
+		clear();
+
+		const moved = (await call("tasks_move", {
+			id: task.id,
+			project_id: "bil",
+		})) as { id: string };
+		const history = (await call("tasks_history", {
+			id: moved.id,
+			in_project: "bil",
+		})) as { items: ActivityItem[]; total: number };
+
+		expect(history.total).toBe(1);
+		expect(history.items[0]).toMatchObject({
+			op: "tasks_move",
+			fields: ["project_id"],
+			old_id: task.id,
+		});
 	});
 
 	it("records project and scope changes", async () => {

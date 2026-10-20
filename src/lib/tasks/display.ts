@@ -27,6 +27,16 @@ export function messageOf(error: unknown): string {
 	return "Update failed";
 }
 
+export function formatDateTime(value: string): string {
+	const date = new Date(value);
+	if (Number.isNaN(date.getTime())) return "";
+
+	const hours = String(date.getUTCHours()).padStart(2, "0");
+	const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+
+	return `${formatDate(value)} ${hours}:${minutes}`;
+}
+
 export function formatDate(value: string): string {
 	const date = new Date(value);
 	if (Number.isNaN(date.getTime())) return "";

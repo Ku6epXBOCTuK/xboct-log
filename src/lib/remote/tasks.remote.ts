@@ -5,6 +5,7 @@ import { getDb } from "../server/db";
 import * as repo from "../server/tasks";
 import type { BatchItem, CreateBatchItem } from "../server/tasks";
 import { CLOSED_REASONS, PRIORITIES, STATUSES, type Task } from "../types";
+import { ID_DESCRIPTION, IN_PROJECT_DESCRIPTION } from "#lib/tasks/ids.ts";
 import { defineCommand, defineQuery } from "./define";
 
 const taskFilters = z
@@ -114,12 +115,6 @@ const taskFilters = z
 			),
 	})
 	.default({ limit: 100 });
-
-const ID_DESCRIPTION =
-	"Task id. The full 'PREFIX-NUMBER' form (e.g. 'LOG-82') always resolves. A bare task number (e.g. '82') is resolved inside in_project when it is given, otherwise it must be unique across the whole backlog, else the call fails and lists the candidate full ids.";
-
-const IN_PROJECT_DESCRIPTION =
-	"Optional project id (e.g. 'eit') that scopes the id lookup: a bare task number is then looked up inside that project. With a full id, the project must match, else the call fails.";
 
 const EPIC_ID_DESCRIPTION =
 	"Epic id. The full 'PREFIX-NUMBER' form (e.g. 'LOG-5') always resolves. A bare epic number (e.g. '5') is resolved inside the task's own project (project_id on creation, the current project on update). The epic must belong to that project.";

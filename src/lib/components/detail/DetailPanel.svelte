@@ -2,6 +2,7 @@
 	import BlockingFields from "#lib/components/task/BlockingFields.svelte";
 	import DetailActions from "#lib/components/detail/DetailActions.svelte";
 	import ProjectScopeFields from "#lib/components/task/ProjectScopeFields.svelte";
+	import TaskHistory from "#lib/components/detail/TaskHistory.svelte";
 	import TaskFields from "#lib/components/task/TaskFields.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import IconButton from "#lib/components/ui/IconButton.svelte";
@@ -19,6 +20,8 @@
 	} from "#lib/tasks/fields.ts";
 	import type { ClosedReason, Status, Task } from "#lib/types.ts";
 	import { cubicOut } from "svelte/easing";
+	import ArrowLeft from "~icons/lucide/arrow-left";
+	import Clock3 from "~icons/lucide/clock-3";
 	import X from "~icons/lucide/x";
 
 	interface Props {
@@ -43,10 +46,17 @@
 
 	let saving = $state(false);
 	let failure = $state<string | null>(null);
+	let historyOpen = $state(false);
 	let tagSuggestions = $derived(collectTags(tasks.tasks).map((tag) => tag.tag));
 	let blockerCandidates = $derived(
 		selected === null ? [] : blockingCandidates(tasks.tasks, selected),
 	);
+
+	$effect(() => {
+		const id = selected?.id;
+		if (id === undefined) return;
+		historyOpen = false;
+	});
 
 	async function perform(work: () => Promise<Task>) {
 		saving = true;
@@ -150,6 +160,10 @@
 	function onkeydown(event: KeyboardEvent) {
 		if (event.key !== "Escape") return;
 		if (selected === null) return;
+		if (historyOpen) {
+			historyOpen = false;
+			return;
+		}
 		if (document.querySelector("dialog[open]") !== null) return;
 
 		// NOTE: fields commit on change (blur), so the focused control must be
@@ -185,9 +199,18 @@
 								: `updated ${formatDate(selected.updated_at)}`}
 					</span>
 				</div>
-				<IconButton label="Close task details" onclick={onclear}>
-					<X />
-				</IconButton>
+				<div class="detail-actions">
+					<IconButton
+						label="Task history"
+						title="Task history"
+						onclick={() => (historyOpen = true)}
+					>
+						<Clock3 />
+					</IconButton>
+					<IconButton label="Close task details" onclick={onclear}>
+						<X />
+					</IconButton>
+				</div>
 			</div>
 			<input
 				class="title-input"
@@ -232,6 +255,28 @@
 			onreopen={reopen}
 			ondelete={remove}
 		/>
+		{#if historyOpen}
+			<div class="history-overlay" role="dialog" aria-label="Task history">
+				<div class="history-head">
+					<span class="history-title">History</span>
+					<div class="detail-actions">
+						<IconButton
+							label="Back to task details"
+							title="Back to task details"
+							onclick={() => (historyOpen = false)}
+						>
+							<ArrowLeft />
+						</IconButton>
+						<IconButton label="Close task details" onclick={onclear}>
+							<X />
+						</IconButton>
+					</div>
+				</div>
+				<div class="history-body">
+					<TaskHistory task={selected} />
+				</div>
+			</div>
+		{/if}
 	</aside>
 {/if}
 
@@ -263,6 +308,46 @@
 		justify-content: space-between;
 		align-items: center;
 		gap: var(--space-2);
+	}
+
+	.detail-actions {
+		display: flex;
+		align-items: center;
+		gap: var(--space-1);
+		flex: none;
+	}
+
+	.history-overlay {
+		position: absolute;
+		inset: 0;
+		z-index: 20;
+		background: var(--panel);
+		display: flex;
+		flex-direction: column;
+	}
+
+	.history-head {
+		flex: none;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--space-2);
+		min-height: var(--control-h);
+		padding: var(--edge-pad);
+		border-bottom: 1px solid var(--border);
+	}
+
+	.history-title {
+		font-size: var(--text-xl);
+		font-weight: 600;
+		letter-spacing: -0.02em;
+	}
+
+	.history-body {
+		flex: 1 1 auto;
+		min-height: 0;
+		overflow: auto;
+		padding: var(--space-4) var(--edge-pad) var(--space-5);
 	}
 
 	.detail-id {

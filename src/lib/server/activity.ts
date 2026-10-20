@@ -1,5 +1,6 @@
-import type { DatabaseSync } from "node:sqlite";
 import { XBOCT_LOG_ACTIVITY_KEEP_DAYS } from "$app/env/private";
+import type { DatabaseSync } from "node:sqlite";
+import type { ActivityItem } from "../types";
 
 const DAY_MS = 86_400_000;
 
@@ -90,4 +91,71 @@ export function pruneActivity(
 		.prepare("DELETE FROM activity WHERE created_at < ?")
 		.run(cutoff);
 	return Number(result.changes);
+}
+
+export interface ActivityQuery {
+	entity: ActivityEntity;
+	entity_id: string;
+	limit?: number;
+	offset?: number;
+}
+
+const DEFAULT_LIMIT = 50;
+const MAX_LIMIT = 200;
+
+function parseFields(raw: string): string[] {
+	try {
+		const parsed = JSON.parse(raw) as unknown;
+		return Array.isArray(parsed)
+			? parsed.filter((field): field is string => typeof field === "string")
+			: [];
+	} catch {
+		return [];
+	}
+}
+
+export function listActivity(
+	db: DatabaseSync,
+	query: ActivityQuery,
+): { items: ActivityItem[]; total: number } {
+	if (!activityTableExists(db)) {
+		return { items: [], total: 0 };
+	}
+
+	// NOTE: a moved task keeps its old rows under the previous id, so the old
+	// id is matched as well - the history of a task follows it across projects.
+	const where = "entity = ? AND (entity_id = ? OR old_id = ?)";
+	const params = [query.entity, query.entity_id, query.entity_id];
+
+	const count = db
+		.prepare(`SELECT COUNT(*) AS count FROM activity WHERE ${where}`)
+		.get(...params) as unknown as { count: number };
+
+	const limit = Math.min(Math.max(query.limit ?? DEFAULT_LIMIT, 1), MAX_LIMIT);
+	const offset = Math.max(query.offset ?? 0, 0);
+
+	const rows = db
+		.prepare(
+			`SELECT created_at, source, op, fields, old_id
+			 FROM activity WHERE ${where}
+			 ORDER BY id DESC LIMIT ? OFFSET ?`,
+		)
+		.all(...params, limit, offset) as unknown as {
+		created_at: string;
+		source: string;
+		op: string;
+		fields: string;
+		old_id: string | null;
+	}[];
+
+	return {
+		items: rows.map((row) => ({
+			ts: row.created_at,
+			source: row.source,
+			op: row.op,
+			fields: parseFields(row.fields),
+			old_id: row.old_id,
+		})),
+		total: count.count,
+	};
 }

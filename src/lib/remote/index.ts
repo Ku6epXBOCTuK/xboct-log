@@ -1,3 +1,4 @@
+import "./activity.remote";
 import "./backup.remote";
 import "./blockers.remote";
 import "./projects.remote";

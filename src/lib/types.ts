@@ -69,6 +69,14 @@ export interface Scope {
 	epics_count?: number;
 }
 
+export interface ActivityItem {
+	ts: string;
+	source: string;
+	op: string;
+	fields: string[];
+	old_id: string | null;
+}
+
 export interface Task {
 	id: string;
 	project_id: string;
