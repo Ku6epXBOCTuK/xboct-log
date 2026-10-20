@@ -100,4 +100,74 @@ describe("task id resolution", () => {
 		expect(result.items.map((task) => task.id)).toEqual([second.id, first.id]);
 		expect(result.missing).toEqual(["404"]);
 	});
+
+	it("resolves a bare number inside the given project", async () => {
+		const db = await setup();
+		unwrap(createProject(db, { id: "bil", name: "Billing", prefix: "BIL" }));
+		const spaTask = unwrap(createTask(db, { project_id: "spa", title: "A" }));
+		const bilTask = unwrap(createTask(db, { project_id: "bil", title: "B" }));
+
+		expect(unwrap(resolveTaskId(db, "1", "spa"))).toBe(spaTask.id);
+		expect(unwrap(resolveTaskId(db, "1", "bil"))).toBe(bilTask.id);
+		expect(failure(resolveTaskId(db, "1")).kind).toBe("validation");
+	});
+
+	it("reports a number missing in the given project", async () => {
+		const db = await setup();
+		unwrap(createProject(db, { id: "bil", name: "Billing", prefix: "BIL" }));
+		unwrap(createTask(db, { project_id: "spa", title: "A" }));
+
+		const error = failure(resolveTaskId(db, "1", "bil"));
+		expect(error.kind).toBe("not_found");
+		expect(error.message).toContain("bil");
+	});
+
+	it("rejects a full id that belongs to another project", async () => {
+		const db = await setup();
+		unwrap(createProject(db, { id: "bil", name: "Billing", prefix: "BIL" }));
+		const spaTask = unwrap(createTask(db, { project_id: "spa", title: "A" }));
+
+		const error = failure(resolveTaskId(db, spaTask.id, "bil"));
+		expect(error.kind).toBe("validation");
+		expect(error.message).toContain("spa");
+	});
+
+	it("updates, closes, moves and deletes by number inside a project", async () => {
+		const db = await setup();
+		unwrap(createProject(db, { id: "bil", name: "Billing", prefix: "BIL" }));
+		unwrap(createTask(db, { project_id: "spa", title: "A" }));
+		unwrap(createTask(db, { project_id: "bil", title: "B" }));
+
+		expect(unwrap(updateTask(db, "1", { title: "Renamed" }, "bil")).title).toBe(
+			"Renamed",
+		);
+		expect(unwrap(closeTask(db, "1", "fixed", "bil")).id).toBe("BIL-1");
+		expect(unwrap(moveTask(db, "1", "spa", "bil")).id).toBe("SPA-2");
+		expect(unwrap(deleteTask(db, "2", "spa"))).toBe("SPA-2");
+	});
+
+	it("resolves numbers inside a project for batch lookups", async () => {
+		const db = await setup();
+		unwrap(createProject(db, { id: "bil", name: "Billing", prefix: "BIL" }));
+		unwrap(createTask(db, { project_id: "spa", title: "A" }));
+		const bilTask = unwrap(createTask(db, { project_id: "bil", title: "B" }));
+
+		const result = getTasksByIds(db, ["1"], "bil");
+		expect(result.items.map((task) => task.id)).toEqual([bilTask.id]);
+		expect(result.missing).toEqual([]);
+
+		const ambiguous = getTasksByIds(db, ["1"]);
+		expect(ambiguous.items).toEqual([]);
+		expect(ambiguous.missing).toEqual(["1"]);
+	});
+
+	it("keeps epic_id a full id only", async () => {
+		const db = await setup();
+		unwrap(createTask(db, { project_id: "spa", title: "Epic", is_epic: true }));
+		unwrap(createTask(db, { project_id: "spa", title: "A" }));
+
+		expect(failure(updateTask(db, "2", { epic_id: "1" })).kind).toBe(
+			"not_found",
+		);
+	});
 });

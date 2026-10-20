@@ -95,6 +95,12 @@ const taskFilters = z
 	})
 	.default({ limit: 100 });
 
+const ID_DESCRIPTION =
+	"Task id. The full 'PREFIX-NUMBER' form (e.g. 'LOG-82') always resolves. A bare task number (e.g. '82') is resolved inside in_project when it is given, otherwise it must be unique across the whole backlog, else the call fails and lists the candidate full ids.";
+
+const IN_PROJECT_DESCRIPTION =
+	"Optional project id (e.g. 'eit') that scopes the id lookup: a bare task number is then looked up inside that project. With a full id, the project must match, else the call fails.";
+
 const newTask = z.object({
 	project_id: z.string().min(1),
 	title: z.string().min(1),
@@ -140,7 +146,7 @@ export const getTasks = defineQuery({
 export const getTasksByIds = defineQuery({
 	name: "tasks_get_many",
 	description:
-		"Get multiple tasks by their IDs in a single call. Each id accepts the full 'PREFIX-NUMBER' form (e.g. 'LOG-82') or a bare task number (e.g. '82') that is unique across projects. Returns { items, missing }: items follow the requested order, missing lists ids that do not exist, are soft-deleted, or are ambiguous. Use this instead of calling tasks_get in a loop.",
+		"Get multiple tasks by their IDs in a single call. Each id accepts the full 'PREFIX-NUMBER' form (e.g. 'LOG-82') or a bare task number (e.g. '82'). Bare numbers are resolved inside in_project when it is given, otherwise they must be unique across the whole backlog. Returns { items, missing }: items follow the requested order, missing lists ids that do not exist, are soft-deleted, or are ambiguous. Use this instead of calling tasks_get in a loop.",
 	kind: "query",
 	input: z.object({
 		ids: z
@@ -148,19 +154,24 @@ export const getTasksByIds = defineQuery({
 			.min(1)
 			.max(100)
 			.describe("List of task IDs to fetch."),
+		in_project: z.string().min(1).optional().describe(IN_PROJECT_DESCRIPTION),
 	}),
-	handler: ({ ids }) => repo.getTasksByIds(getDb(), ids),
+	handler: ({ ids, in_project }) =>
+		repo.getTasksByIds(getDb(), ids, in_project),
 });
 
 export const getTask = defineQuery({
 	name: "tasks_get",
 	description:
-		"Get a single task by id. Accepts the full id (e.g. 'LOG-82') or a bare task number (e.g. '82'). A bare number must match exactly one task across all projects, otherwise the call fails listing the candidate full ids.",
+		"Get a single task by id. Id accepts the full 'PREFIX-NUMBER' form (e.g. 'LOG-82') or a bare task number (e.g. '82'). A bare number is looked up inside in_project when it is given, otherwise it must match exactly one task across the whole backlog, else the call fails listing the candidate full ids.",
 	kind: "query",
-	input: z.object({ id: z.string().min(1) }),
-	handler: ({ id }) => {
+	input: z.object({
+		id: z.string().min(1).describe(ID_DESCRIPTION),
+		in_project: z.string().min(1).optional().describe(IN_PROJECT_DESCRIPTION),
+	}),
+	handler: ({ id, in_project }) => {
 		const db = getDb();
-		const resolved = repo.resolveTaskId(db, id);
+		const resolved = repo.resolveTaskId(db, id, in_project);
 		if (resolved.isErr()) {
 			error(resolved.error.status, resolved.error.message);
 		}
@@ -180,10 +191,15 @@ export const createTask = defineCommand({
 export const updateTask = defineCommand({
 	name: "tasks_update",
 	description:
-		"Update fields of an existing task by id. Id accepts the full 'PREFIX-NUMBER' form (e.g. 'LOG-82') or a bare task number (e.g. '82') that is unique across projects.",
+		"Update fields of an existing task by id. Id accepts the full 'PREFIX-NUMBER' form (e.g. 'LOG-82') or a bare task number (e.g. '82') resolved inside in_project, otherwise it must be unique across the whole backlog.",
 	kind: "command",
-	input: z.object({ id: z.string().min(1), patch: taskPatch }),
-	handler: ({ id, patch }) => repo.updateTask(getDb(), id, patch),
+	input: z.object({
+		id: z.string().min(1).describe(ID_DESCRIPTION),
+		patch: taskPatch,
+		in_project: z.string().min(1).optional().describe(IN_PROJECT_DESCRIPTION),
+	}),
+	handler: ({ id, patch, in_project }) =>
+		repo.updateTask(getDb(), id, patch, in_project),
 });
 
 function summarize(items: repo.BatchItem[]) {
@@ -194,30 +210,37 @@ function summarize(items: repo.BatchItem[]) {
 export const updateTasks = defineCommand({
 	name: "tasks_update_many",
 	description:
-		"Update several tasks in one call. Each item is applied independently and the response reports ok/error per item; a failing item does not cancel the others.",
+		"Update several tasks in one call. Each item is applied independently and the response reports ok/error per item; a failing item does not cancel the others. in_project scopes bare task numbers in every item.",
 	kind: "command",
 	input: z.object({
 		items: z
 			.array(z.object({ id: z.string().min(1), patch: taskPatch }))
 			.min(1)
 			.max(100),
+		in_project: z.string().min(1).optional().describe(IN_PROJECT_DESCRIPTION),
 	}),
-	handler: ({ items }) => summarize(repo.updateTasksMany(getDb(), items)),
+	handler: ({ items, in_project }) =>
+		summarize(repo.updateTasksMany(getDb(), items, in_project)),
 });
 
 export const closeTask = defineCommand({
 	name: "tasks_close",
 	description:
-		"Close a task by id with a reason: 'fixed' → done, 'wontfix' | 'obsolete' | 'duplicate' | 'not-reproduced' → cancelled. 'not-reproduced' marks a report that could not be reproduced. Id accepts the full 'PREFIX-NUMBER' form (e.g. 'LOG-82') or a bare task number (e.g. '82') that is unique across projects.",
+		"Close a task by id with a reason: 'fixed' → done, 'wontfix' | 'obsolete' | 'duplicate' | 'not-reproduced' → cancelled. 'not-reproduced' marks a report that could not be reproduced. Id accepts the full 'PREFIX-NUMBER' form (e.g. 'LOG-82') or a bare task number (e.g. '82') resolved inside in_project, otherwise it must be unique across the whole backlog.",
 	kind: "command",
-	input: z.object({ id: z.string().min(1), reason: z.enum(CLOSED_REASONS) }),
-	handler: ({ id, reason }) => repo.closeTask(getDb(), id, reason),
+	input: z.object({
+		id: z.string().min(1).describe(ID_DESCRIPTION),
+		reason: z.enum(CLOSED_REASONS),
+		in_project: z.string().min(1).optional().describe(IN_PROJECT_DESCRIPTION),
+	}),
+	handler: ({ id, reason, in_project }) =>
+		repo.closeTask(getDb(), id, reason, in_project),
 });
 
 export const closeTasks = defineCommand({
 	name: "tasks_close_many",
 	description:
-		"Close several tasks in one call. Each item is applied independently and the response reports ok/error per item; a failing item does not cancel the others.",
+		"Close several tasks in one call. Each item is applied independently and the response reports ok/error per item; a failing item does not cancel the others. in_project scopes bare task numbers in every item.",
 	kind: "command",
 	input: z.object({
 		items: z
@@ -226,24 +249,37 @@ export const closeTasks = defineCommand({
 			)
 			.min(1)
 			.max(100),
+		in_project: z.string().min(1).optional().describe(IN_PROJECT_DESCRIPTION),
 	}),
-	handler: ({ items }) => summarize(repo.closeTasksMany(getDb(), items)),
+	handler: ({ items, in_project }) =>
+		summarize(repo.closeTasksMany(getDb(), items, in_project)),
 });
 
 export const deleteTask = defineCommand({
 	name: "tasks_delete",
 	description:
-		"Soft-delete a task by id. Id accepts the full 'PREFIX-NUMBER' form (e.g. 'LOG-82') or a bare task number (e.g. '82') that is unique across projects.",
+		"Soft-delete a task by id. Id accepts the full 'PREFIX-NUMBER' form (e.g. 'LOG-82') or a bare task number (e.g. '82') resolved inside in_project, otherwise it must be unique across the whole backlog.",
 	kind: "command",
-	input: z.object({ id: z.string().min(1) }),
-	handler: ({ id }) => repo.deleteTask(getDb(), id),
+	input: z.object({
+		id: z.string().min(1).describe(ID_DESCRIPTION),
+		in_project: z.string().min(1).optional().describe(IN_PROJECT_DESCRIPTION),
+	}),
+	handler: ({ id, in_project }) => repo.deleteTask(getDb(), id, in_project),
 });
 
 export const moveTask = defineCommand({
 	name: "tasks_move",
 	description:
-		"Move a task to another project. Id accepts the full 'PREFIX-NUMBER' form (e.g. 'LOG-82') or a bare task number (e.g. '82') that is unique across projects.",
+		"Move a task to another project: project_id is the destination project, in_project (optional) scopes the id lookup. Id accepts the full 'PREFIX-NUMBER' form (e.g. 'LOG-82') or a bare task number (e.g. '82') resolved inside in_project, otherwise it must be unique across the whole backlog.",
 	kind: "command",
-	input: z.object({ id: z.string().min(1), project_id: z.string().min(1) }),
-	handler: ({ id, project_id }) => repo.moveTask(getDb(), id, project_id),
+	input: z.object({
+		id: z.string().min(1).describe(ID_DESCRIPTION),
+		project_id: z
+			.string()
+			.min(1)
+			.describe("Destination project id (e.g. 'eit')."),
+		in_project: z.string().min(1).optional().describe(IN_PROJECT_DESCRIPTION),
+	}),
+	handler: ({ id, project_id, in_project }) =>
+		repo.moveTask(getDb(), id, project_id, in_project),
 });

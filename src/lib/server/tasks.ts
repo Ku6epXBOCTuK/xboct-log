@@ -249,43 +249,74 @@ const TASK_NUMBER_PATTERN = /^\d+$/;
 export function resolveTaskId(
 	db: DatabaseSync,
 	input: string,
+	inProject?: string,
 ): Result<string, AppError> {
 	const trimmed = input.trim();
+	const project = inProject?.trim();
 	if (TASK_NUMBER_PATTERN.test(trimmed)) {
-		const rows = db
-			.prepare(
-				"SELECT id FROM tasks WHERE number = ? AND deleted_at IS NULL ORDER BY project_id, id",
-			)
-			.all(Number(trimmed)) as { id: string }[];
+		const rows = (
+			project
+				? db
+						.prepare(
+							"SELECT id FROM tasks WHERE number = ? AND project_id = ? AND deleted_at IS NULL ORDER BY id",
+						)
+						.all(Number(trimmed), project)
+				: db
+						.prepare(
+							"SELECT id FROM tasks WHERE number = ? AND deleted_at IS NULL ORDER BY project_id, id",
+						)
+						.all(Number(trimmed))
+		) as { id: string }[];
 		if (rows.length === 0) {
-			return err(notFound(`task ${trimmed} not found`));
+			return err(
+				notFound(
+					project
+						? `task ${trimmed} not found in project ${project}`
+						: `task ${trimmed} not found`,
+				),
+			);
 		}
 		if (rows.length > 1) {
 			return err(
 				invalid(
 					`task number ${trimmed} is ambiguous: ${rows
 						.map((row) => row.id)
-						.join(", ")} — use the full id`,
+						.join(", ")} — use the full id${
+						project ? ` or pass in_project: "${project}"` : ""
+					}`,
 				),
 			);
 		}
 		return ok(rows[0].id);
 	}
 	const row = db
-		.prepare("SELECT id FROM tasks WHERE id = ? AND deleted_at IS NULL")
-		.get(trimmed) as { id: string } | undefined;
+		.prepare(
+			"SELECT id, project_id FROM tasks WHERE id = ? AND deleted_at IS NULL",
+		)
+		.get(trimmed) as { id: string; project_id: string } | undefined;
 	if (!row) {
 		return err(notFound(`task ${trimmed} not found`));
+	}
+	if (project && row.project_id !== project) {
+		return err(
+			invalid(
+				`task ${row.id} belongs to project ${row.project_id}, not ${project}`,
+			),
+		);
 	}
 	return ok(row.id);
 }
 
-export function getTask(db: DatabaseSync, id: string): Task | undefined {
+export function getTask(
+	db: DatabaseSync,
+	id: string,
+	inProject?: string,
+): Task | undefined {
 	const task = taskById(db, id);
 	if (task) {
 		return task.deleted_at === null ? task : undefined;
 	}
-	const resolved = resolveTaskId(db, id);
+	const resolved = resolveTaskId(db, id, inProject);
 	if (resolved.isErr()) {
 		return undefined;
 	}
@@ -297,7 +328,11 @@ export interface TasksByIds {
 	missing: string[];
 }
 
-export function getTasksByIds(db: DatabaseSync, ids: string[]): TasksByIds {
+export function getTasksByIds(
+	db: DatabaseSync,
+	ids: string[],
+	inProject?: string,
+): TasksByIds {
 	const unique = [...new Set(ids)];
 	if (unique.length === 0) {
 		return { items: [], missing: [] };
@@ -308,13 +343,23 @@ export function getTasksByIds(db: DatabaseSync, ids: string[]): TasksByIds {
 		.map((id) => Number(id.trim()));
 	const rowsByNumber = new Map<number, string[]>();
 	if (numbers.length > 0) {
-		const rows = db
-			.prepare(
-				`SELECT number, id FROM tasks
-				 WHERE number IN (${numbers.map(() => "?").join(", ")}) AND deleted_at IS NULL
-				 ORDER BY project_id, id`,
-			)
-			.all(...numbers) as { number: number; id: string }[];
+		const rows = (
+			inProject
+				? db
+						.prepare(
+							`SELECT number, id FROM tasks
+							 WHERE number IN (${numbers.map(() => "?").join(", ")}) AND project_id = ? AND deleted_at IS NULL
+							 ORDER BY id`,
+						)
+						.all(...numbers, inProject)
+				: db
+						.prepare(
+							`SELECT number, id FROM tasks
+							 WHERE number IN (${numbers.map(() => "?").join(", ")}) AND deleted_at IS NULL
+							 ORDER BY project_id, id`,
+						)
+						.all(...numbers)
+		) as { number: number; id: string }[];
 		for (const row of rows) {
 			const list = rowsByNumber.get(row.number) ?? [];
 			list.push(row.id);
@@ -653,8 +698,9 @@ export function updateTask(
 	db: DatabaseSync,
 	id: string,
 	patch: TaskPatch,
+	inProject?: string,
 ): Result<Task, AppError> {
-	const resolved = resolveTaskId(db, id);
+	const resolved = resolveTaskId(db, id, inProject);
 	if (resolved.isErr()) {
 		return err(resolved.error);
 	}
@@ -771,11 +817,12 @@ export function closeTask(
 	db: DatabaseSync,
 	id: string,
 	reason: ClosedReason,
+	inProject?: string,
 ): Result<Task, AppError> {
 	if (!isClosedReason(reason)) {
 		return err(invalid(`invalid close reason: ${reason}`));
 	}
-	const resolved = resolveTaskId(db, id);
+	const resolved = resolveTaskId(db, id, inProject);
 	if (resolved.isErr()) {
 		return err(resolved.error);
 	}
@@ -815,18 +862,20 @@ function batchItem(id: string, result: Result<Task, AppError>): BatchItem {
 export function closeTasksMany(
 	db: DatabaseSync,
 	items: { id: string; reason: ClosedReason }[],
+	inProject?: string,
 ): BatchItem[] {
 	return items.map((item) =>
-		batchItem(item.id, closeTask(db, item.id, item.reason)),
+		batchItem(item.id, closeTask(db, item.id, item.reason, inProject)),
 	);
 }
 
 export function updateTasksMany(
 	db: DatabaseSync,
 	items: { id: string; patch: TaskPatch }[],
+	inProject?: string,
 ): BatchItem[] {
 	return items.map((item) =>
-		batchItem(item.id, updateTask(db, item.id, item.patch)),
+		batchItem(item.id, updateTask(db, item.id, item.patch, inProject)),
 	);
 }
 
@@ -847,8 +896,9 @@ export function moveTask(
 	db: DatabaseSync,
 	id: string,
 	projectId: string,
+	inProject?: string,
 ): Result<Task, AppError> {
-	const resolved = resolveTaskId(db, id);
+	const resolved = resolveTaskId(db, id, inProject);
 	if (resolved.isErr()) {
 		return err(resolved.error);
 	}
@@ -905,8 +955,9 @@ export function moveTask(
 export function deleteTask(
 	db: DatabaseSync,
 	id: string,
+	inProject?: string,
 ): Result<string, AppError> {
-	const resolved = resolveTaskId(db, id);
+	const resolved = resolveTaskId(db, id, inProject);
 	if (resolved.isErr()) {
 		return err(resolved.error);
 	}
