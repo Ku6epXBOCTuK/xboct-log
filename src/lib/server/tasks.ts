@@ -20,6 +20,7 @@ import {
 	releaseBlockedStatus,
 } from "./blockers";
 import { getProject, resolveProjectRef } from "./projects";
+import { recordRevision } from "./revisions";
 
 interface TaskRow {
 	id: string;
@@ -1024,12 +1025,30 @@ export function updateTask(
 	sets.push("updated_at = ?");
 	params.push(now);
 
+	const descriptionChanged =
+		patch.description !== undefined &&
+		patch.description !== current.description;
+
 	return guard(() => {
-		db.prepare(`UPDATE tasks SET ${sets.join(", ")} WHERE id = ?`).run(
-			...params,
-			targetId,
-		);
-		return withBlockingInfo(db, [taskById(db, targetId)!])[0];
+		db.exec("BEGIN IMMEDIATE");
+		try {
+			if (descriptionChanged) {
+				recordRevision(db, {
+					task_id: targetId,
+					field: "description",
+					body: current.description,
+				});
+			}
+			db.prepare(`UPDATE tasks SET ${sets.join(", ")} WHERE id = ?`).run(
+				...params,
+				targetId,
+			);
+			db.exec("COMMIT");
+			return withBlockingInfo(db, [taskById(db, targetId)!])[0];
+		} catch (error) {
+			db.exec("ROLLBACK");
+			throw error;
+		}
 	});
 }
 
