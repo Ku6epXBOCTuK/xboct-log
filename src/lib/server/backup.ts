@@ -11,7 +11,6 @@ import {
 	XBOCT_LOG_BACKUP_WEEKDAY,
 	XBOCT_LOG_BACKUP_WEEKLY_KEEP,
 } from "$app/env/private";
-import { getDb } from "./db";
 import { type AppError, unexpected } from "./errors";
 
 const APP_NAME = "xboct-log";
@@ -184,59 +183,16 @@ export async function catchUp(
 	return ok(saved);
 }
 
-function msUntilNext(config: BackupConfig, now: Date): number {
-	const next = scheduledFor(config, now);
-	if (next.getTime() <= now.getTime()) {
-		next.setDate(next.getDate() + 1);
-	}
-	return next.getTime() - now.getTime();
-}
-
-function report(label: string, result: Result<string[], AppError>): void {
+export function reportBackup(
+	label: string,
+	result: Result<string[], AppError>,
+): void {
 	if (result.isErr()) {
 		console.warn(`[backup] ${label} failed: ${result.error.message}`);
 		return;
 	}
-	if (result.value.length > 0) {
-		console.log(`[backup] ${label}: ${result.value.join(", ")}`);
+	const saved = result.value.filter((file) => file !== "");
+	if (saved.length > 0) {
+		console.log(`[backup] ${label}: ${saved.join(", ")}`);
 	}
-}
-
-interface BackupGlobal {
-	__xboctLogBackupStarted?: boolean;
-}
-
-// NOTE: a module-level flag is not enough because SvelteKit reloads server
-// modules in dev without restarting the process, which would stack timers.
-function claimScheduler(): boolean {
-	const scope = globalThis as BackupGlobal;
-	if (scope.__xboctLogBackupStarted) {
-		return false;
-	}
-	scope.__xboctLogBackupStarted = true;
-	return true;
-}
-
-export function startBackupScheduler(): void {
-	const config = backupConfig();
-	if (config.disabled || !claimScheduler()) {
-		return;
-	}
-
-	const run = (label: string) => {
-		void runScheduled(getDb(), config).then((result) => report(label, result));
-	};
-	const schedule = () => {
-		const timer = setTimeout(
-			() => {
-				run("scheduled");
-				schedule();
-			},
-			msUntilNext(config, new Date()),
-		);
-		timer.unref();
-	};
-
-	void catchUp(getDb(), config).then((result) => report("catch-up", result));
-	schedule();
 }
