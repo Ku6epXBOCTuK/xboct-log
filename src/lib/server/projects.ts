@@ -116,6 +116,21 @@ export function getProject(db: DatabaseSync, id: string): Project | undefined {
 	return projectById(db, id);
 }
 
+export function resolveProjectRef(
+	db: DatabaseSync,
+	ref: string,
+): Project | undefined {
+	const trimmed = ref.trim();
+	const byId = projectById(db, trimmed);
+	if (byId) {
+		return byId;
+	}
+	const byPrefix = db
+		.prepare("SELECT * FROM projects WHERE prefix = ? COLLATE NOCASE")
+		.get(trimmed) as unknown as ProjectRow | undefined;
+	return byPrefix ? mapProject(byPrefix) : undefined;
+}
+
 export function listProjects(
 	db: DatabaseSync,
 	options: ListProjectsOptions = {},

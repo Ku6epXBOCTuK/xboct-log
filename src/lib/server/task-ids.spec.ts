@@ -222,6 +222,50 @@ describe("task id resolution", () => {
 		expect(error.message).toContain("same project");
 	});
 
+	it("suggests a close id when the task is not found", async () => {
+		const db = await setup();
+		unwrap(createTask(db, { project_id: "spa", title: "A" }));
+
+		const error = failure(resolveTaskId(db, "SPA-3"));
+		expect(error.kind).toBe("not_found");
+		expect(error.message).toContain("did you mean");
+		expect(error.message).toContain("SPA-1");
+	});
+
+	it("reports an unknown project prefix in the id", async () => {
+		const db = await setup();
+
+		const error = failure(resolveTaskId(db, "XXX-1"));
+		expect(error.kind).toBe("not_found");
+		expect(error.message).toContain("unknown project prefix");
+	});
+
+	it("suggests the id of the same number in another project", async () => {
+		const db = await setup();
+		unwrap(createProject(db, { id: "bil", name: "Billing", prefix: "BIL" }));
+		unwrap(createTask(db, { project_id: "spa", title: "A" }));
+
+		const error = failure(resolveTaskId(db, "1", "bil"));
+		expect(error.kind).toBe("not_found");
+		expect(error.message).toContain("SPA-1");
+	});
+
+	it("resolves in_project given as the project prefix", async () => {
+		const db = await setup();
+		const task = unwrap(createTask(db, { project_id: "spa", title: "A" }));
+
+		expect(unwrap(resolveTaskId(db, "1", "SPA"))).toBe(task.id);
+		expect(unwrap(resolveTaskId(db, "1", "spa"))).toBe(task.id);
+	});
+
+	it("reports an unknown in_project", async () => {
+		const db = await setup();
+
+		const error = failure(resolveTaskId(db, "1", "ghost"));
+		expect(error.kind).toBe("not_found");
+		expect(error.message).toContain("ghost");
+	});
+
 	it("filters tasks by epic number", async () => {
 		const db = await setup();
 		unwrap(createProject(db, { id: "bil", name: "Billing", prefix: "BIL" }));
