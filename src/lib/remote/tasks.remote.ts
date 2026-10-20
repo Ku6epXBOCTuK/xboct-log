@@ -1,10 +1,17 @@
 import { error } from "@sveltejs/kit";
+import { err, ok } from "neverthrow";
 import { z } from "zod";
 import { activityEntry, fieldNames } from "../server/activity";
 import { getDb } from "../server/db";
 import * as repo from "../server/tasks";
 import type { BatchItem, CreateBatchItem } from "../server/tasks";
-import { CLOSED_REASONS, PRIORITIES, STATUSES, type Task } from "../types";
+import {
+	CLOSED_REASONS,
+	PRIORITIES,
+	STATUSES,
+	type Task,
+	type TaskWithChanges,
+} from "../types";
 import { ID_DESCRIPTION, IN_PROJECT_DESCRIPTION } from "#lib/tasks/ids.ts";
 import { defineCommand, defineQuery } from "./define";
 
@@ -241,10 +248,15 @@ export const updateTask = defineCommand({
 		patch: taskPatch,
 		in_project: z.string().min(1).optional().describe(IN_PROJECT_DESCRIPTION),
 	}),
-	handler: ({ id, patch, in_project }) =>
-		repo.updateTask(getDb(), id, patch, in_project),
-	activity: (input, task: Task) =>
-		activityEntry("task", task.id, fieldNames(input.patch)),
+	handler: ({ id, patch, in_project }) => {
+		const result = repo.updateTaskDetailed(getDb(), id, patch, in_project);
+		if (result.isErr()) {
+			return err(result.error);
+		}
+		return ok({ ...result.value.task, changes: result.value.changes });
+	},
+	activity: (input, task: TaskWithChanges) =>
+		activityEntry("task", task.id, fieldNames(input.patch), null, task.changes),
 });
 
 function summarize<T extends { ok: boolean }>(items: T[]) {
@@ -274,6 +286,8 @@ export const updateTasks = defineCommand({
 							"task",
 							item.task.id,
 							fieldNames(input.items[index].patch),
+							null,
+							item.changes,
 						),
 					]
 				: [],
@@ -290,10 +304,21 @@ export const closeTask = defineCommand({
 		reason: z.enum(CLOSED_REASONS),
 		in_project: z.string().min(1).optional().describe(IN_PROJECT_DESCRIPTION),
 	}),
-	handler: ({ id, reason, in_project }) =>
-		repo.closeTask(getDb(), id, reason, in_project),
-	activity: (_input, task: Task) =>
-		activityEntry("task", task.id, ["status", "closed_reason"]),
+	handler: ({ id, reason, in_project }) => {
+		const result = repo.closeTaskDetailed(getDb(), id, reason, in_project);
+		if (result.isErr()) {
+			return err(result.error);
+		}
+		return ok({ ...result.value.task, changes: result.value.changes });
+	},
+	activity: (_input, task: TaskWithChanges) =>
+		activityEntry(
+			"task",
+			task.id,
+			["status", "closed_reason"],
+			null,
+			task.changes,
+		),
 });
 
 export const closeTasks = defineCommand({
@@ -315,7 +340,15 @@ export const closeTasks = defineCommand({
 	activity: (_input, result: { items: BatchItem[] }) =>
 		result.items.flatMap((item) =>
 			item.ok
-				? [activityEntry("task", item.task.id, ["status", "closed_reason"])]
+				? [
+						activityEntry(
+							"task",
+							item.task.id,
+							["status", "closed_reason"],
+							null,
+							item.changes,
+						),
+					]
 				: [],
 		),
 });

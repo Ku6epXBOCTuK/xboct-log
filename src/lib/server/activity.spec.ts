@@ -67,6 +67,7 @@ describe("activity", () => {
 			source: "ui",
 			op: "tasks_close",
 			fields: ["status", "closed_reason"],
+			changes: [],
 			old_id: null,
 		});
 	});

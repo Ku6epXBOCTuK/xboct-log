@@ -1,6 +1,6 @@
 import { XBOCT_LOG_ACTIVITY_KEEP_DAYS } from "$app/env/private";
 import type { DatabaseSync, SQLInputValue } from "node:sqlite";
-import type { ActivityItem, ActivityLogItem } from "../types";
+import type { ActivityChange, ActivityItem, ActivityLogItem } from "../types";
 
 const DAY_MS = 86_400_000;
 
@@ -15,6 +15,7 @@ export interface ActivityEntry {
 	entity_id: string;
 	old_id?: string | null;
 	fields: string[];
+	changes?: ActivityChange[];
 }
 
 export function activityEntry(
@@ -22,12 +23,14 @@ export function activityEntry(
 	entityId: string | number,
 	fields: string[],
 	oldId?: string | null,
+	changes?: ActivityChange[],
 ): ActivityEntry {
 	return {
 		entity,
 		entity_id: String(entityId),
 		old_id: oldId ?? null,
 		fields,
+		changes: changes ?? [],
 	};
 }
 
@@ -51,8 +54,8 @@ export function recordActivity(
 		return 0;
 	}
 	const insert = db.prepare(
-		`INSERT INTO activity (created_at, source, op, entity, entity_id, old_id, fields)
-		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO activity (created_at, source, op, entity, entity_id, old_id, fields, changes)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 	);
 	const createdAt = now.toISOString();
 	for (const entry of entries) {
@@ -64,6 +67,7 @@ export function recordActivity(
 			entry.entity_id,
 			entry.old_id ?? null,
 			JSON.stringify(entry.fields),
+			JSON.stringify(entry.changes ?? []),
 		);
 	}
 	return entries.length;
@@ -159,7 +163,7 @@ export function searchActivity(
 
 	const rows = db
 		.prepare(
-			`SELECT created_at, source, op, entity, entity_id, old_id, fields
+			`SELECT created_at, source, op, entity, entity_id, old_id, fields, changes
 			 FROM activity ${where}
 			 ORDER BY id DESC LIMIT ? OFFSET ?`,
 		)
@@ -171,6 +175,7 @@ export function searchActivity(
 		entity_id: string;
 		old_id: string | null;
 		fields: string;
+		changes: string | null;
 	}[];
 
 	const opRows = db
@@ -186,6 +191,7 @@ export function searchActivity(
 			entity_id: row.entity_id,
 			old_id: row.old_id,
 			fields: parseFields(row.fields),
+			changes: parseChanges(row.changes),
 		})),
 		total: count.count,
 		ops: opRows.map((row) => row.op),
@@ -213,6 +219,26 @@ function parseFields(raw: string): string[] {
 	}
 }
 
+function parseChanges(raw: string | null): ActivityChange[] {
+	if (!raw) {
+		return [];
+	}
+	try {
+		const parsed = JSON.parse(raw) as unknown;
+		if (!Array.isArray(parsed)) {
+			return [];
+		}
+		return parsed.filter(
+			(change): change is ActivityChange =>
+				typeof change === "object" &&
+				change !== null &&
+				typeof (change as ActivityChange).field === "string",
+		);
+	} catch {
+		return [];
+	}
+}
+
 export function listActivity(
 	db: DatabaseSync,
 	query: ActivityQuery,
@@ -235,7 +261,7 @@ export function listActivity(
 
 	const rows = db
 		.prepare(
-			`SELECT created_at, source, op, fields, old_id
+			`SELECT created_at, source, op, fields, old_id, changes
 			 FROM activity WHERE ${where}
 			 ORDER BY id DESC LIMIT ? OFFSET ?`,
 		)
@@ -245,6 +271,7 @@ export function listActivity(
 		op: string;
 		fields: string;
 		old_id: string | null;
+		changes: string | null;
 	}[];
 
 	return {
@@ -253,6 +280,7 @@ export function listActivity(
 			source: row.source,
 			op: row.op,
 			fields: parseFields(row.fields),
+			changes: parseChanges(row.changes),
 			old_id: row.old_id,
 		})),
 		total: count.count,

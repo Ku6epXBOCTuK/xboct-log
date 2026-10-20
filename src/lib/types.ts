@@ -69,11 +69,20 @@ export interface Scope {
 	epics_count?: number;
 }
 
+export type ActivityValue = string | number | boolean | string[] | null;
+
+export interface ActivityChange {
+	field: string;
+	from: ActivityValue;
+	to: ActivityValue;
+}
+
 export interface ActivityItem {
 	ts: string;
 	source: string;
 	op: string;
 	fields: string[];
+	changes: ActivityChange[];
 	old_id: string | null;
 }
 
@@ -89,6 +98,10 @@ export interface Comment {
 	created_at: string;
 	edited_at: string | null;
 	deleted_at: string | null;
+}
+
+export interface TaskWithChanges extends Task {
+	changes: ActivityChange[];
 }
 
 export interface Task {

@@ -7,6 +7,7 @@ import {
 	PRIORITY_RANK,
 	STATUSES,
 	STATUS_BY_REASON,
+	type ActivityChange,
 	type ClosedReason,
 	type Priority,
 	type Status,
@@ -70,6 +71,13 @@ export interface TaskPatch {
 	source_file?: string | null;
 	source_line?: number | null;
 	tags?: string[];
+}
+
+export type TaskChange = ActivityChange;
+
+export interface TaskUpdateOutcome {
+	task: Task;
+	changes: TaskChange[];
 }
 
 export interface TaskQuery {
@@ -913,18 +921,19 @@ export function countEpicsByStatus(
 	return countByStatus(db, projectId, true);
 }
 
-export function updateTask(
+export function updateTaskDetailed(
 	db: DatabaseSync,
 	id: string,
 	patch: TaskPatch,
 	inProject?: string,
-): Result<Task, AppError> {
+): Result<TaskUpdateOutcome, AppError> {
 	const resolved = resolveTaskId(db, id, inProject);
 	if (resolved.isErr()) {
 		return err(resolved.error);
 	}
 	const targetId = resolved.value;
 	const current = taskById(db, targetId)!;
+	const changes: TaskChange[] = [];
 
 	const sets: string[] = [];
 	const params: (string | number | null)[] = [];
@@ -937,6 +946,9 @@ export function updateTask(
 		}
 		sets.push("title = ?");
 		params.push(title);
+		if (title !== current.title) {
+			changes.push({ field: "title", from: current.title, to: title });
+		}
 	}
 	if (patch.description !== undefined) {
 		sets.push("description = ?");
@@ -948,6 +960,13 @@ export function updateTask(
 		}
 		sets.push("status = ?");
 		params.push(patch.status);
+		if (patch.status !== current.status) {
+			changes.push({
+				field: "status",
+				from: current.status,
+				to: patch.status,
+			});
+		}
 
 		if (CLOSED_STATUSES.includes(patch.status) && current.closed_at === null) {
 			sets.push("closed_at = ?");
@@ -968,14 +987,35 @@ export function updateTask(
 		}
 		sets.push("priority = ?");
 		params.push(patch.priority);
+		if (patch.priority !== current.priority) {
+			changes.push({
+				field: "priority",
+				from: current.priority,
+				to: patch.priority,
+			});
+		}
 	}
 	if (patch.is_epic !== undefined) {
 		sets.push("is_epic = ?");
 		params.push(patch.is_epic ? 1 : 0);
+		if (patch.is_epic !== current.is_epic) {
+			changes.push({
+				field: "is_epic",
+				from: current.is_epic,
+				to: patch.is_epic,
+			});
+		}
 	}
 	if (patch.tags !== undefined) {
+		const tags = normalizeTags(patch.tags);
 		sets.push("tags = ?");
-		params.push(JSON.stringify(normalizeTags(patch.tags)));
+		params.push(JSON.stringify(tags));
+		if (
+			tags.length !== current.tags.length ||
+			tags.some((tag, index) => tag !== current.tags[index])
+		) {
+			changes.push({ field: "tags", from: current.tags, to: tags });
+		}
 	}
 
 	const sourceFile =
@@ -1008,6 +1048,13 @@ export function updateTask(
 		}
 		sets.push("epic_id = ?");
 		params.push(resolvedEpicId);
+		if (resolvedEpicId !== current.epic_id) {
+			changes.push({
+				field: "epic_id",
+				from: current.epic_id,
+				to: resolvedEpicId,
+			});
+		}
 	}
 
 	if (patch.scope_id !== undefined) {
@@ -1020,6 +1067,13 @@ export function updateTask(
 		}
 		sets.push("scope_id = ?");
 		params.push(scopeId);
+		if (scopeId !== current.scope_id) {
+			changes.push({
+				field: "scope_id",
+				from: current.scope_id,
+				to: scopeId,
+			});
+		}
 	}
 
 	sets.push("updated_at = ?");
@@ -1044,11 +1098,61 @@ export function updateTask(
 				targetId,
 			);
 			db.exec("COMMIT");
-			return withBlockingInfo(db, [taskById(db, targetId)!])[0];
+			return {
+				task: withBlockingInfo(db, [taskById(db, targetId)!])[0],
+				changes,
+			};
 		} catch (error) {
 			db.exec("ROLLBACK");
 			throw error;
 		}
+	});
+}
+
+export function updateTask(
+	db: DatabaseSync,
+	id: string,
+	patch: TaskPatch,
+	inProject?: string,
+): Result<Task, AppError> {
+	const result = updateTaskDetailed(db, id, patch, inProject);
+	return result.isOk() ? ok(result.value.task) : err(result.error);
+}
+
+export function closeTaskDetailed(
+	db: DatabaseSync,
+	id: string,
+	reason: ClosedReason,
+	inProject?: string,
+): Result<TaskUpdateOutcome, AppError> {
+	if (!isClosedReason(reason)) {
+		return err(invalid(`invalid close reason: ${reason}`));
+	}
+	const resolved = resolveTaskId(db, id, inProject);
+	if (resolved.isErr()) {
+		return err(resolved.error);
+	}
+	const targetId = resolved.value;
+	const current = taskById(db, targetId)!;
+	const status = STATUS_BY_REASON[reason];
+	const changes: TaskChange[] = [
+		{ field: "status", from: current.status, to: status },
+		{ field: "closed_reason", from: current.closed_reason, to: reason },
+	];
+
+	const now = new Date().toISOString();
+
+	return guard(() => {
+		db.prepare(
+			`UPDATE tasks
+			 SET status = ?, closed_at = ?, closed_reason = ?, updated_at = ?
+			 WHERE id = ?`,
+		).run(status, now, reason, now, targetId);
+		releaseBlockedStatus(db, listBlocks(db, targetId));
+		return {
+			task: withBlockingInfo(db, [taskById(db, targetId)!])[0],
+			changes,
+		};
 	});
 }
 
@@ -1058,26 +1162,8 @@ export function closeTask(
 	reason: ClosedReason,
 	inProject?: string,
 ): Result<Task, AppError> {
-	if (!isClosedReason(reason)) {
-		return err(invalid(`invalid close reason: ${reason}`));
-	}
-	const resolved = resolveTaskId(db, id, inProject);
-	if (resolved.isErr()) {
-		return err(resolved.error);
-	}
-	const targetId = resolved.value;
-
-	const now = new Date().toISOString();
-
-	return guard(() => {
-		db.prepare(
-			`UPDATE tasks
-			 SET status = ?, closed_at = ?, closed_reason = ?, updated_at = ?
-			 WHERE id = ?`,
-		).run(STATUS_BY_REASON[reason], now, reason, now, targetId);
-		releaseBlockedStatus(db, listBlocks(db, targetId));
-		return withBlockingInfo(db, [taskById(db, targetId)!])[0];
-	});
+	const result = closeTaskDetailed(db, id, reason, inProject);
+	return result.isOk() ? ok(result.value.task) : err(result.error);
 }
 
 export interface BatchError {
@@ -1086,7 +1172,7 @@ export interface BatchError {
 }
 
 export type BatchItem =
-	| { id: string; ok: true; task: Task }
+	| { id: string; ok: true; task: Task; changes: TaskChange[] }
 	| { id: string; ok: false; error: BatchError };
 
 export type CreateBatchItem =
@@ -1109,9 +1195,17 @@ export function createTasksMany(
 	});
 }
 
-function batchItem(id: string, result: Result<Task, AppError>): BatchItem {
+function batchItem(
+	id: string,
+	result: Result<TaskUpdateOutcome, AppError>,
+): BatchItem {
 	return result.isOk()
-		? { id, ok: true, task: result.value }
+		? {
+				id,
+				ok: true,
+				task: result.value.task,
+				changes: result.value.changes,
+			}
 		: {
 				id,
 				ok: false,
@@ -1125,7 +1219,7 @@ export function closeTasksMany(
 	inProject?: string,
 ): BatchItem[] {
 	return items.map((item) =>
-		batchItem(item.id, closeTask(db, item.id, item.reason, inProject)),
+		batchItem(item.id, closeTaskDetailed(db, item.id, item.reason, inProject)),
 	);
 }
 
@@ -1135,7 +1229,7 @@ export function updateTasksMany(
 	inProject?: string,
 ): BatchItem[] {
 	return items.map((item) =>
-		batchItem(item.id, updateTask(db, item.id, item.patch, inProject)),
+		batchItem(item.id, updateTaskDetailed(db, item.id, item.patch, inProject)),
 	);
 }
 
