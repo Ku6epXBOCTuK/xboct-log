@@ -18,32 +18,38 @@ function buildVersion(): string {
 	}
 }
 
-export default defineConfig({
-	plugins: [
-		sveltekit({
-			compilerOptions: {
-				runes: ({ filename }) =>
-					filename.split(/[/\\]/).includes("node_modules") ? undefined : true,
-				experimental: { async: true },
-			},
-			adapter: adapter(),
-			version: { name: buildVersion(), pollInterval: 60_000 },
-			experimental: { remoteFunctions: true },
-		}),
-		Icons({ compiler: "svelte" }),
-	],
-	test: {
-		expect: { requireAssertions: true },
-		projects: [
-			{
-				extends: "./vite.config.ts",
-				test: {
-					name: "server",
-					environment: "node",
-					include: ["src/**/*.{test,spec}.{js,ts}"],
-					exclude: ["src/**/*.svelte.{test,spec}.{js,ts}"],
+export default defineConfig(({ mode }) => {
+	if (mode === "test") {
+		process.env.XBOCT_LOG_DB ??= ":memory:";
+	}
+
+	return {
+		plugins: [
+			sveltekit({
+				compilerOptions: {
+					runes: ({ filename }) =>
+						filename.split(/[/\\]/).includes("node_modules") ? undefined : true,
+					experimental: { async: true },
 				},
-			},
+				adapter: adapter(),
+				version: { name: buildVersion(), pollInterval: 60_000 },
+				experimental: { remoteFunctions: true },
+			}),
+			Icons({ compiler: "svelte" }),
 		],
-	},
+		test: {
+			expect: { requireAssertions: true },
+			projects: [
+				{
+					extends: "./vite.config.ts",
+					test: {
+						name: "server",
+						environment: "node",
+						include: ["src/**/*.{test,spec}.{js,ts}"],
+						exclude: ["src/**/*.svelte.{test,spec}.{js,ts}"],
+					},
+				},
+			],
+		},
+	};
 });

@@ -1,4 +1,4 @@
-import { homedir } from "node:os";
+import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { Migrator } from "@ku6epxboctuk/sqlite-up";
@@ -7,10 +7,13 @@ const MIGRATIONS_TABLE = "schema_migrations";
 const LOCK_TABLE = "schema_migrations_lock";
 
 const command = process.argv[2] ?? "apply";
-const dbPath =
-	process.env.XBOCT_LOG_DB ?? join(homedir(), ".xboct-log", "xboct-log.db");
+const devDir = join(import.meta.dirname, "..", ".dev");
+const dbPath = process.env.XBOCT_LOG_DEV_DB ?? join(devDir, "dev.db");
+mkdirSync(devDir, { recursive: true });
 const migrationsDir =
 	process.env.XBOCT_LOG_MIGRATIONS ?? join(process.cwd(), "migrations");
+
+console.log(`dev database: ${dbPath}`);
 
 const db = new DatabaseSync(dbPath);
 db.exec("PRAGMA foreign_keys = ON;");

@@ -99,6 +99,14 @@
   не создаётся и не удаляется каждый раз → сборка → копирование `build`,
   `migrations`, манифеста и `scripts/start-prod.mjs` в `app` →
   `nssm stop`/`start`. Простой — только `robocopy` + рестарт (порядка 2–3 с).
+- **Путь к прод-БД живёт в `app/.env`, не в коде.** Все серверные переменные
+  объявлены в `src/env.ts` и читаются через `$app/env/private`; dev-сервер
+  подхватывает `.env` сам, `start-prod.mjs` читает `.env` рядом с собой, деплой
+  требует `app/.env` и падает без него. Без `XBOCT_LOG_DB` не собирается и
+  сборка. Прод-миграции применяются внутри сервера на старте
+  (`hooks.server.ts`). `scripts/migrate.mjs` — только для dev: он не читает
+  `.env` и ходит в `XBOCT_LOG_DEV_DB` (по умолчанию `.dev/dev.db`), поэтому
+  случайный `pnpm migrate` не может задеть прод.
 - **Костыль схемы запроса.** `adapter-node` без `PROTOCOL_HEADER` считает схему
   `https` и отбивает любой не-GET как cross-site (403
   `Cross-site remote requests are forbidden`). `app/start.mjs` (=
@@ -116,12 +124,15 @@
 ## Разработка
 
 - `pnpm dev:clone` — копия прод-БД (через `backup()` из `node:sqlite`) в
-  `~/.xboct-log/dev.db`. Живую прод-базу читает в `readOnly`.
+  `.dev/dev.db`. Прод-путь берётся из `XBOCT_LOG_DB` (`.env`), живую базу читает
+  в `readOnly`.
 - `pnpm dev` — `scripts/dev.mjs`: dev-БД, `XBOCT_LOG_BACKUP_DISABLED=1` и
-  отдельный `dev-backups`, чтобы dev не перезаписал прод-бэкап
-  `xboct-log-YYYY-MM-DD.db`. `pnpm dev:vite` — сырой запуск без изоляции.
-- БД по умолчанию — `~/.xboct-log/xboct-log.db`, переопределяется
-  `XBOCT_LOG_DB`.
+  отдельный `.dev/backups`, чтобы dev не перезаписал прод-бэкап
+  `xboct-log-YYYY-MM-DD.db`. `XBOCT_LOG_DB` из `.env` игнорируется — dev всегда
+  идёт на `XBOCT_LOG_DEV_DB` (по умолчанию `.dev/dev.db`). `pnpm dev:vite` —
+  сырой запуск без изоляции, требует `XBOCT_LOG_DB`.
+- У `XBOCT_LOG_DB` нет значения по умолчанию: без переменной сервер и скрипты
+  миграций падают с ошибкой.
 
 ## Расширение VS Code
 

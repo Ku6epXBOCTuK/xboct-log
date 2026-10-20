@@ -1,10 +1,18 @@
 import { existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { backup, type DatabaseSync } from "node:sqlite";
 import { err, ok, type Result } from "neverthrow";
+import {
+	XBOCT_LOG_BACKUP_DAILY_KEEP,
+	XBOCT_LOG_BACKUP_DIR,
+	XBOCT_LOG_BACKUP_DISABLED,
+	XBOCT_LOG_BACKUP_HOUR,
+	XBOCT_LOG_BACKUP_MINUTE,
+	XBOCT_LOG_BACKUP_WEEKDAY,
+	XBOCT_LOG_BACKUP_WEEKLY_KEEP,
+} from "$app/env/private";
 import { getDb } from "./db";
 import { type AppError, unexpected } from "./errors";
-import { defaultDbPath } from "./paths";
 
 const APP_NAME = "xboct-log";
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -21,30 +29,15 @@ export interface BackupConfig {
 	disabled: boolean;
 }
 
-function envInt(name: string, fallback: number): number {
-	const raw = process.env[name];
-	if (raw === undefined || raw === "") {
-		return fallback;
-	}
-	const value = Number.parseInt(raw, 10);
-	return Number.isFinite(value) ? value : fallback;
-}
-
-function isTruthy(value: string | undefined): boolean {
-	return value === "1" || value === "true" || value === "yes";
-}
-
 export function backupConfig(): BackupConfig {
 	return {
-		dir:
-			process.env.XBOCT_LOG_BACKUP_DIR ??
-			join(dirname(defaultDbPath()), "backups"),
-		hour: envInt("XBOCT_LOG_BACKUP_HOUR", 3),
-		minute: envInt("XBOCT_LOG_BACKUP_MINUTE", 0),
-		weekday: envInt("XBOCT_LOG_BACKUP_WEEKDAY", 0),
-		dailyKeep: envInt("XBOCT_LOG_BACKUP_DAILY_KEEP", 7),
-		weeklyKeep: envInt("XBOCT_LOG_BACKUP_WEEKLY_KEEP", 4),
-		disabled: isTruthy(process.env.XBOCT_LOG_BACKUP_DISABLED),
+		dir: XBOCT_LOG_BACKUP_DIR,
+		hour: XBOCT_LOG_BACKUP_HOUR,
+		minute: XBOCT_LOG_BACKUP_MINUTE,
+		weekday: XBOCT_LOG_BACKUP_WEEKDAY,
+		dailyKeep: XBOCT_LOG_BACKUP_DAILY_KEEP,
+		weeklyKeep: XBOCT_LOG_BACKUP_WEEKLY_KEEP,
+		disabled: XBOCT_LOG_BACKUP_DISABLED,
 	};
 }
 

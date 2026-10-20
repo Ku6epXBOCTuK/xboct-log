@@ -14,8 +14,7 @@ let dbDir: string;
 
 beforeAll(async () => {
 	dbDir = mkdtempSync(join(tmpdir(), "xboct-log-blockers-"));
-	process.env.XBOCT_LOG_DB = join(dbDir, "blockers.db");
-	const db = getDb();
+	const db = getDb(join(dbDir, "blockers.db"));
 	await migrateDatabase(db);
 	createProject(db, { id: "spa", name: "Shop", prefix: "SPA" });
 	createProject(db, { id: "bil", name: "Billing", prefix: "BIL" });

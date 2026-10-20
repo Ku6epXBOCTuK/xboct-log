@@ -1,17 +1,24 @@
-import { existsSync } from "node:fs";
-import { homedir } from "node:os";
-import { join } from "node:path";
+import { existsSync, mkdirSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { DatabaseSync, backup } from "node:sqlite";
 
-const root = join(homedir(), ".xboct-log");
-const prod = process.env.XBOCT_LOG_PROD_DB ?? join(root, "xboct-log.db");
-const dev = process.env.XBOCT_LOG_DB ?? join(root, "dev.db");
+const prod = process.env.XBOCT_LOG_DB;
+const dev =
+	process.env.XBOCT_LOG_DEV_DB ??
+	join(import.meta.dirname, "..", ".dev", "dev.db");
+
+if (prod === undefined || prod === "") {
+	console.error("XBOCT_LOG_DB is not set.");
+	console.error("Put XBOCT_LOG_DB=<path to the database> in a .env file.");
+	process.exit(1);
+}
 
 if (!existsSync(prod)) {
 	console.error(`prod database not found: ${prod}`);
 	process.exit(1);
 }
 
+mkdirSync(dirname(dev), { recursive: true });
 const source = new DatabaseSync(prod, { readOnly: true });
 try {
 	await backup(source, dev);

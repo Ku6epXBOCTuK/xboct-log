@@ -16,8 +16,8 @@ export function openDatabase(location: string): DatabaseSync {
 
 let singleton: DatabaseSync | undefined;
 
-export function getDb(): DatabaseSync {
-	singleton ??= openDatabase(defaultDbPath());
+export function getDb(location?: string): DatabaseSync {
+	singleton ??= openDatabase(location ?? defaultDbPath());
 	return singleton;
 }
 

@@ -1,10 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
-import {
-	ACTIVITY_KEEP_DAYS_ENV,
-	activityKeepDays,
-	pruneActivity,
-} from "./activity";
+import { pruneActivity } from "./activity";
 import { openMigratedDatabase } from "./migrations";
 
 async function setup(): Promise<DatabaseSync> {
@@ -38,14 +34,6 @@ describe("activity", () => {
 
 		expect(removed).toBe(1);
 		expect(countActivity(db)).toBe(1);
-	});
-
-	it("reads the retention window from the environment", () => {
-		expect(activityKeepDays({})).toBe(365);
-		expect(activityKeepDays({ [ACTIVITY_KEEP_DAYS_ENV]: "30" })).toBe(30);
-		expect(activityKeepDays({ [ACTIVITY_KEEP_DAYS_ENV]: "" })).toBe(365);
-		expect(activityKeepDays({ [ACTIVITY_KEEP_DAYS_ENV]: "abc" })).toBe(365);
-		expect(activityKeepDays({ [ACTIVITY_KEEP_DAYS_ENV]: "0" })).toBe(365);
 	});
 
 	it("does nothing when the activity table is missing", async () => {

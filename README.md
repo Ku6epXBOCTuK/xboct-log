@@ -28,8 +28,9 @@ pnpm dev
 ```
 
 `pnpm dev` runs on an isolated clone so it never touches the real database: it
-uses `~/.xboct-log/dev.db`, writes backups to `~/.xboct-log/dev-backups`, and
-leaves `~/.xboct-log/xboct-log.db` (the production database) alone.
+uses `./.dev/dev.db` (override with `XBOCT_LOG_DEV_DB`), writes backups to
+`./.dev/backups`, and ignores the production `XBOCT_LOG_DB` from `.env`. The
+`.dev` directory is gitignored.
 
 Refresh the clone from the live production database at any time:
 
@@ -37,9 +38,35 @@ Refresh the clone from the live production database at any time:
 pnpm dev:clone
 ```
 
-Use `pnpm dev:vite` for a raw Vite run without the isolation wrapper.
+## Configuration
 
-Point the app at a different database with `XBOCT_LOG_DB`:
+`XBOCT_LOG_DB` is required by everything that touches the real database: the
+production server and `pnpm dev:clone`. Put it in `.env` at the repo root, and
+in `~/.xboct-log/app/.env` on the production host. Copy `.env.example` as a
+starting point:
+
+```sh
+XBOCT_LOG_DB=C:\Users\you\.xboct-log\xboct-log.db
+```
+
+There is no built-in default, so a fresh checkout fails to build: `pnpm build`
+exits with `env_invalid` until you create `.env` with `XBOCT_LOG_DB`. The server
+refuses to start for the same reason instead of silently opening the production
+database. The app reads the variable through `$app/env/private` (declared in
+`src/env.ts`), so the dev server picks it up from `.env` automatically.
+`pnpm dev:clone` runs with `--env-file-if-exists=.env`, and the production
+launcher reads `app/.env` at startup.
+
+All server-side variables are declared in `src/env.ts` with their defaults:
+`XBOCT_LOG_MIGRATIONS`, `XBOCT_LOG_BACKUP_*`, `XBOCT_LOG_ACTIVITY_KEEP_DAYS`.
+`.env.example` lists them.
+
+`migrate:*` scripts never read `.env` and never open the production database:
+they target the dev database (`XBOCT_LOG_DEV_DB`, default `./.dev/dev.db`).
+Production migrations run inside the server on startup.
+
+`pnpm dev:vite` is the raw Vite run; it reads `.env` too, so it points at the
+production database unless the variable is overridden:
 
 ```sh
 XBOCT_LOG_DB=./tasks.db pnpm dev:vite
@@ -73,7 +100,7 @@ overwrites a production copy.
 | Command          | Description                                 |
 | ---------------- | ------------------------------------------- |
 | `pnpm dev`       | Dev server on an isolated clone of the DB   |
-| `pnpm dev:clone` | Copy the prod DB to `~/.xboct-log/dev.db`   |
+| `pnpm dev:clone` | Copy the prod DB to `./.dev/dev.db`         |
 | `pnpm dev:vite`  | Raw Vite dev server, no isolation           |
 | `pnpm build`     | Build for production (Node adapter)         |
 | `pnpm preview`   | Preview the production build                |

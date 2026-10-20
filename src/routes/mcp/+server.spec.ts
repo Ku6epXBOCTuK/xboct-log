@@ -2,25 +2,22 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { DatabaseSync } from "node:sqlite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { getOps } from "#lib/remote/index.ts";
-import { closeDb } from "#lib/server/db.ts";
-import { openMigratedDatabase } from "#lib/server/migrations.ts";
+import { closeDb, getDb } from "#lib/server/db.ts";
+import { migrateDatabase } from "#lib/server/migrations.ts";
 import { GET, POST } from "./+server.js";
 
 let dbDir: string;
-let db: DatabaseSync;
 
 beforeAll(async () => {
 	dbDir = mkdtempSync(join(tmpdir(), "xboct-log-mcp-"));
-	process.env.XBOCT_LOG_DB = join(dbDir, "mcp.db");
-	db = await openMigratedDatabase(process.env.XBOCT_LOG_DB);
+	const db = getDb(join(dbDir, "mcp.db"));
+	await migrateDatabase(db);
 });
 
 afterAll(() => {
 	closeDb();
-	db.close();
 	rmSync(dbDir, { recursive: true, force: true });
 });
 

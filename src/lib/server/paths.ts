@@ -1,8 +1,10 @@
-import { homedir } from "node:os";
-import { join } from "node:path";
+import { XBOCT_LOG_DB } from "$app/env/private";
 
 export function defaultDbPath(): string {
-	return (
-		process.env.XBOCT_LOG_DB ?? join(homedir(), ".xboct-log", "xboct-log.db")
-	);
+	if (XBOCT_LOG_DB === undefined || XBOCT_LOG_DB === "") {
+		throw new Error(
+			"XBOCT_LOG_DB is not set. Add it to .env or the service environment.",
+		);
+	}
+	return XBOCT_LOG_DB;
 }

@@ -1,23 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
+import { XBOCT_LOG_ACTIVITY_KEEP_DAYS } from "$app/env/private";
 
-export const ACTIVITY_KEEP_DAYS_ENV = "XBOCT_LOG_ACTIVITY_KEEP_DAYS";
-
-const DEFAULT_KEEP_DAYS = 365;
 const DAY_MS = 86_400_000;
-
-export function activityKeepDays(
-	env: Record<string, string | undefined> = process.env,
-): number {
-	const raw = env[ACTIVITY_KEEP_DAYS_ENV];
-	if (raw === undefined || raw === "") {
-		return DEFAULT_KEEP_DAYS;
-	}
-	const parsed = Number.parseInt(raw, 10);
-	if (!Number.isFinite(parsed) || parsed <= 0) {
-		return DEFAULT_KEEP_DAYS;
-	}
-	return parsed;
-}
 
 export function activityTableExists(db: DatabaseSync): boolean {
 	const row = db
@@ -30,7 +14,7 @@ export function activityTableExists(db: DatabaseSync): boolean {
 
 export function pruneActivity(
 	db: DatabaseSync,
-	keepDays: number = activityKeepDays(),
+	keepDays: number = XBOCT_LOG_ACTIVITY_KEEP_DAYS,
 	now: Date = new Date(),
 ): number {
 	if (!activityTableExists(db)) {

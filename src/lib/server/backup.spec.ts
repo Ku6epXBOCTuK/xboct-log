@@ -197,28 +197,14 @@ describe("catchUp", () => {
 });
 
 describe("backupConfig", () => {
-	it("reads env overrides", () => {
-		process.env.XBOCT_LOG_BACKUP_DIR = "C:/tmp/backups";
-		process.env.XBOCT_LOG_BACKUP_HOUR = "5";
-		process.env.XBOCT_LOG_BACKUP_WEEKLY_KEEP = "9";
-		process.env.XBOCT_LOG_BACKUP_DISABLED = "1";
-
-		expect(backupConfig()).toMatchObject({
-			dir: "C:/tmp/backups",
-			hour: 5,
-			weeklyKeep: 9,
-			disabled: true,
-		});
-	});
-
 	it("falls back to defaults", () => {
-		delete process.env.XBOCT_LOG_BACKUP_DIR;
-		delete process.env.XBOCT_LOG_BACKUP_HOUR;
-		delete process.env.XBOCT_LOG_BACKUP_DISABLED;
-
-		const config = backupConfig();
-		expect(config.hour).toBe(3);
-		expect(config.dailyKeep).toBe(7);
-		expect(config.disabled).toBe(false);
+		expect(backupConfig()).toMatchObject({
+			hour: 3,
+			minute: 0,
+			weekday: 0,
+			dailyKeep: 7,
+			weeklyKeep: 4,
+			disabled: false,
+		});
 	});
 });
