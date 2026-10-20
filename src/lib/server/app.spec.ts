@@ -17,6 +17,7 @@ import {
 	countEpicsByStatus,
 	countTasksByStatus,
 	createTask,
+	createTasksMany,
 	deleteTask,
 	getTask,
 	getTasksByIds,
@@ -253,6 +254,42 @@ describe("tasks", () => {
 			error: { kind: "not_found" },
 		});
 		expect(getTask(db, first.id)?.priority).toBe("high");
+	});
+
+	it("creates several tasks and skips failing items", async () => {
+		const db = await setup();
+		unwrap(createProject(db, { id: "bil", name: "Billing", prefix: "BIL" }));
+
+		const results = createTasksMany(db, [
+			{ project_id: "spa", title: "A", tags: ["x"] },
+			{ project_id: "nope", title: "B" },
+			{ project_id: "bil", title: "C" },
+		]);
+
+		expect(results).toHaveLength(3);
+		expect(results[0]).toMatchObject({ index: 0, ok: true });
+		expect(results[1]).toMatchObject({
+			index: 1,
+			ok: false,
+			error: { kind: "not_found" },
+		});
+		expect(results[2]).toMatchObject({ index: 2, ok: true });
+		expect(getTask(db, "SPA-1")?.tags).toEqual(["x"]);
+		expect(getTask(db, "BIL-1")?.title).toBe("C");
+	});
+
+	it("creates tasks in order and numbers them sequentially", async () => {
+		const db = await setup();
+
+		const results = createTasksMany(db, [
+			{ project_id: "spa", title: "A" },
+			{ project_id: "spa", title: "B" },
+		]);
+
+		expect(results[0]).toMatchObject({ index: 0, ok: true });
+		expect(results[1]).toMatchObject({ index: 1, ok: true });
+		expect(getTask(db, "SPA-1")?.title).toBe("A");
+		expect(getTask(db, "SPA-2")?.title).toBe("B");
 	});
 
 	it("returns requested tasks in order and lists missing ids", async () => {

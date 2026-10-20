@@ -881,6 +881,26 @@ export type BatchItem =
 	| { id: string; ok: true; task: Task }
 	| { id: string; ok: false; error: BatchError };
 
+export type CreateBatchItem =
+	| { index: number; ok: true; task: Task }
+	| { index: number; ok: false; error: BatchError };
+
+export function createTasksMany(
+	db: DatabaseSync,
+	items: NewTask[],
+): CreateBatchItem[] {
+	return items.map((item, index) => {
+		const result = createTask(db, item);
+		return result.isOk()
+			? { index, ok: true, task: result.value }
+			: {
+					index,
+					ok: false,
+					error: { kind: result.error.kind, message: result.error.message },
+				};
+	});
+}
+
 function batchItem(id: string, result: Result<Task, AppError>): BatchItem {
 	return result.isOk()
 		? { id, ok: true, task: result.value }

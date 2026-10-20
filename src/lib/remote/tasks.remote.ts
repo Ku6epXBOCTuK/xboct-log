@@ -197,6 +197,17 @@ export const createTask = defineCommand({
 	handler: (input) => repo.createTask(getDb(), input),
 });
 
+export const createTasks = defineCommand({
+	name: "tasks_create_many",
+	description:
+		"Create several tasks in one call. Each item is created independently and the response reports ok/error per item; a failing item does not cancel the others. Items are created in the given order, so task numbers are allocated sequentially. Each item needs its own project_id and title and accepts the same fields as tasks_create, including epic_id as a full epic id or a bare epic number resolved inside the item's project_id. Returns {items, succeeded, failed}; every item carries its index in the request list.",
+	kind: "command",
+	input: z.object({
+		items: z.array(newTask).min(1).max(100),
+	}),
+	handler: (input) => summarize(repo.createTasksMany(getDb(), input.items)),
+});
+
 export const updateTask = defineCommand({
 	name: "tasks_update",
 	description:
@@ -211,7 +222,7 @@ export const updateTask = defineCommand({
 		repo.updateTask(getDb(), id, patch, in_project),
 });
 
-function summarize(items: repo.BatchItem[]) {
+function summarize<T extends { ok: boolean }>(items: T[]) {
 	const succeeded = items.filter((item) => item.ok).length;
 	return { items, succeeded, failed: items.length - succeeded };
 }
