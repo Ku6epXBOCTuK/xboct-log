@@ -97,6 +97,7 @@ export interface ActivitySearch {
 	source?: string;
 	op?: string;
 	entity?: string;
+	project_id?: string;
 	from?: string;
 	to?: string;
 	limit?: number;
@@ -125,6 +126,18 @@ export function searchActivity(
 	if (search.entity) {
 		clauses.push("entity = ?");
 		params.push(search.entity);
+	}
+	if (search.project_id) {
+		clauses.push(`(
+			(entity = 'project' AND entity_id = ?)
+			OR (entity = 'task' AND entity_id IN (
+				SELECT id FROM tasks WHERE project_id = ?
+			))
+			OR (entity = 'scope' AND entity_id IN (
+				SELECT CAST(id AS TEXT) FROM scopes WHERE project_id = ?
+			))
+		)`);
+		params.push(search.project_id, search.project_id, search.project_id);
 	}
 	if (search.from) {
 		clauses.push("created_at >= ?");

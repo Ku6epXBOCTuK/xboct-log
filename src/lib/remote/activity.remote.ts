@@ -55,6 +55,13 @@ export const listActivityLog = defineQuery({
 			.enum(["task", "project", "scope"])
 			.optional()
 			.describe("Entity type of the changed object."),
+		project_id: z
+			.string()
+			.min(1)
+			.optional()
+			.describe(
+				"Project id: keeps the project's own events, events of its tasks and of its scopes.",
+			),
 		from: z
 			.string()
 			.min(1)
@@ -79,11 +86,12 @@ export const listActivityLog = defineQuery({
 			.optional()
 			.describe("Number of events to skip, for pagination."),
 	}),
-	handler: ({ source, op, entity, from, to, limit, offset }) => {
+	handler: ({ source, op, entity, project_id, from, to, limit, offset }) => {
 		return searchActivity(getDb(), {
 			source,
 			op,
 			entity,
+			project_id,
 			from,
 			to,
 			limit,

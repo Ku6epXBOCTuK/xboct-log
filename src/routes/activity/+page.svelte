@@ -1,10 +1,13 @@
 <script lang="ts">
 	import { activityFieldLabel, activityOpLabel } from "#lib/activity/labels.ts";
 	import { listActivityLog } from "#lib/remote/activity.remote.ts";
+	import { useBoard } from "#lib/state/board.svelte.ts";
 	import { formatDateTime } from "#lib/tasks/display.ts";
 	import type { ActivityLogItem } from "#lib/types.ts";
 
 	const LIMIT = 50;
+
+	const { projects, filters, setActiveProject } = useBoard();
 
 	let source = $state("");
 	let op = $state("");
@@ -32,6 +35,7 @@
 				op: op === "" ? undefined : op,
 				entity:
 					entity === "" ? undefined : (entity as "task" | "project" | "scope"),
+				project_id: filters.activeProject ?? undefined,
 				from: from === "" ? undefined : `${from}T00:00:00.000Z`,
 				to: to === "" ? undefined : `${to}T23:59:59.999Z`,
 				limit: LIMIT,
@@ -56,10 +60,16 @@
 		from = "";
 		to = "";
 		offset = 0;
+		setActiveProject(null);
 	}
 
 	const hasFilters = $derived(
-		source !== "" || op !== "" || entity !== "" || from !== "" || to !== "",
+		filters.activeProject !== null ||
+			source !== "" ||
+			op !== "" ||
+			entity !== "" ||
+			from !== "" ||
+			to !== "",
 	);
 	const canPrev = $derived(offset > 0);
 	const canNext = $derived(offset + LIMIT < total);
@@ -72,6 +82,23 @@
 	</header>
 
 	<div class="filters">
+		<label class="filter">
+			<span>Project</span>
+			<select
+				class="control"
+				value={filters.activeProject ?? ""}
+				onchange={(event) => {
+					const value = event.currentTarget.value;
+					offset = 0;
+					setActiveProject(value === "" ? null : value);
+				}}
+			>
+				<option value="">Any</option>
+				{#each projects.all as project (project.id)}
+					<option value={project.id}>{project.name}</option>
+				{/each}
+			</select>
+		</label>
 		<label class="filter">
 			<span>Source</span>
 			<select class="control" bind:value={source} onchange={() => (offset = 0)}>

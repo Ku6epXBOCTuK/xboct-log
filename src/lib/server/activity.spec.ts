@@ -172,6 +172,46 @@ describe("searchActivity", () => {
 		expect(result.items[0].source).toBe("mcp");
 	});
 
+	it("filters by project through its tasks, scopes and own events", async () => {
+		const db = await setup();
+		db.prepare(
+			`INSERT INTO projects (id, name, prefix, created_at)
+			 VALUES ('alpha', 'Alpha', 'ALP', '2026-10-01T00:00:00.000Z'),
+			        ('beta', 'Beta', 'BET', '2026-10-01T00:00:00.000Z')`,
+		).run();
+		db.prepare(
+			`INSERT INTO tasks (id, project_id, number, title, status, priority, created_at, updated_at)
+			 VALUES ('ALP-1', 'alpha', 1, 'a', 'open', 'low', '2026-10-01T00:00:00.000Z', '2026-10-01T00:00:00.000Z'),
+			        ('BET-1', 'beta', 1, 'b', 'open', 'low', '2026-10-01T00:00:00.000Z', '2026-10-01T00:00:00.000Z')`,
+		).run();
+		db.prepare(
+			`INSERT INTO scopes (id, project_id, name, created_at)
+			 VALUES (1, 'alpha', 'ui', '2026-10-01T00:00:00.000Z')`,
+		).run();
+		const insert = db.prepare(
+			`INSERT INTO activity (created_at, source, op, entity, entity_id, fields)
+			 VALUES (?, 'ui', 'tasks_update', ?, ?, '["status"]')`,
+		);
+		insert.run("2026-10-18T12:00:00.000Z", "task", "ALP-1");
+		insert.run("2026-10-19T12:00:00.000Z", "task", "BET-1");
+		insert.run("2026-10-20T12:00:00.000Z", "project", "alpha");
+		insert.run("2026-10-20T13:00:00.000Z", "project", "beta");
+		insert.run("2026-10-20T14:00:00.000Z", "scope", "1");
+
+		const result = searchActivity(db, { project_id: "alpha" });
+
+		expect(result.total).toBe(3);
+		expect(result.items.map((item) => item.entity_id)).toEqual([
+			"1",
+			"alpha",
+			"ALP-1",
+		]);
+		expect(
+			searchActivity(db, { project_id: "alpha", entity: "task" }).total,
+		).toBe(1);
+		expect(searchActivity(db, { project_id: "missing" }).total).toBe(0);
+	});
+
 	it("pages through the events and lists the known operations", async () => {
 		const db = await seed();
 
