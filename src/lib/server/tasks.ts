@@ -13,6 +13,11 @@ import {
 	type Task,
 } from "../types";
 import { AppError, guard, invalid, notFound, type ErrorKind } from "./errors";
+import {
+	deleteBlockedByLinks,
+	listBlocks,
+	releaseBlockedStatus,
+} from "./blockers";
 import { getProject } from "./projects";
 
 interface TaskRow {
@@ -868,6 +873,7 @@ export function closeTask(
 			 SET status = ?, closed_at = ?, closed_reason = ?, updated_at = ?
 			 WHERE id = ?`,
 		).run(STATUS_BY_REASON[reason], now, reason, now, targetId);
+		releaseBlockedStatus(db, listBlocks(db, targetId));
 		return taskById(db, targetId)!;
 	});
 }
@@ -1020,12 +1026,15 @@ export function deleteTask(
 	return guard(() => {
 		db.exec("BEGIN IMMEDIATE");
 		try {
+			const blockedTaskIds = listBlocks(db, targetId);
 			db.prepare(
 				"UPDATE tasks SET epic_id = NULL, updated_at = ? WHERE epic_id = ?",
 			).run(now, targetId);
 			db.prepare(
 				"UPDATE tasks SET deleted_at = ?, updated_at = ? WHERE id = ?",
 			).run(now, now, targetId);
+			deleteBlockedByLinks(db, targetId);
+			releaseBlockedStatus(db, blockedTaskIds);
 			db.exec("COMMIT");
 			return targetId;
 		} catch (error) {

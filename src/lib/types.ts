@@ -91,4 +91,6 @@ export interface Task {
 	project_name?: string;
 	scope_name?: string;
 	short_description?: string;
+	blocked_by?: string[];
+	blocks?: string[];
 }
