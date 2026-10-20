@@ -246,18 +246,6 @@
 		font-variant-numeric: tabular-nums;
 	}
 
-	:global(.compact-table) .optional-column {
-		display: none;
-	}
-
-	:global(.compact-table) .task-title {
-		min-width: 0;
-	}
-
-	:global(.compact-table) td {
-		padding-block: var(--space-4);
-	}
-
 	@media (max-width: 1100px) {
 		td {
 			padding-inline: var(--space-2);

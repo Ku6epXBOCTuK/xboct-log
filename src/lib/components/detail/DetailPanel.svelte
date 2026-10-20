@@ -282,13 +282,16 @@
 
 <style>
 	.detail-panel {
-		position: relative;
-		z-index: 10;
+		position: fixed;
+		right: 0;
+		top: 0;
+		bottom: 0;
+		z-index: 20;
 		width: var(--detail-w);
-		min-width: var(--detail-w);
-		height: 100%;
+		min-width: 0;
 		border-left: 1px solid var(--border);
 		background: var(--panel);
+		box-shadow: -0.9375rem 0 2.5rem rgb(0 0 0 / 0.28);
 		display: flex;
 		flex-direction: column;
 		overflow: hidden;
@@ -385,13 +388,7 @@
 
 	@media (max-width: 820px) {
 		.detail-panel {
-			position: fixed;
-			right: 0;
-			top: 0;
 			width: min(var(--detail-w), calc(100vw - var(--sidebar-w)));
-			min-width: 0;
-			box-shadow: -0.9375rem 0 2.5rem rgb(0 0 0 / 0.5);
-			z-index: 5;
 		}
 	}
 

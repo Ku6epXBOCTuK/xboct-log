@@ -43,7 +43,7 @@
 	}
 </script>
 
-<section class={`workspace ${selected ? "with-detail compact-table" : ""}`}>
+<section class="workspace">
 	<WorkspaceHeader
 		{tasks}
 		{filters}
@@ -97,15 +97,5 @@
 		min-width: 0;
 		flex: 1 1 auto;
 		height: 100%;
-	}
-
-	.workspace.with-detail {
-		max-width: calc(100vw - var(--sidebar-w) - var(--detail-w));
-	}
-
-	@media (max-width: 560px) {
-		.workspace.with-detail {
-			max-width: calc(100vw - var(--sidebar-w));
-		}
 	}
 </style>

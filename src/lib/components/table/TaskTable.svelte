@@ -163,22 +163,6 @@
 		opacity: 1;
 	}
 
-	:global(.compact-table) table {
-		min-width: 0;
-	}
-
-	:global(.compact-table) .id-col {
-		width: 120px;
-	}
-
-	:global(.compact-table) .optional-column {
-		display: none;
-	}
-
-	:global(.compact-table) th {
-		padding-block: var(--space-4);
-	}
-
 	@media (max-width: 1100px) {
 		th {
 			padding-inline: var(--space-2);
