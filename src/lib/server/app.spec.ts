@@ -433,6 +433,34 @@ describe("tasks", () => {
 		).toBeUndefined();
 	});
 
+	it("keeps filters unambiguous when scopes and projects are joined", async () => {
+		const db = await setup();
+		unwrap(createProject(db, { id: "bil", name: "Billing", prefix: "BIL" }));
+		const scope = unwrap(createScope(db, { project_id: "spa", name: "ux" }));
+		unwrap(
+			createTask(db, { project_id: "spa", title: "Alpha", scope_id: scope.id }),
+		);
+		unwrap(createTask(db, { project_id: "bil", title: "Beta" }));
+
+		const joined = listTasks(db, {
+			project_id: "spa",
+			include_scope: true,
+			include_project: true,
+			include_description: true,
+		});
+
+		expect(joined.map((task) => task.title)).toEqual(["Alpha"]);
+		expect(
+			listTasks(db, { project_id: "spa", include_scope: true, q: "Alpha" }),
+		).toHaveLength(1);
+		expect(
+			listTasks(db, { scope_id: scope.id, include_scope: true }).map(
+				(task) => task.title,
+			),
+		).toEqual(["Alpha"]);
+		expect(countTasks(db, { project_id: "spa", include_scope: true })).toBe(1);
+	});
+
 	it("limits the response to the requested fields", async () => {
 		const db = await setup();
 		unwrap(createTask(db, { project_id: "spa", title: "Alpha" }));

@@ -395,38 +395,40 @@ function buildTaskFilter(query: TaskQuery): TaskFilterSql {
 	let joins = "";
 
 	if (!query.include_deleted) {
-		where.push("deleted_at IS NULL");
+		where.push("tasks.deleted_at IS NULL");
 	}
 
 	if (query.project_id) {
-		where.push("project_id = ?");
+		where.push("tasks.project_id = ?");
 		params.push(query.project_id);
 	}
 	if (query.status?.length) {
-		where.push(`status IN (${query.status.map(() => "?").join(", ")})`);
+		where.push(`tasks.status IN (${query.status.map(() => "?").join(", ")})`);
 		params.push(...query.status);
 	}
 	if (query.priority?.length) {
-		where.push(`priority IN (${query.priority.map(() => "?").join(", ")})`);
+		where.push(
+			`tasks.priority IN (${query.priority.map(() => "?").join(", ")})`,
+		);
 		params.push(...query.priority);
 	}
 	if (query.is_epic !== undefined) {
-		where.push("is_epic = ?");
+		where.push("tasks.is_epic = ?");
 		params.push(query.is_epic ? 1 : 0);
 	}
 	if (query.epic_id !== undefined) {
 		if (query.epic_id === null) {
-			where.push("epic_id IS NULL");
+			where.push("tasks.epic_id IS NULL");
 		} else {
-			where.push("epic_id = ?");
+			where.push("tasks.epic_id = ?");
 			params.push(query.epic_id);
 		}
 	}
 	if (query.scope_id !== undefined) {
 		if (query.scope_id === null) {
-			where.push("scope_id IS NULL");
+			where.push("tasks.scope_id IS NULL");
 		} else {
-			where.push("scope_id = ?");
+			where.push("tasks.scope_id = ?");
 			params.push(query.scope_id);
 		}
 	}
@@ -441,18 +443,18 @@ function buildTaskFilter(query: TaskQuery): TaskFilterSql {
 	if (query.q) {
 		const like = `%${query.q.toLowerCase()}%`;
 		where.push(
-			`(LOWER(title) LIKE ? OR LOWER(description) LIKE ? OR LOWER(id) LIKE ?
+			`(LOWER(tasks.title) LIKE ? OR LOWER(tasks.description) LIKE ? OR LOWER(tasks.id) LIKE ?
 			  OR EXISTS (SELECT 1 FROM json_each(tasks.tags) WHERE LOWER(json_each.value) LIKE ?))`,
 		);
 		params.push(like, like, like, like);
 	}
 	if (query.title) {
 		const like = `%${query.title.toLowerCase()}%`;
-		where.push("LOWER(title) LIKE ?");
+		where.push("LOWER(tasks.title) LIKE ?");
 		params.push(like);
 	}
 	if (query.title_exact) {
-		where.push("LOWER(title) = LOWER(?)");
+		where.push("LOWER(tasks.title) = LOWER(?)");
 		params.push(query.title_exact);
 	}
 	if (query.include_project === true || query.project_archived !== undefined) {
@@ -493,9 +495,9 @@ export function listTasks(db: DatabaseSync, query: TaskQuery = {}): Task[] {
 		const rank = PRIORITIES.map(
 			(p) => `WHEN '${p}' THEN ${PRIORITY_RANK[p]}`,
 		).join(" ");
-		sql += ` ORDER BY CASE priority ${rank} ELSE 99 END ${order.toUpperCase()}, updated_at DESC`;
+		sql += ` ORDER BY CASE tasks.priority ${rank} ELSE 99 END ${order.toUpperCase()}, tasks.updated_at DESC`;
 	} else {
-		sql += ` ORDER BY ${sort} ${order.toUpperCase()}`;
+		sql += ` ORDER BY tasks.${sort} ${order.toUpperCase()}`;
 	}
 
 	if (query.limit !== undefined) {
