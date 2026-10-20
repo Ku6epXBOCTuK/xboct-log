@@ -1,6 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
-import { listActivity, pruneActivity } from "./activity";
+import { listActivity, pruneActivity, searchActivity } from "./activity";
 import { openMigratedDatabase } from "./migrations";
 
 async function setup(): Promise<DatabaseSync> {
@@ -114,5 +114,80 @@ describe("activity", () => {
 			items: [],
 			total: 0,
 		});
+	});
+});
+
+describe("searchActivity", () => {
+	async function seed(): Promise<DatabaseSync> {
+		const db = await setup();
+		db.prepare(
+			`INSERT INTO activity (created_at, source, op, entity, entity_id, fields)
+			 VALUES (?, 'ui', 'tasks_update', 'task', 'LOG-1', '["status"]')`,
+		).run("2026-10-18T12:00:00.000Z");
+		db.prepare(
+			`INSERT INTO activity (created_at, source, op, entity, entity_id, fields)
+			 VALUES (?, 'mcp', 'tasks_update', 'task', 'LOG-2', '["title"]')`,
+		).run("2026-10-19T12:00:00.000Z");
+		db.prepare(
+			`INSERT INTO activity (created_at, source, op, entity, entity_id, fields)
+			 VALUES (?, 'ui', 'projects_create', 'project', 'xboct-log', '["name"]')`,
+		).run("2026-10-20T12:00:00.000Z");
+		return db;
+	}
+
+	it("returns events of every entity, newest first", async () => {
+		const db = await seed();
+
+		const result = searchActivity(db, {});
+
+		expect(result.total).toBe(3);
+		expect(result.items.map((item) => item.op)).toEqual([
+			"projects_create",
+			"tasks_update",
+			"tasks_update",
+		]);
+		expect(result.items[0].entity).toBe("project");
+		expect(result.items[0].entity_id).toBe("xboct-log");
+	});
+
+	it("filters by source, op and entity", async () => {
+		const db = await seed();
+
+		expect(searchActivity(db, { source: "mcp" }).total).toBe(1);
+		expect(searchActivity(db, { op: "projects_create" }).total).toBe(1);
+		expect(searchActivity(db, { entity: "project" }).total).toBe(1);
+		expect(searchActivity(db, { entity: "task", source: "ui" }).total).toBe(1);
+	});
+
+	it("filters by period", async () => {
+		const db = await seed();
+
+		const result = searchActivity(db, {
+			from: "2026-10-19T00:00:00.000Z",
+			to: "2026-10-19T23:59:59.999Z",
+		});
+
+		expect(result.total).toBe(1);
+		expect(result.items[0].op).toBe("tasks_update");
+		expect(result.items[0].source).toBe("mcp");
+	});
+
+	it("pages through the events and lists the known operations", async () => {
+		const db = await seed();
+
+		const page = searchActivity(db, { limit: 2, offset: 0 });
+		const next = searchActivity(db, { limit: 2, offset: 2 });
+
+		expect(page.items).toHaveLength(2);
+		expect(next.items).toHaveLength(1);
+		expect(page.total).toBe(3);
+		expect(page.ops).toEqual(["projects_create", "tasks_update"]);
+	});
+
+	it("returns nothing when the activity table is missing", async () => {
+		const db = await setup();
+		db.exec("DROP TABLE activity");
+
+		expect(searchActivity(db, {})).toEqual({ items: [], total: 0, ops: [] });
 	});
 });

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from "$app/state";
 	import { resolve } from "$app/paths";
+	import Activity from "~icons/lucide/activity";
 	import BarChart3 from "~icons/lucide/bar-chart-3";
 	import ClipBoardList from "~icons/lucide/clipboard-list";
 	import FolderKanban from "~icons/lucide/folder-kanban";
@@ -14,6 +15,7 @@
 
 	const onTasks = $derived(page.url.pathname === "/");
 	const onKanban = $derived(page.url.pathname === "/kanban");
+	const onActivity = $derived(page.url.pathname === "/activity");
 </script>
 
 <nav class="primary-nav" aria-label="Primary navigation">
@@ -24,6 +26,9 @@
 	<a class="nav-item" class:active={onKanban} href={resolve("/kanban")}>
 		<FolderKanban /> Kanban
 		<span class="nav-count">{inProgressCount}</span>
+	</a>
+	<a class="nav-item" class:active={onActivity} href={resolve("/activity")}>
+		<Activity /> Activity
 	</a>
 	<button class="nav-item">
 		<BarChart3 /> Statistics

@@ -360,4 +360,48 @@ describe("activity log", () => {
 			["scopes_delete", "scope", String(scope.id), []],
 		]);
 	});
+
+	it("lists the whole log with filters and pagination", async () => {
+		const db = getDb();
+		const task = unwrap(createTask(db, { project_id: "spa", title: "Listed" }));
+		clear();
+
+		await call(
+			"tasks_update",
+			{ id: task.id, patch: { status: "done" } },
+			"ui",
+		);
+		await call(
+			"tasks_update",
+			{ id: task.id, patch: { title: "Renamed" } },
+			"mcp",
+		);
+		await call("projects_update", { id: "spa", patch: { name: "Shop" } }, "ui");
+
+		const all = (await call("activity_list", {})) as {
+			items: { op: string; entity: string }[];
+			total: number;
+			ops: string[];
+		};
+
+		expect(all.total).toBe(3);
+		expect(all.ops).toEqual(["projects_update", "tasks_update"]);
+		expect(all.items[0].op).toBe("projects_update");
+
+		const filtered = (await call("activity_list", { source: "mcp" })) as {
+			items: { op: string }[];
+			total: number;
+		};
+
+		expect(filtered.total).toBe(1);
+		expect(filtered.items[0].op).toBe("tasks_update");
+
+		const page = (await call("activity_list", { limit: 2, offset: 0 })) as {
+			items: unknown[];
+			total: number;
+		};
+
+		expect(page.items).toHaveLength(2);
+		expect(page.total).toBe(3);
+	});
 });

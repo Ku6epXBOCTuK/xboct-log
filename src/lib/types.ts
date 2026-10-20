@@ -77,6 +77,11 @@ export interface ActivityItem {
 	old_id: string | null;
 }
 
+export interface ActivityLogItem extends ActivityItem {
+	entity: string;
+	entity_id: string;
+}
+
 export interface Task {
 	id: string;
 	project_id: string;

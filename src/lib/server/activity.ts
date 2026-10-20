@@ -1,6 +1,6 @@
 import { XBOCT_LOG_ACTIVITY_KEEP_DAYS } from "$app/env/private";
-import type { DatabaseSync } from "node:sqlite";
-import type { ActivityItem } from "../types";
+import type { DatabaseSync, SQLInputValue } from "node:sqlite";
+import type { ActivityItem, ActivityLogItem } from "../types";
 
 const DAY_MS = 86_400_000;
 
@@ -91,6 +91,92 @@ export function pruneActivity(
 		.prepare("DELETE FROM activity WHERE created_at < ?")
 		.run(cutoff);
 	return Number(result.changes);
+}
+
+export interface ActivitySearch {
+	source?: string;
+	op?: string;
+	entity?: string;
+	from?: string;
+	to?: string;
+	limit?: number;
+	offset?: number;
+}
+
+export function searchActivity(
+	db: DatabaseSync,
+	search: ActivitySearch,
+): { items: ActivityLogItem[]; total: number; ops: string[] } {
+	if (!activityTableExists(db)) {
+		return { items: [], total: 0, ops: [] };
+	}
+
+	const clauses: string[] = [];
+	const params: SQLInputValue[] = [];
+
+	if (search.source) {
+		clauses.push("source = ?");
+		params.push(search.source);
+	}
+	if (search.op) {
+		clauses.push("op = ?");
+		params.push(search.op);
+	}
+	if (search.entity) {
+		clauses.push("entity = ?");
+		params.push(search.entity);
+	}
+	if (search.from) {
+		clauses.push("created_at >= ?");
+		params.push(search.from);
+	}
+	if (search.to) {
+		clauses.push("created_at <= ?");
+		params.push(search.to);
+	}
+
+	const where = clauses.length > 0 ? `WHERE ${clauses.join(" AND ")}` : "";
+
+	const count = db
+		.prepare(`SELECT COUNT(*) AS count FROM activity ${where}`)
+		.get(...params) as unknown as { count: number };
+
+	const limit = Math.min(Math.max(search.limit ?? DEFAULT_LIMIT, 1), MAX_LIMIT);
+	const offset = Math.max(search.offset ?? 0, 0);
+
+	const rows = db
+		.prepare(
+			`SELECT created_at, source, op, entity, entity_id, old_id, fields
+			 FROM activity ${where}
+			 ORDER BY id DESC LIMIT ? OFFSET ?`,
+		)
+		.all(...params, limit, offset) as unknown as {
+		created_at: string;
+		source: string;
+		op: string;
+		entity: string;
+		entity_id: string;
+		old_id: string | null;
+		fields: string;
+	}[];
+
+	const opRows = db
+		.prepare("SELECT DISTINCT op FROM activity ORDER BY op")
+		.all() as unknown as { op: string }[];
+
+	return {
+		items: rows.map((row) => ({
+			ts: row.created_at,
+			source: row.source,
+			op: row.op,
+			entity: row.entity,
+			entity_id: row.entity_id,
+			old_id: row.old_id,
+			fields: parseFields(row.fields),
+		})),
+		total: count.count,
+		ops: opRows.map((row) => row.op),
+	};
 }
 
 export interface ActivityQuery {
