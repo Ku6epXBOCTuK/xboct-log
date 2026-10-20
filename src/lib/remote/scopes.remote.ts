@@ -7,21 +7,23 @@ import { defineCommand, defineQuery } from "./define";
 export const getScopes = defineQuery({
 	name: "scopes_list",
 	description:
-		"List scopes, each with its task_count (number of active tasks assigned). Pass project_id to limit to one project; omit it to list scopes across all projects.",
+		"List scopes, each with task_count (active non-epic tasks assigned, i.e. open/in-progress/blocked) and epics_count (non-deleted epics assigned). Pass project_id to limit to one project; omit it to list scopes across all projects.",
 	kind: "query",
 	input: z.object({ project_id: z.string().min(1).optional() }),
 	handler: ({ project_id }) => {
 		const db = getDb();
 		const counts = scopes.countTasksByScope(db, project_id);
-		return scopes
-			.listScopes(db, project_id)
-			.map((scope) => ({ ...scope, task_count: counts[scope.id] ?? 0 }));
+		return scopes.listScopes(db, project_id).map((scope) => {
+			const count = counts[scope.id] ?? { tasks: 0, epics: 0 };
+			return { ...scope, task_count: count.tasks, epics_count: count.epics };
+		});
 	},
 });
 
 export const getScope = defineQuery({
 	name: "scopes_get",
-	description: "Get a single scope by id, including its task_count.",
+	description:
+		"Get a single scope by id, including its task_count (active non-epic tasks) and epics_count.",
 	kind: "query",
 	input: z.object({ id: z.number().int() }),
 	handler: ({ id }) => {
@@ -30,8 +32,11 @@ export const getScope = defineQuery({
 		if (!scope) {
 			error(404, `scope ${id} not found`);
 		}
-		const counts = scopes.countTasksByScope(db);
-		return { ...scope, task_count: counts[scope.id] ?? 0 };
+		const count = scopes.countTasksByScope(db)[scope.id] ?? {
+			tasks: 0,
+			epics: 0,
+		};
+		return { ...scope, task_count: count.tasks, epics_count: count.epics };
 	},
 });
 

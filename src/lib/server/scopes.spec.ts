@@ -116,7 +116,7 @@ describe("scopes", () => {
 		expect(scopedProjectIds(db)).toEqual(["spa"]);
 	});
 
-	it("counts tasks by scope, ignoring unassigned ones", async () => {
+	it("counts active non-epic tasks by scope, ignoring unassigned ones", async () => {
 		const db = await setup();
 		const frontend = unwrap(
 			createScope(db, { project_id: "spa", name: "frontend" }),
@@ -136,8 +136,54 @@ describe("scopes", () => {
 		unwrap(createTask(db, { project_id: "spa", title: "Loose" }));
 
 		expect(countTasksByScope(db, "spa")).toEqual({
-			[frontend.id]: 2,
-			[backend.id]: 1,
+			[frontend.id]: { tasks: 2, epics: 0 },
+			[backend.id]: { tasks: 1, epics: 0 },
+		});
+	});
+
+	it("excludes closed tasks and counts epics separately", async () => {
+		const db = await setup();
+		const scope = unwrap(
+			createScope(db, { project_id: "spa", name: "frontend" }),
+		);
+		unwrap(
+			createTask(db, { project_id: "spa", title: "open", scope_id: scope.id }),
+		);
+		unwrap(
+			createTask(db, {
+				project_id: "spa",
+				title: "blocked",
+				status: "blocked",
+				scope_id: scope.id,
+			}),
+		);
+		unwrap(
+			createTask(db, {
+				project_id: "spa",
+				title: "done",
+				status: "done",
+				scope_id: scope.id,
+			}),
+		);
+		unwrap(
+			createTask(db, {
+				project_id: "spa",
+				title: "cancelled",
+				status: "cancelled",
+				scope_id: scope.id,
+			}),
+		);
+		unwrap(
+			createTask(db, {
+				project_id: "spa",
+				title: "epic",
+				is_epic: true,
+				scope_id: scope.id,
+			}),
+		);
+
+		expect(countTasksByScope(db, "spa")).toEqual({
+			[scope.id]: { tasks: 2, epics: 1 },
 		});
 	});
 
@@ -180,8 +226,8 @@ describe("scopes", () => {
 		);
 
 		expect(countTasksByScope(db)).toEqual({
-			[frontend.id]: 1,
-			[billing.id]: 1,
+			[frontend.id]: { tasks: 1, epics: 0 },
+			[billing.id]: { tasks: 1, epics: 0 },
 		});
 	});
 });

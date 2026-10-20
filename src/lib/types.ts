@@ -64,6 +64,7 @@ export interface Scope {
 	name: string;
 	created_at: string;
 	task_count?: number;
+	epics_count?: number;
 }
 
 export interface Task {
