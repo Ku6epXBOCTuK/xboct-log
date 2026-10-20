@@ -47,6 +47,25 @@ function normalizeBody(body: string): Result<string, AppError> {
 	return ok(trimmed);
 }
 
+// NOTE: the id starts with the time in base 36, so sorting by id keeps the
+// order of the comments; the counter keeps the ids increasing inside one
+// millisecond. TODO: crypto.randomUUIDv7() once the Node version has it.
+let lastTimestamp = 0;
+let sequence = 0;
+
+function newCommentId(): string {
+	const now = Date.now();
+	if (now === lastTimestamp) {
+		sequence = (sequence + 1) & 0xfff;
+	} else {
+		lastTimestamp = now;
+		sequence = 0;
+	}
+	const stamp = now.toString(36).padStart(9, "0");
+	const counter = sequence.toString(36).padStart(3, "0");
+	return `${stamp}${counter}-${randomUUID().replace(/-/g, "").slice(0, 12)}`;
+}
+
 export function getComment(db: DatabaseSync, id: string): Comment | undefined {
 	const row = db
 		.prepare("SELECT * FROM task_comments WHERE id = ?")
@@ -78,7 +97,7 @@ export function addComment(
 		return err(body.error);
 	}
 
-	const id = randomUUID();
+	const id = newCommentId();
 	const now = new Date().toISOString();
 
 	return guard(() => {

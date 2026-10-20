@@ -1,4 +1,5 @@
 import { execSync } from "node:child_process";
+import { join } from "node:path";
 import adapter from "@sveltejs/adapter-node";
 import { sveltekit } from "@sveltejs/kit/vite";
 import Icons from "unplugin-icons/vite";
@@ -21,6 +22,9 @@ function buildVersion(): string {
 export default defineConfig(({ mode }) => {
 	if (mode === "test") {
 		process.env.XBOCT_LOG_DB ??= ":memory:";
+		// NOTE: the tests must see the migrations of the working copy, not the
+		// deployed ones in the production directory.
+		process.env.XBOCT_LOG_MIGRATIONS ??= join(process.cwd(), "migrations");
 	}
 
 	return {
