@@ -1,11 +1,13 @@
 import { error } from "@sveltejs/kit";
 import { z } from "zod";
-import { getDb } from "../server/db";
+import { activityEntry } from "../server/activity";
 import {
 	addBlocker as addBlockerLink,
 	removeBlocker as removeBlockerLink,
 } from "../server/blockers";
+import { getDb } from "../server/db";
 import * as repo from "../server/tasks";
+import type { Task } from "../types";
 import { defineCommand } from "./define";
 
 const BLOCKING_ID_DESCRIPTION =
@@ -49,6 +51,8 @@ export const addBlocker = defineCommand({
 		}
 		return repo.getTask(db, blockedId)!;
 	},
+	activity: (_input, task: Task) =>
+		activityEntry("task", task.id, ["blocked_by"]),
 });
 
 export const removeBlocker = defineCommand({
@@ -71,4 +75,6 @@ export const removeBlocker = defineCommand({
 		}
 		return repo.getTask(db, blockedId)!;
 	},
+	activity: (_input, task: Task) =>
+		activityEntry("task", task.id, ["blocked_by"]),
 });

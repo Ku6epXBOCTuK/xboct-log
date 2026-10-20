@@ -1,4 +1,5 @@
 import type { ZodType } from "zod";
+import type { ActivityEntry } from "../server/activity";
 
 export type OpKind = "query" | "command";
 
@@ -10,6 +11,10 @@ export interface OpDefinition {
 	// NOTE: `never` as parameter type makes every concrete handler assignable
 	// (contravariance), while call sites cast their parsed input with `as never`.
 	handler: (input: never) => unknown;
+	activity?: (
+		input: never,
+		result: never,
+	) => ActivityEntry | ActivityEntry[] | null;
 }
 
 const ops = new Map<string, OpDefinition>();

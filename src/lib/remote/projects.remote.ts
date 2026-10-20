@@ -1,9 +1,11 @@
 import { error } from "@sveltejs/kit";
 import { z } from "zod";
+import { activityEntry, fieldNames } from "../server/activity";
 import { getDb } from "../server/db";
 import * as projects from "../server/projects";
 import * as scopes from "../server/scopes";
 import { countEpicsByStatus, countTasksByStatus } from "../server/tasks";
+import type { Project } from "../types";
 import { defineCommand, defineQuery } from "./define";
 
 export const getProjects = defineQuery({
@@ -53,6 +55,8 @@ export const createProject = defineCommand({
 		prefix: z.string().min(1),
 	}),
 	handler: (input) => projects.createProject(getDb(), input),
+	activity: (input, project: Project) =>
+		activityEntry("project", project.id, fieldNames(input)),
 });
 
 export const updateProject = defineCommand({
@@ -68,4 +72,6 @@ export const updateProject = defineCommand({
 		}),
 	}),
 	handler: ({ id, patch }) => projects.updateProject(getDb(), id, patch),
+	activity: (input, project: Project) =>
+		activityEntry("project", project.id, fieldNames(input.patch)),
 });

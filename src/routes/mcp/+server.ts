@@ -23,7 +23,7 @@ function registerTools(server: McpServer): void {
 			{ description: op.description, inputSchema: op.input },
 			async (args) => {
 				try {
-					const value = await runOp(op, args);
+					const value = await runOp(op, args, "mcp");
 					return {
 						content: [{ type: "text", text: JSON.stringify(value ?? null) }],
 						structuredContent: value ?? null,

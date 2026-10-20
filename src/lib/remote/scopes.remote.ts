@@ -1,7 +1,9 @@
 import { error } from "@sveltejs/kit";
 import { z } from "zod";
+import { activityEntry, fieldNames } from "../server/activity";
 import { getDb } from "../server/db";
 import * as scopes from "../server/scopes";
+import type { Scope } from "../types";
 import { defineCommand, defineQuery } from "./define";
 
 export const getScopes = defineQuery({
@@ -54,6 +56,8 @@ export const createScope = defineCommand({
 	kind: "command",
 	input: z.object({ project_id: z.string().min(1), name: z.string().min(1) }),
 	handler: (input) => scopes.createScope(getDb(), input),
+	activity: (input, scope: Scope) =>
+		activityEntry("scope", scope.id, fieldNames(input)),
 });
 
 export const updateScope = defineCommand({
@@ -65,6 +69,8 @@ export const updateScope = defineCommand({
 		patch: z.object({ name: z.string().min(1) }),
 	}),
 	handler: ({ id, patch }) => scopes.updateScope(getDb(), id, patch),
+	activity: (input, scope: Scope) =>
+		activityEntry("scope", scope.id, fieldNames(input.patch)),
 });
 
 export const deleteScope = defineCommand({
@@ -73,4 +79,5 @@ export const deleteScope = defineCommand({
 	kind: "command",
 	input: z.object({ id: z.number().int() }),
 	handler: ({ id }) => scopes.deleteScope(getDb(), id),
+	activity: (input) => activityEntry("scope", input.id, []),
 });

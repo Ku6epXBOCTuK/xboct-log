@@ -1,8 +1,14 @@
 import { command, query } from "$app/server";
 import { entityOf, publishChange } from "#lib/server/events.ts";
-import type { z, ZodType } from "zod";
+import { type z, type ZodType } from "zod";
 import { Err, Ok, type Result } from "neverthrow";
 import type { AppError } from "../server/errors";
+import { getDb } from "../server/db";
+import {
+	recordActivity,
+	type ActivityEntry,
+	type ActivitySource,
+} from "../server/activity";
 import { registerOp, type OpDefinition, type OpKind } from "./registry";
 import { unwrap } from "./result";
 
@@ -17,6 +23,10 @@ export interface OpSpec<TSchema extends ZodType = ZodType, TResult = unknown> {
 		| TResult
 		| Result<TResult, AppError>
 		| Promise<TResult | Result<TResult, AppError>>;
+	activity?: (
+		input: z.infer<TSchema>,
+		result: never,
+	) => ActivityEntry | ActivityEntry[] | null;
 }
 
 function isAppResult(value: unknown): value is Result<unknown, AppError> {
@@ -26,6 +36,7 @@ function isAppResult(value: unknown): value is Result<unknown, AppError> {
 export async function runOp(
 	op: OpDefinition,
 	input: unknown,
+	source: ActivitySource = "ui",
 ): Promise<unknown> {
 	const parsed = op.input.parse(input);
 	const value = await op.handler(parsed as never);
@@ -35,6 +46,15 @@ export async function runOp(
 		if (entity) {
 			publishChange(entity, op.name);
 		}
+		const entries = op.activity?.(parsed as never, result as never);
+		if (entries) {
+			recordActivity(
+				getDb(),
+				source,
+				op.name,
+				Array.isArray(entries) ? entries : [entries],
+			);
+		}
 	}
 	return result;
 }
@@ -43,12 +63,15 @@ export function defineQuery<TSchema extends ZodType, TResult>(
 	op: OpSpec<TSchema, TResult>,
 ) {
 	registerOp(op);
-	return query(op.input, (input) => runOp(op, input) as Promise<TResult>);
+	return query(op.input, (input) => runOp(op, input, "ui") as Promise<TResult>);
 }
 
 export function defineCommand<TSchema extends ZodType, TResult>(
 	op: OpSpec<TSchema, TResult>,
 ) {
 	registerOp(op);
-	return command(op.input, (input) => runOp(op, input) as Promise<TResult>);
+	return command(
+		op.input,
+		(input) => runOp(op, input, "ui") as Promise<TResult>,
+	);
 }

@@ -1,8 +1,10 @@
 import { error } from "@sveltejs/kit";
 import { z } from "zod";
+import { activityEntry, fieldNames } from "../server/activity";
 import { getDb } from "../server/db";
 import * as repo from "../server/tasks";
-import { CLOSED_REASONS, PRIORITIES, STATUSES } from "../types";
+import type { BatchItem, CreateBatchItem } from "../server/tasks";
+import { CLOSED_REASONS, PRIORITIES, STATUSES, type Task } from "../types";
 import { defineCommand, defineQuery } from "./define";
 
 const taskFilters = z
@@ -207,6 +209,8 @@ export const createTask = defineCommand({
 	kind: "command",
 	input: newTask,
 	handler: (input) => repo.createTask(getDb(), input),
+	activity: (input, task: Task) =>
+		activityEntry("task", task.id, fieldNames(input)),
 });
 
 export const createTasks = defineCommand({
@@ -218,6 +222,18 @@ export const createTasks = defineCommand({
 		items: z.array(newTask).min(1).max(100),
 	}),
 	handler: (input) => summarize(repo.createTasksMany(getDb(), input.items)),
+	activity: (input, result: { items: CreateBatchItem[] }) =>
+		result.items.flatMap((item) =>
+			item.ok
+				? [
+						activityEntry(
+							"task",
+							item.task.id,
+							fieldNames(input.items[item.index]),
+						),
+					]
+				: [],
+		),
 });
 
 export const updateTask = defineCommand({
@@ -232,6 +248,8 @@ export const updateTask = defineCommand({
 	}),
 	handler: ({ id, patch, in_project }) =>
 		repo.updateTask(getDb(), id, patch, in_project),
+	activity: (input, task: Task) =>
+		activityEntry("task", task.id, fieldNames(input.patch)),
 });
 
 function summarize<T extends { ok: boolean }>(items: T[]) {
@@ -253,6 +271,18 @@ export const updateTasks = defineCommand({
 	}),
 	handler: ({ items, in_project }) =>
 		summarize(repo.updateTasksMany(getDb(), items, in_project)),
+	activity: (input, result: { items: BatchItem[] }) =>
+		result.items.flatMap((item, index) =>
+			item.ok
+				? [
+						activityEntry(
+							"task",
+							item.task.id,
+							fieldNames(input.items[index].patch),
+						),
+					]
+				: [],
+		),
 });
 
 export const closeTask = defineCommand({
@@ -267,6 +297,8 @@ export const closeTask = defineCommand({
 	}),
 	handler: ({ id, reason, in_project }) =>
 		repo.closeTask(getDb(), id, reason, in_project),
+	activity: (_input, task: Task) =>
+		activityEntry("task", task.id, ["status", "closed_reason"]),
 });
 
 export const closeTasks = defineCommand({
@@ -285,6 +317,12 @@ export const closeTasks = defineCommand({
 	}),
 	handler: ({ items, in_project }) =>
 		summarize(repo.closeTasksMany(getDb(), items, in_project)),
+	activity: (_input, result: { items: BatchItem[] }) =>
+		result.items.flatMap((item) =>
+			item.ok
+				? [activityEntry("task", item.task.id, ["status", "closed_reason"])]
+				: [],
+		),
 });
 
 export const deleteTask = defineCommand({
@@ -297,6 +335,8 @@ export const deleteTask = defineCommand({
 		in_project: z.string().min(1).optional().describe(IN_PROJECT_DESCRIPTION),
 	}),
 	handler: ({ id, in_project }) => repo.deleteTask(getDb(), id, in_project),
+	activity: (_input, deletedId: string) =>
+		activityEntry("task", deletedId, ["deleted_at"]),
 });
 
 export const moveTask = defineCommand({
@@ -314,4 +354,6 @@ export const moveTask = defineCommand({
 	}),
 	handler: ({ id, project_id, in_project }) =>
 		repo.moveTask(getDb(), id, project_id, in_project),
+	activity: (input, task: Task) =>
+		activityEntry("task", task.id, ["project_id"], input.id),
 });
