@@ -125,7 +125,7 @@ const taskPatch = z.object({
 export const getTasks = defineQuery({
 	name: "tasks_list",
 	description:
-		"List tasks with filters (project, status, priority, tags, epic, scope, text query, title, title_exact), sorting and pagination. Use q to locate a task by id, title, description or tag (e.g. q='LOG-4'). Returns {items, total} where total is the count of all matching tasks before limit/offset. limit defaults to 100 (max 1000); use offset and total to paginate. Use fields to limit returned columns. By default each task carries short_description (first line, ~120 chars) instead of the full description; set include_description to get the full text. include_project attaches project names, include_scope attaches scope names, and neither filters; project_archived filters by project archival; include_deleted also returns soft-deleted tasks (hidden by default).",
+		"List tasks with filters (project, status, priority, tags, epic, scope, text query, title, title_exact), sorting and pagination. Use q to locate a task by id, title, description or tag (e.g. q='LOG-4'). Returns {items, total} where total is the count of all matching tasks before limit/offset. limit defaults to 100 (max 1000); use offset and total to paginate. Use fields to limit returned columns. By default each task carries short_description (first line, ~120 chars) instead of the full description; set include_description to get the full text. include_project attaches project names, include_scope attaches scope names, and neither filters; project_archived filters by project archival; include_deleted also returns soft-deleted tasks (hidden by default). Task id is the full 'PREFIX-NUMBER' identifier (e.g. 'LOG-82'); number is the per-project sequence number (e.g. 82), unique only inside its project.",
 	kind: "query",
 	input: taskFilters,
 	handler: (filters) => {
@@ -140,7 +140,7 @@ export const getTasks = defineQuery({
 export const getTasksByIds = defineQuery({
 	name: "tasks_get_many",
 	description:
-		"Get multiple tasks by their IDs in a single call. Returns { items, missing }: items follow the requested order, missing lists ids that do not exist or are soft-deleted. Use this instead of calling tasks_get in a loop.",
+		"Get multiple tasks by their IDs in a single call. Each id accepts the full 'PREFIX-NUMBER' form (e.g. 'LOG-82') or a bare task number (e.g. '82') that is unique across projects. Returns { items, missing }: items follow the requested order, missing lists ids that do not exist, are soft-deleted, or are ambiguous. Use this instead of calling tasks_get in a loop.",
 	kind: "query",
 	input: z.object({
 		ids: z
@@ -154,15 +154,17 @@ export const getTasksByIds = defineQuery({
 
 export const getTask = defineQuery({
 	name: "tasks_get",
-	description: "Get a single task by its id.",
+	description:
+		"Get a single task by id. Accepts the full id (e.g. 'LOG-82') or a bare task number (e.g. '82'). A bare number must match exactly one task across all projects, otherwise the call fails listing the candidate full ids.",
 	kind: "query",
 	input: z.object({ id: z.string().min(1) }),
 	handler: ({ id }) => {
-		const task = repo.getTask(getDb(), id);
-		if (!task) {
-			error(404, `task ${id} not found`);
+		const db = getDb();
+		const resolved = repo.resolveTaskId(db, id);
+		if (resolved.isErr()) {
+			error(resolved.error.status, resolved.error.message);
 		}
-		return task;
+		return repo.getTask(db, resolved.value)!;
 	},
 });
 
@@ -177,7 +179,8 @@ export const createTask = defineCommand({
 
 export const updateTask = defineCommand({
 	name: "tasks_update",
-	description: "Update fields of an existing task by id.",
+	description:
+		"Update fields of an existing task by id. Id accepts the full 'PREFIX-NUMBER' form (e.g. 'LOG-82') or a bare task number (e.g. '82') that is unique across projects.",
 	kind: "command",
 	input: z.object({ id: z.string().min(1), patch: taskPatch }),
 	handler: ({ id, patch }) => repo.updateTask(getDb(), id, patch),
@@ -205,7 +208,7 @@ export const updateTasks = defineCommand({
 export const closeTask = defineCommand({
 	name: "tasks_close",
 	description:
-		"Close a task by id with a reason: 'fixed' → done, 'wontfix' | 'obsolete' | 'duplicate' → cancelled.",
+		"Close a task by id with a reason: 'fixed' → done, 'wontfix' | 'obsolete' | 'duplicate' → cancelled. Id accepts the full 'PREFIX-NUMBER' form (e.g. 'LOG-82') or a bare task number (e.g. '82') that is unique across projects.",
 	kind: "command",
 	input: z.object({ id: z.string().min(1), reason: z.enum(CLOSED_REASONS) }),
 	handler: ({ id, reason }) => repo.closeTask(getDb(), id, reason),
@@ -229,7 +232,8 @@ export const closeTasks = defineCommand({
 
 export const deleteTask = defineCommand({
 	name: "tasks_delete",
-	description: "Soft-delete a task by id.",
+	description:
+		"Soft-delete a task by id. Id accepts the full 'PREFIX-NUMBER' form (e.g. 'LOG-82') or a bare task number (e.g. '82') that is unique across projects.",
 	kind: "command",
 	input: z.object({ id: z.string().min(1) }),
 	handler: ({ id }) => repo.deleteTask(getDb(), id),
@@ -237,7 +241,8 @@ export const deleteTask = defineCommand({
 
 export const moveTask = defineCommand({
 	name: "tasks_move",
-	description: "Move a task to another project.",
+	description:
+		"Move a task to another project. Id accepts the full 'PREFIX-NUMBER' form (e.g. 'LOG-82') or a bare task number (e.g. '82') that is unique across projects.",
 	kind: "command",
 	input: z.object({ id: z.string().min(1), project_id: z.string().min(1) }),
 	handler: ({ id, project_id }) => repo.moveTask(getDb(), id, project_id),

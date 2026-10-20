@@ -14,6 +14,7 @@ import {
 	closeTask,
 	closeTasksMany,
 	countTasks,
+	countEpicsByStatus,
 	countTasksByStatus,
 	createTask,
 	deleteTask,
@@ -595,6 +596,31 @@ describe("tasks", () => {
 			"in-progress": 0,
 			blocked: 1,
 			done: 0,
+			cancelled: 0,
+		});
+	});
+
+	it("counts tasks and epics by status separately", async () => {
+		const db = await setup();
+		unwrap(createTask(db, { project_id: "spa", title: "Task" }));
+		unwrap(createTask(db, { project_id: "spa", title: "Epic", is_epic: true }));
+		const done = unwrap(
+			createTask(db, { project_id: "spa", title: "Done", is_epic: true }),
+		);
+		unwrap(updateTask(db, done.id, { status: "done" }));
+
+		expect(countTasksByStatus(db, "spa")).toEqual({
+			open: 1,
+			"in-progress": 0,
+			blocked: 0,
+			done: 0,
+			cancelled: 0,
+		});
+		expect(countEpicsByStatus(db, "spa")).toEqual({
+			open: 1,
+			"in-progress": 0,
+			blocked: 0,
+			done: 1,
 			cancelled: 0,
 		});
 	});

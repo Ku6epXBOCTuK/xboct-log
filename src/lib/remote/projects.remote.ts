@@ -2,7 +2,8 @@ import { error } from "@sveltejs/kit";
 import { z } from "zod";
 import { getDb } from "../server/db";
 import * as projects from "../server/projects";
-import { countTasksByStatus } from "../server/tasks";
+import * as scopes from "../server/scopes";
+import { countEpicsByStatus, countTasksByStatus } from "../server/tasks";
 import { defineCommand, defineQuery } from "./define";
 
 export const getProjects = defineQuery({
@@ -16,7 +17,8 @@ export const getProjects = defineQuery({
 
 export const getProject = defineQuery({
 	name: "projects_get",
-	description: "Get a single project by id, including task counts by status.",
+	description:
+		"Get a single project by id, including task counts by status: task_counts counts non-epic tasks, epic_counts counts epics. scope_counts lists the project's scopes with their task and epic totals.",
 	kind: "query",
 	input: z.object({ id: z.string().min(1) }),
 	handler: ({ id }) => {
@@ -25,7 +27,19 @@ export const getProject = defineQuery({
 		if (!project) {
 			error(404, `project ${id} not found`);
 		}
-		return { ...project, task_counts: countTasksByStatus(db, id) };
+		const scopeRows = scopes.listScopes(db, id);
+		const scopeTotals = scopes.countScopeTotals(db, id);
+		return {
+			...project,
+			task_counts: countTasksByStatus(db, id),
+			epic_counts: countEpicsByStatus(db, id),
+			scope_counts: scopeRows.map((scope) => ({
+				scope_id: scope.id,
+				name: scope.name,
+				tasks: scopeTotals[scope.id]?.tasks ?? 0,
+				epics: scopeTotals[scope.id]?.epics ?? 0,
+			})),
+		};
 	},
 });
 

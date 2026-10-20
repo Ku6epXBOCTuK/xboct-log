@@ -5,6 +5,7 @@ import { openMigratedDatabase } from "./migrations";
 import { type AppError } from "./errors";
 import { createProject } from "./projects";
 import {
+	countScopeTotals,
 	countTasksByScope,
 	createScope,
 	deleteScope,
@@ -183,6 +184,36 @@ describe("scopes", () => {
 		);
 
 		expect(countTasksByScope(db, "spa")).toEqual({
+			[scope.id]: { tasks: 2, epics: 1 },
+		});
+	});
+
+	it("counts scope totals including closed tasks and epics", async () => {
+		const db = await setup();
+		const scope = unwrap(
+			createScope(db, { project_id: "spa", name: "frontend" }),
+		);
+		unwrap(
+			createTask(db, { project_id: "spa", title: "A", scope_id: scope.id }),
+		);
+		unwrap(
+			createTask(db, {
+				project_id: "spa",
+				title: "B",
+				status: "done",
+				scope_id: scope.id,
+			}),
+		);
+		unwrap(
+			createTask(db, {
+				project_id: "spa",
+				title: "Epic",
+				is_epic: true,
+				scope_id: scope.id,
+			}),
+		);
+
+		expect(countScopeTotals(db, "spa")).toEqual({
 			[scope.id]: { tasks: 2, epics: 1 },
 		});
 	});

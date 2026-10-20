@@ -88,6 +88,34 @@ export function countTasksByScope(
 	return counts;
 }
 
+export function countScopeTotals(
+	db: DatabaseSync,
+	projectId?: string,
+): Record<number, ScopeTaskCount> {
+	const where = ["scope_id IS NOT NULL", "deleted_at IS NULL"];
+	const params: string[] = [];
+	if (projectId !== undefined) {
+		where.push("project_id = ?");
+		params.push(projectId);
+	}
+	const rows = db
+		.prepare(
+			`SELECT scope_id,
+				SUM(CASE WHEN is_epic = 0 THEN 1 ELSE 0 END) AS tasks,
+				SUM(CASE WHEN is_epic = 1 THEN 1 ELSE 0 END) AS epics
+			 FROM tasks
+			 WHERE ${where.join(" AND ")}
+			 GROUP BY scope_id`,
+		)
+		.all(...params) as { scope_id: number; tasks: number; epics: number }[];
+
+	const counts: Record<number, ScopeTaskCount> = {};
+	for (const row of rows) {
+		counts[row.scope_id] = { tasks: row.tasks, epics: row.epics };
+	}
+	return counts;
+}
+
 function nameConflict(
 	db: DatabaseSync,
 	projectId: string,

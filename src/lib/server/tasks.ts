@@ -244,9 +244,52 @@ function taskById(db: DatabaseSync, id: string): Task | undefined {
 	return row ? mapTask(row) : undefined;
 }
 
+const TASK_NUMBER_PATTERN = /^\d+$/;
+
+export function resolveTaskId(
+	db: DatabaseSync,
+	input: string,
+): Result<string, AppError> {
+	const trimmed = input.trim();
+	if (TASK_NUMBER_PATTERN.test(trimmed)) {
+		const rows = db
+			.prepare(
+				"SELECT id FROM tasks WHERE number = ? AND deleted_at IS NULL ORDER BY project_id, id",
+			)
+			.all(Number(trimmed)) as { id: string }[];
+		if (rows.length === 0) {
+			return err(notFound(`task ${trimmed} not found`));
+		}
+		if (rows.length > 1) {
+			return err(
+				invalid(
+					`task number ${trimmed} is ambiguous: ${rows
+						.map((row) => row.id)
+						.join(", ")} — use the full id`,
+				),
+			);
+		}
+		return ok(rows[0].id);
+	}
+	const row = db
+		.prepare("SELECT id FROM tasks WHERE id = ? AND deleted_at IS NULL")
+		.get(trimmed) as { id: string } | undefined;
+	if (!row) {
+		return err(notFound(`task ${trimmed} not found`));
+	}
+	return ok(row.id);
+}
+
 export function getTask(db: DatabaseSync, id: string): Task | undefined {
 	const task = taskById(db, id);
-	return task && task.deleted_at === null ? task : undefined;
+	if (task) {
+		return task.deleted_at === null ? task : undefined;
+	}
+	const resolved = resolveTaskId(db, id);
+	if (resolved.isErr()) {
+		return undefined;
+	}
+	return taskById(db, resolved.value);
 }
 
 export interface TasksByIds {
@@ -259,17 +302,55 @@ export function getTasksByIds(db: DatabaseSync, ids: string[]): TasksByIds {
 	if (unique.length === 0) {
 		return { items: [], missing: [] };
 	}
-	const rows = db
-		.prepare(
-			`SELECT * FROM tasks WHERE id IN (${unique.map(() => "?").join(", ")}) AND deleted_at IS NULL`,
-		)
-		.all(...unique) as unknown as TaskRow[];
 
-	const byId = new Map(rows.map((row) => [row.id, mapTask(row)]));
+	const numbers = unique
+		.filter((id) => TASK_NUMBER_PATTERN.test(id.trim()))
+		.map((id) => Number(id.trim()));
+	const rowsByNumber = new Map<number, string[]>();
+	if (numbers.length > 0) {
+		const rows = db
+			.prepare(
+				`SELECT number, id FROM tasks
+				 WHERE number IN (${numbers.map(() => "?").join(", ")}) AND deleted_at IS NULL
+				 ORDER BY project_id, id`,
+			)
+			.all(...numbers) as { number: number; id: string }[];
+		for (const row of rows) {
+			const list = rowsByNumber.get(row.number) ?? [];
+			list.push(row.id);
+			rowsByNumber.set(row.number, list);
+		}
+	}
+
+	const resolvedInput = new Map<string, string>();
+	for (const id of unique) {
+		const trimmed = id.trim();
+		if (TASK_NUMBER_PATTERN.test(trimmed)) {
+			const candidates = rowsByNumber.get(Number(trimmed)) ?? [];
+			if (candidates.length === 1) {
+				resolvedInput.set(id, candidates[0]);
+			}
+			continue;
+		}
+		resolvedInput.set(id, trimmed);
+	}
+
+	const resolvedIds = [...new Set([...resolvedInput.values()])];
+	const found =
+		resolvedIds.length > 0
+			? (db
+					.prepare(
+						`SELECT * FROM tasks WHERE id IN (${resolvedIds.map(() => "?").join(", ")}) AND deleted_at IS NULL`,
+					)
+					.all(...resolvedIds) as unknown as TaskRow[])
+			: [];
+	const byId = new Map(found.map((row) => [row.id, mapTask(row)]));
+
 	const items: Task[] = [];
 	const missing: string[] = [];
 	for (const id of unique) {
-		const task = byId.get(id);
+		const fullId = resolvedInput.get(id);
+		const task = fullId ? byId.get(fullId) : undefined;
 		if (task) {
 			items.push(task);
 		} else {
@@ -534,15 +615,16 @@ export function countTasks(db: DatabaseSync, query: TaskQuery = {}): number {
 	return row.count;
 }
 
-export function countTasksByStatus(
+function countByStatus(
 	db: DatabaseSync,
 	projectId: string,
+	isEpic: boolean,
 ): Record<Status, number> {
 	const rows = db
 		.prepare(
-			"SELECT status, COUNT(*) AS count FROM tasks WHERE project_id = ? AND deleted_at IS NULL GROUP BY status",
+			"SELECT status, COUNT(*) AS count FROM tasks WHERE project_id = ? AND deleted_at IS NULL AND is_epic = ? GROUP BY status",
 		)
-		.all(projectId) as { status: string; count: number }[];
+		.all(projectId, isEpic ? 1 : 0) as { status: string; count: number }[];
 
 	const counts = Object.fromEntries(
 		STATUSES.map((status) => [status, 0]),
@@ -553,15 +635,31 @@ export function countTasksByStatus(
 	return counts;
 }
 
+export function countTasksByStatus(
+	db: DatabaseSync,
+	projectId: string,
+): Record<Status, number> {
+	return countByStatus(db, projectId, false);
+}
+
+export function countEpicsByStatus(
+	db: DatabaseSync,
+	projectId: string,
+): Record<Status, number> {
+	return countByStatus(db, projectId, true);
+}
+
 export function updateTask(
 	db: DatabaseSync,
 	id: string,
 	patch: TaskPatch,
 ): Result<Task, AppError> {
-	const current = getTask(db, id);
-	if (!current) {
-		return err(notFound(`task ${id} not found`));
+	const resolved = resolveTaskId(db, id);
+	if (resolved.isErr()) {
+		return err(resolved.error);
 	}
+	const targetId = resolved.value;
+	const current = taskById(db, targetId)!;
 
 	const sets: string[] = [];
 	const params: (string | number | null)[] = [];
@@ -636,7 +734,7 @@ export function updateTask(
 	if (patch.epic_id !== undefined) {
 		const epicId = patch.epic_id ? patch.epic_id : null;
 		if (epicId) {
-			const epicError = validateEpic(db, epicId, current.project_id, id);
+			const epicError = validateEpic(db, epicId, current.project_id, targetId);
 			if (epicError) {
 				return err(epicError);
 			}
@@ -663,9 +761,9 @@ export function updateTask(
 	return guard(() => {
 		db.prepare(`UPDATE tasks SET ${sets.join(", ")} WHERE id = ?`).run(
 			...params,
-			id,
+			targetId,
 		);
-		return taskById(db, id)!;
+		return taskById(db, targetId)!;
 	});
 }
 
@@ -677,9 +775,11 @@ export function closeTask(
 	if (!isClosedReason(reason)) {
 		return err(invalid(`invalid close reason: ${reason}`));
 	}
-	if (!getTask(db, id)) {
-		return err(notFound(`task ${id} not found`));
+	const resolved = resolveTaskId(db, id);
+	if (resolved.isErr()) {
+		return err(resolved.error);
 	}
+	const targetId = resolved.value;
 
 	const now = new Date().toISOString();
 
@@ -688,8 +788,8 @@ export function closeTask(
 			`UPDATE tasks
 			 SET status = ?, closed_at = ?, closed_reason = ?, updated_at = ?
 			 WHERE id = ?`,
-		).run(STATUS_BY_REASON[reason], now, reason, now, id);
-		return taskById(db, id)!;
+		).run(STATUS_BY_REASON[reason], now, reason, now, targetId);
+		return taskById(db, targetId)!;
 	});
 }
 
@@ -748,10 +848,12 @@ export function moveTask(
 	id: string,
 	projectId: string,
 ): Result<Task, AppError> {
-	const task = getTask(db, id);
-	if (!task) {
-		return err(notFound(`task ${id} not found`));
+	const resolved = resolveTaskId(db, id);
+	if (resolved.isErr()) {
+		return err(resolved.error);
 	}
+	const sourceId = resolved.value;
+	const task = taskById(db, sourceId)!;
 	const target = getProject(db, projectId);
 	if (!target) {
 		return err(notFound(`project ${projectId} not found`));
@@ -770,7 +872,7 @@ export function moveTask(
 			// PRAGMA defer_foreign_keys defers validation until COMMIT.
 			db.exec("PRAGMA defer_foreign_keys = ON");
 
-			const plan = collectSubtree(db, id).map((oldId) => {
+			const plan = collectSubtree(db, sourceId).map((oldId) => {
 				const row = db
 					.prepare("SELECT epic_id FROM tasks WHERE id = ?")
 					.get(oldId) as { epic_id: string | null };
@@ -792,7 +894,7 @@ export function moveTask(
 				).run(node.newId, target.id, node.number, newEpicId, now, node.oldId);
 			}
 			db.exec("COMMIT");
-			return taskById(db, newIds.get(id)!)!;
+			return taskById(db, newIds.get(sourceId)!)!;
 		} catch (error) {
 			db.exec("ROLLBACK");
 			throw error;
@@ -804,9 +906,11 @@ export function deleteTask(
 	db: DatabaseSync,
 	id: string,
 ): Result<string, AppError> {
-	if (!getTask(db, id)) {
-		return err(notFound(`task ${id} not found`));
+	const resolved = resolveTaskId(db, id);
+	if (resolved.isErr()) {
+		return err(resolved.error);
 	}
+	const targetId = resolved.value;
 
 	const now = new Date().toISOString();
 
@@ -815,12 +919,12 @@ export function deleteTask(
 		try {
 			db.prepare(
 				"UPDATE tasks SET epic_id = NULL, updated_at = ? WHERE epic_id = ?",
-			).run(now, id);
+			).run(now, targetId);
 			db.prepare(
 				"UPDATE tasks SET deleted_at = ?, updated_at = ? WHERE id = ?",
-			).run(now, now, id);
+			).run(now, now, targetId);
 			db.exec("COMMIT");
-			return id;
+			return targetId;
 		} catch (error) {
 			db.exec("ROLLBACK");
 			throw error;
