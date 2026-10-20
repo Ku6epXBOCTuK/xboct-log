@@ -1,6 +1,6 @@
 <script lang="ts">
+	import SingleSelect from "#lib/components/ui/select/SingleSelect.svelte";
 	import type { Scope } from "#lib/types.ts";
-	import ChevronDown from "~icons/lucide/chevron-down";
 	import Layers from "~icons/lucide/layers";
 
 	interface Props {
@@ -12,32 +12,65 @@
 
 	let { value, scopes, countScope, onselect }: Props = $props();
 
+	interface Choice {
+		key: string;
+		label: string;
+		meta: string;
+		keywords: string;
+		next: "any" | "none" | number;
+	}
+
+	const ANY: Choice = {
+		key: "any",
+		label: "Scope: any",
+		meta: "",
+		keywords: "any",
+		next: "any",
+	};
+
+	const NONE: Choice = {
+		key: "none",
+		label: "Scope: none",
+		meta: "",
+		keywords: "none",
+		next: "none",
+	};
+
 	const multiProject = $derived(
 		new Set(scopes.map((scope) => scope.project_id)).size > 1,
 	);
 
-	function parse(raw: string): "any" | "none" | number {
-		if (raw === "any" || raw === "none") return raw;
-		return Number(raw);
-	}
+	const choices = $derived<Choice[]>([
+		ANY,
+		NONE,
+		...scopes.map((scope) => ({
+			key: String(scope.id),
+			label: `${multiProject ? `${scope.project_id}: ` : ""}${scope.name}`,
+			meta: String(countScope(scope.id)),
+			keywords: `${scope.project_id} ${scope.name}`,
+			next: scope.id,
+		})),
+	]);
+
+	const selected = $derived(
+		choices.find((choice) => choice.next === value) ?? ANY,
+	);
 </script>
 
-<label class="select-filter">
+{#snippet icon()}
 	<Layers />
-	<select
-		value={String(value)}
-		onchange={(event) => onselect(parse(event.currentTarget.value))}
-		aria-label="Filter by scope"
-	>
-		<option value="any">Scope: any</option>
-		<option value="none">Scope: none</option>
-		{#each scopes as scope (scope.id)}
-			<option value={String(scope.id)}>
-				{multiProject ? `${scope.project_id}: ` : ""}{scope.name} ({countScope(
-					scope.id,
-				)})
-			</option>
-		{/each}
-	</select>
-	<ChevronDown />
-</label>
+{/snippet}
+
+<SingleSelect
+	items={choices}
+	value={selected}
+	getKey={(choice) => choice.key}
+	getLabel={(choice) => choice.label}
+	getKeywords={(choice) => choice.keywords}
+	getMeta={(choice) => choice.meta}
+	onselect={(choice) => onselect(choice.next)}
+	{icon}
+	searchable
+	searchPlaceholder="Search scopes"
+	ariaLabel="Filter by scope"
+/>

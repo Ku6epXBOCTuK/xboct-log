@@ -1,7 +1,7 @@
 <script lang="ts">
 	import EpicFilter from "#lib/components/filters/EpicFilter.svelte";
 	import ScopeFilter from "#lib/components/filters/ScopeFilter.svelte";
-	import TagFilter from "#lib/components/filters/TagFilter.svelte";
+	import TagFilterSelect from "#lib/components/ui/select/TagFilterSelect.svelte";
 	import type { Filters } from "#lib/state/filters.svelte.ts";
 	import type { TagCount } from "#lib/tasks/filter.ts";
 	import type { Scope, Task } from "#lib/types.ts";
@@ -44,7 +44,7 @@
 			onselect={(value) => (filters.scope = value)}
 		/>
 	{/if}
-	<TagFilter
+	<TagFilterSelect
 		{tags}
 		selected={filters.selectedTags}
 		ontoggle={(tag) => filters.toggleTag(tag)}
@@ -77,20 +77,9 @@
 			row-gap: var(--space-2);
 		}
 
-		.meta-row :global(.select-filter) {
+		.meta-row :global(.select) {
 			max-width: 100%;
 			min-width: 0;
-		}
-
-		.meta-row :global(.tag-filter) {
-			flex: 1 1 100%;
-		}
-
-		.meta-row :global(.tag-menu) {
-			left: 0;
-			right: 0;
-			min-width: 0;
-			width: auto;
 		}
 
 		.result-count {

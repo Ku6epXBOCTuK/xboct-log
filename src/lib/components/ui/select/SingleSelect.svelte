@@ -15,6 +15,7 @@
 		placeholder?: string;
 		ariaLabel?: string;
 		searchable?: boolean;
+		searchPlaceholder?: string;
 		variant?: "filter" | "field";
 		icon?: Snippet;
 		class?: string;
@@ -31,6 +32,7 @@
 		placeholder = "Select",
 		ariaLabel,
 		searchable = false,
+		searchPlaceholder = "Search",
 		variant = "filter",
 		icon,
 		class: className = "",
@@ -45,6 +47,10 @@
 
 	const isSelected = (item: T) =>
 		value !== null && getKey(item) === getKey(value);
+
+	function metaOf(item: T | null): string {
+		return item === null ? "" : (getMeta?.(item) ?? "");
+	}
 </script>
 
 {#snippet trigger()}
@@ -62,8 +68,8 @@
 		<span class="select-trigger-label">
 			{value === null ? placeholder : getLabel(value)}
 		</span>
-		{#if value !== null && getMeta !== undefined}
-			<span class="select-trigger-meta">{getMeta(value)}</span>
+		{#if metaOf(value) !== ""}
+			<span class="select-trigger-meta">{metaOf(value)}</span>
 		{/if}
 		<span class="select-trigger-caret">
 			<ChevronDown />
@@ -73,8 +79,8 @@
 
 {#snippet option(item: T)}
 	<span class="select-option-label">{getLabel(item)}</span>
-	{#if getMeta !== undefined}
-		<span class="select-option-count">{getMeta(item)}</span>
+	{#if metaOf(item) !== ""}
+		<span class="select-option-count">{metaOf(item)}</span>
 	{/if}
 {/snippet}
 
@@ -85,6 +91,7 @@
 	{option}
 	{isSelected}
 	{searchable}
+	{searchPlaceholder}
 	{variant}
 	class={className}
 	listLabel={ariaLabel ?? placeholder}
