@@ -14,6 +14,7 @@
 		searchPlaceholder?: string;
 		emptyLabel?: string;
 		listLabel?: string;
+		listId?: string;
 		multiselect?: boolean;
 		variant?: "filter" | "field";
 		class?: string;
@@ -31,6 +32,7 @@
 		searchPlaceholder = "Search",
 		emptyLabel = "Nothing found",
 		listLabel = "Options",
+		listId,
 		multiselect = false,
 		variant = "filter",
 		class: className = "",
@@ -155,6 +157,7 @@
 			{/if}
 			<div
 				class="select-list"
+				id={listId}
 				role="listbox"
 				aria-label={listLabel}
 				aria-multiselectable={multiselect}
@@ -248,7 +251,15 @@
 	}
 
 	:global(.select-trigger-caret) {
+		display: inline-flex;
+		flex: none;
 		margin-left: auto;
+		color: var(--text-muted);
+	}
+
+	:global(.select-trigger-caret svg) {
+		width: 1rem;
+		height: 1rem;
 	}
 
 	.select[data-variant="field"] :global(.select-trigger) {
@@ -356,7 +367,8 @@
 		white-space: nowrap;
 	}
 
-	:global(.select-option-count) {
+	:global(.select-option-count),
+	:global(.select-trigger-meta) {
 		color: var(--text-muted);
 		font-size: var(--text-xs);
 		font-variant-numeric: tabular-nums;

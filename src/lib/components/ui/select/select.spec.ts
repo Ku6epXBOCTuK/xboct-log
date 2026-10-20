@@ -183,4 +183,29 @@ describe("createSelect", () => {
 
 		expect(select.active).toBeNull();
 	});
+
+	it("closes after picking by default", () => {
+		const { select } = make();
+
+		select.show();
+		select.pick(items[0]);
+
+		expect(select.open).toBe(false);
+	});
+
+	it("stays open after picking when asked to", () => {
+		const onPick = vi.fn();
+		const select = createSelect<Item>({
+			items: () => items,
+			getLabel: (item) => item.label,
+			onPick,
+			closeOnPick: false,
+		});
+
+		select.show();
+		select.pick(items[0]);
+
+		expect(onPick).toHaveBeenCalledWith(items[0]);
+		expect(select.open).toBe(true);
+	});
 });

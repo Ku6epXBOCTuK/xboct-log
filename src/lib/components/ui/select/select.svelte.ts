@@ -3,6 +3,7 @@ export interface SelectConfig<T> {
 	getLabel: (item: T) => string;
 	getKeywords?: (item: T) => string;
 	onPick: (item: T) => void;
+	closeOnPick?: boolean;
 	onOpen?: () => void;
 	onClose?: () => void;
 }
@@ -83,6 +84,7 @@ export function createSelect<T>(config: SelectConfig<T>) {
 
 	function pick(item: T) {
 		config.onPick(item);
+		if (config.closeOnPick ?? true) hide();
 	}
 
 	function pickActive(): T | null {
