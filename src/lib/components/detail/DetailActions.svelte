@@ -5,6 +5,7 @@
 		STATUS_BY_REASON,
 		type ClosedReason,
 	} from "#lib/types.ts";
+	import { CLOSED_REASON_LABELS, STATUS_LABELS } from "#lib/tasks/display.ts";
 
 	interface Props {
 		closed: boolean;
@@ -29,7 +30,8 @@
 					items={[...CLOSED_REASONS]}
 					value={reason}
 					getKey={(option) => option}
-					getLabel={(option) => `${option} → ${STATUS_BY_REASON[option]}`}
+					getLabel={(option) =>
+						`${CLOSED_REASON_LABELS[option]} → ${STATUS_LABELS[STATUS_BY_REASON[option]]}`}
 					onselect={(option) => (reason = option)}
 					variant="field"
 					ariaLabel="Close reason"

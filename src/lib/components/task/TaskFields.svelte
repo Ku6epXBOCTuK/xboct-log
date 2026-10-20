@@ -1,7 +1,11 @@
 <script lang="ts">
 	import SingleSelect from "#lib/components/ui/select/SingleSelect.svelte";
 	import TagInput from "#lib/components/ui/select/TagInput.svelte";
-	import { STATUS_LABELS, formatDate } from "#lib/tasks/display.ts";
+	import {
+		CLOSED_REASON_LABELS,
+		STATUS_LABELS,
+		formatDate,
+	} from "#lib/tasks/display.ts";
 	import {
 		toSourceFile,
 		toSourceLine,
@@ -95,7 +99,11 @@
 
 	function closedLabel(): string {
 		if (value.closed_at == null) return "";
-		return `${formatDate(value.closed_at)} ${value.closed_reason ?? ""}`.trim();
+		const reason =
+			value.closed_reason == null
+				? ""
+				: CLOSED_REASON_LABELS[value.closed_reason];
+		return `${formatDate(value.closed_at)} ${reason}`.trim();
 	}
 </script>
 

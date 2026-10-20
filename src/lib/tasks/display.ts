@@ -1,4 +1,4 @@
-import type { Status } from "#lib/types.ts";
+import type { ClosedReason, Status } from "#lib/types.ts";
 
 export const STATUS_LABELS: Record<Status, string> = {
 	open: "open",
@@ -6,6 +6,14 @@ export const STATUS_LABELS: Record<Status, string> = {
 	blocked: "blocked",
 	done: "done",
 	cancelled: "cancelled",
+};
+
+export const CLOSED_REASON_LABELS: Record<ClosedReason, string> = {
+	fixed: "Fixed",
+	wontfix: "Won't fix",
+	obsolete: "Obsolete",
+	duplicate: "Duplicate",
+	"not-reproduced": "Not reproduced",
 };
 
 export function messageOf(error: unknown): string {

@@ -23,6 +23,7 @@ export const CLOSED_REASONS = [
 	"wontfix",
 	"obsolete",
 	"duplicate",
+	"not-reproduced",
 ] as const;
 
 export type ClosedReason = (typeof CLOSED_REASONS)[number];
@@ -32,6 +33,7 @@ export const STATUS_BY_REASON: Record<ClosedReason, Status> = {
 	wontfix: "cancelled",
 	obsolete: "cancelled",
 	duplicate: "cancelled",
+	"not-reproduced": "cancelled",
 };
 
 export const PRIORITIES = ["low", "medium", "high", "critical"] as const;

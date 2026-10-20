@@ -198,6 +198,16 @@ describe("tasks", () => {
 		expect(closed.closed_reason).toBe("wontfix");
 	});
 
+	it("maps the not-reproduced reason to cancelled", async () => {
+		const db = await setup();
+		const task = unwrap(createTask(db, { project_id: "spa", title: "Ship" }));
+
+		const closed = unwrap(closeTask(db, task.id, "not-reproduced"));
+
+		expect(closed.status).toBe("cancelled");
+		expect(closed.closed_reason).toBe("not-reproduced");
+	});
+
 	it("returns not_found when closing a missing task", async () => {
 		const db = await setup();
 

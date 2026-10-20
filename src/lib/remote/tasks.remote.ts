@@ -208,7 +208,7 @@ export const updateTasks = defineCommand({
 export const closeTask = defineCommand({
 	name: "tasks_close",
 	description:
-		"Close a task by id with a reason: 'fixed' → done, 'wontfix' | 'obsolete' | 'duplicate' → cancelled. Id accepts the full 'PREFIX-NUMBER' form (e.g. 'LOG-82') or a bare task number (e.g. '82') that is unique across projects.",
+		"Close a task by id with a reason: 'fixed' → done, 'wontfix' | 'obsolete' | 'duplicate' | 'not-reproduced' → cancelled. 'not-reproduced' marks a report that could not be reproduced. Id accepts the full 'PREFIX-NUMBER' form (e.g. 'LOG-82') or a bare task number (e.g. '82') that is unique across projects.",
 	kind: "command",
 	input: z.object({ id: z.string().min(1), reason: z.enum(CLOSED_REASONS) }),
 	handler: ({ id, reason }) => repo.closeTask(getDb(), id, reason),
