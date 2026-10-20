@@ -141,6 +141,14 @@ describe("createSelect", () => {
 		expect(onPick).toHaveBeenCalledWith(items[1]);
 	});
 
+	it("picks a specific item directly", () => {
+		const { select, onPick } = make();
+
+		select.pick(items[2]);
+
+		expect(onPick).toHaveBeenCalledWith(items[2]);
+	});
+
 	it("ignores enter when nothing matches", () => {
 		const { select, onPick } = make();
 

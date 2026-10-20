@@ -81,10 +81,14 @@ export function createSelect<T>(config: SelectConfig<T>) {
 		activeIndex = index;
 	}
 
+	function pick(item: T) {
+		config.onPick(item);
+	}
+
 	function pickActive(): T | null {
 		const item = active;
 		if (item === null) return null;
-		config.onPick(item);
+		pick(item);
 		return item;
 	}
 
@@ -141,6 +145,7 @@ export function createSelect<T>(config: SelectConfig<T>) {
 		setQuery,
 		move,
 		moveTo,
+		pick,
 		pickActive,
 		handleKeydown,
 	};
