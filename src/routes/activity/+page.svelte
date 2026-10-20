@@ -1,9 +1,14 @@
 <script lang="ts">
 	import { activityFieldLabel, activityOpLabel } from "#lib/activity/labels.ts";
 	import { listActivityLog } from "#lib/remote/activity.remote.ts";
+	import { fetchFresh } from "#lib/remote/fresh.ts";
 	import { useBoard } from "#lib/state/board.svelte.ts";
 	import { formatDateTime } from "#lib/tasks/display.ts";
-	import type { ActivityLogItem } from "#lib/types.ts";
+	import type {
+		ActivityEntity,
+		ActivityLogItem,
+		ActivitySource,
+	} from "#lib/types.ts";
 
 	const LIMIT = 50;
 
@@ -30,17 +35,18 @@
 	async function load() {
 		const current = ++requestId;
 		try {
-			const result = await listActivityLog({
-				source: source === "" ? undefined : (source as "ui" | "mcp" | "cli"),
-				op: op === "" ? undefined : op,
-				entity:
-					entity === "" ? undefined : (entity as "task" | "project" | "scope"),
-				project_id: filters.activeProject ?? undefined,
-				from: from === "" ? undefined : `${from}T00:00:00.000Z`,
-				to: to === "" ? undefined : `${to}T23:59:59.999Z`,
-				limit: LIMIT,
-				offset,
-			});
+			const result = await fetchFresh(
+				listActivityLog({
+					source: source === "" ? undefined : (source as ActivitySource),
+					op: op === "" ? undefined : op,
+					entity: entity === "" ? undefined : (entity as ActivityEntity),
+					project_id: filters.activeProject ?? undefined,
+					from: from === "" ? undefined : `${from}T00:00:00.000Z`,
+					to: to === "" ? undefined : `${to}T23:59:59.999Z`,
+					limit: LIMIT,
+					offset,
+				}),
+			);
 			if (current !== requestId) return;
 			items = result.items;
 			total = result.total;

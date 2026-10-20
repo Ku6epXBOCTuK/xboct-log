@@ -3,6 +3,7 @@ import { resolve } from "$app/paths";
 import { page } from "$app/state";
 import { SvelteURL } from "svelte/reactivity";
 import { getContext, setContext } from "svelte";
+import { createCommentsStore } from "#lib/state/comments.svelte.ts";
 import { createFilters } from "#lib/state/filters.svelte.ts";
 import { createProjectStore } from "#lib/state/projects.svelte.ts";
 import { createScopeStore } from "#lib/state/scopes.svelte.ts";
@@ -22,6 +23,7 @@ export function createBoard(input: BoardInput) {
 	const tasks = createTaskStore(input.tasks);
 	const projects = createProjectStore(input.projects);
 	const scopes = createScopeStore(input.scopes);
+	const comments = createCommentsStore();
 	const filters = createFilters(input.project);
 	const theme = createTheme(input.theme);
 
@@ -43,7 +45,15 @@ export function createBoard(input: BoardInput) {
 		void goto(resolve(target), { replace: true, shallow: true });
 	}
 
-	return { tasks, projects, scopes, filters, theme, setActiveProject };
+	return {
+		tasks,
+		projects,
+		scopes,
+		comments,
+		filters,
+		theme,
+		setActiveProject,
+	};
 }
 
 export type Board = ReturnType<typeof createBoard>;

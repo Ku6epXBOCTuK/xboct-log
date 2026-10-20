@@ -1,6 +1,8 @@
+import { fetchFresh } from "#lib/remote/fresh.ts";
 import { getProjects } from "#lib/remote/projects.remote.ts";
 import { getScopedProjectIds, getScopes } from "#lib/remote/scopes.remote.ts";
 import { getTasks } from "#lib/remote/tasks.remote.ts";
+import type { CommentsStore } from "./comments.svelte.ts";
 import type { ProjectStore } from "./projects.svelte.ts";
 import type { ScopeStore } from "./scopes.svelte.ts";
 import type { TaskStore } from "./tasks.svelte.ts";
@@ -14,22 +16,15 @@ interface LiveStores {
 	tasks: TaskStore;
 	projects: ProjectStore;
 	scopes: ScopeStore;
-}
-
-type Refetchable<T> = {
-	refresh: () => Promise<void>;
-	current: T | undefined;
-};
-
-async function refetch<T>(resource: Refetchable<T>): Promise<T> {
-	await resource.refresh();
-	return resource.current as T;
+	comments: CommentsStore;
 }
 
 async function loadScopes() {
-	const ids = await refetch(getScopedProjectIds({}));
+	const ids = await fetchFresh(getScopedProjectIds({}));
 	return (
-		await Promise.all(ids.map((id) => refetch(getScopes({ project_id: id }))))
+		await Promise.all(
+			ids.map((id) => fetchFresh(getScopes({ project_id: id }))),
+		)
 	).flat();
 }
 
@@ -45,13 +40,22 @@ export function startLiveSync(stores: LiveStores): () => void {
 		queue = queue
 			.then(async () => {
 				if (entities.has("tasks")) {
-					const { items } = await refetch(
-						getTasks({ limit: 1000, include_description: true }),
-					);
-					stores.tasks.replaceAll(items);
+					try {
+						const { items } = await fetchFresh(
+							getTasks({ limit: 1000, include_description: true }),
+						);
+						stores.tasks.replaceAll(items);
+					} catch (error) {
+						console.warn("[live] tasks reload failed", error);
+					}
+					try {
+						await stores.comments.refresh();
+					} catch (error) {
+						console.warn("[live] comments reload failed", error);
+					}
 				}
 				if (entities.has("projects")) {
-					const next = await refetch(getProjects({ includeArchived: true }));
+					const next = await fetchFresh(getProjects({ includeArchived: true }));
 					stores.projects.replaceAll(next);
 				}
 				if (entities.has("scopes")) {
@@ -59,7 +63,9 @@ export function startLiveSync(stores: LiveStores): () => void {
 					stores.scopes.replaceAll(next);
 				}
 			})
-			.catch(() => {});
+			.catch((error) => {
+				console.warn("[live] reload failed", error);
+			});
 	}
 
 	function schedule(entity: Entity): void {

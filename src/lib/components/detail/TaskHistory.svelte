@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { activityFieldLabel, activityOpLabel } from "#lib/activity/labels.ts";
 	import { getTaskHistory } from "#lib/remote/activity.remote.ts";
+	import { fetchFresh } from "#lib/remote/fresh.ts";
 	import { formatDateTime } from "#lib/tasks/display.ts";
 	import type { ActivityItem, Task } from "#lib/types.ts";
 
@@ -26,7 +27,7 @@
 	async function load(id: string, key: string) {
 		if (key === loadedKey) return;
 		try {
-			const result = await getTaskHistory({ id, limit });
+			const result = await fetchFresh(getTaskHistory({ id, limit }));
 			if (key !== requested) return;
 			items = result.items;
 			total = result.total;

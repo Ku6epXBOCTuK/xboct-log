@@ -1,14 +1,17 @@
 import { XBOCT_LOG_ACTIVITY_KEEP_DAYS } from "$app/env/private";
 import type { DatabaseSync, SQLInputValue } from "node:sqlite";
-import type { ActivityChange, ActivityItem, ActivityLogItem } from "../types";
+import type {
+	ActivityChange,
+	ActivityEntity,
+	ActivityItem,
+	ActivityLogItem,
+	ActivitySource,
+} from "../types";
 
 const DAY_MS = 86_400_000;
 
-export const ACTIVITY_ENTITIES = ["task", "project", "scope"] as const;
-
-export type ActivityEntity = (typeof ACTIVITY_ENTITIES)[number];
-
-export type ActivitySource = "ui" | "mcp" | "cli";
+export { ACTIVITY_ENTITIES } from "../types";
+export type { ActivityEntity, ActivitySource } from "../types";
 
 export interface ActivityEntry {
 	entity: ActivityEntity;

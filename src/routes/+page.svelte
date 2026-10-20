@@ -8,7 +8,7 @@
 	import { getActiveTotal } from "#lib/tasks/filter.ts";
 	import type { Task } from "#lib/types.ts";
 
-	const { tasks, projects, scopes, filters, theme } = useBoard();
+	const { tasks, projects, scopes, comments, filters, theme } = useBoard();
 
 	let selectedId = $state<string | null>(null);
 	let creating = $state(false);
@@ -75,6 +75,7 @@
 	{tasks}
 	{projects}
 	{scopes}
+	{comments}
 	onclear={() => (selectedId = null)}
 	ondelete={forgetEpic}
 	oncreatechild={openChild}

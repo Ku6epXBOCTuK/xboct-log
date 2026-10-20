@@ -2,6 +2,7 @@
 	import BlockingFields from "#lib/components/task/BlockingFields.svelte";
 	import DetailActions from "#lib/components/detail/DetailActions.svelte";
 	import ProjectScopeFields from "#lib/components/task/ProjectScopeFields.svelte";
+	import TaskComments from "#lib/components/detail/TaskComments.svelte";
 	import TaskHistory from "#lib/components/detail/TaskHistory.svelte";
 	import TaskFields from "#lib/components/task/TaskFields.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
@@ -9,6 +10,7 @@
 	import StatusDot from "#lib/components/ui/StatusDot.svelte";
 	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
+	import type { CommentsStore } from "#lib/state/comments.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
 	import { STATUS_LABELS, formatDate, messageOf } from "#lib/tasks/display.ts";
 	import { blockingCandidates } from "#lib/tasks/blocking.ts";
@@ -22,6 +24,8 @@
 	import { cubicOut } from "svelte/easing";
 	import ArrowLeft from "~icons/lucide/arrow-left";
 	import Clock3 from "~icons/lucide/clock-3";
+	import MessageSquare from "~icons/lucide/message-square";
+	import RefreshCw from "~icons/lucide/refresh-cw";
 	import X from "~icons/lucide/x";
 
 	interface Props {
@@ -29,6 +33,7 @@
 		tasks: TaskStore;
 		projects: ProjectStore;
 		scopes: ScopeStore;
+		comments: CommentsStore;
 		onclear: () => void;
 		ondelete?: (id: string) => void;
 		oncreatechild?: (task: Task) => void;
@@ -39,6 +44,7 @@
 		tasks,
 		projects,
 		scopes,
+		comments,
 		onclear,
 		ondelete,
 		oncreatechild,
@@ -47,15 +53,28 @@
 	let saving = $state(false);
 	let failure = $state<string | null>(null);
 	let historyOpen = $state(false);
+	let commentsOpen = $state(false);
 	let tagSuggestions = $derived(collectTags(tasks.tasks).map((tag) => tag.tag));
 	let blockerCandidates = $derived(
 		selected === null ? [] : blockingCandidates(tasks.tasks, selected),
 	);
 
+	// NOTE: the derived value only changes when the task id changes, so a live
+	// refresh of the task itself keeps the open overlay open.
+	const selectedId = $derived(selected?.id);
+
 	$effect(() => {
-		const id = selected?.id;
+		const id = selectedId;
 		if (id === undefined) return;
 		historyOpen = false;
+		commentsOpen = false;
+	});
+
+	$effect(() => {
+		const id = selectedId;
+		comments.watch(id ?? null);
+		if (id === undefined) return;
+		void comments.load(id).catch(() => {});
 	});
 
 	async function perform(work: () => Promise<Task>) {
@@ -164,6 +183,10 @@
 			historyOpen = false;
 			return;
 		}
+		if (commentsOpen) {
+			commentsOpen = false;
+			return;
+		}
 		if (document.querySelector("dialog[open]") !== null) return;
 
 		// NOTE: fields commit on change (blur), so the focused control must be
@@ -207,6 +230,13 @@
 					>
 						<Clock3 />
 					</IconButton>
+					<IconButton
+						label="Task comments"
+						title="Task comments"
+						onclick={() => (commentsOpen = true)}
+					>
+						<MessageSquare />
+					</IconButton>
 					<IconButton label="Close task details" onclick={onclear}>
 						<X />
 					</IconButton>
@@ -246,6 +276,8 @@
 				onfield={save}
 				onerror={(message) => (failure = message)}
 				oncreatechild={createChild}
+				commentsCount={comments.count(selected.id)}
+				oncomments={() => (commentsOpen = true)}
 			/>
 		</div>
 		<DetailActions
@@ -256,9 +288,9 @@
 			ondelete={remove}
 		/>
 		{#if historyOpen}
-			<div class="history-overlay" role="dialog" aria-label="Task history">
-				<div class="history-head">
-					<span class="history-title">History</span>
+			<div class="panel-overlay" role="dialog" aria-label="Task history">
+				<div class="panel-overlay-head">
+					<span class="panel-overlay-title">History</span>
 					<div class="detail-actions">
 						<IconButton
 							label="Back to task details"
@@ -272,8 +304,50 @@
 						</IconButton>
 					</div>
 				</div>
-				<div class="history-body">
+				<div class="panel-overlay-body">
 					<TaskHistory task={selected} />
+				</div>
+			</div>
+		{/if}
+		{#if commentsOpen}
+			<div class="panel-overlay" role="dialog" aria-label="Task comments">
+				<div class="panel-overlay-head">
+					<span class="panel-overlay-title">Comments</span>
+					<div class="detail-actions">
+						<IconButton
+							label="Reload comments"
+							title="Reload comments"
+							onclick={() => {
+								void comments.load(selected.id).catch(() => {});
+							}}
+						>
+							<RefreshCw />
+						</IconButton>
+						<IconButton
+							label="Back to task details"
+							title="Back to task details"
+							onclick={() => (commentsOpen = false)}
+						>
+							<ArrowLeft />
+						</IconButton>
+						<IconButton label="Close task details" onclick={onclear}>
+							<X />
+						</IconButton>
+					</div>
+				</div>
+				<div class="panel-overlay-body">
+					<div class="task-summary">
+						<div class="summary-title">{selected.title}</div>
+						<div class="summary-meta">
+							<span class="epic-badge">{selected.id}</span>
+							<StatusDot status={selected.status} />
+							<span>{STATUS_LABELS[selected.status]}</span>
+						</div>
+						{#if selected.description.trim() !== ""}
+							<p class="summary-description">{selected.description}</p>
+						{/if}
+					</div>
+					<TaskComments taskId={selected.id} {comments} />
 				</div>
 			</div>
 		{/if}
@@ -320,7 +394,7 @@
 		flex: none;
 	}
 
-	.history-overlay {
+	.panel-overlay {
 		position: absolute;
 		inset: 0;
 		z-index: 20;
@@ -329,7 +403,7 @@
 		flex-direction: column;
 	}
 
-	.history-head {
+	.panel-overlay-head {
 		flex: none;
 		display: flex;
 		align-items: center;
@@ -340,17 +414,48 @@
 		border-bottom: 1px solid var(--border);
 	}
 
-	.history-title {
+	.panel-overlay-title {
 		font-size: var(--text-xl);
 		font-weight: 600;
 		letter-spacing: -0.02em;
 	}
 
-	.history-body {
+	.panel-overlay-body {
 		flex: 1 1 auto;
 		min-height: 0;
 		overflow: auto;
 		padding: var(--space-4) var(--edge-pad) var(--space-5);
+	}
+
+	.task-summary {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+		padding-bottom: var(--space-4);
+		border-bottom: 1px solid var(--border);
+	}
+
+	.summary-title {
+		font-size: var(--text-lg);
+		font-weight: 600;
+		line-height: 1.3;
+	}
+
+	.summary-meta {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		color: var(--text-muted);
+		font-size: var(--text-sm);
+	}
+
+	.summary-description {
+		margin: 0;
+		font-size: var(--text-sm);
+		line-height: 1.55;
+		color: var(--text-secondary);
+		white-space: pre-wrap;
+		overflow-wrap: anywhere;
 	}
 
 	.detail-id {

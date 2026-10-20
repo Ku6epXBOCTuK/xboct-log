@@ -27,6 +27,8 @@
 		onfield: (patch: TaskPatch) => void;
 		onerror: (message: string) => void;
 		oncreatechild?: () => void;
+		commentsCount?: number;
+		oncomments?: () => void;
 	}
 
 	let {
@@ -37,6 +39,8 @@
 		onfield,
 		onerror,
 		oncreatechild,
+		commentsCount,
+		oncomments,
 	}: Props = $props();
 
 	const TASK_TYPES: ("task" | "epic")[] = ["task", "epic"];
@@ -110,6 +114,17 @@
 		onchange={changeDescription}
 		placeholder="Description"
 		aria-label="Description"></textarea>
+	{#if commentsCount !== undefined}
+		<button
+			class="comments-count"
+			type="button"
+			onclick={() => oncomments?.()}
+			disabled={oncomments === undefined}
+		>
+			{commentsCount}
+			{commentsCount === 1 ? "comment" : "comments"}
+		</button>
+	{/if}
 </div>
 
 <div class="detail-grid">
@@ -205,6 +220,21 @@
 		margin: 0 0 var(--space-4);
 		color: var(--text-secondary);
 		font-size: var(--text-md);
+	}
+
+	.comments-count {
+		margin-top: var(--space-2);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-sm);
+		padding: 0 var(--space-2);
+		min-height: 1.5rem;
+		font-size: var(--text-xs);
+		color: var(--text-muted);
+	}
+
+	.comments-count:hover:not(:disabled) {
+		border-color: var(--border-strong);
+		color: var(--foreground);
 	}
 
 	.field-action {
