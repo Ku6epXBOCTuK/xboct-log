@@ -8,6 +8,7 @@ mkdirSync(root, { recursive: true });
 const env = {
 	...process.env,
 	XBOCT_LOG_DB: process.env.XBOCT_LOG_DEV_DB ?? join(root, "dev.db"),
+	XBOCT_LOG_MIGRATIONS: join(import.meta.dirname, "..", "migrations"),
 	XBOCT_LOG_BACKUP_DIR:
 		process.env.XBOCT_LOG_DEV_BACKUP_DIR ?? join(root, "backups"),
 	XBOCT_LOG_BACKUP_DISABLED: "1",
