@@ -38,6 +38,18 @@ const taskFilters = z
 				"Filter by epic. Accepts the full epic id (e.g. 'LOG-5') or a bare epic number (e.g. '5'); a bare number is looked up inside project_id when it is given, otherwise across all projects.",
 			),
 		scope_id: z.number().int().nullable().optional(),
+		blocked_by: z
+			.string()
+			.optional()
+			.describe(
+				"Filter by the blocked_by list: returns tasks whose blocked_by list contains the given task (the tasks it blocks). Accepts a full task id (e.g. 'LOG-5') or a bare task number (e.g. '5').",
+			),
+		blocks: z
+			.string()
+			.optional()
+			.describe(
+				"Filter by the blocks list: returns tasks whose blocks list contains the given task (the tasks blocking it). Accepts a full task id (e.g. 'LOG-5') or a bare task number (e.g. '5').",
+			),
 		q: z
 			.string()
 			.optional()
@@ -140,7 +152,7 @@ const taskPatch = z.object({
 export const getTasks = defineQuery({
 	name: "tasks_list",
 	description:
-		"List tasks with filters (project, status, priority, tags, epic, scope, text query, title, title_exact), sorting and pagination. Use q to locate a task by id, title, description or tag (e.g. q='LOG-4'). Returns {items, total} where total is the count of all matching tasks before limit/offset. limit defaults to 100 (max 1000); use offset and total to paginate. Use fields to limit returned columns. By default each task carries short_description (first line, ~120 chars) instead of the full description; set include_description to get the full text. include_project attaches project names, include_scope attaches scope names, and neither filters; project_archived filters by project archival; include_deleted also returns soft-deleted tasks (hidden by default). Task id is the full 'PREFIX-NUMBER' identifier (e.g. 'LOG-82'); number is the per-project sequence number (e.g. 82), unique only inside its project. The epic filter accepts a full epic id (e.g. 'LOG-5') or a bare epic number (e.g. '5') resolved inside project_id when it is given.",
+		"List tasks with filters (project, status, priority, tags, epic, scope, blocked_by, blocks, text query, title, title_exact), sorting and pagination. Use q to locate a task by id, title, description or tag (e.g. q='LOG-4'). Returns {items, total} where total is the count of all matching tasks before limit/offset. limit defaults to 100 (max 1000); use offset and total to paginate. Use fields to limit returned columns. By default each task carries short_description (first line, ~120 chars) instead of the full description; set include_description to get the full text. include_project attaches project names, include_scope attaches scope names, and neither filters; project_archived filters by project archival; include_deleted also returns soft-deleted tasks (hidden by default). Task id is the full 'PREFIX-NUMBER' identifier (e.g. 'LOG-82'); number is the per-project sequence number (e.g. 82), unique only inside its project. The epic filter accepts a full epic id (e.g. 'LOG-5') or a bare epic number (e.g. '5') resolved inside project_id when it is given. The blocked_by filter returns tasks whose blocked_by list contains the given task, the blocks filter returns tasks whose blocks list contains the given task. Every task carries blocked_by (tasks that block me) and blocks (tasks I block) as id lists.",
 	kind: "query",
 	input: taskFilters,
 	handler: (filters) => {

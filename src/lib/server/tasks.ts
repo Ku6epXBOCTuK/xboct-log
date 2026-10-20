@@ -14,6 +14,7 @@ import {
 } from "../types";
 import { AppError, guard, invalid, notFound, type ErrorKind } from "./errors";
 import {
+	blockingInfoFor,
 	deleteBlockedByLinks,
 	listBlocks,
 	releaseBlockedStatus,
@@ -78,6 +79,8 @@ export interface TaskQuery {
 	is_epic?: boolean;
 	epic_id?: string | null;
 	scope_id?: number | null;
+	blocked_by?: string;
+	blocks?: string;
 	q?: string;
 	title?: string;
 	title_exact?: string;
@@ -330,6 +333,22 @@ export function resolveTaskId(
 	return ok(row.id);
 }
 
+export function withBlockingInfo(db: DatabaseSync, tasks: Task[]): Task[] {
+	if (tasks.length === 0) {
+		return tasks;
+	}
+	const info = blockingInfoFor(
+		db,
+		tasks.map((task) => task.id),
+	);
+	return tasks.map((task) => {
+		const entry = info.get(task.id);
+		return entry
+			? { ...task, blocked_by: entry.blocked_by, blocks: entry.blocks }
+			: task;
+	});
+}
+
 export function getTask(
 	db: DatabaseSync,
 	id: string,
@@ -337,13 +356,15 @@ export function getTask(
 ): Task | undefined {
 	const task = taskById(db, id);
 	if (task) {
-		return task.deleted_at === null ? task : undefined;
+		return task.deleted_at === null
+			? withBlockingInfo(db, [task])[0]
+			: undefined;
 	}
 	const resolved = resolveTaskId(db, id, inProject);
 	if (resolved.isErr()) {
 		return undefined;
 	}
-	return taskById(db, resolved.value);
+	return withBlockingInfo(db, [taskById(db, resolved.value)!])[0];
 }
 
 export interface TasksByIds {
@@ -425,7 +446,7 @@ export function getTasksByIds(
 			missing.push(id);
 		}
 	}
-	return { items, missing };
+	return { items: withBlockingInfo(db, items), missing };
 }
 
 function allocateNumber(db: DatabaseSync, projectId: string): number {
@@ -526,7 +547,7 @@ export function createTask(
 				closedAt,
 			);
 			db.exec("COMMIT");
-			return taskById(db, id)!;
+			return withBlockingInfo(db, [taskById(db, id)!])[0];
 		} catch (error) {
 			db.exec("ROLLBACK");
 			throw error;
@@ -538,6 +559,23 @@ interface TaskFilterSql {
 	where: string[];
 	params: (string | number)[];
 	joins: string;
+}
+
+function blockingIdMatch(value: string): {
+	sql: string;
+	params: (string | number)[];
+} {
+	const trimmed = value.trim();
+	if (TASK_NUMBER_PATTERN.test(trimmed)) {
+		return {
+			sql: "(SELECT id FROM tasks WHERE number = ? AND deleted_at IS NULL)",
+			params: [Number(trimmed)],
+		};
+	}
+	return {
+		sql: "(SELECT id FROM tasks WHERE id = ? AND deleted_at IS NULL)",
+		params: [trimmed],
+	};
 }
 
 function buildTaskFilter(query: TaskQuery): TaskFilterSql {
@@ -592,6 +630,20 @@ function buildTaskFilter(query: TaskQuery): TaskFilterSql {
 			where.push("tasks.scope_id = ?");
 			params.push(query.scope_id);
 		}
+	}
+	if (query.blocked_by !== undefined) {
+		const match = blockingIdMatch(query.blocked_by);
+		where.push(
+			`tasks.id IN (SELECT blocked_task_id FROM task_blocked_by WHERE blocked_by_task_id IN ${match.sql})`,
+		);
+		params.push(...match.params);
+	}
+	if (query.blocks !== undefined) {
+		const match = blockingIdMatch(query.blocks);
+		where.push(
+			`tasks.id IN (SELECT blocked_by_task_id FROM task_blocked_by WHERE blocked_task_id IN ${match.sql})`,
+		);
+		params.push(...match.params);
 	}
 	if (query.tag?.length) {
 		where.push(
@@ -680,9 +732,10 @@ export function listTasks(db: DatabaseSync, query: TaskQuery = {}): Task[] {
 	const described = tasks.map((task) =>
 		taskWithShortDescription(task, includeDescription),
 	);
+	const withBlocking = withBlockingInfo(db, described);
 	return selectedFields
-		? described.map((task) => pickFields(task, selectedFields))
-		: described;
+		? withBlocking.map((task) => pickFields(task, selectedFields))
+		: withBlocking;
 }
 
 export function countTasks(db: DatabaseSync, query: TaskQuery = {}): number {
@@ -846,7 +899,7 @@ export function updateTask(
 			...params,
 			targetId,
 		);
-		return taskById(db, targetId)!;
+		return withBlockingInfo(db, [taskById(db, targetId)!])[0];
 	});
 }
 
@@ -874,7 +927,7 @@ export function closeTask(
 			 WHERE id = ?`,
 		).run(STATUS_BY_REASON[reason], now, reason, now, targetId);
 		releaseBlockedStatus(db, listBlocks(db, targetId));
-		return taskById(db, targetId)!;
+		return withBlockingInfo(db, [taskById(db, targetId)!])[0];
 	});
 }
 
@@ -1002,7 +1055,7 @@ export function moveTask(
 				).run(node.newId, target.id, node.number, newEpicId, now, node.oldId);
 			}
 			db.exec("COMMIT");
-			return taskById(db, newIds.get(sourceId)!)!;
+			return withBlockingInfo(db, [taskById(db, newIds.get(sourceId)!)!])[0];
 		} catch (error) {
 			db.exec("ROLLBACK");
 			throw error;

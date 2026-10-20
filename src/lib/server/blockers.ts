@@ -97,6 +97,43 @@ export function releaseBlockedStatus(
 	return released;
 }
 
+export interface BlockingInfo {
+	blocked_by: string[];
+	blocks: string[];
+}
+
+export function blockingInfoFor(
+	db: DatabaseSync,
+	taskIds: string[],
+): Map<string, BlockingInfo> {
+	const info = new Map<string, BlockingInfo>();
+	for (const id of taskIds) {
+		info.set(id, { blocked_by: [], blocks: [] });
+	}
+	if (taskIds.length === 0) {
+		return info;
+	}
+	const placeholders = taskIds.map(() => "?").join(", ");
+	const rows = db
+		.prepare(
+			`SELECT b.blocked_task_id, b.blocked_by_task_id FROM task_blocked_by b
+			 JOIN tasks blocked ON blocked.id = b.blocked_task_id AND blocked.deleted_at IS NULL
+			 JOIN tasks blocker ON blocker.id = b.blocked_by_task_id AND blocker.deleted_at IS NULL
+			 WHERE b.blocked_task_id IN (${placeholders}) OR b.blocked_by_task_id IN (${placeholders})`,
+		)
+		.all(...taskIds, ...taskIds) as unknown as {
+		blocked_task_id: string;
+		blocked_by_task_id: string;
+	}[];
+	for (const row of rows) {
+		const blocked = info.get(row.blocked_task_id);
+		blocked?.blocked_by.push(row.blocked_by_task_id);
+		const blocker = info.get(row.blocked_by_task_id);
+		blocker?.blocks.push(row.blocked_task_id);
+	}
+	return info;
+}
+
 export function addBlocker(
 	db: DatabaseSync,
 	blockedByTaskId: string,
@@ -141,6 +178,7 @@ export function removeBlocker(
 			),
 		);
 	}
+	releaseBlockedStatus(db, [blockedTaskId]);
 	return ok(`${blockedByTaskId} no longer blocks ${blockedTaskId}`);
 }
 

@@ -20,3 +20,8 @@ export function getDb(): DatabaseSync {
 	singleton ??= openDatabase(defaultDbPath());
 	return singleton;
 }
+
+export function closeDb(): void {
+	singleton?.close();
+	singleton = undefined;
+}
