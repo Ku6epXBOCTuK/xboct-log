@@ -42,7 +42,7 @@
 				onclick={() => onclose(reason)}
 				disabled={saving}
 			>
-				Close
+				Close task
 			</button>
 		{:else}
 			<button class="icon-button" onclick={onreopen} disabled={saving}>
