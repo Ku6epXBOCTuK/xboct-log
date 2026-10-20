@@ -10,6 +10,7 @@ import {
 	deleteTask,
 	getTask,
 	getTasksByIds,
+	listTasks,
 	moveTask,
 	resolveTaskId,
 	updateTask,
@@ -161,13 +162,65 @@ describe("task id resolution", () => {
 		expect(ambiguous.missing).toEqual(["1"]);
 	});
 
-	it("keeps epic_id a full id only", async () => {
+	it("creates and updates a task with an epic given as a number", async () => {
 		const db = await setup();
-		unwrap(createTask(db, { project_id: "spa", title: "Epic", is_epic: true }));
-		unwrap(createTask(db, { project_id: "spa", title: "A" }));
-
-		expect(failure(updateTask(db, "2", { epic_id: "1" })).kind).toBe(
-			"not_found",
+		const epic = unwrap(
+			createTask(db, { project_id: "spa", title: "Epic", is_epic: true }),
 		);
+		const task = unwrap(createTask(db, { project_id: "spa", title: "A" }));
+
+		const child = unwrap(
+			createTask(db, { project_id: "spa", title: "Child", epic_id: "1" }),
+		);
+		expect(child.epic_id).toBe(epic.id);
+
+		const updated = unwrap(updateTask(db, task.id, { epic_id: "1" }));
+		expect(updated.epic_id).toBe(epic.id);
+	});
+
+	it("rejects an epic number missing in the project", async () => {
+		const db = await setup();
+		unwrap(createProject(db, { id: "bil", name: "Billing", prefix: "BIL" }));
+		unwrap(createTask(db, { project_id: "spa", title: "Epic", is_epic: true }));
+
+		const error = failure(
+			createTask(db, { project_id: "bil", title: "Child", epic_id: "1" }),
+		);
+		expect(error.kind).toBe("not_found");
+		expect(error.message).toContain("bil");
+	});
+
+	it("rejects a full epic id that belongs to another project", async () => {
+		const db = await setup();
+		unwrap(createProject(db, { id: "bil", name: "Billing", prefix: "BIL" }));
+		const epic = unwrap(
+			createTask(db, { project_id: "spa", title: "Epic", is_epic: true }),
+		);
+
+		const error = failure(
+			createTask(db, { project_id: "bil", title: "Child", epic_id: epic.id }),
+		);
+		expect(error.kind).toBe("validation");
+		expect(error.message).toContain("same project");
+	});
+
+	it("filters tasks by epic number", async () => {
+		const db = await setup();
+		unwrap(createProject(db, { id: "bil", name: "Billing", prefix: "BIL" }));
+		unwrap(createTask(db, { project_id: "spa", title: "Epic", is_epic: true }));
+		unwrap(createTask(db, { project_id: "spa", title: "Child", epic_id: "1" }));
+		unwrap(
+			createTask(db, { project_id: "bil", title: "Other", is_epic: true }),
+		);
+		unwrap(createTask(db, { project_id: "bil", title: "Leaf", epic_id: "1" }));
+
+		expect(
+			listTasks(db, { epic_id: "1" })
+				.map((task) => task.id)
+				.sort(),
+		).toEqual(["BIL-2", "SPA-2"]);
+		expect(
+			listTasks(db, { epic_id: "1", project_id: "spa" }).map((task) => task.id),
+		).toEqual(["SPA-2"]);
 	});
 });

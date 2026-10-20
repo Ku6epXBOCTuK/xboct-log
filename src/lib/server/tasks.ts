@@ -192,32 +192,50 @@ function normalizeTags(tags: string[] | undefined): string[] {
 	return [...seen];
 }
 
-function validateEpic(
+export function resolveEpicId(
 	db: DatabaseSync,
-	epicId: string,
+	input: string,
 	projectId: string,
-	selfId: string | null,
-): AppError | null {
-	if (selfId !== null && epicId === selfId) {
-		return invalid("a task cannot be its own epic");
-	}
-	const epic = db
-		.prepare(
-			"SELECT id, project_id, is_epic, deleted_at FROM tasks WHERE id = ?",
-		)
-		.get(epicId) as
-		| { project_id: string; is_epic: number; deleted_at: string | null }
+	selfId?: string,
+): Result<string, AppError> {
+	const trimmed = input.trim();
+	let row:
+		| {
+				id: string;
+				project_id: string;
+				is_epic: number;
+				deleted_at: string | null;
+		  }
 		| undefined;
-	if (!epic || epic.deleted_at !== null) {
-		return notFound(`epic ${epicId} not found`);
+	if (TASK_NUMBER_PATTERN.test(trimmed)) {
+		row = db
+			.prepare(
+				"SELECT id, project_id, is_epic, deleted_at FROM tasks WHERE number = ? AND project_id = ? AND deleted_at IS NULL",
+			)
+			.get(Number(trimmed), projectId) as typeof row;
+		if (!row) {
+			return err(notFound(`epic ${trimmed} not found in project ${projectId}`));
+		}
+	} else {
+		row = db
+			.prepare(
+				"SELECT id, project_id, is_epic, deleted_at FROM tasks WHERE id = ?",
+			)
+			.get(trimmed) as typeof row;
+		if (!row || row.deleted_at !== null) {
+			return err(notFound(`epic ${trimmed} not found`));
+		}
 	}
-	if (epic.is_epic !== 1) {
-		return invalid(`${epicId} is not an epic`);
+	if (selfId !== undefined && row.id === selfId) {
+		return err(invalid("a task cannot be its own epic"));
 	}
-	if (epic.project_id !== projectId) {
-		return invalid("epic must belong to the same project");
+	if (row.is_epic !== 1) {
+		return err(invalid(`${row.id} is not an epic`));
 	}
-	return null;
+	if (row.project_id !== projectId) {
+		return err(invalid("epic must belong to the same project"));
+	}
+	return ok(row.id);
 }
 
 function validateScope(
@@ -453,11 +471,13 @@ export function createTask(
 	}
 
 	const epicId = input.epic_id ? input.epic_id : null;
+	let resolvedEpicId: string | null = null;
 	if (epicId) {
-		const epicError = validateEpic(db, epicId, project.id, null);
-		if (epicError) {
-			return err(epicError);
+		const resolved = resolveEpicId(db, epicId, project.id);
+		if (resolved.isErr()) {
+			return err(resolved.error);
 		}
+		resolvedEpicId = resolved.value;
 	}
 
 	const scopeId = input.scope_id ?? null;
@@ -491,7 +511,7 @@ export function createTask(
 				status,
 				priority,
 				input.is_epic ? 1 : 0,
-				epicId,
+				resolvedEpicId,
 				scopeId,
 				sourceFile,
 				sourceLine,
@@ -545,6 +565,16 @@ function buildTaskFilter(query: TaskQuery): TaskFilterSql {
 	if (query.epic_id !== undefined) {
 		if (query.epic_id === null) {
 			where.push("tasks.epic_id IS NULL");
+		} else if (TASK_NUMBER_PATTERN.test(query.epic_id.trim())) {
+			where.push(
+				`tasks.epic_id IN (SELECT id FROM tasks WHERE number = ? AND deleted_at IS NULL${
+					query.project_id ? " AND project_id = ?" : ""
+				})`,
+			);
+			params.push(Number(query.epic_id.trim()));
+			if (query.project_id) {
+				params.push(query.project_id);
+			}
 		} else {
 			where.push("tasks.epic_id = ?");
 			params.push(query.epic_id);
@@ -779,14 +809,16 @@ export function updateTask(
 
 	if (patch.epic_id !== undefined) {
 		const epicId = patch.epic_id ? patch.epic_id : null;
+		let resolvedEpicId: string | null = null;
 		if (epicId) {
-			const epicError = validateEpic(db, epicId, current.project_id, targetId);
-			if (epicError) {
-				return err(epicError);
+			const resolved = resolveEpicId(db, epicId, current.project_id, targetId);
+			if (resolved.isErr()) {
+				return err(resolved.error);
 			}
+			resolvedEpicId = resolved.value;
 		}
 		sets.push("epic_id = ?");
-		params.push(epicId);
+		params.push(resolvedEpicId);
 	}
 
 	if (patch.scope_id !== undefined) {

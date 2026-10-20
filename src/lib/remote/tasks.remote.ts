@@ -30,7 +30,13 @@ const taskFilters = z
 			)
 			.optional(),
 		is_epic: z.boolean().optional(),
-		epic_id: z.string().nullable().optional(),
+		epic_id: z
+			.string()
+			.nullable()
+			.optional()
+			.describe(
+				"Filter by epic. Accepts the full epic id (e.g. 'LOG-5') or a bare epic number (e.g. '5'); a bare number is looked up inside project_id when it is given, otherwise across all projects.",
+			),
 		scope_id: z.number().int().nullable().optional(),
 		q: z
 			.string()
@@ -101,6 +107,9 @@ const ID_DESCRIPTION =
 const IN_PROJECT_DESCRIPTION =
 	"Optional project id (e.g. 'eit') that scopes the id lookup: a bare task number is then looked up inside that project. With a full id, the project must match, else the call fails.";
 
+const EPIC_ID_DESCRIPTION =
+	"Epic id. The full 'PREFIX-NUMBER' form (e.g. 'LOG-5') always resolves. A bare epic number (e.g. '5') is resolved inside the task's own project (project_id on creation, the current project on update). The epic must belong to that project.";
+
 const newTask = z.object({
 	project_id: z.string().min(1),
 	title: z.string().min(1),
@@ -108,7 +117,7 @@ const newTask = z.object({
 	status: z.enum(STATUSES).optional(),
 	priority: z.enum(PRIORITIES).optional(),
 	is_epic: z.boolean().optional(),
-	epic_id: z.string().nullable().optional(),
+	epic_id: z.string().nullable().optional().describe(EPIC_ID_DESCRIPTION),
 	scope_id: z.number().int().nullable().optional(),
 	source_file: z.string().nullable().optional(),
 	source_line: z.number().int().nullable().optional(),
@@ -121,7 +130,7 @@ const taskPatch = z.object({
 	status: z.enum(STATUSES).optional(),
 	priority: z.enum(PRIORITIES).optional(),
 	is_epic: z.boolean().optional(),
-	epic_id: z.string().nullable().optional(),
+	epic_id: z.string().nullable().optional().describe(EPIC_ID_DESCRIPTION),
 	scope_id: z.number().int().nullable().optional(),
 	source_file: z.string().nullable().optional(),
 	source_line: z.number().int().nullable().optional(),
@@ -131,7 +140,7 @@ const taskPatch = z.object({
 export const getTasks = defineQuery({
 	name: "tasks_list",
 	description:
-		"List tasks with filters (project, status, priority, tags, epic, scope, text query, title, title_exact), sorting and pagination. Use q to locate a task by id, title, description or tag (e.g. q='LOG-4'). Returns {items, total} where total is the count of all matching tasks before limit/offset. limit defaults to 100 (max 1000); use offset and total to paginate. Use fields to limit returned columns. By default each task carries short_description (first line, ~120 chars) instead of the full description; set include_description to get the full text. include_project attaches project names, include_scope attaches scope names, and neither filters; project_archived filters by project archival; include_deleted also returns soft-deleted tasks (hidden by default). Task id is the full 'PREFIX-NUMBER' identifier (e.g. 'LOG-82'); number is the per-project sequence number (e.g. 82), unique only inside its project.",
+		"List tasks with filters (project, status, priority, tags, epic, scope, text query, title, title_exact), sorting and pagination. Use q to locate a task by id, title, description or tag (e.g. q='LOG-4'). Returns {items, total} where total is the count of all matching tasks before limit/offset. limit defaults to 100 (max 1000); use offset and total to paginate. Use fields to limit returned columns. By default each task carries short_description (first line, ~120 chars) instead of the full description; set include_description to get the full text. include_project attaches project names, include_scope attaches scope names, and neither filters; project_archived filters by project archival; include_deleted also returns soft-deleted tasks (hidden by default). Task id is the full 'PREFIX-NUMBER' identifier (e.g. 'LOG-82'); number is the per-project sequence number (e.g. 82), unique only inside its project. The epic filter accepts a full epic id (e.g. 'LOG-5') or a bare epic number (e.g. '5') resolved inside project_id when it is given.",
 	kind: "query",
 	input: taskFilters,
 	handler: (filters) => {
@@ -182,7 +191,7 @@ export const getTask = defineQuery({
 export const createTask = defineCommand({
 	name: "tasks_create",
 	description:
-		"Create a task. Requires project_id and title; status, priority, epic, scope, tags are optional.",
+		"Create a task. Requires project_id and title; status, priority, epic, scope, tags are optional. epic_id accepts a full epic id (e.g. 'LOG-5') or a bare epic number (e.g. '5') resolved inside project_id.",
 	kind: "command",
 	input: newTask,
 	handler: (input) => repo.createTask(getDb(), input),
@@ -191,7 +200,7 @@ export const createTask = defineCommand({
 export const updateTask = defineCommand({
 	name: "tasks_update",
 	description:
-		"Update fields of an existing task by id. Id accepts the full 'PREFIX-NUMBER' form (e.g. 'LOG-82') or a bare task number (e.g. '82') resolved inside in_project, otherwise it must be unique across the whole backlog.",
+		"Update fields of an existing task by id. Id accepts the full 'PREFIX-NUMBER' form (e.g. 'LOG-82') or a bare task number (e.g. '82') resolved inside in_project, otherwise it must be unique across the whole backlog. In patch, epic_id accepts a full epic id (e.g. 'LOG-5') or a bare epic number (e.g. '5') resolved inside the task's current project.",
 	kind: "command",
 	input: z.object({
 		id: z.string().min(1).describe(ID_DESCRIPTION),
