@@ -211,7 +211,7 @@ export const createTasks = defineCommand({
 export const updateTask = defineCommand({
 	name: "tasks_update",
 	description:
-		"Update fields of an existing task by id. Id accepts the full 'PREFIX-NUMBER' form (e.g. 'LOG-82') or a bare task number (e.g. '82') resolved inside in_project, otherwise it must be unique across the whole backlog. In patch, epic_id accepts a full epic id (e.g. 'LOG-5') or a bare epic number (e.g. '5') resolved inside the task's current project.",
+		"Update fields of an existing task by id. Every field to change goes inside the patch object (e.g. {id: 'LOG-87', patch: {status: 'in-progress'}}); top-level fields other than id, patch and in_project are rejected. Id accepts the full 'PREFIX-NUMBER' form (e.g. 'LOG-82') or a bare task number (e.g. '82') resolved inside in_project, otherwise it must be unique across the whole backlog. In patch, epic_id accepts a full epic id (e.g. 'LOG-5') or a bare epic number (e.g. '5') resolved inside the task's current project.",
 	kind: "command",
 	input: z.object({
 		id: z.string().min(1).describe(ID_DESCRIPTION),
