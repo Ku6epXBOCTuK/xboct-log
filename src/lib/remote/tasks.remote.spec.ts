@@ -103,3 +103,24 @@ describe("tasks_list fields parameter", () => {
 		expect(Object.keys(task)).toEqual(["id"]);
 	});
 });
+
+describe("tasks_list source_file filter", () => {
+	it("keeps only the tasks imported from a matching file", async () => {
+		const db = getDb();
+		const created = createTask(db, {
+			project_id: "spa",
+			title: "From backlog",
+			source_file: "docs/backlog.md",
+			source_line: 7,
+		});
+		expect(created.isOk()).toBe(true);
+
+		const result = (await runOp(
+			op("tasks_list"),
+			{ source_file: "backlog" },
+			"mcp",
+		)) as { items: Record<string, unknown>[] };
+
+		expect(result.items.map((task) => task.title)).toEqual(["From backlog"]);
+	});
+});

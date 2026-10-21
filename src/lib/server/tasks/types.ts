@@ -75,6 +75,7 @@ export interface TaskQuery {
 	q?: string;
 	title?: string;
 	title_exact?: string;
+	source_file?: string;
 	fields?: string;
 	include_project?: boolean;
 	include_scope?: boolean;

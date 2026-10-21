@@ -142,6 +142,11 @@ export function buildTaskFilter(query: TaskQuery): TaskFilterSql {
 		where.push("LOWER(tasks.title) = LOWER(?)");
 		params.push(query.title_exact);
 	}
+	if (query.source_file) {
+		const like = `%${query.source_file.toLowerCase()}%`;
+		where.push("LOWER(tasks.source_file) LIKE ?");
+		params.push(like);
+	}
 	if (query.include_project === true || query.project_archived !== undefined) {
 		joins += " LEFT JOIN projects ON tasks.project_id = projects.id";
 	}

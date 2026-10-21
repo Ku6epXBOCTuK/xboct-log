@@ -197,4 +197,36 @@ describe("task filters", () => {
 
 		expect(found.map((task) => task.title)).toEqual(["Shop task"]);
 	});
+
+	it("filters by a source file fragment", async () => {
+		unwrap(
+			createTask(db, {
+				project_id: "spa",
+				title: "From backlog",
+				source_file: "docs/backlog.md",
+				source_line: 10,
+			}),
+		);
+		unwrap(
+			createTask(db, {
+				project_id: "spa",
+				title: "From roadmap",
+				source_file: "docs/roadmap.md",
+				source_line: 3,
+			}),
+		);
+		unwrap(createTask(db, { project_id: "spa", title: "Without source" }));
+
+		expect(
+			listTasks(db, { source_file: "backlog" }).map((task) => task.title),
+		).toEqual(["From backlog"]);
+		expect(
+			listTasks(db, { source_file: "BACKLOG" }).map((task) => task.title),
+		).toEqual(["From backlog"]);
+		expect(
+			listTasks(db, { source_file: "docs/" })
+				.map((task) => task.title)
+				.sort(),
+		).toEqual(["From backlog", "From roadmap"]);
+	});
 });
