@@ -82,10 +82,14 @@ export interface TagCount {
 	active: number;
 }
 
-export function collectTags(tasks: Task[]): TagCount[] {
+export function collectTags(
+	tasks: Task[],
+	projectId: ProjectFilter = null,
+	keep: string[] = [],
+): TagCount[] {
 	const counts = new Map<string, { count: number; active: number }>();
 
-	for (const task of tasks) {
+	for (const task of projectTasks(tasks, projectId)) {
 		const active = CLOSED_STATUSES.includes(task.status) ? 0 : 1;
 
 		for (const tag of task.tags) {
@@ -96,9 +100,23 @@ export function collectTags(tasks: Task[]): TagCount[] {
 		}
 	}
 
-	return [...counts.entries()]
-		.map(([tag, entry]) => ({ tag, ...entry }))
-		.sort((left, right) => left.tag.localeCompare(right.tag));
+	const entries = [...counts.entries()].map(([tag, entry]) => ({
+		tag,
+		...entry,
+	}));
+
+	for (const tag of keep) {
+		if (!counts.has(tag)) {
+			entries.push({ tag, count: 0, active: 0 });
+		}
+	}
+
+	return entries.sort((left, right) => {
+		const leftIdle = left.active === 0 ? 1 : 0;
+		const rightIdle = right.active === 0 ? 1 : 0;
+		if (leftIdle !== rightIdle) return leftIdle - rightIdle;
+		return left.tag.localeCompare(right.tag);
+	});
 }
 
 export function countTasksInProject(

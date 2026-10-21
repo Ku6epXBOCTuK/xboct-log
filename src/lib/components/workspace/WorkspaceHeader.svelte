@@ -43,7 +43,9 @@
 	const epics = $derived(
 		epicsForProject(tasks.epics, filters.activeProject, filters.epic),
 	);
-	const tags = $derived(collectTags(tasks.tasks));
+	const tags = $derived(
+		collectTags(tasks.tasks, filters.activeProject, filters.selectedTags),
+	);
 	const scopeOptions = $derived(scopes.listFor(filters.activeProject));
 
 	const total = $derived(
