@@ -116,6 +116,25 @@ describe("/mcp endpoint", () => {
 		expect(Array.isArray(structured.items)).toBe(true);
 	});
 
+	it("accepts list filters and the new sort keys", async () => {
+		const body = await rpc("tools/call", {
+			name: "tasks_list",
+			arguments: {
+				project_id: ["spa", "bil"],
+				scope_id: [1, 2],
+				epic_id: ["LOG-5", "6"],
+				exclude_project_id: "old",
+				has_scope: true,
+				has_epic: false,
+				sort: "number",
+				order: "desc",
+			},
+		});
+		expect(body.error).toBeUndefined();
+		const result = body.result as { isError?: boolean };
+		expect(result.isError).toBeUndefined();
+	});
+
 	it("rejects an unknown parameter instead of ignoring it", async () => {
 		const body = await rpc("tools/call", {
 			name: "tasks_list",

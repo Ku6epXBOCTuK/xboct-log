@@ -81,13 +81,16 @@ export interface TaskUpdateOutcome {
 }
 
 export interface TaskQuery {
-	project_id?: string;
+	project_id?: string | string[];
+	exclude_project_id?: string | string[];
 	status?: Status[];
 	priority?: Priority[];
 	tag?: string[];
 	is_epic?: boolean;
-	epic_id?: string | null;
-	scope_id?: number | null;
+	epic_id?: string | string[] | null;
+	scope_id?: number | number[] | null;
+	has_epic?: boolean;
+	has_scope?: boolean;
 	blocked_by?: string;
 	blocks?: string;
 	q?: string;
@@ -97,7 +100,7 @@ export interface TaskQuery {
 	include_project?: boolean;
 	include_scope?: boolean;
 	project_archived?: boolean;
-	sort?: "updated_at" | "created_at" | "priority";
+	sort?: "updated_at" | "created_at" | "priority" | "number" | "title";
 	order?: "asc" | "desc";
 	limit?: number;
 	offset?: number;
@@ -717,6 +720,14 @@ function blockingIdMatch(value: string): {
 	};
 }
 
+function toStringList(value: string | string[]): string[] {
+	return Array.isArray(value) ? value : [value];
+}
+
+function toNumberList(value: number | number[]): number[] {
+	return Array.isArray(value) ? value : [value];
+}
+
 function buildTaskFilter(query: TaskQuery): TaskFilterSql {
 	const where: string[] = [];
 	const params: (string | number)[] = [];
@@ -726,9 +737,21 @@ function buildTaskFilter(query: TaskQuery): TaskFilterSql {
 		where.push("tasks.deleted_at IS NULL");
 	}
 
-	if (query.project_id) {
-		where.push("tasks.project_id = ?");
-		params.push(query.project_id);
+	const projectIds = query.project_id
+		? toStringList(query.project_id)
+		: undefined;
+	if (projectIds?.length) {
+		where.push(`tasks.project_id IN (${projectIds.map(() => "?").join(", ")})`);
+		params.push(...projectIds);
+	}
+	const excludedProjectIds = query.exclude_project_id
+		? toStringList(query.exclude_project_id)
+		: undefined;
+	if (excludedProjectIds?.length) {
+		where.push(
+			`tasks.project_id NOT IN (${excludedProjectIds.map(() => "?").join(", ")})`,
+		);
+		params.push(...excludedProjectIds);
 	}
 	if (query.status?.length) {
 		where.push(`tasks.status IN (${query.status.map(() => "?").join(", ")})`);
@@ -747,28 +770,52 @@ function buildTaskFilter(query: TaskQuery): TaskFilterSql {
 	if (query.epic_id !== undefined) {
 		if (query.epic_id === null) {
 			where.push("tasks.epic_id IS NULL");
-		} else if (TASK_NUMBER_PATTERN.test(query.epic_id.trim())) {
-			where.push(
-				`tasks.epic_id IN (SELECT id FROM tasks WHERE number = ? AND deleted_at IS NULL${
-					query.project_id ? " AND project_id = ?" : ""
-				})`,
-			);
-			params.push(Number(query.epic_id.trim()));
-			if (query.project_id) {
-				params.push(query.project_id);
-			}
 		} else {
-			where.push("tasks.epic_id = ?");
-			params.push(query.epic_id);
+			const epicRefs = toStringList(query.epic_id);
+			const clauses: string[] = [];
+			for (const ref of epicRefs) {
+				const trimmed = ref.trim();
+				if (TASK_NUMBER_PATTERN.test(trimmed)) {
+					const scope = projectIds?.length
+						? ` AND project_id IN (${projectIds.map(() => "?").join(", ")})`
+						: "";
+					clauses.push(
+						`tasks.epic_id IN (SELECT id FROM tasks WHERE number = ? AND deleted_at IS NULL${scope})`,
+					);
+					params.push(Number(trimmed));
+					if (projectIds?.length) {
+						params.push(...projectIds);
+					}
+				} else {
+					clauses.push("tasks.epic_id = ?");
+					params.push(trimmed);
+				}
+			}
+			if (clauses.length) {
+				where.push(`(${clauses.join(" OR ")})`);
+			}
 		}
 	}
 	if (query.scope_id !== undefined) {
 		if (query.scope_id === null) {
 			where.push("tasks.scope_id IS NULL");
 		} else {
-			where.push("tasks.scope_id = ?");
-			params.push(query.scope_id);
+			const scopeIds = toNumberList(query.scope_id);
+			if (scopeIds.length) {
+				where.push(`tasks.scope_id IN (${scopeIds.map(() => "?").join(", ")})`);
+				params.push(...scopeIds);
+			}
 		}
+	}
+	if (query.has_epic !== undefined) {
+		where.push(
+			query.has_epic ? "tasks.epic_id IS NOT NULL" : "tasks.epic_id IS NULL",
+		);
+	}
+	if (query.has_scope !== undefined) {
+		where.push(
+			query.has_scope ? "tasks.scope_id IS NOT NULL" : "tasks.scope_id IS NULL",
+		);
 	}
 	if (query.blocked_by !== undefined) {
 		const match = blockingIdMatch(query.blocked_by);
@@ -842,12 +889,20 @@ export function listTasks(db: DatabaseSync, query: TaskQuery = {}): Task[] {
 	}
 
 	const sort = query.sort ?? "updated_at";
-	const order = query.order ?? (sort === "priority" ? "asc" : "desc");
+	const ascending =
+		sort === "priority" || sort === "number" || sort === "title"
+			? "asc"
+			: "desc";
+	const order = query.order ?? ascending;
 	if (sort === "priority") {
 		const rank = PRIORITIES.map(
 			(p) => `WHEN '${p}' THEN ${PRIORITY_RANK[p]}`,
 		).join(" ");
 		sql += ` ORDER BY CASE tasks.priority ${rank} ELSE 99 END ${order.toUpperCase()}, tasks.updated_at DESC`;
+	} else if (sort === "number") {
+		sql += ` ORDER BY tasks.number ${order.toUpperCase()}, tasks.project_id ASC`;
+	} else if (sort === "title") {
+		sql += ` ORDER BY LOWER(tasks.title) ${order.toUpperCase()}, tasks.id ASC`;
 	} else {
 		sql += ` ORDER BY tasks.${sort} ${order.toUpperCase()}`;
 	}
