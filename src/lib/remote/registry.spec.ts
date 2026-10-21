@@ -23,6 +23,20 @@ describe("remote op registry", () => {
 		}
 	});
 
+	it("every op rejects unknown parameters", () => {
+		for (const op of getOps().values()) {
+			const result = op.input.safeParse({ unknown_param: true });
+			expect(result.success).toBe(false);
+			const issues = result.error?.issues ?? [];
+			expect(issues.some((issue) => issue.code === "unrecognized_keys")).toBe(
+				true,
+			);
+			expect(
+				issues.find((issue) => issue.code === "unrecognized_keys")?.message,
+			).toContain("unknown_param");
+		}
+	});
+
 	it("tasks_list applies a default limit of 100", () => {
 		const op = getOps().get("tasks_list");
 		const input = op?.input as unknown as {

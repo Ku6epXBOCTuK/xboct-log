@@ -4,6 +4,7 @@ import { listActivity, searchActivity } from "../server/activity";
 import { getDb } from "../server/db";
 import * as repo from "../server/tasks";
 import { defineQuery } from "./define";
+import { strictObject } from "./strict";
 import { ID_DESCRIPTION, IN_PROJECT_DESCRIPTION } from "#lib/tasks/ids.ts";
 
 export const getTaskHistory = defineQuery({
@@ -11,7 +12,7 @@ export const getTaskHistory = defineQuery({
 	description:
 		"Show the change log of one task: when it was changed, from which surface (source: 'ui' or 'mcp') and which fields were touched. Returns { items, total }, newest first; each item is { ts, source, op, fields, old_id }. Old and new values are not stored, only field names. Reads are not logged themselves. The history of a task follows it after a move to another project.",
 	kind: "query",
-	input: z.object({
+	input: strictObject({
 		id: z.string().min(1).describe(ID_DESCRIPTION),
 		in_project: z.string().min(1).optional().describe(IN_PROJECT_DESCRIPTION),
 		limit: z
@@ -41,7 +42,7 @@ export const listActivityLog = defineQuery({
 	description:
 		"Read the interaction log of the whole backlog: every recorded change with its time, source ('ui', 'mcp' or 'cli'), operation, entity type and id and the list of touched fields. Read-only, old and new values are not stored. Supports filters (source, op, entity, from, to) and pagination via limit and offset. Returns { items, total, ops }, where ops is the list of known operation names.",
 	kind: "query",
-	input: z.object({
+	input: strictObject({
 		source: z
 			.enum(["ui", "mcp", "cli"])
 			.optional()

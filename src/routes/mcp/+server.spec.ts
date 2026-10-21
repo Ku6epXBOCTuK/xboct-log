@@ -40,7 +40,8 @@ async function rpc(
 		tools?: { name: string }[];
 		serverInfo?: { name: string };
 		structuredContent?: unknown;
-		content?: unknown[];
+		isError?: boolean;
+		content?: { type: string; text: string }[];
 	};
 	error?: unknown;
 }> {
@@ -113,5 +114,19 @@ describe("/mcp endpoint", () => {
 			items?: unknown;
 		};
 		expect(Array.isArray(structured.items)).toBe(true);
+	});
+
+	it("rejects an unknown parameter instead of ignoring it", async () => {
+		const body = await rpc("tools/call", {
+			name: "tasks_list",
+			arguments: { titel: "x" },
+		});
+		expect(body.error).toBeUndefined();
+		const result = body.result as {
+			isError?: boolean;
+			content?: { type: string; text: string }[];
+		};
+		expect(result.isError).toBe(true);
+		expect(result.content?.[0].text).toContain("titel");
 	});
 });

@@ -7,13 +7,14 @@ import * as scopes from "../server/scopes";
 import { countEpicsByStatus, countTasksByStatus } from "../server/tasks";
 import type { Project } from "../types";
 import { defineCommand, defineQuery } from "./define";
+import { strictObject } from "./strict";
 
 export const getProjects = defineQuery({
 	name: "projects_list",
 	description:
 		"List projects; set includeArchived to also return archived ones.",
 	kind: "query",
-	input: z.object({ includeArchived: z.boolean().optional() }).default({}),
+	input: strictObject({ includeArchived: z.boolean().optional() }).default({}),
 	handler: (options) => projects.listProjects(getDb(), options),
 });
 
@@ -22,7 +23,7 @@ export const getProject = defineQuery({
 	description:
 		"Get a single project by id, including task counts by status: task_counts counts non-epic tasks, epic_counts counts epics. scope_counts lists the project's scopes with their task and epic totals.",
 	kind: "query",
-	input: z.object({ id: z.string().min(1) }),
+	input: strictObject({ id: z.string().min(1) }),
 	handler: ({ id }) => {
 		const db = getDb();
 		const project = projects.getProject(db, id);
@@ -50,7 +51,7 @@ export const createProject = defineCommand({
 	description:
 		"Create a project. id, name and prefix are required. The prefix is stored uppercase and defines the task ids of the project.",
 	kind: "command",
-	input: z.object({
+	input: strictObject({
 		id: z.string().min(1),
 		name: z.string().min(1),
 		prefix: z.string().min(1),
@@ -65,9 +66,9 @@ export const updateProject = defineCommand({
 	description:
 		"Rename a project or change its archived flag. The prefix is immutable — it defines task ids.",
 	kind: "command",
-	input: z.object({
+	input: strictObject({
 		id: z.string().min(1),
-		patch: z.object({
+		patch: strictObject({
 			name: z.string().optional(),
 			archived: z.boolean().optional(),
 		}),
