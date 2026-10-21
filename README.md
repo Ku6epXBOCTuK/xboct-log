@@ -76,8 +76,11 @@ XBOCT_LOG_DB=./tasks.db pnpm dev:vite
 
 The production server copies the database into `~/.xboct-log/backups`:
 
+- `auto/xboct-log-YYYY-MM-DD-HHMMSS.db` — a snapshot taken before the first MCP
+  write of every 30-minute window, so a bad agent session can be rolled back.
 - `daily/xboct-log-YYYY-MM-DD.db` — once a day at 03:00.
 - `weekly/xboct-log-YYYY-Www.db` — on Sundays at 03:00.
+- `manual/xboct-log-YYYY-MM-DD-HHMMSS.db` — written by the `backup_create` tool.
 
 Old copies are pruned automatically. If the server was off at the scheduled
 time, a catch-up copy runs on the next start.
@@ -85,32 +88,55 @@ time, a catch-up copy runs on the next start.
 Development uses a separate directory and turns backups off, so it never
 overwrites a production copy.
 
-| Variable                       | Default                | Meaning                        |
-| ------------------------------ | ---------------------- | ------------------------------ |
-| `XBOCT_LOG_BACKUP_DIR`         | `~/.xboct-log/backups` | Where copies are written       |
-| `XBOCT_LOG_BACKUP_HOUR`        | `3`                    | Hour of the daily run          |
-| `XBOCT_LOG_BACKUP_MINUTE`      | `0`                    | Minute of the daily run        |
-| `XBOCT_LOG_BACKUP_WEEKDAY`     | `0`                    | Weekly run day (`0` is Sunday) |
-| `XBOCT_LOG_BACKUP_DAILY_KEEP`  | `7`                    | Daily copies to keep           |
-| `XBOCT_LOG_BACKUP_WEEKLY_KEEP` | `4`                    | Weekly copies to keep          |
-| `XBOCT_LOG_BACKUP_DISABLED`    | off                    | Set to `1` to turn backups off |
+| Variable                             | Default                | Meaning                        |
+| ------------------------------------ | ---------------------- | ------------------------------ |
+| `XBOCT_LOG_BACKUP_DIR`               | `~/.xboct-log/backups` | Where copies are written       |
+| `XBOCT_LOG_BACKUP_HOUR`              | `3`                    | Hour of the daily run          |
+| `XBOCT_LOG_BACKUP_MINUTE`            | `0`                    | Minute of the daily run        |
+| `XBOCT_LOG_BACKUP_WEEKDAY`           | `0`                    | Weekly run day (`0` is Sunday) |
+| `XBOCT_LOG_BACKUP_DAILY_KEEP`        | `7`                    | Daily copies to keep           |
+| `XBOCT_LOG_BACKUP_WEEKLY_KEEP`       | `4`                    | Weekly copies to keep          |
+| `XBOCT_LOG_BACKUP_AUTO_KEEP`         | `48`                   | Auto snapshots to keep         |
+| `XBOCT_LOG_BACKUP_AUTO_INTERVAL_MIN` | `30`                   | Minutes between auto snapshots |
+| `XBOCT_LOG_BACKUP_DISABLED`          | off                    | Set to `1` to turn backups off |
+
+### Restoring
+
+Restoring replaces the live database file, so the server has to be stopped
+first. The restore is a CLI script rather than an app feature: it has to work
+when the application itself is broken.
+
+```sh
+pnpm restore list                        # every snapshot, newest first
+nssm stop xboct-log
+pnpm restore restore <path-to-snapshot>
+nssm start xboct-log
+```
+
+The script refuses to run while the server still listens on the port, saves the
+current database into the `manual` folder before replacing it, and removes the
+stale `-wal`/`-shm` files. The database path comes from `--db`, then
+`XBOCT_LOG_DB`, then `~/.xboct-log/xboct-log.db`.
+
+The same list is available over MCP through the `backup_list` tool.
 
 ## Scripts
 
-| Command          | Description                                 |
-| ---------------- | ------------------------------------------- |
-| `pnpm dev`       | Dev server on an isolated clone of the DB   |
-| `pnpm dev:clone` | Copy the prod DB to `./.dev/dev.db`         |
-| `pnpm dev:vite`  | Raw Vite dev server, no isolation           |
-| `pnpm build`     | Build for production (Node adapter)         |
-| `pnpm preview`   | Preview the production build                |
-| `pnpm deploy`    | Build and deploy to the `xboct-log` service |
-| `pnpm build:ext` | Compile and package the VS Code extension   |
-| `pnpm check`     | Type-check with `svelte-check`              |
-| `pnpm lint`      | Prettier check and ESLint                   |
-| `pnpm format`    | Format with Prettier                        |
-| `pnpm test`      | Run unit tests with Vitest                  |
-| `pnpm migrate`   | Apply pending database migrations           |
+| Command          | Description                                       |
+| ---------------- | ------------------------------------------------- |
+| `pnpm dev`       | Dev server on an isolated clone of the DB         |
+| `pnpm dev:clone` | Copy the prod DB to `./.dev/dev.db`               |
+| `pnpm dev:vite`  | Raw Vite dev server, no isolation                 |
+| `pnpm build`     | Build for production (Node adapter)               |
+| `pnpm preview`   | Preview the production build                      |
+| `pnpm deploy`    | Build and deploy to the `xboct-log` service       |
+| `pnpm build:ext` | Compile and package the VS Code extension         |
+| `pnpm check`     | Type-check with `svelte-check`                    |
+| `pnpm lint`      | Prettier check and ESLint                         |
+| `pnpm format`    | Format with Prettier                              |
+| `pnpm test`      | Run unit tests with Vitest                        |
+| `pnpm migrate`   | Apply pending database migrations                 |
+| `pnpm restore`   | List snapshots or restore one (`list`, `restore`) |
 
 The `migrate:*` variants (`status`, `rollback`, `baseline`, `unlock`) are in
 `package.json`.
@@ -120,6 +146,10 @@ The `migrate:*` variants (`status`, `rollback`, `baseline`, `unlock`) are in
 Every operation is exposed as an MCP tool over Streamable HTTP at `/mcp`. Point
 an MCP client at `http://127.0.0.1:45881/mcp`. There is no authentication; the
 deployment is assumed to sit behind a network boundary.
+
+Before the first write of every 30-minute window the server snapshots the
+database, so a botched agent session can be rolled back to the state before it
+started.
 
 ## VS Code extension
 

@@ -1,8 +1,10 @@
-import { existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, rmSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { backup, type DatabaseSync } from "node:sqlite";
 import { err, ok, type Result } from "neverthrow";
 import {
+	XBOCT_LOG_BACKUP_AUTO_INTERVAL_MIN,
+	XBOCT_LOG_BACKUP_AUTO_KEEP,
 	XBOCT_LOG_BACKUP_DAILY_KEEP,
 	XBOCT_LOG_BACKUP_DIR,
 	XBOCT_LOG_BACKUP_DISABLED,
@@ -16,7 +18,7 @@ import { type AppError, unexpected } from "./errors";
 const APP_NAME = "xboct-log";
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export type BackupKind = "daily" | "weekly" | "manual";
+export type BackupKind = "daily" | "weekly" | "manual" | "auto";
 
 export interface BackupConfig {
 	dir: string;
@@ -25,6 +27,8 @@ export interface BackupConfig {
 	weekday: number;
 	dailyKeep: number;
 	weeklyKeep: number;
+	autoKeep: number;
+	autoIntervalMin: number;
 	disabled: boolean;
 }
 
@@ -36,6 +40,8 @@ export function backupConfig(): BackupConfig {
 		weekday: XBOCT_LOG_BACKUP_WEEKDAY,
 		dailyKeep: XBOCT_LOG_BACKUP_DAILY_KEEP,
 		weeklyKeep: XBOCT_LOG_BACKUP_WEEKLY_KEEP,
+		autoKeep: XBOCT_LOG_BACKUP_AUTO_KEEP,
+		autoIntervalMin: XBOCT_LOG_BACKUP_AUTO_INTERVAL_MIN,
 		disabled: XBOCT_LOG_BACKUP_DISABLED,
 	};
 }
@@ -91,6 +97,45 @@ export function prune(dir: string, keep: number): void {
 	}
 }
 
+export interface BackupFile {
+	kind: BackupKind;
+	name: string;
+	path: string;
+	size: number;
+	mtime: string;
+}
+
+export function listBackups(config: BackupConfig): BackupFile[] {
+	const kinds: BackupKind[] = ["auto", "daily", "weekly", "manual"];
+	const files: BackupFile[] = [];
+	for (const kind of kinds) {
+		const dir = join(config.dir, kind);
+		let names: string[];
+		try {
+			names = readdirSync(dir).filter((name) => name.endsWith(".db"));
+		} catch {
+			continue;
+		}
+		for (const name of names) {
+			const path = join(dir, name);
+			try {
+				const stat = statSync(path);
+				files.push({
+					kind,
+					name,
+					path,
+					size: stat.size,
+					mtime: stat.mtime.toISOString(),
+				});
+			} catch {
+				continue;
+			}
+		}
+	}
+	files.sort((a, b) => b.mtime.localeCompare(a.mtime));
+	return files;
+}
+
 export async function runBackup(
 	db: DatabaseSync,
 	config: BackupConfig,
@@ -115,6 +160,8 @@ export async function runBackup(
 		prune(dir, config.dailyKeep);
 	} else if (kind === "weekly") {
 		prune(dir, config.weeklyKeep);
+	} else if (kind === "auto") {
+		prune(dir, config.autoKeep);
 	}
 	return ok(target);
 }

@@ -44,7 +44,8 @@ const handler = createMcpHandler(registerTools, {
 	instructions:
 		"Task backlog server for a single user. Use tasks_*, projects_* and " +
 		"scopes_* tools to list, create, update and delete tasks, projects " +
-		"and scopes. backup_create makes a manual database backup. " +
+		"and scopes. backup_create makes a manual database backup, " +
+		"backup_list shows the existing snapshots. " +
 		"All tools accept a single JSON object argument.",
 });
 

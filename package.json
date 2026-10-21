@@ -19,6 +19,7 @@
 		"format": "prettier --write . --log-level=warn",
 		"test:unit": "vitest",
 		"test": "npm run test:unit -- --run",
+		"restore": "node --env-file-if-exists=.env scripts/restore.mjs",
 		"migrate": "node scripts/migrate.mjs",
 		"migrate:status": "node scripts/migrate.mjs status",
 		"migrate:rollback": "node scripts/migrate.mjs rollback",

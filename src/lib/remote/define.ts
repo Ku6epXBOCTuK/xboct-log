@@ -4,6 +4,8 @@ import { type z, type ZodType } from "zod";
 import { Err, Ok, type Result } from "neverthrow";
 import type { AppError } from "../server/errors";
 import { getDb } from "../server/db";
+import { maybeAutoBackup } from "../server/auto-backup";
+import { backupConfig } from "../server/backup";
 import {
 	recordActivity,
 	type ActivityEntry,
@@ -39,6 +41,9 @@ export async function runOp(
 	source: ActivitySource = "ui",
 ): Promise<unknown> {
 	const parsed = op.input.parse(input);
+	if (source === "mcp" && op.kind === "command") {
+		await maybeAutoBackup(getDb(), backupConfig());
+	}
 	const value = await op.handler(parsed as never);
 	const result = isAppResult(value) ? unwrap(value) : value;
 	if (op.kind === "command") {

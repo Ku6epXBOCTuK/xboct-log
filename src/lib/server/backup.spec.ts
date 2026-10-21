@@ -27,6 +27,8 @@ function testConfig(dir: string): BackupConfig {
 		weekday: 0,
 		dailyKeep: 2,
 		weeklyKeep: 2,
+		autoKeep: 2,
+		autoIntervalMin: 30,
 		disabled: false,
 	};
 }
@@ -49,6 +51,9 @@ describe("backup names", () => {
 			"xboct-log-2026-W02.db",
 		);
 		expect(backupFileName("manual", new Date(2026, 0, 5, 14, 30, 55))).toBe(
+			"xboct-log-2026-01-05-143055.db",
+		);
+		expect(backupFileName("auto", new Date(2026, 0, 5, 14, 30, 55))).toBe(
 			"xboct-log-2026-01-05-143055.db",
 		);
 	});
@@ -110,6 +115,51 @@ describe("runBackup", () => {
 		const result = await runBackup(db, config, "daily", new Date(2026, 0, 5));
 
 		expect(result.isOk()).toBe(true);
+		expect(result._unsafeUnwrap()).toBe("");
+	});
+
+	it("writes an auto copy into the auto folder", async () => {
+		const dir = tempDir();
+		const db = await openMigratedDatabase(":memory:");
+
+		const result = await runBackup(
+			db,
+			testConfig(dir),
+			"auto",
+			new Date(2026, 0, 5, 14, 30, 55),
+		);
+
+		expect(result._unsafeUnwrap()).toBe(
+			join(dir, "auto", "xboct-log-2026-01-05-143055.db"),
+		);
+	});
+
+	it("rotates auto copies down to the keep limit", async () => {
+		const dir = tempDir();
+		const db = await openMigratedDatabase(":memory:");
+		const config = testConfig(dir);
+		await runBackup(db, config, "auto", new Date(2026, 0, 1, 10, 0, 0));
+		await runBackup(db, config, "auto", new Date(2026, 0, 2, 10, 0, 0));
+		await runBackup(db, config, "auto", new Date(2026, 0, 3, 10, 0, 0));
+
+		expect(readdirSync(join(dir, "auto")).sort()).toEqual([
+			"xboct-log-2026-01-02-100000.db",
+			"xboct-log-2026-01-03-100000.db",
+		]);
+	});
+
+	it("does not write an auto copy when disabled", async () => {
+		const dir = tempDir();
+		const db = await openMigratedDatabase(":memory:");
+		const config = { ...testConfig(dir), disabled: true };
+
+		const result = await runBackup(
+			db,
+			config,
+			"auto",
+			new Date(2026, 0, 5, 14, 30, 55),
+		);
+
 		expect(result._unsafeUnwrap()).toBe("");
 	});
 });
@@ -204,6 +254,8 @@ describe("backupConfig", () => {
 			weekday: 0,
 			dailyKeep: 7,
 			weeklyKeep: 4,
+			autoKeep: 48,
+			autoIntervalMin: 30,
 			disabled: false,
 		});
 	});

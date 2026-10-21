@@ -25,6 +25,13 @@ export default defineConfig(({ mode }) => {
 		// NOTE: the tests must see the migrations of the working copy, not the
 		// deployed ones in the production directory.
 		process.env.XBOCT_LOG_MIGRATIONS ??= join(process.cwd(), "migrations");
+		// NOTE: the default backup directory points at the production copies,
+		// so the tests would write their snapshots there.
+		process.env.XBOCT_LOG_BACKUP_DIR ??= join(
+			process.cwd(),
+			".dev",
+			"test-backups",
+		);
 	}
 
 	return {

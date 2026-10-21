@@ -1,5 +1,3 @@
-import { homedir } from "node:os";
-import { join } from "node:path";
 import { defineEnvVars } from "@sveltejs/kit/env";
 
 export function envInt(value: string | undefined, fallback: number): number {
@@ -14,6 +12,9 @@ export function envBool(value: string | undefined): boolean {
 	return value === "1" || value === "true" || value === "yes";
 }
 
+// NOTE: the path variables have no defaults on purpose. A default would point
+// at the production location, so a stray run without a .env would touch the
+// live database. A missing variable fails the build instead.
 export const variables = defineEnvVars({
 	XBOCT_LOG_DB: {
 		static: true,
@@ -22,13 +23,10 @@ export const variables = defineEnvVars({
 	XBOCT_LOG_MIGRATIONS: {
 		static: true,
 		description: "Directory with migration files",
-		schema: (value) =>
-			value || join(homedir(), ".xboct-log", "app", "migrations"),
 	},
 	XBOCT_LOG_BACKUP_DIR: {
 		static: true,
 		description: "Directory for database backups",
-		schema: (value) => value || join(homedir(), ".xboct-log", "backups"),
 	},
 	XBOCT_LOG_BACKUP_HOUR: {
 		static: true,
@@ -54,6 +52,16 @@ export const variables = defineEnvVars({
 		static: true,
 		description: "Number of weekly backups to keep",
 		schema: (value) => envInt(value, 4),
+	},
+	XBOCT_LOG_BACKUP_AUTO_KEEP: {
+		static: true,
+		description: "Number of automatic MCP snapshots to keep",
+		schema: (value) => envInt(value, 48),
+	},
+	XBOCT_LOG_BACKUP_AUTO_INTERVAL_MIN: {
+		static: true,
+		description: "Minutes between automatic MCP snapshots",
+		schema: (value) => envInt(value, 30),
 	},
 	XBOCT_LOG_BACKUP_DISABLED: {
 		static: true,

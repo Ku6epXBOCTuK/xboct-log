@@ -1,9 +1,11 @@
 ﻿import type { RequestEvent } from "@sveltejs/kit";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { getOps } from "#lib/remote/index.ts";
+import { resetAutoBackupState } from "#lib/server/auto-backup.ts";
+import { backupConfig } from "#lib/server/backup.ts";
 import { closeDb, getDb } from "#lib/server/db.ts";
 import { migrateDatabase } from "#lib/server/migrations.ts";
 import { createProject } from "#lib/server/projects.ts";
@@ -149,6 +151,20 @@ describe("/mcp endpoint", () => {
 		};
 		expect(result.isError).toBe(true);
 		expect(result.content?.[0].text).toContain("titel");
+	});
+
+	it("takes a snapshot before an MCP command", async () => {
+		resetAutoBackupState();
+		const autoDir = join(backupConfig().dir, "auto");
+		rmSync(autoDir, { recursive: true, force: true });
+
+		const body = await rpc("tools/call", {
+			name: "tasks_create",
+			arguments: { project_id: "spa", title: "Snapshot me" },
+		});
+		expect(body.error).toBeUndefined();
+
+		expect(readdirSync(autoDir)).toHaveLength(1);
 	});
 
 	it("restores a soft-deleted task", async () => {
