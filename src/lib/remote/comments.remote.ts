@@ -40,7 +40,12 @@ export const addComment = defineCommand({
 	kind: "command",
 	input: strictObject({
 		task_id: taskIdSchema(ID_DESCRIPTION),
-		body: z.string().min(1),
+		body: z
+			.string()
+			.min(1)
+			.describe(
+				"Comment text for the human reader of the task: what changed and why, in a few sentences. No raw output, logs, file lists or details that go stale; keep only what is needed to follow the task.",
+			),
 	}),
 	handler: ({ task_id, body }) =>
 		comments.addComment(getDb(), { task_id, body }),
@@ -55,7 +60,12 @@ export const editComment = defineCommand({
 	kind: "command",
 	input: strictObject({
 		id: z.string().min(1).describe("Comment id."),
-		body: z.string().min(1),
+		body: z
+			.string()
+			.min(1)
+			.describe(
+				"New comment text for the human reader of the task: what changed and why, in a few sentences. No raw output, logs, file lists or details that go stale.",
+			),
 	}),
 	handler: ({ id, body }) => comments.editComment(getDb(), id, body),
 	activity: (_input, comment: Comment) =>
