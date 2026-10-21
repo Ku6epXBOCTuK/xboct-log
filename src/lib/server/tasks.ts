@@ -86,6 +86,7 @@ export type TaskChange = ActivityChange;
 export interface TaskUpdateOutcome {
 	task: Task;
 	changes: TaskChange[];
+	released?: ReleasedLink[];
 }
 
 export interface TaskQuery {
@@ -1224,10 +1225,15 @@ export function closeTaskDetailed(
 			 SET status = ?, closed_at = ?, closed_reason = ?, updated_at = ?
 			 WHERE id = ?`,
 		).run(status, now, reason, now, targetId);
-		releaseBlockedStatus(db, listBlocks(db, targetId));
+		const releasedIds = releaseBlockedStatus(db, listBlocks(db, targetId));
+		const released: ReleasedLink[] = releasedIds.map((taskId) => ({
+			task_id: taskId,
+			changes: [{ field: "status", from: "blocked", to: "open" }],
+		}));
 		return {
 			task: withBlockingInfo(db, [taskById(db, targetId)!])[0],
 			changes,
+			released,
 		};
 	});
 }
@@ -1248,7 +1254,13 @@ export interface BatchError {
 }
 
 export type BatchItem =
-	| { id: string; ok: true; task: Task; changes: TaskChange[] }
+	| {
+			id: string;
+			ok: true;
+			task: Task;
+			changes: TaskChange[];
+			released?: ReleasedLink[];
+	  }
 	| { id: string; ok: false; error: BatchError };
 
 export type CreateBatchItem =
@@ -1281,6 +1293,7 @@ function batchItem(
 				ok: true,
 				task: result.value.task,
 				changes: result.value.changes,
+				released: result.value.released,
 			}
 		: {
 				id,

@@ -10,6 +10,7 @@ import type {
 	BatchItem,
 	CreateBatchItem,
 	DeleteTaskOutcome,
+	ReleasedLink,
 } from "../server/tasks";
 import {
 	CLOSED_REASONS,
@@ -392,7 +393,7 @@ export const updateTasks = defineCommand({
 export const closeTask = defineCommand({
 	name: "tasks_close",
 	description:
-		"Close a task by id with a reason: 'fixed' → done, 'wontfix' | 'obsolete' | 'duplicate' | 'not-reproduced' → cancelled. 'not-reproduced' marks a report that could not be reproduced. Id accepts the full 'PREFIX-NUMBER' form (e.g. 'LOG-82') or a bare task number (e.g. '82') resolved inside in_project, otherwise it must be unique across the whole backlog.",
+		"Close a task by id with a reason: 'fixed' → done, 'wontfix' | 'obsolete' | 'duplicate' | 'not-reproduced' → cancelled. 'not-reproduced' marks a report that could not be reproduced. Id accepts the full 'PREFIX-NUMBER' form (e.g. 'LOG-82') or a bare task number (e.g. '82') resolved inside in_project, otherwise it must be unique across the whole backlog. Closing a task that blocks others releases them from status 'blocked' - those tasks are listed in released.",
 	kind: "command",
 	input: strictObject({
 		id: z.string().min(1).describe(ID_DESCRIPTION),
@@ -404,9 +405,13 @@ export const closeTask = defineCommand({
 		if (result.isErr()) {
 			return err(result.error);
 		}
-		return ok({ ...result.value.task, changes: result.value.changes });
+		return ok({
+			...result.value.task,
+			changes: result.value.changes,
+			released: result.value.released ?? [],
+		});
 	},
-	activity: (_input, task: TaskWithChanges) =>
+	activity: (_input, task: TaskWithChanges & { released?: ReleasedLink[] }) => [
 		activityEntry(
 			"task",
 			task.id,
@@ -414,6 +419,16 @@ export const closeTask = defineCommand({
 			null,
 			task.changes,
 		),
+		...(task.released ?? []).map((link) =>
+			activityEntry(
+				"task",
+				link.task_id,
+				link.changes.map((change) => change.field),
+				null,
+				link.changes,
+			),
+		),
+	],
 });
 
 export const closeTasks = defineCommand({
@@ -442,6 +457,15 @@ export const closeTasks = defineCommand({
 							["status", "closed_reason"],
 							null,
 							item.changes,
+						),
+						...(item.released ?? []).map((link) =>
+							activityEntry(
+								"task",
+								link.task_id,
+								link.changes.map((change) => change.field),
+								null,
+								link.changes,
+							),
 						),
 					]
 				: [],
