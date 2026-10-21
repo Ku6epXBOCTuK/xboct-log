@@ -10,9 +10,10 @@
 	interface Props {
 		taskCount: number;
 		inProgressCount: number;
+		onlyActive?: boolean;
 	}
 
-	let { taskCount, inProgressCount }: Props = $props();
+	let { taskCount, inProgressCount, onlyActive = false }: Props = $props();
 
 	const onTasks = $derived(page.url.pathname === "/");
 	const onKanban = $derived(page.url.pathname === "/kanban");
@@ -21,23 +22,33 @@
 </script>
 
 <nav class="primary-nav" aria-label="Primary navigation">
-	<a class="nav-item" class:active={onTasks} href={resolve("/")}>
-		<ClipBoardList /> Tasks
-		<span class="nav-count">{taskCount}</span>
-	</a>
-	<a class="nav-item" class:active={onKanban} href={resolve("/kanban")}>
-		<FolderKanban /> Kanban
-		<span class="nav-count">{inProgressCount}</span>
-	</a>
-	<a class="nav-item" class:active={onActivity} href={resolve("/activity")}>
-		<Activity /> Activity
-	</a>
-	<a class="nav-item" class:active={onDeleted} href={resolve("/deleted")}>
-		<ArchiveRestore /> Deleted
-	</a>
-	<button class="nav-item">
-		<BarChart3 /> Statistics
-	</button>
+	{#if !onlyActive || onTasks}
+		<a class="nav-item" class:active={onTasks} href={resolve("/")}>
+			<ClipBoardList /> Tasks
+			<span class="nav-count">{taskCount}</span>
+		</a>
+	{/if}
+	{#if !onlyActive || onKanban}
+		<a class="nav-item" class:active={onKanban} href={resolve("/kanban")}>
+			<FolderKanban /> Kanban
+			<span class="nav-count">{inProgressCount}</span>
+		</a>
+	{/if}
+	{#if !onlyActive || onActivity}
+		<a class="nav-item" class:active={onActivity} href={resolve("/activity")}>
+			<Activity /> Activity
+		</a>
+	{/if}
+	{#if !onlyActive || onDeleted}
+		<a class="nav-item" class:active={onDeleted} href={resolve("/deleted")}>
+			<ArchiveRestore /> Deleted
+		</a>
+	{/if}
+	{#if !onlyActive}
+		<button class="nav-item">
+			<BarChart3 /> Statistics
+		</button>
+	{/if}
 </nav>
 
 <style>

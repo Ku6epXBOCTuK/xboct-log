@@ -1,4 +1,12 @@
-<div class="brand">
+<script lang="ts">
+	interface Props {
+		compact?: boolean;
+	}
+
+	let { compact = false }: Props = $props();
+</script>
+
+<div class="brand" class:compact>
 	<svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true">
 		<rect
 			class="brand-mark-accent"
@@ -27,6 +35,10 @@
 		font-weight: 700;
 		letter-spacing: -0.04em;
 		color: var(--foreground);
+	}
+
+	.brand.compact {
+		padding-bottom: var(--space-2);
 	}
 
 	.brand-mark {

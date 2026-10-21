@@ -49,59 +49,61 @@
 	}
 </script>
 
-<div class="projects-heading">
-	<button
-		class="section-toggle"
-		onclick={() => (open = !open)}
-		aria-expanded={open}
-	>
-		<ChevronDown class={open ? "" : "-rotate-90"} data-icon="inline-start" />
-		Projects
-	</button>
-	<span>
-		{totalActiveTasks}
-		{tasks.tasks.length === 1 ? "task" : "tasks"}
-	</span>
-	<IconButton
-		label="New project"
-		expanded={creating}
-		onclick={() => {
-			creating = !creating;
-			failure = null;
-		}}
-	>
-		<Plus />
-	</IconButton>
-</div>
-{#if open}
-	<div class="project-list">
-		{#if creating}
-			<ProjectCreateForm {projects} onclose={() => (creating = false)} />
-		{/if}
-		<p class="project-hint">
-			{projects.active.length} active · {projects.archived.length} archived
-		</p>
-		<ErrorNote message={failure} class="project-error" />
-		<ProjectList
-			projects={visible}
-			tasks={tasks.tasks}
-			{activeProject}
-			{onselect}
-			onarchive={toggleArchived}
-			onsettings={(project) => (settingsFor = project.id)}
-		/>
-		{#if projects.archived.length > 0}
-			<button
-				class="project-archived-toggle"
-				onclick={() => (showArchived = !showArchived)}
-			>
-				{showArchived
-					? "Hide archived"
-					: `Show archived (${projects.archived.length})`}
-			</button>
-		{/if}
+<div class="projects">
+	<div class="projects-heading">
+		<button
+			class="section-toggle"
+			onclick={() => (open = !open)}
+			aria-expanded={open}
+		>
+			<ChevronDown class={open ? "" : "-rotate-90"} data-icon="inline-start" />
+			Projects
+		</button>
+		<span>
+			{totalActiveTasks}
+			{tasks.tasks.length === 1 ? "task" : "tasks"}
+		</span>
+		<IconButton
+			label="New project"
+			expanded={creating}
+			onclick={() => {
+				creating = !creating;
+				failure = null;
+			}}
+		>
+			<Plus />
+		</IconButton>
 	</div>
-{/if}
+	{#if open}
+		<div class="project-list">
+			{#if creating}
+				<ProjectCreateForm {projects} onclose={() => (creating = false)} />
+			{/if}
+			<p class="project-hint">
+				{projects.active.length} active · {projects.archived.length} archived
+			</p>
+			<ErrorNote message={failure} class="project-error" />
+			<ProjectList
+				projects={visible}
+				tasks={tasks.tasks}
+				{activeProject}
+				{onselect}
+				onarchive={toggleArchived}
+				onsettings={(project) => (settingsFor = project.id)}
+			/>
+			{#if projects.archived.length > 0}
+				<button
+					class="project-archived-toggle"
+					onclick={() => (showArchived = !showArchived)}
+				>
+					{showArchived
+						? "Hide archived"
+						: `Show archived (${projects.archived.length})`}
+				</button>
+			{/if}
+		</div>
+	{/if}
+</div>
 
 <ProjectSettingsDialog
 	open={settingsFor !== null}
@@ -113,7 +115,15 @@
 />
 
 <style>
+	.projects {
+		flex: 1 1 auto;
+		min-height: 0;
+		display: flex;
+		flex-direction: column;
+	}
+
 	.projects-heading {
+		flex: none;
 		margin-top: var(--space-5);
 		display: flex;
 		align-items: center;
@@ -159,6 +169,9 @@
 	}
 
 	.project-list {
+		flex: 1 1 auto;
+		min-height: 0;
+		overflow-y: auto;
 		padding: var(--space-2) 0 0;
 	}
 
