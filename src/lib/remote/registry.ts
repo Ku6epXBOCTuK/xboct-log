@@ -20,9 +20,8 @@ export interface OpDefinition {
 const ops = new Map<string, OpDefinition>();
 
 export function registerOp(op: OpDefinition): void {
-	if (ops.has(op.name)) {
-		throw new Error(`duplicate operation: ${op.name}`);
-	}
+	// NOTE: a vite reload re-evaluates the op modules while the registry
+	// survives, so the same name arrives again with fresh handlers.
 	ops.set(op.name, op);
 }
 

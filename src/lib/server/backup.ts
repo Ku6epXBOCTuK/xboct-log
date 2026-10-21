@@ -14,6 +14,7 @@ import {
 	XBOCT_LOG_BACKUP_WEEKLY_KEEP,
 } from "$app/env/private";
 import { type AppError, unexpected } from "./errors";
+import { envFlag, envNumber, envString } from "./env";
 
 const APP_NAME = "xboct-log";
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -34,15 +35,27 @@ export interface BackupConfig {
 
 export function backupConfig(): BackupConfig {
 	return {
-		dir: XBOCT_LOG_BACKUP_DIR,
-		hour: XBOCT_LOG_BACKUP_HOUR,
-		minute: XBOCT_LOG_BACKUP_MINUTE,
-		weekday: XBOCT_LOG_BACKUP_WEEKDAY,
-		dailyKeep: XBOCT_LOG_BACKUP_DAILY_KEEP,
-		weeklyKeep: XBOCT_LOG_BACKUP_WEEKLY_KEEP,
-		autoKeep: XBOCT_LOG_BACKUP_AUTO_KEEP,
-		autoIntervalMin: XBOCT_LOG_BACKUP_AUTO_INTERVAL_MIN,
-		disabled: XBOCT_LOG_BACKUP_DISABLED,
+		dir: envString("XBOCT_LOG_BACKUP_DIR", XBOCT_LOG_BACKUP_DIR) ?? "",
+		hour: envNumber("XBOCT_LOG_BACKUP_HOUR", XBOCT_LOG_BACKUP_HOUR),
+		minute: envNumber("XBOCT_LOG_BACKUP_MINUTE", XBOCT_LOG_BACKUP_MINUTE),
+		weekday: envNumber("XBOCT_LOG_BACKUP_WEEKDAY", XBOCT_LOG_BACKUP_WEEKDAY),
+		dailyKeep: envNumber(
+			"XBOCT_LOG_BACKUP_DAILY_KEEP",
+			XBOCT_LOG_BACKUP_DAILY_KEEP,
+		),
+		weeklyKeep: envNumber(
+			"XBOCT_LOG_BACKUP_WEEKLY_KEEP",
+			XBOCT_LOG_BACKUP_WEEKLY_KEEP,
+		),
+		autoKeep: envNumber(
+			"XBOCT_LOG_BACKUP_AUTO_KEEP",
+			XBOCT_LOG_BACKUP_AUTO_KEEP,
+		),
+		autoIntervalMin: envNumber(
+			"XBOCT_LOG_BACKUP_AUTO_INTERVAL_MIN",
+			XBOCT_LOG_BACKUP_AUTO_INTERVAL_MIN,
+		),
+		disabled: envFlag("XBOCT_LOG_BACKUP_DISABLED", XBOCT_LOG_BACKUP_DISABLED),
 	};
 }
 

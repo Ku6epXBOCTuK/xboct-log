@@ -41,3 +41,6 @@ try {
 console.log(`seeded ${source.path} -> ${target}`);
 console.log(`snapshot mtime: ${new Date(source.mtime).toISOString()}`);
 console.log(`snapshot size:  ${stat.size} bytes`);
+console.log(
+	"restart the dev server: a running server keeps its own file handle and keeps showing the old data",
+);

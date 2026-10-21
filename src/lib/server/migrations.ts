@@ -2,11 +2,14 @@ import type { DatabaseSync } from "node:sqlite";
 import { Migrator } from "@ku6epxboctuk/sqlite-up";
 import { XBOCT_LOG_MIGRATIONS } from "$app/env/private";
 import { openDatabase } from "./db";
+import { envString } from "./env";
 
 function createMigrator(db: DatabaseSync): Migrator {
 	return new Migrator({
 		db,
-		migrationsDir: XBOCT_LOG_MIGRATIONS,
+		migrationsDir:
+			envString("XBOCT_LOG_MIGRATIONS", XBOCT_LOG_MIGRATIONS) ??
+			XBOCT_LOG_MIGRATIONS,
 		fileExtensions: ["js"],
 	});
 }

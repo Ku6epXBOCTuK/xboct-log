@@ -14,14 +14,41 @@ export function openDatabase(location: string): DatabaseSync {
 	return db;
 }
 
-let singleton: DatabaseSync | undefined;
+// NOTE: the connection lives on globalThis, so a vite module reload adopts
+// the live handle instead of opening a second connection to the same file.
+const GLOBAL_KEY = Symbol.for("xboct-log.database");
+
+interface GlobalDatabase {
+	db: DatabaseSync;
+	path: string;
+}
+
+const globals = globalThis as unknown as Record<
+	symbol,
+	GlobalDatabase | undefined
+>;
+
+let local: DatabaseSync | undefined;
 
 export function getDb(location?: string): DatabaseSync {
-	singleton ??= openDatabase(location ?? defaultDbPath());
-	return singleton;
+	if (local) return local;
+	const path = location ?? defaultDbPath();
+	const stored = globals[GLOBAL_KEY];
+	if (stored && stored.path === path) {
+		local = stored.db;
+		return local;
+	}
+	const db = openDatabase(path);
+	local = db;
+	globals[GLOBAL_KEY] = { db, path };
+	return db;
 }
 
 export function closeDb(): void {
-	singleton?.close();
-	singleton = undefined;
+	if (!local) return;
+	local.close();
+	if (globals[GLOBAL_KEY]?.db === local) {
+		globals[GLOBAL_KEY] = undefined;
+	}
+	local = undefined;
 }

@@ -9,10 +9,20 @@ import type { ServerInit } from "@sveltejs/kit/hooks";
 
 export const init: ServerInit = async () => {
 	const db = getDb();
-	console.log(`database: ${defaultDbPath()}`);
 	await migrateDatabase(db);
 	pruneActivity(db);
 	purgeSoftDeletedTasks(db);
 	ensureInbox(db);
+	// NOTE: the checkpoint folds the WAL into the database file, so the data
+	// survives even if the WAL is lost or replaced.
+	db.exec("PRAGMA wal_checkpoint(TRUNCATE);");
+	const tasks = db.prepare("SELECT COUNT(*) AS n FROM tasks").get();
+	const count = Number(tasks?.n ?? 0);
+	console.log(`database: ${defaultDbPath()} (${count} tasks)`);
+	if (count === 0) {
+		console.warn(
+			"the database holds no tasks — check XBOCT_LOG_DB if this is unexpected",
+		);
+	}
 	startScheduler();
 };
