@@ -118,6 +118,39 @@ describe("sortTasks", () => {
 		expect(sorted.map((item) => item.id)).toEqual(["X-2", "X-3", "X-1"]);
 	});
 
+	it("keeps the tasks that are not closed at the end", () => {
+		const sorted = sortTasks(
+			[
+				task({ id: "X-1", closed_at: "2026-02-01T00:00:00.000Z" }),
+				task({ id: "X-2", closed_at: null }),
+				task({ id: "X-3", closed_at: "2026-03-01T00:00:00.000Z" }),
+			],
+			"closed",
+			"desc",
+		);
+
+		expect(sorted.map((item) => item.id)).toEqual(["X-3", "X-1", "X-2"]);
+	});
+
+	it("orders tasks by project name", () => {
+		const sorted = sortTasks(
+			[
+				task({ id: "X-1", project_id: "beta", number: 1 }),
+				task({ id: "X-2", project_id: "alpha", number: 2 }),
+			],
+			"project",
+			"asc",
+			{
+				projectNames: new Map([
+					["alpha", "Alpha"],
+					["beta", "Beta"],
+				]),
+			},
+		);
+
+		expect(sorted.map((item) => item.id)).toEqual(["X-2", "X-1"]);
+	});
+
 	it("does not mutate the input array", () => {
 		const input = [...tasks];
 		sortTasks(input, "priority", "asc");
@@ -127,11 +160,13 @@ describe("sortTasks", () => {
 });
 
 describe("defaultOrderFor", () => {
-	it("defaults priority and status to ascending and the rest to descending", () => {
+	it("defaults priority, status and project to ascending and the rest to descending", () => {
 		expect(defaultOrderFor("priority")).toBe("asc");
 		expect(defaultOrderFor("status")).toBe("asc");
+		expect(defaultOrderFor("project")).toBe("asc");
 		expect(defaultOrderFor("created")).toBe("desc");
 		expect(defaultOrderFor("updated")).toBe("desc");
+		expect(defaultOrderFor("closed")).toBe("desc");
 		expect(defaultOrderFor("id")).toBe("desc");
 	});
 });

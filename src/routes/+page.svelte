@@ -18,7 +18,11 @@
 		tasks.tasks.find((task) => task.id === selectedId) ?? null,
 	);
 
-	const visibleTasks = $derived(filters.visible(tasks.tasks));
+	const projectNames = $derived(
+		new Map(projects.all.map((project) => [project.id, project.name])),
+	);
+
+	const visibleTasks = $derived(filters.visible(tasks.tasks, { projectNames }));
 
 	const total = $derived(getActiveTotal(tasks.tasks, filters));
 
@@ -58,6 +62,8 @@
 		tasks={visibleTasks}
 		allTasks={tasks.tasks}
 		{scopes}
+		projects={projects.all}
+		showProject={filters.activeProject === null}
 		{selectedId}
 		sortKey={filters.sortKey}
 		sortOrder={filters.sortOrder}

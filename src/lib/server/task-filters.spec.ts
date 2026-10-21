@@ -5,7 +5,7 @@ import type { AppError } from "./errors";
 import { openMigratedDatabase } from "./migrations";
 import { createProject, updateProject } from "./projects";
 import { createScope } from "./scopes";
-import { createTask, listTasks } from "./tasks";
+import { closeTask, createTask, listTasks } from "./tasks";
 
 function unwrap<T>(result: Result<T, AppError>): T {
 	expect(result.isOk()).toBe(true);
@@ -186,6 +186,26 @@ describe("task filters", () => {
 			"banana",
 			"cherry",
 		]);
+	});
+
+	it("sorts by the closing date and keeps the open tasks last", async () => {
+		const open = unwrap(createTask(db, { project_id: "spa", title: "Open" }));
+		const first = unwrap(createTask(db, { project_id: "spa", title: "First" }));
+		const second = unwrap(
+			createTask(db, { project_id: "spa", title: "Second" }),
+		);
+		unwrap(closeTask(db, first.id, "fixed"));
+		unwrap(closeTask(db, second.id, "fixed"));
+
+		const found = listTasks(db, { sort: "closed_at", order: "asc" });
+
+		expect(found.map((task) => task.title)).toEqual([
+			"First",
+			"Second",
+			"Open",
+		]);
+		expect(found[0].id).toBe(first.id);
+		expect(found[2].id).toBe(open.id);
 	});
 
 	it("keeps archived projects out of the excluded set", async () => {

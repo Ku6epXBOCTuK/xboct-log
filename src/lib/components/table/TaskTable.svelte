@@ -3,7 +3,7 @@
 	import { openBlockers } from "#lib/tasks/blocking.ts";
 	import { collectEpicProgress } from "#lib/tasks/filter.ts";
 	import type { SortOrder, TaskSortKey } from "#lib/tasks/sort.ts";
-	import type { Task } from "#lib/types.ts";
+	import type { Project, Task } from "#lib/types.ts";
 	import ArrowDown from "~icons/lucide/arrow-down";
 	import ArrowUp from "~icons/lucide/arrow-up";
 	import ArrowUpDown from "~icons/lucide/arrow-up-down";
@@ -14,6 +14,8 @@
 		tasks: Task[];
 		allTasks: Task[];
 		scopes: ScopeStore;
+		projects: Project[];
+		showProject: boolean;
 		selectedId: string | null;
 		total: number;
 		sortKey: TaskSortKey;
@@ -29,6 +31,8 @@
 		tasks,
 		allTasks,
 		scopes,
+		projects,
+		showProject,
 		selectedId,
 		total,
 		sortKey,
@@ -43,6 +47,9 @@
 	const epicProgress = $derived(collectEpicProgress(allTasks));
 	const blockers = $derived(
 		new Map(allTasks.map((task) => [task.id, openBlockers(allTasks, task)])),
+	);
+	const projectNames = $derived(
+		new Map(projects.map((project) => [project.id, project.name])),
 	);
 </script>
 
@@ -72,6 +79,10 @@
 		<thead>
 			<tr>
 				{@render sortHeader("id", "ID", "id-col")}
+				{#if showProject}
+					{@render sortHeader("project", "Project", "optional-column")}
+				{/if}
+				<th class="optional-column">Scope</th>
 				<th>Task</th>
 				<th class="optional-column">Tags</th>
 				{@render sortHeader("status", "Status", "")}
@@ -79,6 +90,7 @@
 				<th class="optional-column">Est</th>
 				{@render sortHeader("created", "Created", "date-col optional-column")}
 				<th class="date-col optional-column">Due</th>
+				{@render sortHeader("closed", "Closed", "date-col optional-column")}
 			</tr>
 		</thead>
 		<tbody>
@@ -89,6 +101,8 @@
 					scope={task.scope_id === null
 						? null
 						: (scopes.all.find((scope) => scope.id === task.scope_id) ?? null)}
+					projectName={projectNames.get(task.project_id) ?? task.project_id}
+					{showProject}
 					isselected={selectedId === task.id}
 					progress={epicProgress.get(task.id) ?? null}
 					blockers={blockers.get(task.id) ?? []}

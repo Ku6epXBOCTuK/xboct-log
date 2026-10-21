@@ -8,6 +8,8 @@
 		task: Task;
 		scoped: boolean;
 		scope: Scope | null;
+		projectName: string;
+		showProject: boolean;
 		isselected: boolean;
 		progress: EpicProgress | null;
 		blockers: string[];
@@ -19,6 +21,8 @@
 		task,
 		scoped,
 		scope,
+		projectName,
+		showProject,
 		isselected,
 		progress,
 		blockers,
@@ -46,8 +50,18 @@
 
 <tr onclick={onselect} class={isselected ? "row-selected" : ""}>
 	<td class="task-id">{task.id}</td>
+	{#if showProject}
+		<td class="project-label optional-column">{projectName}</td>
+	{/if}
+	<td class="optional-column">
+		{#if scope !== null}
+			<span class="scope-badge">{scope.name}</span>
+		{:else if scoped}
+			<span class="scope-badge scope-missing">no scope</span>
+		{/if}
+	</td>
 	<td class="task-title">
-		{task.title}
+		<span class="task-title-text" title={task.title}>{task.title}</span>
 		{#if task.is_epic}
 			<button
 				class={`epic-badge epic-marker${epicEmpty ? " epic-marker-empty" : ""}`}
@@ -69,13 +83,6 @@
 			>
 				{task.epic_id}
 			</button>
-		{/if}
-		{#if scoped}
-			{#if scope !== null}
-				<span class="scope-badge">{scope.name}</span>
-			{:else}
-				<span class="scope-badge scope-missing">no scope</span>
-			{/if}
 		{/if}
 		{#if blockers.length > 0}
 			<span class="blocker-badge" title={`Blocked by ${blockers.join(", ")}`}>
@@ -109,6 +116,9 @@
 	</td>
 	<td class={`due-label optional-column ${overdue ? "due-overdue" : ""}`}>
 		{task.due_at ? formatDate(task.due_at) : ""}
+	</td>
+	<td class="date-label optional-column">
+		{task.closed_at ? formatDate(task.closed_at) : ""}
 	</td>
 </tr>
 
@@ -144,6 +154,15 @@
 	.task-title {
 		color: var(--foreground);
 		min-width: 300px;
+	}
+
+	.task-title-text {
+		display: inline-block;
+		max-width: 32rem;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		vertical-align: bottom;
 	}
 
 	.epic-filter {
@@ -191,13 +210,12 @@
 	}
 
 	.scope-badge {
-		margin-left: var(--space-2);
 		border: 1px solid var(--border);
 		color: var(--text-muted);
 		border-radius: var(--radius-sm);
 		padding: 0 var(--space-2);
-		font-size: var(--text-xs);
-		line-height: 1.5;
+		font-size: var(--text-sm);
+		line-height: 1.6;
 		white-space: nowrap;
 	}
 
@@ -266,6 +284,11 @@
 		color: var(--text-muted);
 		font-family: var(--font-mono);
 		font-size: var(--text-xs);
+	}
+
+	.project-label {
+		color: var(--text-secondary);
+		white-space: nowrap;
 	}
 
 	.due-overdue {

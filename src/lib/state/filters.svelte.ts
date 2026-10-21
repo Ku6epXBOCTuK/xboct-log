@@ -4,6 +4,7 @@ import {
 	DEFAULT_SORT_ORDER,
 	defaultOrderFor,
 	sortTasks,
+	type SortContext,
 	type SortOrder,
 	type TaskSortKey,
 } from "#lib/tasks/sort.ts";
@@ -107,7 +108,7 @@ export function createFilters(initialProject: ProjectFilter) {
 			query = "";
 			selectedTags = [];
 		},
-		visible(tasks: Task[]) {
+		visible(tasks: Task[], context: SortContext = {}) {
 			return sortTasks(
 				filterTasks(tasks, {
 					activeProject,
@@ -121,6 +122,7 @@ export function createFilters(initialProject: ProjectFilter) {
 				}),
 				sortKey,
 				sortOrder,
+				context,
 			);
 		},
 	};
