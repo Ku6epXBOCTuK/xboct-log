@@ -6,7 +6,11 @@ import { activityEntry, fieldNames } from "../server/activity";
 import { getDb } from "../server/db";
 import { missingScopeWarning } from "../server/scopes";
 import * as repo from "../server/tasks";
-import type { BatchItem, CreateBatchItem } from "../server/tasks";
+import type {
+	BatchItem,
+	CreateBatchItem,
+	DeleteTaskOutcome,
+} from "../server/tasks";
 import {
 	CLOSED_REASONS,
 	PRIORITIES,
@@ -447,15 +451,31 @@ export const closeTasks = defineCommand({
 export const deleteTask = defineCommand({
 	name: "tasks_delete",
 	description:
-		"Soft-delete a task by id. Id accepts the full 'PREFIX-NUMBER' form (e.g. 'LOG-82') or a bare task number (e.g. '82') resolved inside in_project, otherwise it must be unique across the whole backlog.",
+		"Soft-delete a task by id. Id accepts the full 'PREFIX-NUMBER' form (e.g. 'LOG-82') or a bare task number (e.g. '82') resolved inside in_project, otherwise it must be unique across the whole backlog. Deleting drops the blocker links of the task and detaches it from its epic, so the affected tasks change as well - they are listed in released. Returns {id, deleted_at, changes, released}.",
 	kind: "command",
 	input: strictObject({
 		id: z.string().min(1).describe(ID_DESCRIPTION),
 		in_project: z.string().min(1).optional().describe(IN_PROJECT_DESCRIPTION),
 	}),
-	handler: ({ id, in_project }) => repo.deleteTask(getDb(), id, in_project),
-	activity: (_input, deletedId: string) =>
-		activityEntry("task", deletedId, ["deleted_at"]),
+	handler: ({ id, in_project }) => {
+		const result = repo.deleteTaskDetailed(getDb(), id, in_project);
+		if (result.isErr()) {
+			return err(result.error);
+		}
+		return ok(result.value);
+	},
+	activity: (_input, result: DeleteTaskOutcome) => [
+		activityEntry("task", result.id, ["deleted_at"], null, result.changes),
+		...result.released.map((link) =>
+			activityEntry(
+				"task",
+				link.task_id,
+				link.changes.map((change) => change.field),
+				null,
+				link.changes,
+			),
+		),
+	],
 });
 
 export const restoreTask = defineCommand({

@@ -24,6 +24,7 @@ import {
 import {
 	blockingInfoFor,
 	deleteBlockedByLinks,
+	listBlockedBy,
 	listBlocks,
 	releaseBlockedStatus,
 } from "./blockers";
@@ -1381,23 +1382,45 @@ export function moveTask(
 	});
 }
 
-export function deleteTask(
+export interface ReleasedLink {
+	task_id: string;
+	changes: ActivityChange[];
+}
+
+export interface DeleteTaskOutcome {
+	id: string;
+	deleted_at: string;
+	changes: ActivityChange[];
+	released: ReleasedLink[];
+}
+
+export function deleteTaskDetailed(
 	db: DatabaseSync,
 	id: string,
 	inProject?: string,
-): Result<string, AppError> {
+): Result<DeleteTaskOutcome, AppError> {
 	const resolved = resolveTaskId(db, id, inProject);
 	if (resolved.isErr()) {
 		return err(resolved.error);
 	}
 	const targetId = resolved.value;
 
+	const info = blockingInfoFor(db, [targetId]).get(targetId);
+	const blockerIds = info?.blocked_by ?? [];
+	const blockedIds = info?.blocks ?? [];
+	const blockedBefore = new Map<string, string[]>();
+	for (const blockedId of blockedIds) {
+		blockedBefore.set(blockedId, listBlockedBy(db, blockedId));
+	}
+	const children = db
+		.prepare("SELECT id FROM tasks WHERE epic_id = ? AND deleted_at IS NULL")
+		.all(targetId) as unknown as { id: string }[];
+
 	const now = new Date().toISOString();
 
 	return guard(() => {
 		db.exec("BEGIN IMMEDIATE");
 		try {
-			const blockedTaskIds = listBlocks(db, targetId);
 			db.prepare(
 				"UPDATE tasks SET epic_id = NULL, updated_at = ? WHERE epic_id = ?",
 			).run(now, targetId);
@@ -1405,14 +1428,54 @@ export function deleteTask(
 				"UPDATE tasks SET deleted_at = ?, updated_at = ? WHERE id = ?",
 			).run(now, now, targetId);
 			deleteBlockedByLinks(db, targetId);
-			releaseBlockedStatus(db, blockedTaskIds);
+			const releasedIds = releaseBlockedStatus(db, blockedIds);
 			db.exec("COMMIT");
-			return targetId;
+
+			const released: ReleasedLink[] = [];
+			for (const blockedId of blockedIds) {
+				const before = blockedBefore.get(blockedId) ?? [];
+				const after = before.filter((blockerId) => blockerId !== targetId);
+				const changes: ActivityChange[] = [
+					{ field: "blocked_by", from: before, to: after },
+				];
+				if (releasedIds.includes(blockedId)) {
+					changes.push({ field: "status", from: "blocked", to: "open" });
+				}
+				released.push({ task_id: blockedId, changes });
+			}
+			for (const child of children) {
+				released.push({
+					task_id: child.id,
+					changes: [{ field: "epic_id", from: targetId, to: null }],
+				});
+			}
+
+			return {
+				id: targetId,
+				deleted_at: now,
+				changes: [
+					{ field: "deleted_at", from: null, to: now },
+					{ field: "blocked_by", from: blockerIds, to: [] },
+				],
+				released,
+			};
 		} catch (error) {
 			db.exec("ROLLBACK");
 			throw error;
 		}
 	});
+}
+
+export function deleteTask(
+	db: DatabaseSync,
+	id: string,
+	inProject?: string,
+): Result<string, AppError> {
+	const result = deleteTaskDetailed(db, id, inProject);
+	if (result.isErr()) {
+		return err(result.error);
+	}
+	return ok(result.value.id);
 }
 
 export function restoreTask(
