@@ -1,10 +1,16 @@
 $ErrorActionPreference = "Stop"
 
 $Repo     = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
-$AppDir   = Join-Path $env:USERPROFILE ".xboct-log\app"
 $BuildWt  = Join-Path $env:LOCALAPPDATA "xboct-log\build-wt"
+$AppDir   = Join-Path $env:USERPROFILE ".xboct-log\app"
 $Service  = "xboct-log"
 $StartDir = (Get-Location).Path
+
+# NOTE: the build worktree and the application folder are the only hardcoded
+# paths in the repository. The build worktree carries the deployment
+# configuration.
+$EnvFile = Join-Path $BuildWt ".env"
+if (-not (Test-Path $EnvFile)) { throw "missing $EnvFile" }
 
 git -C $Repo fetch origin
 
@@ -33,6 +39,8 @@ try {
 	New-Item -ItemType Directory -Force (Join-Path $AppDir "logs") | Out-Null
 	Copy-Item (Join-Path $BuildWt "package.json"), (Join-Path $BuildWt "pnpm-lock.yaml"), (Join-Path $BuildWt "pnpm-workspace.yaml") $AppDir -Force
 	Copy-Item (Join-Path $BuildWt "scripts\start-prod.mjs") (Join-Path $AppDir "start.mjs") -Force
+	Copy-Item (Join-Path $Repo "scripts\restore.mjs") (Join-Path $AppDir "restore.mjs") -Force
+	Copy-Item $EnvFile (Join-Path $AppDir ".env") -Force
 
 	Push-Location $AppDir
 	pnpm install --prod --frozen-lockfile

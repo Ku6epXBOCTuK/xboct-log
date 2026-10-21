@@ -9,11 +9,12 @@
 - Статические env-переменные — не проблема: прод собирается в build-wt со своим
   `.env`, репо-`.env` переключается на dev-пути. Вшивание прод-пути в dev-сборку
   исчезает вместе со сменой `.env`.
-- **build-wt — единственный захардкоженный прод-путь в репо.** Это известный
-  `%LOCALAPPDATA%\xboct-log\build-wt`, build-worktree, а не живая папка
-  приложения. Он же — точка входа для чтения остального конфига.
-- Путь к прод-папке приложения (`XBOCT_LOG_APP_DIR`) берётся из `build-wt\.env`,
-  в коде деплоя не хардкодится.
+- **Прод-пути захардкожены в `deploy.ps1` и больше нигде.** Это
+  `%LOCALAPPDATA%\xboct-log\build-wt` (build-worktree) и
+  `%USERPROFILE%\.xboct-log\app` (папка приложения). Оба — только в
+  `scripts/deploy.ps1`, больше ни в одном файле репо.
+- `build-wt\.env` копируется в `app\.env` как есть — из него `restore.mjs` берёт
+  пути к БД и бэкапам.
 - Restore — прод-операция, живёт в прод-папке (`app\restore.mjs`), пути читает
   из `app\.env`, который кладёт деплой из `build-wt\.env`.
 - Клонирование с живого прода не нужно: dev сидируется снимком из `.dev/seed/`.
@@ -64,32 +65,25 @@
 
 ### 2.0 Разовая настройка вне репо (5 мин)
 
-Дописать в `%LOCALAPPDATA%\xboct-log\build-wt\.env`:
+Ничего настраивать не нужно: оба прод-пути захардкожены в `deploy.ps1`.
 
-```
-XBOCT_LOG_APP_DIR=C:\Users\Ku6epXBOCTuK\.xboct-log\app
-```
-
-Проверить, что там уже есть `XBOCT_LOG_DB` и `XBOCT_LOG_BACKUP_DIR`.
-`XBOCT_LOG_SERVICE` не нужен — имя службы остаётся литералом `xboct-log` в
-`deploy.ps1` (это имя, не путь).
+Проверить, что в `%LOCALAPPDATA%\xboct-log\build-wt\.env` есть `XBOCT_LOG_DB` и
+`XBOCT_LOG_BACKUP_DIR`.
 
 ### 2.1 Переписать `scripts/deploy.ps1` (15 мин)
 
-- Оставить единственный захардкоженный путь:
+- Оставить единственные захардкоженные пути:
   ```powershell
   $BuildWt = Join-Path $env:LOCALAPPDATA "xboct-log\build-wt"
+  $AppDir  = Join-Path $env:USERPROFILE ".xboct-log\app"
   ```
-  Он же — граница доверия: всё остальное читается из этого worktree.
-- Прочитать `$BuildWt\.env` простым парсером (`KEY=VALUE`, `#` — комментарий,
-  пустые строки пропускаются).
-- `$AppDir = $Cfg["XBOCT_LOG_APP_DIR"]`, нет значения → throw. Это происходит до
-  первого касания прода (fail-closed).
-- Убрать литерал `Join-Path $env:USERPROFILE ".xboct-log\app"`.
+  Имя службы остаётся литералом `xboct-log` (это имя, не путь).
+- `build-wt\.env` копируется в `$AppDir\.env` как есть — отдельная переменная
+  `XBOCT_LOG_APP_DIR` не нужна.
 - После копирования `start-prod.mjs`:
   ```powershell
   Copy-Item (Join-Path $BuildWt ".env") (Join-Path $AppDir ".env") -Force
-  Copy-Item (Join-Path $BuildWt "scripts\restore.mjs") (Join-Path $AppDir "restore.mjs") -Force
+  Copy-Item (Join-Path $Repo "scripts\restore.mjs") (Join-Path $AppDir "restore.mjs") -Force
   ```
 - Остальная логика (worktree, build, robocopy, nssm, version.txt) без изменений.
 
@@ -154,8 +148,8 @@ XBOCT_LOG_APP_DIR=C:\Users\Ku6epXBOCTuK\.xboct-log\app
 2. `docs/notes.md`:
    - абзац «`app/.env` не существует и не нужен» инвертировать: создаётся
      деплоем из `build-wt/.env`, его читает `restore.mjs`;
-   - в описание деплоя добавить: build-wt — единственный захардкоженный путь,
-     конфиг читается из его `.env`, в `app` копируются `.env` и `restore.mjs`;
+   - в описание деплоя добавить: в `deploy.ps1` захардкожены build-wt и папка
+     приложения, в `app` копируются `.env` и `restore.mjs`;
    - `dev:clone` → `dev:seed`;
    - в раздел бэкапов дописать новый порядок restore (integrity → `.new` →
      rename).
@@ -194,9 +188,9 @@ XBOCT_LOG_APP_DIR=C:\Users\Ku6epXBOCTuK\.xboct-log\app
 
 ## Риски
 
-- `build-wt` захардкожен сознательно: это цена единой известной точки входа.
-  Путь ведёт в build-worktree, а не в живую БД, и перезаписывается только
-  деплоем.
+- Прод-пути захардкожены сознательно и только в `scripts/deploy.ps1`: build-wt и
+  папка приложения. Это цена единой известной точки входа; dev-код эти пути не
+  видит.
 - `app\.env` теперь содержит прод-пути: это прод-папка, ожидаемо. Копировать её
   в репо нельзя — `check-paths` этого не ловит, полагаемся на `.gitignore` и
   здравый смысл.

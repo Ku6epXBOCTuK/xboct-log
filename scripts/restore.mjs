@@ -4,6 +4,7 @@ import {
 	mkdirSync,
 	readdirSync,
 	readFileSync,
+	renameSync,
 	rmSync,
 	statSync,
 } from "node:fs";
@@ -44,6 +45,33 @@ const port = Number(flags.get("port") ?? process.env.PORT ?? 45881);
 function pathFrom(value) {
 	return value === undefined || value === "" ? "" : resolve(value);
 }
+
+// NOTE: the file next to the script is the deployment copy of the build
+// worktree .env, so it holds the production paths. The variables that are
+// already set win, which keeps the command line and the environment usable.
+function loadLocalEnvFile() {
+	const envFile = join(import.meta.dirname, ".env");
+	if (!existsSync(envFile)) {
+		return;
+	}
+	for (const line of readFileSync(envFile, "utf8").split(/\r?\n/)) {
+		const trimmed = line.trim();
+		if (trimmed === "" || trimmed.startsWith("#")) {
+			continue;
+		}
+		const separator = trimmed.indexOf("=");
+		if (separator < 1) {
+			continue;
+		}
+		const name = trimmed.slice(0, separator).trim();
+		const value = trimmed.slice(separator + 1).trim();
+		if (process.env[name] === undefined) {
+			process.env[name] = value;
+		}
+	}
+}
+
+loadLocalEnvFile();
 
 const dbPath = pathFrom(flags.get("db") ?? process.env.XBOCT_LOG_DB);
 const backupDir = pathFrom(
@@ -111,15 +139,46 @@ function looksLikeDatabase(path) {
 	}
 }
 
+function inspectDatabase(path) {
+	const db = new DatabaseSync(path, { readOnly: true });
+	try {
+		const integrity = db.prepare("PRAGMA integrity_check").get();
+		const result = integrity?.integrity_check;
+		if (result !== "ok") {
+			return { ok: false, reason: `integrity check failed: ${result}` };
+		}
+		const table = db
+			.prepare(
+				"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'schema_migrations'",
+			)
+			.get();
+		if (table === undefined) {
+			return {
+				ok: false,
+				reason: "no schema_migrations table, this is not an xboct-log backup",
+			};
+		}
+		const projects = db.prepare("SELECT COUNT(*) AS n FROM projects").get();
+		const tasks = db.prepare("SELECT COUNT(*) AS n FROM tasks").get();
+		return {
+			ok: true,
+			projects: Number(projects?.n ?? 0),
+			tasks: Number(tasks?.n ?? 0),
+		};
+	} finally {
+		db.close();
+	}
+}
+
 async function restore(target) {
 	if (dbPath === "") {
 		fail(
-			"XBOCT_LOG_DB is not set. Pass --db <path> or --env <file> with the database path.",
+			"XBOCT_LOG_DB is not set. Pass --db <path> or set the variable in the environment.",
 		);
 	}
 	if (backupDir === "") {
 		fail(
-			"XBOCT_LOG_BACKUP_DIR is not set. Pass --backups <dir> or --env <file> with the backup directory.",
+			"XBOCT_LOG_BACKUP_DIR is not set. Pass --backups <dir> or set the variable in the environment.",
 		);
 	}
 	if (!existsSync(target)) {
@@ -127,6 +186,11 @@ async function restore(target) {
 	}
 	if (!looksLikeDatabase(target)) {
 		fail(`not a SQLite database: ${target}`);
+	}
+	const stat = statSync(target);
+	const inspected = inspectDatabase(target);
+	if (!inspected.ok) {
+		fail(inspected.reason);
 	}
 	if (await serverIsListening()) {
 		fail(
@@ -151,18 +215,23 @@ async function restore(target) {
 		}
 		console.log(`current database saved to ${safety}`);
 	}
-	copyFileSync(target, dbPath);
+	const staged = `${dbPath}.new`;
+	copyFileSync(target, staged);
+	renameSync(staged, dbPath);
 	for (const suffix of ["-wal", "-shm"]) {
 		rmSync(`${dbPath}${suffix}`, { force: true });
 	}
 	console.log(`restored ${target} -> ${dbPath}`);
+	console.log(`snapshot date: ${stat.mtime.toISOString()}`);
+	console.log(`snapshot size: ${stat.size} bytes`);
+	console.log(`projects: ${inspected.projects}  tasks: ${inspected.tasks}`);
 	console.log("start the service again: nssm start xboct-log");
 }
 
 if (command === "list") {
 	if (backupDir === "") {
 		fail(
-			"XBOCT_LOG_BACKUP_DIR is not set. Pass --backups <dir> or --env <file> with the backup directory.",
+			"XBOCT_LOG_BACKUP_DIR is not set. Pass --backups <dir> or set the variable in the environment.",
 		);
 	}
 	const rows = listBackups();
@@ -178,7 +247,7 @@ if (command === "list") {
 } else if (command === "restore") {
 	const name = rest[0];
 	if (name === undefined) {
-		fail("usage: node scripts/restore.mjs restore <backup file>");
+		fail("usage: node restore.mjs restore <backup file>");
 	}
 	const known = listBackups().find((row) => row.path === resolve(name));
 	await restore(known ? known.path : resolve(name));
