@@ -35,6 +35,10 @@ export function mapTask(row: TaskRow): Task {
 	};
 }
 
+export const TASK_BASE_FIELDS: string[] = Object.keys(
+	mapTask({ tags: "[]" } as TaskRow),
+);
+
 export function parseFields(fields: string | undefined): string[] | null {
 	if (!fields) {
 		return null;
