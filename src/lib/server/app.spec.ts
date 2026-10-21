@@ -611,7 +611,7 @@ describe("tasks", () => {
 		const [task] = listTasks(db, { title: "alpha", include_description: true });
 
 		expect(task.description).toBe("first line\nsecond line");
-		expect(task.short_description).toBe("first line");
+		expect(task.short_description).toBeUndefined();
 	});
 
 	it("keeps the full description when fields request it", async () => {

@@ -71,11 +71,13 @@ export function taskWithShortDescription(
 	task: Task,
 	includeDescription: boolean,
 ): Task {
-	const short_description = shortDescription(task.description);
 	if (includeDescription) {
-		return { ...task, short_description };
+		return task;
 	}
-	const result: Record<string, unknown> = { ...task, short_description };
+	const result: Record<string, unknown> = {
+		...task,
+		short_description: shortDescription(task.description),
+	};
 	delete result.description;
 	return result as unknown as Task;
 }
