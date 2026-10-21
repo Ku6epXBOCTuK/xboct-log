@@ -18,6 +18,8 @@ export {
 	withBlockingInfo,
 } from "./read";
 export { resolveEpicId, resolveTaskId, resolveTaskIdInternal } from "./resolve";
+export { listTags } from "./tags";
+export type { TagCount, TagQuery } from "./tags";
 export type {
 	BatchError,
 	BatchItem,

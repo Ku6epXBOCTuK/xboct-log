@@ -42,9 +42,10 @@ function registerTools(server: McpServer): void {
 const handler = createMcpHandler(registerTools, {
 	serverInfo: { name: "xboct-log", version },
 	instructions:
-		"Task backlog server for a single user. Use tasks_*, projects_* and " +
-		"scopes_* tools to list, create, update and delete tasks, projects " +
-		"and scopes. backup_create makes a manual database backup, " +
+		"Task backlog server for a single user. Use tasks_*, projects_*, " +
+		"scopes_* and tags_list tools to list, create, update and delete " +
+		"tasks, projects and scopes. tags_list returns the tag dictionary. " +
+		"backup_create makes a manual database backup, " +
 		"backup_list shows the existing snapshots. Restoring a backup is " +
 		"not part of these tools: ask the user to restore it themselves. " +
 		"All tools accept a single JSON object argument.",

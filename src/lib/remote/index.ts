@@ -5,5 +5,6 @@ import "./comments.remote";
 import "./projects.remote";
 import "./scopes.remote";
 import "./tasks.remote";
+import "./tags.remote";
 
 export { getOps } from "./registry";
