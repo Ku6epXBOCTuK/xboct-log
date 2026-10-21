@@ -4,6 +4,7 @@
 	import ProjectScopeFields from "#lib/components/task/ProjectScopeFields.svelte";
 	import TaskComments from "#lib/components/detail/TaskComments.svelte";
 	import TaskHistory from "#lib/components/detail/TaskHistory.svelte";
+	import TaskRevisions from "#lib/components/detail/TaskRevisions.svelte";
 	import TaskFields from "#lib/components/task/TaskFields.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import IconButton from "#lib/components/ui/IconButton.svelte";
@@ -306,6 +307,10 @@
 				</div>
 				<div class="panel-overlay-body">
 					<TaskHistory task={selected} />
+					<div class="previous-versions">
+						<div class="panel-overlay-title">Previous versions</div>
+						<TaskRevisions task={selected} />
+					</div>
 				</div>
 			</div>
 		{/if}
@@ -425,6 +430,15 @@
 		min-height: 0;
 		overflow: auto;
 		padding: var(--space-4) var(--edge-pad) var(--space-5);
+	}
+
+	.previous-versions {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+		margin-top: var(--space-5);
+		padding-top: var(--space-4);
+		border-top: 1px solid var(--border);
 	}
 
 	.task-summary {

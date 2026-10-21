@@ -97,6 +97,15 @@ export interface ActivityLogItem extends ActivityItem {
 	entity_id: string;
 }
 
+export interface TaskRevision {
+	id: number;
+	task_id: string;
+	field: string;
+	ref_id: string | null;
+	body: string;
+	created_at: string;
+}
+
 export interface Comment {
 	id: string;
 	task_id: string;

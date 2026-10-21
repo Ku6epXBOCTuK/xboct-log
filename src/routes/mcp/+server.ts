@@ -45,6 +45,8 @@ const handler = createMcpHandler(registerTools, {
 		"Task backlog server for a single user. Use tasks_*, projects_*, " +
 		"scopes_* and tags_list tools to list, create, update and delete " +
 		"tasks, projects and scopes. tags_list returns the tag dictionary. " +
+		"tasks_revisions_list reads the previous description and comment " +
+		"texts of a task. " +
 		"backup_create makes a manual database backup, " +
 		"backup_list shows the existing snapshots. Restoring a backup is " +
 		"not part of these tools: ask the user to restore it themselves. " +
