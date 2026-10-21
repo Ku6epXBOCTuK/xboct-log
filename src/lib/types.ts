@@ -110,6 +110,14 @@ export interface TaskWithChanges extends Task {
 	changes: ActivityChange[];
 }
 
+export interface TaskWithWarnings extends Task {
+	warnings: string[];
+}
+
+export interface ChangedTaskWithWarnings extends TaskWithChanges {
+	warnings: string[];
+}
+
 export interface Task {
 	id: string;
 	project_id: string;

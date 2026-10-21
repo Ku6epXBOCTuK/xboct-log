@@ -1,8 +1,10 @@
 import { error } from "@sveltejs/kit";
 import { err, ok } from "neverthrow";
+import type { DatabaseSync } from "node:sqlite";
 import { z } from "zod";
 import { activityEntry, fieldNames } from "../server/activity";
 import { getDb } from "../server/db";
+import { missingScopeWarning } from "../server/scopes";
 import * as repo from "../server/tasks";
 import type { BatchItem, CreateBatchItem } from "../server/tasks";
 import {
@@ -172,7 +174,14 @@ const newTask = strictObject({
 	priority: z.enum(PRIORITIES).optional(),
 	is_epic: z.boolean().optional(),
 	epic_id: z.string().nullable().optional().describe(EPIC_ID_DESCRIPTION),
-	scope_id: z.number().int().nullable().optional(),
+	scope_id: z
+		.number()
+		.int()
+		.nullable()
+		.optional()
+		.describe(
+			"Scope id; it must belong to the same project as the task. List the scopes of a project with scopes_list {project_id}.",
+		),
 	source_file: z.string().nullable().optional(),
 	source_line: z.number().int().nullable().optional(),
 	tags: z.array(z.string()).optional(),
@@ -185,7 +194,14 @@ const taskPatch = strictObject({
 	priority: z.enum(PRIORITIES).optional(),
 	is_epic: z.boolean().optional(),
 	epic_id: z.string().nullable().optional().describe(EPIC_ID_DESCRIPTION),
-	scope_id: z.number().int().nullable().optional(),
+	scope_id: z
+		.number()
+		.int()
+		.nullable()
+		.optional()
+		.describe(
+			"Scope id; it must belong to the same project as the task. null clears the scope.",
+		),
 	source_file: z.string().nullable().optional(),
 	source_line: z.number().int().nullable().optional(),
 	tags: z.array(z.string()).optional(),
@@ -245,10 +261,20 @@ export const getTask = defineQuery({
 export const createTask = defineCommand({
 	name: "tasks_create",
 	description:
-		"Create a task. Requires project_id and title; status, priority, epic, scope, tags are optional. epic_id accepts a full epic id (e.g. 'LOG-5') or a bare epic number (e.g. '5') resolved inside project_id.",
+		"Create a task. Requires project_id and title; status, priority, epic, scope, tags are optional. epic_id accepts a full epic id (e.g. 'LOG-5') or a bare epic number (e.g. '5') resolved inside project_id. Projects that define scopes expect every task to carry one: the result carries a warnings array, and a warning naming the available scopes appears when the task is created without a scope.",
 	kind: "command",
 	input: newTask,
-	handler: (input) => repo.createTask(getDb(), input),
+	handler: (input) => {
+		const db = getDb();
+		const result = repo.createTask(db, input);
+		if (result.isErr()) {
+			return err(result.error);
+		}
+		return ok({
+			...result.value,
+			warnings: warningsFor(db, result.value),
+		});
+	},
 	activity: (input, task: Task) =>
 		activityEntry("task", task.id, fieldNames(input)),
 });
@@ -256,12 +282,21 @@ export const createTask = defineCommand({
 export const createTasks = defineCommand({
 	name: "tasks_create_many",
 	description:
-		"Create several tasks in one call. Each item is created independently and the response reports ok/error per item; a failing item does not cancel the others. Items are created in the given order, so task numbers are allocated sequentially. Each item needs its own project_id and title and accepts the same fields as tasks_create, including epic_id as a full epic id or a bare epic number resolved inside the item's project_id. Returns {items, succeeded, failed}; every item carries its index in the request list.",
+		"Create several tasks in one call. Each item is created independently and the response reports ok/error per item; a failing item does not cancel the others. Items are created in the given order, so task numbers are allocated sequentially. Each item needs its own project_id and title and accepts the same fields as tasks_create, including epic_id as a full epic id or a bare epic number resolved inside the item's project_id. Returns {items, succeeded, failed}; every item carries its index in the request list and its own warnings array, which is not empty when the item was created without a scope in a project that defines scopes.",
 	kind: "command",
 	input: strictObject({
 		items: z.array(newTask).min(1).max(100),
 	}),
-	handler: (input) => summarize(repo.createTasksMany(getDb(), input.items)),
+	handler: (input) => {
+		const db = getDb();
+		const items = repo.createTasksMany(db, input.items);
+		return {
+			...summarize(items),
+			items: items.map((item) =>
+				item.ok ? { ...item, warnings: warningsFor(db, item.task) } : item,
+			),
+		};
+	},
 	activity: (input, result: { items: CreateBatchItem[] }) =>
 		result.items.flatMap((item) =>
 			item.ok
@@ -279,7 +314,7 @@ export const createTasks = defineCommand({
 export const updateTask = defineCommand({
 	name: "tasks_update",
 	description:
-		"Update fields of an existing task by id. Every field to change goes inside the patch object (e.g. {id: 'LOG-87', patch: {status: 'in-progress'}}); top-level fields other than id, patch and in_project are rejected. Id accepts the full 'PREFIX-NUMBER' form (e.g. 'LOG-82') or a bare task number (e.g. '82') resolved inside in_project, otherwise it must be unique across the whole backlog. In patch, epic_id accepts a full epic id (e.g. 'LOG-5') or a bare epic number (e.g. '5') resolved inside the task's current project.",
+		"Update fields of an existing task by id. Every field to change goes inside the patch object (e.g. {id: 'LOG-87', patch: {status: 'in-progress'}}); top-level fields other than id, patch and in_project are rejected. Id accepts the full 'PREFIX-NUMBER' form (e.g. 'LOG-82') or a bare task number (e.g. '82') resolved inside in_project, otherwise it must be unique across the whole backlog. In patch, epic_id accepts a full epic id (e.g. 'LOG-5') or a bare epic number (e.g. '5') resolved inside the task's current project. The result carries a warnings array, which is not empty when the task has no scope while its project defines scopes.",
 	kind: "command",
 	input: strictObject({
 		id: z.string().min(1).describe(ID_DESCRIPTION),
@@ -287,11 +322,16 @@ export const updateTask = defineCommand({
 		in_project: z.string().min(1).optional().describe(IN_PROJECT_DESCRIPTION),
 	}),
 	handler: ({ id, patch, in_project }) => {
-		const result = repo.updateTaskDetailed(getDb(), id, patch, in_project);
+		const db = getDb();
+		const result = repo.updateTaskDetailed(db, id, patch, in_project);
 		if (result.isErr()) {
 			return err(result.error);
 		}
-		return ok({ ...result.value.task, changes: result.value.changes });
+		return ok({
+			...result.value.task,
+			changes: result.value.changes,
+			warnings: warningsFor(db, result.value.task),
+		});
 	},
 	activity: (input, task: TaskWithChanges) =>
 		activityEntry("task", task.id, fieldNames(input.patch), null, task.changes),
@@ -302,10 +342,15 @@ function summarize<T extends { ok: boolean }>(items: T[]) {
 	return { items, succeeded, failed: items.length - succeeded };
 }
 
+function warningsFor(db: DatabaseSync, task: Task): string[] {
+	const warning = missingScopeWarning(db, task.project_id, task.scope_id);
+	return warning ? [warning] : [];
+}
+
 export const updateTasks = defineCommand({
 	name: "tasks_update_many",
 	description:
-		"Update several tasks in one call. Each item is applied independently and the response reports ok/error per item; a failing item does not cancel the others. in_project scopes bare task numbers in every item.",
+		"Update several tasks in one call. Each item is applied independently and the response reports ok/error per item; a failing item does not cancel the others. in_project scopes bare task numbers in every item. Every successful item carries its own warnings array, which is not empty when the task has no scope while its project defines scopes.",
 	kind: "command",
 	input: strictObject({
 		items: z
@@ -314,8 +359,16 @@ export const updateTasks = defineCommand({
 			.max(100),
 		in_project: z.string().min(1).optional().describe(IN_PROJECT_DESCRIPTION),
 	}),
-	handler: ({ items, in_project }) =>
-		summarize(repo.updateTasksMany(getDb(), items, in_project)),
+	handler: ({ items, in_project }) => {
+		const db = getDb();
+		const result = repo.updateTasksMany(db, items, in_project);
+		return {
+			...summarize(result),
+			items: result.map((item) =>
+				item.ok ? { ...item, warnings: warningsFor(db, item.task) } : item,
+			),
+		};
+	},
 	activity: (input, result: { items: BatchItem[] }) =>
 		result.items.flatMap((item, index) =>
 			item.ok
