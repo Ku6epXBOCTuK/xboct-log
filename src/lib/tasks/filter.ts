@@ -70,7 +70,8 @@ export function filterTasks(tasks: Task[], criteria: FilterCriteria): Task[] {
 		return (
 			task.id.toLowerCase().includes(needle) ||
 			task.title.toLowerCase().includes(needle) ||
-			task.description.toLowerCase().includes(needle)
+			task.description.toLowerCase().includes(needle) ||
+			(task.epic_id !== null && task.epic_id.toLowerCase().includes(needle))
 		);
 	});
 }

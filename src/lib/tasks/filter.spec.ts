@@ -96,6 +96,29 @@ describe("hideClosed", () => {
 	});
 });
 
+describe("query", () => {
+	it("matches a task by its epic id", () => {
+		const visible = filterTasks(
+			[task({ id: "X-1", epic_id: "LOG-26" })],
+			criteria({ query: "26" }),
+		);
+
+		expect(visible.map((item) => item.id)).toEqual(["X-1"]);
+	});
+
+	it("keeps tasks of other epics out", () => {
+		const visible = filterTasks(
+			[
+				task({ id: "X-1", epic_id: "LOG-26" }),
+				task({ id: "X-2", epic_id: "LOG-9" }),
+			],
+			criteria({ query: "26" }),
+		);
+
+		expect(visible.map((item) => item.id)).toEqual(["X-1"]);
+	});
+});
+
 describe("countActiveTasksInProject", () => {
 	it("counts only non-closed tasks in the project", () => {
 		const projectTasks = [

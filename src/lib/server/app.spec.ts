@@ -440,6 +440,23 @@ describe("tasks", () => {
 		expect(listTasks(db, { project_id: "spa" })).toHaveLength(2);
 	});
 
+	it("finds tasks by the id of their epic", async () => {
+		const db = await setup();
+		const epic = unwrap(
+			createTask(db, { project_id: "spa", title: "Revamp", is_epic: true }),
+		);
+		unwrap(
+			createTask(db, {
+				project_id: "spa",
+				title: "Child",
+				epic_id: epic.id,
+			}),
+		);
+
+		expect(listTasks(db, { q: epic.id })).toHaveLength(2);
+		expect(listTasks(db, { q: "Revamp" })).toHaveLength(1);
+	});
+
 	it("counts all matches ignoring limit and offset", async () => {
 		const db = await setup();
 		unwrap(createTask(db, { project_id: "spa", title: "Alpha" }));

@@ -128,9 +128,10 @@ export function buildTaskFilter(query: TaskQuery): TaskFilterSql {
 		const like = `%${query.q.toLowerCase()}%`;
 		where.push(
 			`(LOWER(tasks.title) LIKE ? OR LOWER(tasks.description) LIKE ? OR LOWER(tasks.id) LIKE ?
+			  OR LOWER(tasks.epic_id) LIKE ?
 			  OR EXISTS (SELECT 1 FROM json_each(tasks.tags) WHERE LOWER(json_each.value) LIKE ?))`,
 		);
-		params.push(like, like, like, like);
+		params.push(like, like, like, like, like);
 	}
 	if (query.title) {
 		const like = `%${query.title.toLowerCase()}%`;
