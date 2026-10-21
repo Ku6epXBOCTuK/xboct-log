@@ -21,7 +21,6 @@ export interface NewTaskInput {
 	epic_id?: string | null;
 	scope_id?: number | null;
 	source_file?: string | null;
-	source_line?: number | null;
 	tags?: string[];
 }
 

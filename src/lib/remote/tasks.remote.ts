@@ -214,8 +214,13 @@ const newTask = strictObject({
 		.describe(
 			"Scope id; it must belong to the same project as the task. List the scopes of a project with scopes_list {project_id}.",
 		),
-	source_file: z.string().nullable().optional(),
-	source_line: z.number().int().nullable().optional(),
+	source_file: z
+		.string()
+		.nullable()
+		.optional()
+		.describe(
+			"File or document the task came from; provenance only, never verified, several tasks may share it.",
+		),
 	tags: z.array(z.string()).optional(),
 });
 
@@ -234,8 +239,13 @@ const taskPatch = strictObject({
 		.describe(
 			"Scope id; it must belong to the same project as the task. null clears the scope.",
 		),
-	source_file: z.string().nullable().optional(),
-	source_line: z.number().int().nullable().optional(),
+	source_file: z
+		.string()
+		.nullable()
+		.optional()
+		.describe(
+			"File or document the task came from; provenance only, never verified, several tasks may share it.",
+		),
 	tags: z.array(z.string()).optional(),
 });
 
@@ -299,7 +309,7 @@ export const getTask = defineQuery({
 export const createTask = defineCommand({
 	name: "tasks_create",
 	description:
-		"Create a task. Requires project_id and title; status, priority, epic, scope, tags are optional. epic_id accepts a full epic id (e.g. 'LOG-5') of the same project. Projects that define scopes expect every task to carry one: the result carries a warnings array, and a warning naming the available scopes appears when the task is created without a scope. A project holds one task per source location: a second task with the same source_file and source_line is rejected with a conflict that names the existing task.",
+		"Create a task. Requires project_id and title; status, priority, epic, scope, tags are optional. epic_id accepts a full epic id (e.g. 'LOG-5') of the same project. Projects that define scopes expect every task to carry one: the result carries a warnings array, and a warning naming the available scopes appears when the task is created without a scope. source_file names the document or file the task came from; it is provenance only, it is never verified and several tasks may share it.",
 	kind: "command",
 	input: newTask,
 	handler: (input) => {

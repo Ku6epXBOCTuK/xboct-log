@@ -23,7 +23,6 @@ export function mapTask(row: TaskRow): Task {
 		epic_id: row.epic_id,
 		scope_id: row.scope_id,
 		source_file: row.source_file,
-		source_line: row.source_line,
 		tags: JSON.parse(row.tags) as string[],
 		created_at: row.created_at,
 		updated_at: row.updated_at,

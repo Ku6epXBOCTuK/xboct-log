@@ -10,7 +10,6 @@ const FIELD_LABELS: Record<string, string> = {
 	scope_id: "Scope",
 	project_id: "Project",
 	source_file: "Source file",
-	source_line: "Source line",
 	tags: "Tags",
 	closed_reason: "Closed reason",
 	deleted_at: "Deleted",

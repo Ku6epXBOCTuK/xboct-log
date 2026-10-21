@@ -13,7 +13,6 @@ export interface TaskRow {
 	epic_id: string | null;
 	scope_id: number | null;
 	source_file: string | null;
-	source_line: number | null;
 	tags: string;
 	created_at: string;
 	updated_at: string;
@@ -34,7 +33,6 @@ export interface NewTask {
 	epic_id?: string | null;
 	scope_id?: number | null;
 	source_file?: string | null;
-	source_line?: number | null;
 	tags?: string[];
 }
 
@@ -47,7 +45,6 @@ export interface TaskPatch {
 	epic_id?: string | null;
 	scope_id?: number | null;
 	source_file?: string | null;
-	source_line?: number | null;
 	tags?: string[];
 }
 

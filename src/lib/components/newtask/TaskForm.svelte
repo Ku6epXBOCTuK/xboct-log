@@ -55,7 +55,6 @@
 			epic_id: initialEpic,
 			scope_id: initialScope,
 			source_file: null,
-			source_line: null,
 			tags: [],
 			description: "",
 		};
@@ -139,7 +138,6 @@
 		const invalid = validateTaskDraft({
 			title,
 			source_file: draft.source_file ?? "",
-			source_line: draft.source_line === null ? "" : String(draft.source_line),
 		});
 
 		if (invalid !== null) {
@@ -159,7 +157,6 @@
 				epic_id: draft.is_epic ? null : draft.epic_id,
 				scope_id: draft.scope_id,
 				source_file: draft.source_file,
-				source_line: draft.source_line,
 				tags: draft.tags,
 			});
 

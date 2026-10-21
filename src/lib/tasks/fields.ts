@@ -11,7 +11,6 @@ export type TaskPatch = Partial<
 		| "epic_id"
 		| "scope_id"
 		| "source_file"
-		| "source_line"
 		| "tags"
 	>
 >;
@@ -24,16 +23,10 @@ export type TaskFieldValues = Pick<
 	| "epic_id"
 	| "scope_id"
 	| "source_file"
-	| "source_line"
 	| "tags"
 	| "description"
 > &
 	Partial<Pick<Task, "status" | "closed_at" | "closed_reason" | "updated_at">>;
-
-export function toSourceLine(raw: string): number | null {
-	const trimmed = raw.trim();
-	return trimmed === "" ? null : Number(trimmed);
-}
 
 export function toSourceFile(raw: string): string | null {
 	const trimmed = raw.trim();
@@ -43,24 +36,9 @@ export function toSourceFile(raw: string): string | null {
 export function validateTaskDraft(draft: {
 	title?: string;
 	source_file?: string;
-	source_line?: string;
 }): string | null {
 	if (draft.title !== undefined && draft.title.trim() === "") {
 		return "title cannot be empty";
-	}
-
-	const line =
-		draft.source_line === undefined ? null : toSourceLine(draft.source_line);
-	if (line !== null && !Number.isInteger(line)) {
-		return "source line must be a whole number";
-	}
-
-	if (
-		line !== null &&
-		draft.source_file !== undefined &&
-		toSourceFile(draft.source_file) === null
-	) {
-		return "source line requires source file";
 	}
 
 	return null;

@@ -6,7 +6,6 @@ import { allocateNumber } from "./create";
 import { withBlockingInfo } from "./read";
 import { taskById } from "./rows";
 import { resolveTaskId } from "./resolve";
-import { withSourceConflict } from "./source";
 import type { Task } from "../../types";
 
 function collectSubtree(db: DatabaseSync, rootId: string): string[] {
@@ -43,7 +42,7 @@ export function moveTask(
 
 	const now = new Date().toISOString();
 
-	const result = guard(() => {
+	return guard(() => {
 		db.exec("BEGIN IMMEDIATE");
 		try {
 			// NOTE: epic_id has no ON UPDATE CASCADE and foreign keys check
@@ -79,12 +78,4 @@ export function moveTask(
 			throw error;
 		}
 	});
-
-	return withSourceConflict(
-		result,
-		db,
-		target.id,
-		task.source_file,
-		task.source_line,
-	);
 }

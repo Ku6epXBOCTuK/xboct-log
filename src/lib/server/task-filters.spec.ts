@@ -204,7 +204,6 @@ describe("task filters", () => {
 				project_id: "spa",
 				title: "From backlog",
 				source_file: "docs/backlog.md",
-				source_line: 10,
 			}),
 		);
 		unwrap(
@@ -212,7 +211,6 @@ describe("task filters", () => {
 				project_id: "spa",
 				title: "From roadmap",
 				source_file: "docs/roadmap.md",
-				source_line: 3,
 			}),
 		);
 		unwrap(createTask(db, { project_id: "spa", title: "Without source" }));

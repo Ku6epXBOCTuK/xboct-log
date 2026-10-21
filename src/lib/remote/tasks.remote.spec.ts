@@ -117,7 +117,6 @@ describe("tasks_list source_file filter", () => {
 			project_id: "spa",
 			title: "From backlog",
 			source_file: "docs/backlog.md",
-			source_line: 7,
 		});
 		expect(created.isOk()).toBe(true);
 

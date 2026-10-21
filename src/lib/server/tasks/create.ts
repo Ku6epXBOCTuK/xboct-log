@@ -12,7 +12,6 @@ import {
 	taskById,
 } from "./rows";
 import { resolveEpicId, validateScope } from "./resolve";
-import { withSourceConflict } from "./source";
 import type { NewTask } from "./types";
 
 export function allocateNumber(db: DatabaseSync, projectId: string): number {
@@ -57,10 +56,6 @@ export function createTask(
 
 	const tags = normalizeTags(input.tags);
 	const sourceFile = emptyToNull(input.source_file);
-	const sourceLine = input.source_line ?? null;
-	if (sourceLine !== null && sourceFile === null) {
-		return err(invalid("source_line requires source_file"));
-	}
 
 	const epicId = input.epic_id ? input.epic_id : null;
 	let resolvedEpicId: string | null = null;
@@ -83,7 +78,7 @@ export function createTask(
 	const now = new Date().toISOString();
 	const closedAt = CLOSED_STATUSES.includes(status) ? now : null;
 
-	const result = guard(() => {
+	return guard(() => {
 		db.exec("BEGIN IMMEDIATE");
 		try {
 			const n = allocateNumber(db, project.id);
@@ -92,8 +87,8 @@ export function createTask(
 			db.prepare(
 				`INSERT INTO tasks (
 					id, project_id, number, title, description, status, priority, is_epic,
-					epic_id, scope_id, source_file, source_line, tags, created_at, updated_at, closed_at
-				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+					epic_id, scope_id, source_file, tags, created_at, updated_at, closed_at
+				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			).run(
 				id,
 				project.id,
@@ -106,7 +101,6 @@ export function createTask(
 				resolvedEpicId,
 				scopeId,
 				sourceFile,
-				sourceLine,
 				JSON.stringify(tags),
 				now,
 				now,
@@ -119,6 +113,4 @@ export function createTask(
 			throw error;
 		}
 	});
-
-	return withSourceConflict(result, db, project.id, sourceFile, sourceLine);
 }

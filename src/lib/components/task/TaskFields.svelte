@@ -4,7 +4,6 @@
 	import { CLOSED_REASON_LABELS, formatDate } from "#lib/tasks/display.ts";
 	import {
 		toSourceFile,
-		toSourceLine,
 		validateTaskDraft,
 		type TaskFieldValues,
 		type TaskPatch,
@@ -69,7 +68,6 @@
 		const input = event.currentTarget as HTMLInputElement;
 		const invalid = validateTaskDraft({
 			source_file: input.value,
-			source_line: value.source_line === null ? "" : String(value.source_line),
 		});
 
 		if (invalid !== null) {
@@ -79,22 +77,6 @@
 		}
 
 		onfield({ source_file: toSourceFile(input.value) });
-	}
-
-	function changeSourceLine(event: Event) {
-		const input = event.currentTarget as HTMLInputElement;
-		const invalid = validateTaskDraft({
-			source_file: value.source_file ?? "",
-			source_line: input.value,
-		});
-
-		if (invalid !== null) {
-			onerror(invalid);
-			input.value = value.source_line === null ? "" : String(value.source_line);
-			return;
-		}
-
-		onfield({ source_line: toSourceLine(input.value) });
 	}
 
 	function closedLabel(): string {
@@ -203,14 +185,6 @@
 			class="field-control"
 			value={value.source_file ?? ""}
 			onchange={changeSourceFile}
-		/>
-	</label>
-	<label class="field">
-		Source line
-		<input
-			class="field-control"
-			value={value.source_line === null ? "" : String(value.source_line)}
-			onchange={changeSourceLine}
 		/>
 	</label>
 </div>

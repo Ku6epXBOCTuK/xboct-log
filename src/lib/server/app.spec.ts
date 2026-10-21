@@ -168,7 +168,6 @@ describe("tasks", () => {
 				title: "Fix checkout",
 				tags: ["perf", "perf", " checkout "],
 				source_file: "src/cart.ts",
-				source_line: 42,
 			}),
 		);
 
@@ -176,7 +175,6 @@ describe("tasks", () => {
 		expect(task.priority).toBe("medium");
 		expect(task.tags).toEqual(["perf", "checkout"]);
 		expect(task.source_file).toBe("src/cart.ts");
-		expect(task.source_line).toBe(42);
 		expect(task.closed_at).toBeNull();
 		expect(getTask(db, task.id)).toEqual(task);
 	});
@@ -186,16 +184,6 @@ describe("tasks", () => {
 		const error = failure(createTask(db, { project_id: "ghost", title: "X" }));
 
 		expect(error.kind).toBe("not_found");
-	});
-
-	it("returns a validation error when source_line has no source_file", async () => {
-		const db = await setup();
-		const error = failure(
-			createTask(db, { project_id: "spa", title: "X", source_line: 3 }),
-		);
-
-		expect(error.kind).toBe("validation");
-		expect(error.message).toBe("source_line requires source_file");
 	});
 
 	it("stamps closed_at on close and clears it on reopen", async () => {

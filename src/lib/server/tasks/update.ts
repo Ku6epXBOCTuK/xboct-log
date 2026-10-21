@@ -19,7 +19,6 @@ import {
 	taskById,
 } from "./rows";
 import { resolveEpicId, resolveTaskId, validateScope } from "./resolve";
-import { withSourceConflict } from "./source";
 import type {
 	ReleasedLink,
 	TaskChange,
@@ -127,18 +126,9 @@ export function updateTaskDetailed(
 		patch.source_file !== undefined
 			? emptyToNull(patch.source_file)
 			: current.source_file;
-	const sourceLine =
-		patch.source_line !== undefined ? patch.source_line : current.source_line;
-	if (sourceLine !== null && sourceFile === null) {
-		return err(invalid("source_line requires source_file"));
-	}
 	if (patch.source_file !== undefined) {
 		sets.push("source_file = ?");
 		params.push(sourceFile);
-	}
-	if (patch.source_line !== undefined) {
-		sets.push("source_line = ?");
-		params.push(sourceLine);
 	}
 
 	if (patch.epic_id !== undefined) {
@@ -188,7 +178,7 @@ export function updateTaskDetailed(
 		patch.description !== undefined &&
 		patch.description !== current.description;
 
-	const result = guard(() => {
+	return guard(() => {
 		db.exec("BEGIN IMMEDIATE");
 		try {
 			if (descriptionChanged) {
@@ -212,14 +202,6 @@ export function updateTaskDetailed(
 			throw error;
 		}
 	});
-
-	return withSourceConflict(
-		result,
-		db,
-		current.project_id,
-		sourceFile,
-		sourceLine,
-	);
 }
 
 export function updateTask(
