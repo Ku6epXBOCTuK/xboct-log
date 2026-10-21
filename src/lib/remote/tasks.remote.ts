@@ -24,7 +24,7 @@ import { FIELDS_DESCRIPTION } from "../server/tasks/field-names";
 import { defineCommand, defineQuery } from "./define";
 import { strictObject } from "./strict";
 
-const taskFilters = strictObject({
+const taskFilterShape = {
 	project_id: z
 		.union([z.string().min(1), z.array(z.string().min(1)).min(1)])
 		.optional()
@@ -160,6 +160,16 @@ const taskFilters = strictObject({
 		.describe(
 			"Sort direction. Defaults to asc for priority, number and title, desc for the date keys.",
 		),
+	include_deleted: z
+		.boolean()
+		.optional()
+		.describe(
+			"Include soft-deleted tasks. By default they are hidden; with true the deleted_at field is populated.",
+		),
+};
+
+const taskFilters = strictObject({
+	...taskFilterShape,
 	limit: z
 		.number()
 		.int()
@@ -170,13 +180,20 @@ const taskFilters = strictObject({
 			"Maximum number of tasks to return (default 100, max 1000). Combine with offset and the response total to paginate.",
 		),
 	offset: z.number().int().nonnegative().optional(),
-	include_deleted: z
-		.boolean()
-		.optional()
-		.describe(
-			"Include soft-deleted tasks. By default they are hidden; with true the deleted_at field is populated.",
-		),
 }).default({ limit: 100 });
+
+const boardFilters = strictObject({
+	...taskFilterShape,
+	limit: z
+		.number()
+		.int()
+		.positive()
+		.max(200)
+		.default(50)
+		.describe(
+			"Maximum number of tasks in every column (default 50, max 200). The count of a column is not limited.",
+		),
+});
 
 const EPIC_ID_DESCRIPTION =
 	"Epic id in the full 'PREFIX-NUMBER' form (e.g. 'LOG-5'). A bare epic number (e.g. '5') is rejected: the epic must belong to the same project as the task.";
@@ -235,6 +252,15 @@ export const getTasks = defineQuery({
 			total: repo.countTasks(db, filters),
 		};
 	},
+});
+
+export const getTaskBoard = defineQuery({
+	name: "tasks_board",
+	description:
+		"Read the board of the backlog: the matching tasks grouped by status in one call. Accepts the same filters as tasks_list (project, priority, tags, epic, scope, blocked_by, blocks, text query, title, source_file, project_archived) plus limit, which caps the tasks in every column, not the whole board. Returns { columns, total }, where columns is one entry per status in the order open, in-progress, blocked, done, cancelled (empty statuses are kept), each entry is { status, count, items } and count is the number of matching tasks of that status even when items are cut by the limit; total is the number of matching tasks. Use it for a kanban view and for a summary of the backlog; use tasks_list to page through the tasks of one status.",
+	kind: "query",
+	input: boardFilters,
+	handler: (filters) => repo.boardTasks(getDb(), filters),
 });
 
 export const getTasksByIds = defineQuery({

@@ -18,6 +18,8 @@ export {
 	withBlockingInfo,
 } from "./read";
 export { resolveEpicId, resolveTaskId, resolveTaskIdInternal } from "./resolve";
+export { boardTasks } from "./board";
+export type { BoardColumn, TaskBoard } from "./board";
 export { listTags } from "./tags";
 export type { TagCount, TagQuery } from "./tags";
 export type {
