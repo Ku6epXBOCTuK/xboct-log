@@ -4,16 +4,28 @@ import { createMcpHandler } from "mcp-handler";
 import { prettifyError, ZodError } from "zod";
 import { runOp } from "#lib/remote/define.ts";
 import { getOps } from "#lib/remote/index.ts";
+import { kindForStatus, type ErrorKind } from "#lib/server/errors.ts";
 import { version } from "../../../package.json";
 
-function errorMessage(error: unknown): string {
+interface ToolError {
+	kind: ErrorKind;
+	message: string;
+}
+
+function errorPayload(error: unknown): ToolError {
 	if (error instanceof ZodError) {
-		return prettifyError(error);
+		return { kind: "validation", message: prettifyError(error) };
 	}
 	if (isHttpError(error)) {
-		return error.body.message;
+		return {
+			kind: kindForStatus(error.status),
+			message: error.body.message,
+		};
 	}
-	return error instanceof Error ? error.message : String(error);
+	return {
+		kind: "unexpected",
+		message: error instanceof Error ? error.message : String(error),
+	};
 }
 
 function registerTools(server: McpServer): void {
@@ -29,8 +41,10 @@ function registerTools(server: McpServer): void {
 						structuredContent: value ?? null,
 					};
 				} catch (error) {
+					const failure = errorPayload(error);
 					return {
-						content: [{ type: "text", text: errorMessage(error) }],
+						content: [{ type: "text", text: failure.message }],
+						structuredContent: { error: failure },
 						isError: true,
 					};
 				}
@@ -52,6 +66,11 @@ const handler = createMcpHandler(registerTools, {
 		"backup_create makes a manual database backup, " +
 		"backup_list shows the existing snapshots. Restoring a backup is " +
 		"not part of these tools: ask the user to restore it themselves. " +
+		"Check isError before reading the payload: a failed call explains " +
+		"the cause in the text, and errors raised by the tool itself also " +
+		"carry structuredContent.error = { kind, message }. " +
+		"Create tasks in batches with tasks_create_many: it answers with one " +
+		"result per item instead of one call per task. " +
 		"All tools accept a single JSON object argument.",
 });
 

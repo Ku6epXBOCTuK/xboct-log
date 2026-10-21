@@ -32,6 +32,13 @@ export const unexpected = (error: unknown) =>
 		error instanceof Error ? error.message : String(error),
 	);
 
+export function kindForStatus(status: number): ErrorKind {
+	const found = Object.entries(STATUS_BY_KIND).find(
+		([, value]) => value === status,
+	);
+	return (found?.[0] as ErrorKind | undefined) ?? "unexpected";
+}
+
 export function guard<T>(run: () => T): Result<T, AppError> {
 	try {
 		return ok(run());

@@ -153,6 +153,34 @@ describe("/mcp endpoint", () => {
 		expect(result.content?.[0].text).toContain("titel");
 	});
 
+	it("returns a machine readable error in structuredContent", async () => {
+		const body = await rpc("tools/call", {
+			name: "tasks_create",
+			arguments: { project_id: "ghost-project", title: "Nowhere" },
+		});
+		expect(body.error).toBeUndefined();
+		const result = body.result as {
+			isError?: boolean;
+			structuredContent?: { error?: { kind?: string; message?: string } };
+		};
+		expect(result.isError).toBe(true);
+		expect(result.structuredContent?.error?.kind).toBe("not_found");
+		expect(result.structuredContent?.error?.message).toContain("ghost-project");
+	});
+
+	it("reports an invalid argument as an error result", async () => {
+		const body = await rpc("tools/call", {
+			name: "tasks_list",
+			arguments: { titel: "x" },
+		});
+		const result = body.result as {
+			isError?: boolean;
+			content?: { type: string; text: string }[];
+		};
+		expect(result.isError).toBe(true);
+		expect(result.content?.[0].text).toContain("titel");
+	});
+
 	it("takes a snapshot before an MCP command", async () => {
 		resetAutoBackupState();
 		const autoDir = join(backupConfig().dir, "auto");
