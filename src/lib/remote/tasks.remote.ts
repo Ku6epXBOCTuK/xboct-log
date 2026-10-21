@@ -245,7 +245,7 @@ const newTask = strictObject({
 		.nullable()
 		.optional()
 		.describe(
-			"Scope id; it must belong to the same project as the task. List the scopes of a project with scopes_list {project_id}.",
+			"Scope id; it must belong to the same project as the task. List the scopes of a project with scopes_list {project_id}, create one with scopes_create {project_id, name}.",
 		),
 	source_file: z
 		.string()
@@ -382,7 +382,7 @@ export const getTask = defineQuery({
 export const createTask = defineCommand({
 	name: "tasks_create",
 	description:
-		"Create a task. Requires project_id and title; status, priority, estimate, assignee, due_at, epic, scope, tags are optional. estimate is the size of the task: 'S', 'M' or 'L'. assignee is the person responsible for the task, due_at is its due date (YYYY-MM-DD). epic_id accepts a full epic id (e.g. 'LOG-5') of the same project. Projects that define scopes expect every task to carry one: the result carries a warnings array, and a warning naming the available scopes appears when the task is created without a scope. source_file names the document or file the task came from; it is provenance only, it is never verified and several tasks may share it.",
+		"Create a task. Requires project_id and title; status, priority, estimate, assignee, due_at, epic, scope, tags are optional. estimate is the size of the task: 'S', 'M' or 'L'. assignee is the person responsible for the task, due_at is its due date (YYYY-MM-DD). epic_id accepts a full epic id (e.g. 'LOG-5') of the same project. Projects that define scopes expect every task to carry one: the result carries a warnings array, and a warning naming the available scopes appears when the task is created without a scope. A project without scopes can get one with scopes_create {project_id, name}. source_file names the document or file the task came from; it is provenance only, it is never verified and several tasks may share it.",
 	kind: "command",
 	input: newTask,
 	handler: (input) => {

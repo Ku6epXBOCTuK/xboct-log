@@ -53,7 +53,8 @@ export const getScopedProjectIds = defineQuery({
 
 export const createScope = defineCommand({
 	name: "scopes_create",
-	description: "Create a scope in a project.",
+	description:
+		"Create a scope in a project. A scope groups the tasks of that project; a task points at its scope through scope_id.",
 	kind: "command",
 	input: strictObject({
 		project_id: z.string().min(1),

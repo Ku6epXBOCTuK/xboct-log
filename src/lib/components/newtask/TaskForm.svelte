@@ -109,6 +109,14 @@
 		invalidField = false;
 	}
 
+	async function onnewscope(name: string): Promise<number> {
+		const scope = await scopes.create({
+			project_id: draft.project_id,
+			name,
+		});
+		return scope.id;
+	}
+
 	function onkeydown(event: KeyboardEvent) {
 		if (event.key !== "Enter") return;
 		if (!event.ctrlKey && !event.metaKey) return;
@@ -189,6 +197,7 @@
 			scopes={scopeOptions}
 			{onfield}
 			{onproject}
+			{onnewscope}
 		/>
 
 		<label class="field detail-field">

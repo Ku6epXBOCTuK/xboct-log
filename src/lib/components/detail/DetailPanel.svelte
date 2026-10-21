@@ -97,6 +97,16 @@
 		void perform(() => tasks.save(current.id, patch));
 	}
 
+	async function onnewscope(name: string): Promise<number> {
+		const current = selected;
+		if (current === null) throw new Error("no task selected");
+		const scope = await scopes.create({
+			project_id: current.project_id,
+			name,
+		});
+		return scope.id;
+	}
+
 	function saveTitle(event: Event) {
 		const input = event.currentTarget as HTMLInputElement;
 		const invalid = validateTaskDraft({ title: input.value });
@@ -259,6 +269,7 @@
 				editing
 				onfield={save}
 				onproject={moveTo}
+				{onnewscope}
 			/>
 			<BlockingFields
 				status={selected.status}
