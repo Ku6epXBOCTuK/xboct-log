@@ -5,6 +5,7 @@
 	import WorkspaceHeader from "#lib/components/workspace/WorkspaceHeader.svelte";
 	import { reloadApp } from "#lib/reload.ts";
 	import { useBoard } from "#lib/state/board.svelte.ts";
+	import { isTypingTarget, matchesHotkey } from "#lib/hotkeys/hotkeys.ts";
 	import { getActiveTotal } from "#lib/tasks/filter.ts";
 	import type { Task } from "#lib/types.ts";
 
@@ -45,7 +46,16 @@
 	function forgetEpic(id: string) {
 		if (filters.epic === id) filters.epic = "any";
 	}
+
+	function onkeydown(event: KeyboardEvent) {
+		if (!matchesHotkey(event, "n")) return;
+		if (isTypingTarget(event.target)) return;
+		event.preventDefault();
+		openNew();
+	}
 </script>
+
+<svelte:window {onkeydown} />
 
 <section class="workspace">
 	<WorkspaceHeader

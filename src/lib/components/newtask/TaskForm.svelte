@@ -6,6 +6,7 @@
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
 	import { messageOf } from "#lib/tasks/display.ts";
 	import { collectTags } from "#lib/tasks/filter.ts";
+	import { matchesHotkey } from "#lib/hotkeys/hotkeys.ts";
 	import {
 		epicsForProject,
 		validateTaskDraft,
@@ -118,6 +119,12 @@
 	}
 
 	function onkeydown(event: KeyboardEvent) {
+		if (matchesHotkey(event, "ctrl+alt+c")) {
+			event.preventDefault();
+			keepOpen = !keepOpen;
+			return;
+		}
+
 		if (event.key !== "Enter") return;
 		if (!event.ctrlKey && !event.metaKey) return;
 
@@ -229,6 +236,7 @@
 			<label class="modal-check">
 				<input type="checkbox" bind:checked={keepOpen} />
 				Create another
+				<kbd>Ctrl+Alt+C</kbd>
 			</label>
 			<button class="icon-button" type="button" onclick={onclose}>
 				Cancel
@@ -281,5 +289,14 @@
 		min-height: 0;
 		margin: 0;
 		accent-color: var(--accent);
+	}
+
+	.modal-check kbd {
+		border: 1px solid var(--border);
+		color: var(--text-muted);
+		border-radius: var(--radius-sm);
+		padding: 0 var(--space-1);
+		font-size: var(--text-xs);
+		line-height: 1.35rem;
 	}
 </style>

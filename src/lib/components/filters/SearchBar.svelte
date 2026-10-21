@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { isTypingTarget, matchesHotkey } from "#lib/hotkeys/hotkeys.ts";
 	import Search from "~icons/lucide/search";
 
 	interface Props {
@@ -7,11 +8,24 @@
 	}
 
 	let { value, oninput }: Props = $props();
+
+	let input = $state<HTMLInputElement | undefined>();
+
+	function onkeydown(event: KeyboardEvent) {
+		if (!matchesHotkey(event, "/")) return;
+		if (isTypingTarget(event.target)) return;
+		event.preventDefault();
+		input?.focus();
+		input?.select();
+	}
 </script>
+
+<svelte:window {onkeydown} />
 
 <div class="search-wrap">
 	<Search />
 	<input
+		bind:this={input}
 		{value}
 		oninput={(event) => oninput(event.currentTarget.value)}
 		placeholder="Search by title, description, and ID"
