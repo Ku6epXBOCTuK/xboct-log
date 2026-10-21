@@ -7,7 +7,7 @@ import { getOps } from "#lib/remote/index.ts";
 import { closeDb, getDb } from "#lib/server/db.ts";
 import { migrateDatabase } from "#lib/server/migrations.ts";
 import { createProject } from "#lib/server/projects.ts";
-import { createTask, deleteTask } from "#lib/server/tasks.ts";
+import { createTask, deleteTask } from "#lib/server/tasks/index.ts";
 import { GET, POST } from "./+server.js";
 
 let dbDir: string;
