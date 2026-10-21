@@ -102,6 +102,7 @@ export interface TaskQuery {
 	limit?: number;
 	offset?: number;
 	include_deleted?: boolean;
+	deleted_only?: boolean;
 	include_description?: boolean;
 }
 

@@ -2,6 +2,7 @@
 	import { page } from "$app/state";
 	import { resolve } from "$app/paths";
 	import Activity from "~icons/lucide/activity";
+	import ArchiveRestore from "~icons/lucide/archive-restore";
 	import BarChart3 from "~icons/lucide/bar-chart-3";
 	import ClipBoardList from "~icons/lucide/clipboard-list";
 	import FolderKanban from "~icons/lucide/folder-kanban";
@@ -16,6 +17,7 @@
 	const onTasks = $derived(page.url.pathname === "/");
 	const onKanban = $derived(page.url.pathname === "/kanban");
 	const onActivity = $derived(page.url.pathname === "/activity");
+	const onDeleted = $derived(page.url.pathname === "/deleted");
 </script>
 
 <nav class="primary-nav" aria-label="Primary navigation">
@@ -29,6 +31,9 @@
 	</a>
 	<a class="nav-item" class:active={onActivity} href={resolve("/activity")}>
 		<Activity /> Activity
+	</a>
+	<a class="nav-item" class:active={onDeleted} href={resolve("/deleted")}>
+		<ArchiveRestore /> Deleted
 	</a>
 	<button class="nav-item">
 		<BarChart3 /> Statistics

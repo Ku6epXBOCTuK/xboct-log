@@ -130,6 +130,40 @@ describe("tasks_list source_file filter", () => {
 	});
 });
 
+describe("tasks_deleted_list", () => {
+	it("returns only the deleted tasks and restores them", async () => {
+		const db = getDb();
+		const created = createTask(db, {
+			project_id: "spa",
+			title: "Gone for good",
+		});
+		expect(created.isOk()).toBe(true);
+		const task = created._unsafeUnwrap();
+
+		await runOp(op("tasks_delete"), { id: task.id }, "mcp");
+
+		const listed = (await runOp(
+			op("tasks_deleted_list"),
+			{ project_id: "spa" },
+			"mcp",
+		)) as { items: Record<string, unknown>[]; total: number };
+
+		expect(listed.total).toBe(1);
+		expect(listed.items.map((item) => item.title)).toEqual(["Gone for good"]);
+
+		await runOp(op("tasks_restore"), { id: task.id }, "mcp");
+
+		const after = (await runOp(
+			op("tasks_deleted_list"),
+			{ project_id: "spa" },
+			"mcp",
+		)) as { items: Record<string, unknown>[]; total: number };
+
+		expect(after.total).toBe(0);
+		expect(after.items).toEqual([]);
+	});
+});
+
 describe("estimate", () => {
 	it("creates a task with an estimate and filters by it", async () => {
 		const created = (await runOp(

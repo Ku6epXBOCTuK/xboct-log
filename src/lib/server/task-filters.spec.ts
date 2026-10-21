@@ -5,7 +5,13 @@ import type { AppError } from "./errors";
 import { openMigratedDatabase } from "./migrations";
 import { createProject, updateProject } from "./projects";
 import { createScope } from "./scopes";
-import { closeTask, createTask, listTasks } from "./tasks";
+import {
+	closeTask,
+	countTasks,
+	createTask,
+	deleteTask,
+	listTasks,
+} from "./tasks";
 
 function unwrap<T>(result: Result<T, AppError>): T {
 	expect(result.isOk()).toBe(true);
@@ -216,6 +222,23 @@ describe("task filters", () => {
 		const found = listTasks(db, { exclude_project_id: "old" });
 
 		expect(found.map((task) => task.title)).toEqual(["Shop task"]);
+	});
+
+	it("lists only the deleted tasks", async () => {
+		const kept = unwrap(createTask(db, { project_id: "spa", title: "Kept" }));
+		const removed = unwrap(
+			createTask(db, { project_id: "spa", title: "Removed" }),
+		);
+		unwrap(deleteTask(db, removed.id));
+
+		expect(
+			listTasks(db, { deleted_only: true }).map((task) => task.id),
+		).toEqual([removed.id]);
+		expect(
+			listTasks(db, { deleted_only: true }).map((task) => task.id),
+		).not.toContain(kept.id);
+		expect(countTasks(db, { deleted_only: true })).toBe(1);
+		expect(listTasks(db, { include_deleted: true })).toHaveLength(2);
 	});
 
 	it("filters by a source file fragment", async () => {

@@ -4,6 +4,7 @@
 	import { collectEpicProgress } from "#lib/tasks/filter.ts";
 	import type { SortOrder, TaskSortKey } from "#lib/tasks/sort.ts";
 	import type { Project, Task } from "#lib/types.ts";
+	import type { Snippet } from "svelte";
 	import ArrowDown from "~icons/lucide/arrow-down";
 	import ArrowUp from "~icons/lucide/arrow-up";
 	import ArrowUpDown from "~icons/lucide/arrow-up-down";
@@ -23,8 +24,10 @@
 		onclear?: () => void;
 		onnew?: () => void;
 		onepic?: (id: string) => void;
-		onselect: (id: string) => void;
+		onselect?: (id: string) => void;
 		onsort: (key: TaskSortKey) => void;
+		action?: Snippet<[Task]>;
+		empty?: Snippet;
 	}
 
 	let {
@@ -42,6 +45,8 @@
 		onepic,
 		onselect,
 		onsort,
+		action,
+		empty,
 	}: Props = $props();
 
 	const epicProgress = $derived(collectEpicProgress(allTasks));
@@ -91,6 +96,9 @@
 				{@render sortHeader("created", "Created", "date-col optional-column")}
 				<th class="date-col optional-column">Due</th>
 				{@render sortHeader("closed", "Closed", "date-col optional-column")}
+				{#if action}
+					<th class="action-col"></th>
+				{/if}
 			</tr>
 		</thead>
 		<tbody>
@@ -106,14 +114,19 @@
 					isselected={selectedId === task.id}
 					progress={epicProgress.get(task.id) ?? null}
 					blockers={blockers.get(task.id) ?? []}
-					onselect={() => onselect(task.id)}
+					onselect={onselect ? () => onselect(task.id) : undefined}
 					{onepic}
+					{action}
 				/>
 			{/each}
 		</tbody>
 	</table>
 	{#if tasks.length === 0}
-		<EmptyState {total} {onclear} {onnew} />
+		{#if empty}
+			{@render empty()}
+		{:else}
+			<EmptyState {total} {onclear} {onnew} />
+		{/if}
 	{/if}
 </div>
 
@@ -152,6 +165,12 @@
 
 	.date-col {
 		padding-right: var(--edge-pad);
+	}
+
+	.action-col {
+		width: 1%;
+		text-align: right;
+		white-space: nowrap;
 	}
 
 	.sort-button {

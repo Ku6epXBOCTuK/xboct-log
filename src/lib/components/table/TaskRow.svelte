@@ -3,6 +3,7 @@
 	import { STATUS_LABELS, formatDate } from "#lib/tasks/display.ts";
 	import type { EpicProgress } from "#lib/tasks/filter.ts";
 	import { CLOSED_STATUSES, type Scope, type Task } from "#lib/types.ts";
+	import type { Snippet } from "svelte";
 
 	interface Props {
 		task: Task;
@@ -13,8 +14,9 @@
 		isselected: boolean;
 		progress: EpicProgress | null;
 		blockers: string[];
-		onselect: () => void;
+		onselect?: () => void;
 		onepic?: (id: string) => void;
+		action?: Snippet<[Task]>;
 	}
 
 	let {
@@ -28,6 +30,7 @@
 		blockers,
 		onselect,
 		onepic,
+		action,
 	}: Props = $props();
 
 	const epicEmpty = $derived(progress === null || progress.total === 0);
@@ -48,7 +51,11 @@
 	}
 </script>
 
-<tr onclick={onselect} class={isselected ? "row-selected" : ""}>
+<tr
+	onclick={onselect}
+	class:interactive={onselect !== undefined}
+	class={isselected ? "row-selected" : ""}
+>
 	<td class="task-id">{task.id}</td>
 	{#if showProject}
 		<td class="project-label optional-column">{projectName}</td>
@@ -120,6 +127,11 @@
 	<td class="date-label optional-column">
 		{task.closed_at ? formatDate(task.closed_at) : ""}
 	</td>
+	{#if action}
+		<td class="action-cell">
+			{@render action(task)}
+		</td>
+	{/if}
 </tr>
 
 <style>
@@ -131,7 +143,7 @@
 		vertical-align: middle;
 	}
 
-	tr {
+	tr.interactive {
 		cursor: pointer;
 	}
 
@@ -284,6 +296,11 @@
 		color: var(--text-muted);
 		font-family: var(--font-mono);
 		font-size: var(--text-xs);
+	}
+
+	.action-cell {
+		text-align: right;
+		white-space: nowrap;
 	}
 
 	.project-label {

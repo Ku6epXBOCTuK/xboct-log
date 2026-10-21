@@ -344,6 +344,52 @@ export const getTasks = defineQuery({
 	},
 });
 
+export const listDeletedTasks = defineQuery({
+	name: "tasks_deleted_list",
+	description:
+		"List the soft-deleted tasks of the backlog: the ones that were deleted and are still recoverable. Returns { items, total }, newest first. A deleted task keeps its id, number, title, description and tags, but it is missing from every other task list; restore it with tasks_restore. Supports the project_id and q filters and pagination via limit and offset.",
+	kind: "query",
+	input: strictObject({
+		project_id: z
+			.string()
+			.min(1)
+			.optional()
+			.describe("Project id: keeps only the deleted tasks of that project."),
+		q: z
+			.string()
+			.min(1)
+			.optional()
+			.describe("Text to search in the id, the title and the description."),
+		limit: z
+			.number()
+			.int()
+			.positive()
+			.max(200)
+			.optional()
+			.describe("Maximum number of tasks to return (default 50, max 200)."),
+		offset: z
+			.number()
+			.int()
+			.nonnegative()
+			.optional()
+			.describe("Number of tasks to skip, for pagination."),
+	}),
+	handler: ({ project_id, q, limit, offset }) => {
+		const db = getDb();
+		const query = {
+			project_id,
+			q,
+			deleted_only: true,
+			limit: limit ?? 50,
+			offset,
+		};
+		return {
+			items: repo.listTasks(db, query),
+			total: repo.countTasks(db, query),
+		};
+	},
+});
+
 export const getTaskBoard = defineQuery({
 	name: "tasks_board",
 	description:

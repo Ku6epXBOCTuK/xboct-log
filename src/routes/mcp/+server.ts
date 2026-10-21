@@ -61,6 +61,8 @@ const handler = createMcpHandler(registerTools, {
 		"tasks, projects and scopes. tags_list returns the tag dictionary. " +
 		"tasks_revisions_list reads the previous description and comment " +
 		"texts of a task. tasks_board returns the backlog grouped by status. " +
+		"tasks_deleted_list returns the soft-deleted tasks, the ones that " +
+		"tasks_restore can bring back. " +
 		"Comments are written for a human: short, " +
 		"factual, no dumps and no volatile details. " +
 		"backup_create makes a manual database backup, " +

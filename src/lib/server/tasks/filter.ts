@@ -31,7 +31,9 @@ export function buildTaskFilter(query: TaskQuery): TaskFilterSql {
 	const params: (string | number)[] = [];
 	let joins = "";
 
-	if (!query.include_deleted) {
+	if (query.deleted_only) {
+		where.push("tasks.deleted_at IS NOT NULL");
+	} else if (!query.include_deleted) {
 		where.push("tasks.deleted_at IS NULL");
 	}
 
