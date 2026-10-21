@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
 	collectEpicProgress,
+	collectTags,
+	countActiveTasksInEpic,
 	countActiveTasksInProject,
+	countActiveTasksInScope,
+	countTasksInEpic,
+	countTasksInScope,
 	filterTasks,
 	type FilterCriteria,
 } from "./filter";
@@ -135,6 +140,44 @@ describe("countActiveTasksInProject", () => {
 		expect(countActiveTasksInProject(projectTasks, "proj-1")).toBe(3);
 		expect(countActiveTasksInProject(projectTasks, "proj-2")).toBe(1);
 		expect(countActiveTasksInProject(projectTasks, "proj-3")).toBe(0);
+	});
+});
+
+describe("active counts of epics, scopes and tags", () => {
+	const grouped = [
+		task({ id: "X-1", epic_id: "E-1", scope_id: 1, tags: ["a"] }),
+		task({ id: "X-2", epic_id: "E-1", scope_id: 1, tags: ["a", "b"] }),
+		task({
+			id: "X-3",
+			status: "done",
+			epic_id: "E-1",
+			scope_id: 1,
+			tags: ["a"],
+		}),
+		task({
+			id: "X-4",
+			status: "cancelled",
+			epic_id: "E-2",
+			scope_id: 2,
+			tags: ["b"],
+		}),
+	];
+
+	it("counts the open tasks of an epic", () => {
+		expect(countTasksInEpic(grouped, "E-1")).toBe(3);
+		expect(countActiveTasksInEpic(grouped, "E-1")).toBe(2);
+	});
+
+	it("counts the open tasks of a scope", () => {
+		expect(countTasksInScope(grouped, 1)).toBe(3);
+		expect(countActiveTasksInScope(grouped, 1)).toBe(2);
+	});
+
+	it("counts the open and the total tasks of a tag", () => {
+		expect(collectTags(grouped)).toEqual([
+			{ tag: "a", count: 3, active: 2 },
+			{ tag: "b", count: 2, active: 1 },
+		]);
 	});
 });
 

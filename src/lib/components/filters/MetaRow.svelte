@@ -15,6 +15,8 @@
 		total: number;
 		countEpic: (epicId: string) => number;
 		countScope: (scopeId: number) => number;
+		countActiveEpic: (epicId: string) => number;
+		countActiveScope: (scopeId: number) => number;
 	}
 
 	let {
@@ -26,6 +28,8 @@
 		total,
 		countEpic,
 		countScope,
+		countActiveEpic,
+		countActiveScope,
 	}: Props = $props();
 </script>
 
@@ -34,6 +38,7 @@
 		value={filters.epic}
 		{epics}
 		{countEpic}
+		{countActiveEpic}
 		onselect={(value) => (filters.epic = value)}
 	/>
 	{#if scopes.length > 0}
@@ -41,6 +46,7 @@
 			value={filters.scope}
 			{scopes}
 			{countScope}
+			{countActiveScope}
 			onselect={(value) => (filters.scope = value)}
 		/>
 	{/if}

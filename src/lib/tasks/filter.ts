@@ -79,19 +79,25 @@ export function filterTasks(tasks: Task[], criteria: FilterCriteria): Task[] {
 export interface TagCount {
 	tag: string;
 	count: number;
+	active: number;
 }
 
 export function collectTags(tasks: Task[]): TagCount[] {
-	const counts = new Map<string, number>();
+	const counts = new Map<string, { count: number; active: number }>();
 
 	for (const task of tasks) {
+		const active = CLOSED_STATUSES.includes(task.status) ? 0 : 1;
+
 		for (const tag of task.tags) {
-			counts.set(tag, (counts.get(tag) ?? 0) + 1);
+			const entry = counts.get(tag) ?? { count: 0, active: 0 };
+			entry.count += 1;
+			entry.active += active;
+			counts.set(tag, entry);
 		}
 	}
 
 	return [...counts.entries()]
-		.map(([tag, count]) => ({ tag, count }))
+		.map(([tag, entry]) => ({ tag, ...entry }))
 		.sort((left, right) => left.tag.localeCompare(right.tag));
 }
 
@@ -119,6 +125,12 @@ export function getActiveTotal(tasks: Task[], filters: Filters): number {
 
 export function countTasksInEpic(tasks: Task[], epicId: string): number {
 	return tasks.filter((task) => task.epic_id === epicId).length;
+}
+
+export function countActiveTasksInEpic(tasks: Task[], epicId: string): number {
+	return tasks.filter(
+		(task) => task.epic_id === epicId && !CLOSED_STATUSES.includes(task.status),
+	).length;
 }
 
 export interface EpicProgress {
@@ -151,6 +163,16 @@ export function collectEpicProgress(tasks: Task[]): Map<string, EpicProgress> {
 
 export function countTasksInScope(tasks: Task[], scopeId: number): number {
 	return tasks.filter((task) => task.scope_id === scopeId).length;
+}
+
+export function countActiveTasksInScope(
+	tasks: Task[],
+	scopeId: number,
+): number {
+	return tasks.filter(
+		(task) =>
+			task.scope_id === scopeId && !CLOSED_STATUSES.includes(task.status),
+	).length;
 }
 
 export function countInProgress(tasks: Task[]): number {

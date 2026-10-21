@@ -62,7 +62,7 @@
 		{/if}
 	</span>
 	<span class="select-option-label">#{item.tag}</span>
-	<span class="select-option-count">{item.count}</span>
+	<span class="select-option-count">{item.active}/{item.count}</span>
 {/snippet}
 
 {#snippet footer()}

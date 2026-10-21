@@ -7,10 +7,11 @@
 		value: string;
 		epics: Task[];
 		countEpic: (epicId: string) => number;
+		countActiveEpic: (epicId: string) => number;
 		onselect: (value: string) => void;
 	}
 
-	let { value, epics, countEpic, onselect }: Props = $props();
+	let { value, epics, countEpic, countActiveEpic, onselect }: Props = $props();
 
 	interface Choice {
 		key: string;
@@ -38,7 +39,7 @@
 		...epics.map((epic) => ({
 			key: epic.id,
 			label: `${epic.id} — ${epic.title}`,
-			meta: String(countEpic(epic.id)),
+			meta: `${countActiveEpic(epic.id)}/${countEpic(epic.id)}`,
 			keywords: `${epic.id} ${epic.title}`,
 		})),
 	]);

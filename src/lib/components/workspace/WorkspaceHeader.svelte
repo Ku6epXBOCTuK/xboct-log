@@ -11,6 +11,8 @@
 	import { epicsForProject } from "#lib/tasks/fields.ts";
 	import {
 		collectTags,
+		countActiveTasksInEpic,
+		countActiveTasksInScope,
 		countTasksInEpic,
 		countTasksInProject,
 		countTasksInScope,
@@ -83,6 +85,9 @@
 		{total}
 		countEpic={(epicId) => countTasksInEpic(tasks.tasks, epicId)}
 		countScope={(scopeId) => countTasksInScope(tasks.tasks, scopeId)}
+		countActiveEpic={(epicId) => countActiveTasksInEpic(tasks.tasks, epicId)}
+		countActiveScope={(scopeId) =>
+			countActiveTasksInScope(tasks.tasks, scopeId)}
 	/>
 </header>
 

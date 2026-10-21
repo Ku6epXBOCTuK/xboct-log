@@ -7,10 +7,12 @@
 		value: "any" | "none" | number;
 		scopes: Scope[];
 		countScope: (scopeId: number) => number;
+		countActiveScope: (scopeId: number) => number;
 		onselect: (value: "any" | "none" | number) => void;
 	}
 
-	let { value, scopes, countScope, onselect }: Props = $props();
+	let { value, scopes, countScope, countActiveScope, onselect }: Props =
+		$props();
 
 	interface Choice {
 		key: string;
@@ -46,7 +48,7 @@
 		...scopes.map((scope) => ({
 			key: String(scope.id),
 			label: `${multiProject ? `${scope.project_id}: ` : ""}${scope.name}`,
-			meta: String(countScope(scope.id)),
+			meta: `${countActiveScope(scope.id)}/${countScope(scope.id)}`,
 			keywords: `${scope.project_id} ${scope.name}`,
 			next: scope.id,
 		})),
