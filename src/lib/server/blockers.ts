@@ -73,26 +73,45 @@ export function hasOpenBlockedBy(db: DatabaseSync, taskId: string): boolean {
 	return row.count > 0;
 }
 
+const RESTORE_STATUSES = new Set(["open", "in-progress"]);
+
+export function isRestorableStatus(status: string): boolean {
+	return RESTORE_STATUSES.has(status);
+}
+
+export interface ReleasedStatus {
+	task_id: string;
+	status: string;
+}
+
 export function releaseBlockedStatus(
 	db: DatabaseSync,
 	taskIds: string[],
-): string[] {
-	const released: string[] = [];
+): ReleasedStatus[] {
+	const released: ReleasedStatus[] = [];
 	const now = new Date().toISOString();
 	for (const taskId of taskIds) {
 		const task = db
-			.prepare("SELECT status FROM tasks WHERE id = ? AND deleted_at IS NULL")
-			.get(taskId) as { status: string } | undefined;
+			.prepare(
+				"SELECT status, blocked_from_status FROM tasks WHERE id = ? AND deleted_at IS NULL",
+			)
+			.get(taskId) as
+			{ status: string; blocked_from_status: string | null } | undefined;
 		if (!task || task.status !== "blocked") {
 			continue;
 		}
 		if (hasOpenBlockedBy(db, taskId)) {
 			continue;
 		}
+		const restored =
+			task.blocked_from_status !== null &&
+			isRestorableStatus(task.blocked_from_status)
+				? task.blocked_from_status
+				: "open";
 		db.prepare(
-			"UPDATE tasks SET status = 'open', updated_at = ? WHERE id = ?",
-		).run(now, taskId);
-		released.push(taskId);
+			"UPDATE tasks SET status = ?, blocked_from_status = NULL, updated_at = ? WHERE id = ?",
+		).run(restored, now, taskId);
+		released.push({ task_id: taskId, status: restored });
 	}
 	return released;
 }

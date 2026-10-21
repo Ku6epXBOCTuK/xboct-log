@@ -66,7 +66,7 @@ export const addBlocker = defineCommand({
 export const removeBlocker = defineCommand({
 	name: "tasks_remove_blocker",
 	description:
-		"Remove a blocking link: the task `id` is no longer blocked by the task `blocked_by`. Both ids must use the full 'PREFIX-NUMBER' form. If no open blocker remains, the blocked task goes from status 'blocked' back to 'open'. Returns the updated blocked task with its blocked_by and blocks lists and a changes array describing the link and the status release.",
+		"Remove a blocking link: the task `id` is no longer blocked by the task `blocked_by`. Both ids must use the full 'PREFIX-NUMBER' form. If no open blocker remains, the blocked task leaves status 'blocked' and returns to the status it had before it was blocked ('open' when that status is unknown). Returns the updated blocked task with its blocked_by and blocks lists and a changes array describing the link and the status release.",
 	kind: "command",
 	input: strictObject({
 		id: taskIdSchema(BLOCKED_ID_DESCRIPTION),

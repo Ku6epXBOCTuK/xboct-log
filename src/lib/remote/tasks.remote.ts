@@ -439,7 +439,7 @@ export const updateTasks = defineCommand({
 export const closeTask = defineCommand({
 	name: "tasks_close",
 	description:
-		"Close a task by id with a reason: 'fixed' → done, 'wontfix' | 'obsolete' | 'duplicate' | 'not-reproduced' → cancelled. 'not-reproduced' marks a report that could not be reproduced. The id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). Closing a task that blocks others releases them from status 'blocked' - those tasks are listed in released.",
+		"Close a task by id with a reason: 'fixed' → done, 'wontfix' | 'obsolete' | 'duplicate' | 'not-reproduced' → cancelled. 'not-reproduced' marks a report that could not be reproduced. The id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). Closing a task that blocks others releases them from status 'blocked' - every released task returns to the status it had before it was blocked ('open' when that status is unknown), and those tasks are listed in released.",
 	kind: "command",
 	input: strictObject({
 		id: taskIdSchema(ID_DESCRIPTION),

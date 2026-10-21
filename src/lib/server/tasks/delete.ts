@@ -49,6 +49,9 @@ export function deleteTaskDetailed(
 			const releasedIds = releaseBlockedStatus(db, blockedIds);
 			db.exec("COMMIT");
 
+			const restored = new Map(
+				releasedIds.map((item) => [item.task_id, item.status]),
+			);
 			const released: ReleasedLink[] = [];
 			for (const blockedId of blockedIds) {
 				const before = blockedBefore.get(blockedId) ?? [];
@@ -56,8 +59,9 @@ export function deleteTaskDetailed(
 				const changes: ActivityChange[] = [
 					{ field: "blocked_by", from: before, to: after },
 				];
-				if (releasedIds.includes(blockedId)) {
-					changes.push({ field: "status", from: "blocked", to: "open" });
+				const status = restored.get(blockedId);
+				if (status !== undefined) {
+					changes.push({ field: "status", from: "blocked", to: status });
 				}
 				released.push({ task_id: blockedId, changes });
 			}

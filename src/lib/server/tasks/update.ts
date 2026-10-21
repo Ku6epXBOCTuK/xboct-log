@@ -6,7 +6,11 @@ import {
 	type ClosedReason,
 	type Task,
 } from "../../types";
-import { listBlocks, releaseBlockedStatus } from "../blockers";
+import {
+	isRestorableStatus,
+	listBlocks,
+	releaseBlockedStatus,
+} from "../blockers";
 import { guard, invalid, type AppError } from "../errors";
 import { recordRevision } from "../revisions";
 import { withBlockingInfo } from "./read";
@@ -70,6 +74,15 @@ export function updateTaskDetailed(
 				from: current.status,
 				to: patch.status,
 			});
+		}
+
+		if (patch.status === "blocked") {
+			if (current.status !== "blocked") {
+				sets.push("blocked_from_status = ?");
+				params.push(isRestorableStatus(current.status) ? current.status : null);
+			}
+		} else {
+			sets.push("blocked_from_status = NULL");
 		}
 
 		if (CLOSED_STATUSES.includes(patch.status) && current.closed_at === null) {
@@ -242,9 +255,9 @@ export function closeTaskDetailed(
 			 WHERE id = ?`,
 		).run(status, now, reason, now, targetId);
 		const releasedIds = releaseBlockedStatus(db, listBlocks(db, targetId));
-		const released: ReleasedLink[] = releasedIds.map((taskId) => ({
-			task_id: taskId,
-			changes: [{ field: "status", from: "blocked", to: "open" }],
+		const released: ReleasedLink[] = releasedIds.map((item) => ({
+			task_id: item.task_id,
+			changes: [{ field: "status", from: "blocked", to: item.status }],
 		}));
 		return {
 			task: withBlockingInfo(db, [taskById(db, targetId)!])[0],

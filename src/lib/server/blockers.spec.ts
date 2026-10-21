@@ -170,4 +170,59 @@ describe("blockers", () => {
 
 		expect(getTask(db, blocked.id)?.status).toBe("open");
 	});
+
+	it("returns the task to the status it had before it was blocked", async () => {
+		const db = await setup();
+		const blocker = unwrap(createTask(db, { project_id: "spa", title: "A" }));
+		const blocked = unwrap(createTask(db, { project_id: "spa", title: "B" }));
+		unwrap(updateTask(db, blocked.id, { status: "in-progress" }));
+		unwrap(updateTask(db, blocked.id, { status: "blocked" }));
+		unwrap(addBlocker(db, blocker.id, blocked.id));
+
+		unwrap(closeTask(db, blocker.id, "fixed"));
+
+		expect(getTask(db, blocked.id)?.status).toBe("in-progress");
+	});
+
+	it("falls back to open when the previous status is unknown", async () => {
+		const db = await setup();
+		const blocker = unwrap(createTask(db, { project_id: "spa", title: "A" }));
+		const blocked = unwrap(
+			createTask(db, { project_id: "spa", title: "B", status: "blocked" }),
+		);
+		unwrap(addBlocker(db, blocker.id, blocked.id));
+
+		unwrap(closeTask(db, blocker.id, "fixed"));
+
+		expect(getTask(db, blocked.id)?.status).toBe("open");
+	});
+
+	it("does not restore a closed status", async () => {
+		const db = await setup();
+		const blocker = unwrap(createTask(db, { project_id: "spa", title: "A" }));
+		const blocked = unwrap(createTask(db, { project_id: "spa", title: "B" }));
+		unwrap(closeTask(db, blocked.id, "fixed"));
+		unwrap(updateTask(db, blocked.id, { status: "blocked" }));
+		unwrap(addBlocker(db, blocker.id, blocked.id));
+
+		unwrap(closeTask(db, blocker.id, "fixed"));
+
+		expect(getTask(db, blocked.id)?.status).toBe("open");
+	});
+
+	it("keeps the remembered status when the task leaves blocked by hand", async () => {
+		const db = await setup();
+		const blocker = unwrap(createTask(db, { project_id: "spa", title: "A" }));
+		const blocked = unwrap(createTask(db, { project_id: "spa", title: "B" }));
+		unwrap(updateTask(db, blocked.id, { status: "in-progress" }));
+		unwrap(updateTask(db, blocked.id, { status: "blocked" }));
+		unwrap(addBlocker(db, blocker.id, blocked.id));
+
+		unwrap(updateTask(db, blocked.id, { status: "in-progress" }));
+		unwrap(updateTask(db, blocked.id, { status: "blocked" }));
+
+		unwrap(closeTask(db, blocker.id, "fixed"));
+
+		expect(getTask(db, blocked.id)?.status).toBe("in-progress");
+	});
 });
