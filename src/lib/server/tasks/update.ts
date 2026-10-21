@@ -19,6 +19,7 @@ import {
 	taskById,
 } from "./rows";
 import { resolveEpicId, resolveTaskId, validateScope } from "./resolve";
+import { withSourceConflict } from "./source";
 import type {
 	ReleasedLink,
 	TaskChange,
@@ -187,7 +188,7 @@ export function updateTaskDetailed(
 		patch.description !== undefined &&
 		patch.description !== current.description;
 
-	return guard(() => {
+	const result = guard(() => {
 		db.exec("BEGIN IMMEDIATE");
 		try {
 			if (descriptionChanged) {
@@ -211,6 +212,14 @@ export function updateTaskDetailed(
 			throw error;
 		}
 	});
+
+	return withSourceConflict(
+		result,
+		db,
+		current.project_id,
+		sourceFile,
+		sourceLine,
+	);
 }
 
 export function updateTask(

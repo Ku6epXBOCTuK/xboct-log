@@ -267,7 +267,7 @@ export const getTask = defineQuery({
 export const createTask = defineCommand({
 	name: "tasks_create",
 	description:
-		"Create a task. Requires project_id and title; status, priority, epic, scope, tags are optional. epic_id accepts a full epic id (e.g. 'LOG-5') of the same project. Projects that define scopes expect every task to carry one: the result carries a warnings array, and a warning naming the available scopes appears when the task is created without a scope.",
+		"Create a task. Requires project_id and title; status, priority, epic, scope, tags are optional. epic_id accepts a full epic id (e.g. 'LOG-5') of the same project. Projects that define scopes expect every task to carry one: the result carries a warnings array, and a warning naming the available scopes appears when the task is created without a scope. A project holds one task per source location: a second task with the same source_file and source_line is rejected with a conflict that names the existing task.",
 	kind: "command",
 	input: newTask,
 	handler: (input) => {

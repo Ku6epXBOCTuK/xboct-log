@@ -12,6 +12,7 @@ import {
 	taskById,
 } from "./rows";
 import { resolveEpicId, validateScope } from "./resolve";
+import { withSourceConflict } from "./source";
 import type { NewTask } from "./types";
 
 export function allocateNumber(db: DatabaseSync, projectId: string): number {
@@ -82,7 +83,7 @@ export function createTask(
 	const now = new Date().toISOString();
 	const closedAt = CLOSED_STATUSES.includes(status) ? now : null;
 
-	return guard(() => {
+	const result = guard(() => {
 		db.exec("BEGIN IMMEDIATE");
 		try {
 			const n = allocateNumber(db, project.id);
@@ -118,4 +119,6 @@ export function createTask(
 			throw error;
 		}
 	});
+
+	return withSourceConflict(result, db, project.id, sourceFile, sourceLine);
 }
