@@ -118,7 +118,7 @@ describe("activity log", () => {
 		expect(rows()).toEqual([]);
 	});
 
-	it("records create with the provided fields and the new id", async () => {
+	it("records create with only the fields set beyond the defaults", async () => {
 		clear();
 
 		const task = (await call("tasks_create", {
@@ -134,7 +134,7 @@ describe("activity log", () => {
 				entity: "task",
 				entity_id: task.id,
 				old_id: null,
-				fields: ["project_id", "title", "priority"],
+				fields: ["priority"],
 			},
 		]);
 	});
@@ -190,7 +190,7 @@ describe("activity log", () => {
 				entity: "task",
 				entity_id: ids[0],
 				old_id: null,
-				fields: ["project_id", "title"],
+				fields: [],
 			},
 			{
 				source: "ui",
@@ -198,7 +198,7 @@ describe("activity log", () => {
 				entity: "task",
 				entity_id: ids[1],
 				old_id: null,
-				fields: ["project_id", "title", "priority"],
+				fields: ["priority"],
 			},
 		]);
 		expect(logged.slice(2).map((row) => row.entity_id)).toEqual(ids);

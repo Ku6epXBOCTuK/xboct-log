@@ -2,7 +2,7 @@ import { error } from "@sveltejs/kit";
 import { err, ok } from "neverthrow";
 import type { DatabaseSync } from "node:sqlite";
 import { z } from "zod";
-import { activityEntry, fieldNames } from "../server/activity";
+import { activityEntry, creationFields, fieldNames } from "../server/activity";
 import { getDb } from "../server/db";
 import { missingScopeWarning } from "../server/scopes";
 import * as repo from "../server/tasks";
@@ -324,7 +324,7 @@ export const createTask = defineCommand({
 		});
 	},
 	activity: (input, task: Task) =>
-		activityEntry("task", task.id, fieldNames(input)),
+		activityEntry("task", task.id, creationFields(input)),
 });
 
 export const createTasks = defineCommand({
@@ -352,7 +352,7 @@ export const createTasks = defineCommand({
 						activityEntry(
 							"task",
 							item.task.id,
-							fieldNames(input.items[item.index]),
+							creationFields(input.items[item.index]),
 						),
 					]
 				: [],

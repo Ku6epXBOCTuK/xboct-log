@@ -1,6 +1,11 @@
 import type { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
-import { listActivity, pruneActivity, searchActivity } from "./activity";
+import {
+	creationFields,
+	listActivity,
+	pruneActivity,
+	searchActivity,
+} from "./activity";
 import { openMigratedDatabase } from "./migrations";
 
 async function setup(): Promise<DatabaseSync> {
@@ -230,5 +235,50 @@ describe("searchActivity", () => {
 		db.exec("DROP TABLE activity");
 
 		expect(searchActivity(db, {})).toEqual({ items: [], total: 0, ops: [] });
+	});
+});
+
+describe("creationFields", () => {
+	it("keeps only the fields that differ from the defaults", () => {
+		expect(
+			creationFields({
+				project_id: "xboct-log",
+				title: "Fresh",
+				status: "open",
+				priority: "medium",
+				description: "",
+				tags: [],
+			}),
+		).toEqual([]);
+	});
+
+	it("lists the fields that carry information", () => {
+		expect(
+			creationFields({
+				project_id: "xboct-log",
+				title: "Fresh",
+				status: "in-progress",
+				priority: "high",
+				description: "text",
+				epic_id: "LOG-5",
+				scope_id: 2,
+				source_file: "docs/backlog.md",
+				tags: ["mcp"],
+				is_epic: true,
+			}),
+		).toEqual([
+			"description",
+			"status",
+			"priority",
+			"is_epic",
+			"epic_id",
+			"scope_id",
+			"source_file",
+			"tags",
+		]);
+	});
+
+	it("returns nothing for a missing input", () => {
+		expect(creationFields(undefined)).toEqual([]);
 	});
 });

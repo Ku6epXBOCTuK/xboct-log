@@ -46,6 +46,51 @@ export function fieldNames(value: object | undefined): string[] {
 		.map(([name]) => name);
 }
 
+const CREATION_DEFAULTS = {
+	status: "open",
+	priority: "medium",
+} as const;
+
+export function creationFields(input: object | undefined): string[] {
+	if (input === undefined) {
+		return [];
+	}
+	const value = input as Record<string, unknown>;
+	const fields: string[] = [];
+	const text = (key: string): string | null => {
+		const raw = value[key];
+		return typeof raw === "string" && raw.trim() !== "" ? raw : null;
+	};
+	if (text("description") !== null) {
+		fields.push("description");
+	}
+	if (value.status !== undefined && value.status !== CREATION_DEFAULTS.status) {
+		fields.push("status");
+	}
+	if (
+		value.priority !== undefined &&
+		value.priority !== CREATION_DEFAULTS.priority
+	) {
+		fields.push("priority");
+	}
+	if (value.is_epic) {
+		fields.push("is_epic");
+	}
+	if (text("epic_id") !== null) {
+		fields.push("epic_id");
+	}
+	if (value.scope_id !== undefined && value.scope_id !== null) {
+		fields.push("scope_id");
+	}
+	if (text("source_file") !== null) {
+		fields.push("source_file");
+	}
+	if (Array.isArray(value.tags) && value.tags.length > 0) {
+		fields.push("tags");
+	}
+	return fields;
+}
+
 export function recordActivity(
 	db: DatabaseSync,
 	source: ActivitySource,
