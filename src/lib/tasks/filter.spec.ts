@@ -114,7 +114,7 @@ describe("countActiveTasksInProject", () => {
 });
 
 describe("collectEpicProgress", () => {
-	it("counts children and done children per epic", () => {
+	it("counts children and closed children per epic", () => {
 		const progress = collectEpicProgress([
 			task({ id: "E-1", is_epic: true }),
 			task({ id: "A-1", epic_id: "E-1" }),
@@ -122,7 +122,17 @@ describe("collectEpicProgress", () => {
 			task({ id: "A-3", epic_id: "E-1", status: "in-progress" }),
 		]);
 
-		expect(progress.get("E-1")).toEqual({ done: 1, total: 3 });
+		expect(progress.get("E-1")).toEqual({ closed: 1, total: 3 });
+	});
+
+	it("counts cancelled children as closed", () => {
+		const progress = collectEpicProgress([
+			task({ id: "E-1", is_epic: true }),
+			task({ id: "A-1", epic_id: "E-1", status: "done" }),
+			task({ id: "A-2", epic_id: "E-1", status: "cancelled" }),
+		]);
+
+		expect(progress.get("E-1")).toEqual({ closed: 2, total: 2 });
 	});
 
 	it("ignores tasks without an epic", () => {

@@ -49,7 +49,9 @@
 				EPIC
 			</button>
 			{#if progress !== null && progress.total > 0}
-				<span class="epic-progress">{progress.done}/{progress.total} done</span>
+				<span class="epic-progress"
+					>{progress.closed}/{progress.total} closed</span
+				>
 			{/if}
 		{:else if task.epic_id !== null}
 			<button

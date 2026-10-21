@@ -121,7 +121,7 @@ export function countTasksInEpic(tasks: Task[], epicId: string): number {
 }
 
 export interface EpicProgress {
-	done: number;
+	closed: number;
 	total: number;
 }
 
@@ -135,14 +135,14 @@ export function collectEpicProgress(tasks: Task[]): Map<string, EpicProgress> {
 
 		if (entry === undefined) {
 			progress.set(task.epic_id, {
-				done: task.status === "done" ? 1 : 0,
+				closed: CLOSED_STATUSES.includes(task.status) ? 1 : 0,
 				total: 1,
 			});
 			continue;
 		}
 
 		entry.total += 1;
-		if (task.status === "done") entry.done += 1;
+		if (CLOSED_STATUSES.includes(task.status)) entry.closed += 1;
 	}
 
 	return progress;
