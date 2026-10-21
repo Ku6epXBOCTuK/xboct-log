@@ -160,6 +160,50 @@ describe("estimate", () => {
 	});
 });
 
+describe("assignee and due date", () => {
+	it("creates a task with an assignee and a due date and filters by them", async () => {
+		const created = (await runOp(
+			op("tasks_create"),
+			{
+				project_id: "spa",
+				title: "Owned by MCP",
+				assignee: "Ann",
+				due_at: "2026-10-30",
+			},
+			"mcp",
+		)) as { assignee: string | null; due_at: string | null };
+
+		expect(created.assignee).toBe("Ann");
+		expect(created.due_at).toBe("2026-10-30");
+
+		const byAssignee = (await runOp(
+			op("tasks_list"),
+			{ project_id: "spa", assignee: "ann" },
+			"mcp",
+		)) as { items: Record<string, unknown>[] };
+		expect(byAssignee.items.map((task) => task.title)).toEqual([
+			"Owned by MCP",
+		]);
+
+		const byDue = (await runOp(
+			op("tasks_list"),
+			{ project_id: "spa", due_before: "2026-11-01" },
+			"mcp",
+		)) as { items: Record<string, unknown>[] };
+		expect(byDue.items.map((task) => task.title)).toEqual(["Owned by MCP"]);
+	});
+
+	it("rejects a due date that is not a date", async () => {
+		await expect(
+			runOp(
+				op("tasks_create"),
+				{ project_id: "spa", title: "Bad date", due_at: "next tuesday" },
+				"mcp",
+			),
+		).rejects.toBeDefined();
+	});
+});
+
 describe("tasks_board", () => {
 	async function board(input: unknown): Promise<{
 		columns: {

@@ -21,6 +21,8 @@ export interface TaskRow {
 	source_file: string | null;
 	tags: string;
 	estimate: string | null;
+	assignee: string | null;
+	due_at: string | null;
 	created_at: string;
 	updated_at: string;
 	closed_at: string | null;
@@ -42,6 +44,8 @@ export interface NewTask {
 	source_file?: string | null;
 	tags?: string[];
 	estimate?: Estimate | null;
+	assignee?: string | null;
+	due_at?: string | null;
 }
 
 export interface TaskPatch {
@@ -55,6 +59,8 @@ export interface TaskPatch {
 	source_file?: string | null;
 	tags?: string[];
 	estimate?: Estimate | null;
+	assignee?: string | null;
+	due_at?: string | null;
 }
 
 export type TaskChange = ActivityChange;
@@ -71,6 +77,9 @@ export interface TaskQuery {
 	status?: Status[];
 	priority?: Priority[];
 	estimate?: Estimate[];
+	assignee?: string[];
+	due_before?: string;
+	due_after?: string;
 	tag?: string[];
 	is_epic?: boolean;
 	epic_id?: string | string[] | null;

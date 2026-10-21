@@ -6,6 +6,8 @@ const FIELD_LABELS: Record<string, string> = {
 	status: "Status",
 	priority: "Priority",
 	estimate: "Estimate",
+	assignee: "Assignee",
+	due_at: "Due date",
 	is_epic: "Epic",
 	epic_id: "Epic",
 	scope_id: "Scope",

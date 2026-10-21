@@ -2,7 +2,7 @@
 	import StatusDot from "#lib/components/ui/StatusDot.svelte";
 	import { STATUS_LABELS, formatDate } from "#lib/tasks/display.ts";
 	import type { EpicProgress } from "#lib/tasks/filter.ts";
-	import type { Scope, Task } from "#lib/types.ts";
+	import { CLOSED_STATUSES, type Scope, type Task } from "#lib/types.ts";
 
 	interface Props {
 		task: Task;
@@ -27,6 +27,14 @@
 	}: Props = $props();
 
 	const epicEmpty = $derived(progress === null || progress.total === 0);
+
+	const today = new Date().toISOString().slice(0, 10);
+
+	const overdue = $derived(
+		task.due_at !== null &&
+			task.due_at < today &&
+			!CLOSED_STATUSES.includes(task.status),
+	);
 
 	function filterEpic(event: MouseEvent, epicId: string | null) {
 		event.stopPropagation();
@@ -98,6 +106,9 @@
 	</td>
 	<td class="date-label optional-column">
 		{formatDate(task.created_at)}
+	</td>
+	<td class={`due-label optional-column ${overdue ? "due-overdue" : ""}`}>
+		{task.due_at ? formatDate(task.due_at) : ""}
 	</td>
 </tr>
 
@@ -255,6 +266,11 @@
 		color: var(--text-muted);
 		font-family: var(--font-mono);
 		font-size: var(--text-xs);
+	}
+
+	.due-overdue {
+		color: var(--priority-critical);
+		font-weight: 600;
 	}
 
 	@media (max-width: 1100px) {

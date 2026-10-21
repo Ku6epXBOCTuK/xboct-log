@@ -67,6 +67,20 @@ export function buildTaskFilter(query: TaskQuery): TaskFilterSql {
 		);
 		params.push(...query.estimate);
 	}
+	if (query.assignee?.length) {
+		where.push(
+			`LOWER(tasks.assignee) IN (${query.assignee.map(() => "?").join(", ")})`,
+		);
+		params.push(...query.assignee.map((assignee) => assignee.toLowerCase()));
+	}
+	if (query.due_before !== undefined) {
+		where.push("tasks.due_at IS NOT NULL AND tasks.due_at < ?");
+		params.push(query.due_before);
+	}
+	if (query.due_after !== undefined) {
+		where.push("tasks.due_at IS NOT NULL AND tasks.due_at >= ?");
+		params.push(query.due_after);
+	}
 	if (query.is_epic !== undefined) {
 		where.push("tasks.is_epic = ?");
 		params.push(query.is_epic ? 1 : 0);

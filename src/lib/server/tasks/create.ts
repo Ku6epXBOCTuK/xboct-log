@@ -3,6 +3,7 @@ import { err, type Result } from "neverthrow";
 import { CLOSED_STATUSES, type Task } from "../../types";
 import { guard, invalid, notFound, type AppError } from "../errors";
 import { getProject } from "../projects";
+import { normalizeDueDate } from "../../tasks/display";
 import { withBlockingInfo } from "./read";
 import {
 	emptyToNull,
@@ -61,6 +62,11 @@ export function createTask(
 	if (estimate !== null && !isEstimate(estimate)) {
 		return err(invalid(`invalid estimate: ${estimate}`));
 	}
+	const assignee = emptyToNull(input.assignee);
+	const dueAt = normalizeDueDate(input.due_at);
+	if (input.due_at !== undefined && input.due_at !== null && dueAt === null) {
+		return err(invalid(`invalid due date: ${input.due_at}`));
+	}
 
 	const epicId = input.epic_id ? input.epic_id : null;
 	let resolvedEpicId: string | null = null;
@@ -92,8 +98,9 @@ export function createTask(
 			db.prepare(
 				`INSERT INTO tasks (
 					id, project_id, number, title, description, status, priority, is_epic,
-					epic_id, scope_id, source_file, tags, estimate, created_at, updated_at, closed_at
-				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+					epic_id, scope_id, source_file, tags, estimate, assignee, due_at,
+					created_at, updated_at, closed_at
+				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			).run(
 				id,
 				project.id,
@@ -108,6 +115,8 @@ export function createTask(
 				sourceFile,
 				JSON.stringify(tags),
 				estimate,
+				assignee,
+				dueAt,
 				now,
 				now,
 				closedAt,

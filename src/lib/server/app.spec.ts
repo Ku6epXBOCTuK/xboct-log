@@ -226,6 +226,91 @@ describe("tasks", () => {
 		expect(both.map((task) => task.title).sort()).toEqual(["Medium", "Small"]);
 	});
 
+	it("stores the assignee and the due date", async () => {
+		const db = await setup();
+		const task = unwrap(
+			createTask(db, {
+				project_id: "spa",
+				title: "Owned",
+				assignee: "Ann",
+				due_at: "2026-10-30",
+			}),
+		);
+
+		expect(task.assignee).toBe("Ann");
+		expect(task.due_at).toBe("2026-10-30");
+	});
+
+	it("cuts a full timestamp to the day and rejects an impossible date", async () => {
+		const db = await setup();
+		const task = unwrap(
+			createTask(db, {
+				project_id: "spa",
+				title: "Stamped",
+				due_at: "2026-10-30T18:45:00Z",
+			}),
+		);
+
+		expect(task.due_at).toBe("2026-10-30");
+
+		const error = failure(
+			createTask(db, {
+				project_id: "spa",
+				title: "Broken",
+				due_at: "2026-13-40",
+			}),
+		);
+		expect(error.kind).toBe("validation");
+	});
+
+	it("changes and clears the assignee and the due date", async () => {
+		const db = await setup();
+		const task = unwrap(createTask(db, { project_id: "spa", title: "Owned" }));
+
+		const updated = unwrap(
+			updateTask(db, task.id, { assignee: "Bob", due_at: "2026-11-01" }),
+		);
+		expect(updated.assignee).toBe("Bob");
+		expect(updated.due_at).toBe("2026-11-01");
+
+		const cleared = unwrap(
+			updateTask(db, task.id, { assignee: null, due_at: null }),
+		);
+		expect(cleared.assignee).toBeNull();
+		expect(cleared.due_at).toBeNull();
+	});
+
+	it("filters tasks by assignee and due date", async () => {
+		const db = await setup();
+		unwrap(
+			createTask(db, {
+				project_id: "spa",
+				title: "Soon",
+				assignee: "Ann",
+				due_at: "2026-10-20",
+			}),
+		);
+		unwrap(
+			createTask(db, {
+				project_id: "spa",
+				title: "Later",
+				assignee: "Bob",
+				due_at: "2026-11-20",
+			}),
+		);
+		unwrap(createTask(db, { project_id: "spa", title: "Nobody" }));
+
+		expect(
+			listTasks(db, { assignee: ["ann"] }).map((task) => task.title),
+		).toEqual(["Soon"]);
+		expect(
+			listTasks(db, { due_before: "2026-11-01" }).map((task) => task.title),
+		).toEqual(["Soon"]);
+		expect(
+			listTasks(db, { due_after: "2026-11-01" }).map((task) => task.title),
+		).toEqual(["Later"]);
+	});
+
 	it("returns not_found for an unknown project", async () => {
 		const db = await openMigratedDatabase(":memory:");
 		const error = failure(createTask(db, { project_id: "ghost", title: "X" }));

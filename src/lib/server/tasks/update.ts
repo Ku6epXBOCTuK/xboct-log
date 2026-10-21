@@ -1,5 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import { err, ok, type Result } from "neverthrow";
+import { normalizeDueDate } from "../../tasks/display";
 import {
 	CLOSED_STATUSES,
 	STATUS_BY_REASON,
@@ -125,6 +126,29 @@ export function updateTaskDetailed(
 				from: current.estimate,
 				to: patch.estimate,
 			});
+		}
+	}
+	if (patch.assignee !== undefined) {
+		const assignee = emptyToNull(patch.assignee);
+		sets.push("assignee = ?");
+		params.push(assignee);
+		if (assignee !== current.assignee) {
+			changes.push({
+				field: "assignee",
+				from: current.assignee,
+				to: assignee,
+			});
+		}
+	}
+	if (patch.due_at !== undefined) {
+		const dueAt = normalizeDueDate(patch.due_at);
+		if (dueAt === null && (patch.due_at ?? "").trim() !== "") {
+			return err(invalid(`invalid due date: ${patch.due_at}`));
+		}
+		sets.push("due_at = ?");
+		params.push(dueAt);
+		if (dueAt !== current.due_at) {
+			changes.push({ field: "due_at", from: current.due_at, to: dueAt });
 		}
 	}
 	if (patch.is_epic !== undefined) {

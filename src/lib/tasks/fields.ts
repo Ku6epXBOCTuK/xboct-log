@@ -13,6 +13,8 @@ export type TaskPatch = Partial<
 		| "source_file"
 		| "tags"
 		| "estimate"
+		| "assignee"
+		| "due_at"
 	>
 >;
 
@@ -26,6 +28,8 @@ export type TaskFieldValues = Pick<
 	| "source_file"
 	| "tags"
 	| "estimate"
+	| "assignee"
+	| "due_at"
 	| "description"
 > &
 	Partial<Pick<Task, "status" | "closed_at" | "closed_reason" | "updated_at">>;

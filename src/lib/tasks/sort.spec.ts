@@ -16,6 +16,8 @@ function task(overrides: Partial<Task>): Task {
 		scope_id: null,
 		source_file: null,
 		estimate: null,
+		assignee: null,
+		due_at: null,
 		tags: [],
 		created_at: "2026-01-01T00:00:00.000Z",
 		updated_at: "2026-01-01T00:00:00.000Z",

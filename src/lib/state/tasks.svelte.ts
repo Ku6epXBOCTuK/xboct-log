@@ -23,6 +23,8 @@ export interface NewTaskInput {
 	source_file?: string | null;
 	tags?: string[];
 	estimate?: Estimate | null;
+	assignee?: string | null;
+	due_at?: string | null;
 }
 
 export function createTaskStore(initial: Task[]) {

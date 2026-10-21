@@ -78,6 +78,7 @@
 				{@render sortHeader("priority", "Priority", "optional-column")}
 				<th class="optional-column">Est</th>
 				{@render sortHeader("created", "Created", "date-col optional-column")}
+				<th class="date-col optional-column">Due</th>
 			</tr>
 		</thead>
 		<tbody>

@@ -1,7 +1,11 @@
 <script lang="ts">
 	import SingleSelect from "#lib/components/ui/select/SingleSelect.svelte";
 	import TagInput from "#lib/components/ui/select/TagInput.svelte";
-	import { CLOSED_REASON_LABELS, formatDate } from "#lib/tasks/display.ts";
+	import {
+		CLOSED_REASON_LABELS,
+		formatDate,
+		normalizeDueDate,
+	} from "#lib/tasks/display.ts";
 	import {
 		toSourceFile,
 		validateTaskDraft,
@@ -87,6 +91,22 @@
 		}
 
 		onfield({ source_file: toSourceFile(input.value) });
+	}
+
+	function changeAssignee(event: Event) {
+		onfield({
+			assignee: toSourceFile((event.currentTarget as HTMLInputElement).value),
+		});
+	}
+
+	function changeDueAt(event: Event) {
+		const raw = (event.currentTarget as HTMLInputElement).value;
+		const dueAt = normalizeDueDate(raw);
+		if (raw.trim() !== "" && dueAt === null) {
+			onerror("invalid due date");
+			return;
+		}
+		onfield({ due_at: dueAt });
 	}
 
 	function closedLabel(): string {
@@ -208,6 +228,24 @@
 			class="field-control"
 			value={value.source_file ?? ""}
 			onchange={changeSourceFile}
+		/>
+	</label>
+	<label class="field">
+		Assignee
+		<input
+			class="field-control"
+			value={value.assignee ?? ""}
+			onchange={changeAssignee}
+			placeholder="nobody"
+		/>
+	</label>
+	<label class="field">
+		Due
+		<input
+			class="field-control"
+			type="date"
+			value={value.due_at ?? ""}
+			onchange={changeDueAt}
 		/>
 	</label>
 </div>

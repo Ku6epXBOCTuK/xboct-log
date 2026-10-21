@@ -145,6 +145,8 @@ export interface Task {
 	source_file: string | null;
 	tags: string[];
 	estimate: Estimate | null;
+	assignee: string | null;
+	due_at: string | null;
 	created_at: string;
 	updated_at: string;
 	closed_at: string | null;

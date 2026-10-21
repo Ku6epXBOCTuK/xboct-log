@@ -91,6 +91,12 @@ export function creationFields(input: object | undefined): string[] {
 	if (value.estimate !== undefined && value.estimate !== null) {
 		fields.push("estimate");
 	}
+	if (typeof value.assignee === "string" && value.assignee.trim() !== "") {
+		fields.push("assignee");
+	}
+	if (typeof value.due_at === "string" && value.due_at.trim() !== "") {
+		fields.push("due_at");
+	}
 	return fields;
 }
 

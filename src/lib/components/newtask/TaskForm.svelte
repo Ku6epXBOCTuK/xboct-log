@@ -57,6 +57,8 @@
 			source_file: null,
 			tags: [],
 			estimate: null,
+			assignee: null,
+			due_at: null,
 			description: "",
 		};
 	}
@@ -160,6 +162,8 @@
 				source_file: draft.source_file,
 				tags: draft.tags,
 				estimate: draft.estimate,
+				assignee: draft.assignee,
+				due_at: draft.due_at,
 			});
 
 			if (keepOpen) {

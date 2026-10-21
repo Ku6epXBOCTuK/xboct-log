@@ -48,3 +48,22 @@ export function formatDate(value: string): string {
 	// TODO: why not to use Intl.formatDate?
 	return `${day}/${month}/${year}`;
 }
+
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+
+export function normalizeDueDate(
+	value: string | null | undefined,
+): string | null {
+	const trimmed = (value ?? "").trim();
+	if (trimmed === "") return null;
+	if (DATE_ONLY.test(trimmed)) {
+		return Number.isNaN(Date.parse(`${trimmed}T00:00:00Z`)) ? null : trimmed;
+	}
+	const parsed = new Date(trimmed);
+	if (Number.isNaN(parsed.getTime())) return null;
+	return parsed.toISOString().slice(0, 10);
+}
+
+export function isOverdue(dueAt: string | null, today: string): boolean {
+	return dueAt !== null && dueAt < today;
+}
