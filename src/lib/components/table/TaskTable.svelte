@@ -76,6 +76,7 @@
 				<th class="optional-column">Tags</th>
 				{@render sortHeader("status", "Status", "")}
 				{@render sortHeader("priority", "Priority", "optional-column")}
+				<th class="optional-column">Est</th>
 				{@render sortHeader("created", "Created", "date-col optional-column")}
 			</tr>
 		</thead>

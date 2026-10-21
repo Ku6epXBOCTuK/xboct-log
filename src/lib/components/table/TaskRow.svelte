@@ -93,6 +93,9 @@
 	<td class={`priority-label ${task.priority} optional-column`}>
 		{task.priority}
 	</td>
+	<td class="estimate-label optional-column">
+		{task.estimate ?? ""}
+	</td>
 	<td class="date-label optional-column">
 		{formatDate(task.created_at)}
 	</td>
@@ -246,6 +249,12 @@
 		color: var(--text-muted);
 		white-space: nowrap;
 		font-variant-numeric: tabular-nums;
+	}
+
+	.estimate-label {
+		color: var(--text-muted);
+		font-family: var(--font-mono);
+		font-size: var(--text-xs);
 	}
 
 	@media (max-width: 1100px) {

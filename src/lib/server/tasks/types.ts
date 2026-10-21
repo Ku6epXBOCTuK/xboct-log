@@ -1,4 +1,10 @@
-import type { ActivityChange, Priority, Status, Task } from "../../types";
+import type {
+	ActivityChange,
+	Estimate,
+	Priority,
+	Status,
+	Task,
+} from "../../types";
 import type { ErrorKind } from "../errors";
 
 export interface TaskRow {
@@ -14,6 +20,7 @@ export interface TaskRow {
 	scope_id: number | null;
 	source_file: string | null;
 	tags: string;
+	estimate: string | null;
 	created_at: string;
 	updated_at: string;
 	closed_at: string | null;
@@ -34,6 +41,7 @@ export interface NewTask {
 	scope_id?: number | null;
 	source_file?: string | null;
 	tags?: string[];
+	estimate?: Estimate | null;
 }
 
 export interface TaskPatch {
@@ -46,6 +54,7 @@ export interface TaskPatch {
 	scope_id?: number | null;
 	source_file?: string | null;
 	tags?: string[];
+	estimate?: Estimate | null;
 }
 
 export type TaskChange = ActivityChange;
@@ -61,6 +70,7 @@ export interface TaskQuery {
 	exclude_project_id?: string | string[];
 	status?: Status[];
 	priority?: Priority[];
+	estimate?: Estimate[];
 	tag?: string[];
 	is_epic?: boolean;
 	epic_id?: string | string[] | null;

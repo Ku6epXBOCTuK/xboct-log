@@ -130,6 +130,36 @@ describe("tasks_list source_file filter", () => {
 	});
 });
 
+describe("estimate", () => {
+	it("creates a task with an estimate and filters by it", async () => {
+		const created = (await runOp(
+			op("tasks_create"),
+			{ project_id: "spa", title: "Sized by MCP", estimate: "M" },
+			"mcp",
+		)) as { estimate: string | null };
+
+		expect(created.estimate).toBe("M");
+
+		const result = (await runOp(
+			op("tasks_list"),
+			{ project_id: "spa", estimate: "M" },
+			"mcp",
+		)) as { items: Record<string, unknown>[] };
+
+		expect(result.items.map((task) => task.title)).toEqual(["Sized by MCP"]);
+	});
+
+	it("rejects an estimate outside S, M and L", async () => {
+		await expect(
+			runOp(
+				op("tasks_create"),
+				{ project_id: "spa", title: "Bad", estimate: "XL" },
+				"mcp",
+			),
+		).rejects.toBeDefined();
+	});
+});
+
 describe("tasks_board", () => {
 	async function board(input: unknown): Promise<{
 		columns: {

@@ -12,6 +12,7 @@ export type TaskPatch = Partial<
 		| "scope_id"
 		| "source_file"
 		| "tags"
+		| "estimate"
 	>
 >;
 
@@ -24,6 +25,7 @@ export type TaskFieldValues = Pick<
 	| "scope_id"
 	| "source_file"
 	| "tags"
+	| "estimate"
 	| "description"
 > &
 	Partial<Pick<Task, "status" | "closed_at" | "closed_reason" | "updated_at">>;

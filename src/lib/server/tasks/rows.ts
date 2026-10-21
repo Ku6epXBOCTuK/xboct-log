@@ -1,9 +1,11 @@
 import type { DatabaseSync } from "node:sqlite";
 import {
 	CLOSED_REASONS,
+	ESTIMATES,
 	PRIORITIES,
 	STATUSES,
 	type ClosedReason,
+	type Estimate,
 	type Priority,
 	type Status,
 	type Task,
@@ -24,6 +26,7 @@ export function mapTask(row: TaskRow): Task {
 		scope_id: row.scope_id,
 		source_file: row.source_file,
 		tags: JSON.parse(row.tags) as string[],
+		estimate: (row.estimate as Estimate | null) ?? null,
 		created_at: row.created_at,
 		updated_at: row.updated_at,
 		closed_at: row.closed_at,
@@ -95,6 +98,10 @@ export function isClosedReason(value: string): value is ClosedReason {
 
 export function isPriority(value: string): value is Priority {
 	return (PRIORITIES as readonly string[]).includes(value);
+}
+
+export function isEstimate(value: string): value is Estimate {
+	return (ESTIMATES as readonly string[]).includes(value);
 }
 
 export function emptyToNull(value: string | null | undefined): string | null {

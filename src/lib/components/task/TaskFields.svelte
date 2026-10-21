@@ -9,7 +9,7 @@
 		type TaskPatch,
 	} from "#lib/tasks/fields.ts";
 	import type { Task } from "#lib/types.ts";
-	import { PRIORITIES } from "#lib/types.ts";
+	import { ESTIMATES, PRIORITIES, type Estimate } from "#lib/types.ts";
 	import Plus from "~icons/lucide/plus";
 
 	interface EpicChoice {
@@ -43,6 +43,16 @@
 	}: Props = $props();
 
 	const TASK_TYPES: ("task" | "epic")[] = ["task", "epic"];
+
+	const estimateChoices: { key: Estimate | ""; label: string }[] = [
+		{ key: "", label: "none" },
+		...ESTIMATES.map((estimate) => ({ key: estimate, label: estimate })),
+	];
+
+	let estimateChoice = $derived(
+		estimateChoices.find((choice) => choice.key === (value.estimate ?? "")) ??
+			estimateChoices[0],
+	);
 
 	let epicChoices = $derived<EpicChoice[]>([
 		{ key: "", label: "none", keywords: "" },
@@ -120,6 +130,19 @@
 			onselect={(priority) => onfield({ priority })}
 			variant="field"
 			ariaLabel="Priority"
+		/>
+	</div>
+	<div class="field">
+		Estimate
+		<SingleSelect
+			items={estimateChoices}
+			value={estimateChoice}
+			getKey={(choice) => choice.key}
+			getLabel={(choice) => choice.label}
+			onselect={(choice) =>
+				onfield({ estimate: choice.key === "" ? null : choice.key })}
+			variant="field"
+			ariaLabel="Estimate"
 		/>
 	</div>
 	<div class="field">

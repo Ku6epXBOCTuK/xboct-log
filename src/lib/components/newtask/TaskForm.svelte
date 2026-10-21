@@ -56,6 +56,7 @@
 			scope_id: initialScope,
 			source_file: null,
 			tags: [],
+			estimate: null,
 			description: "",
 		};
 	}
@@ -158,6 +159,7 @@
 				scope_id: draft.scope_id,
 				source_file: draft.source_file,
 				tags: draft.tags,
+				estimate: draft.estimate,
 			});
 
 			if (keepOpen) {

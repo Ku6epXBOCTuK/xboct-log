@@ -47,6 +47,10 @@ export const PRIORITY_RANK: Record<Priority, number> = {
 	low: 3,
 };
 
+export const ESTIMATES = ["S", "M", "L"] as const;
+
+export type Estimate = (typeof ESTIMATES)[number];
+
 export const INBOX_PROJECT_ID = "inbox";
 export const INBOX_PROJECT_PREFIX = "INB";
 
@@ -140,6 +144,7 @@ export interface Task {
 	scope_id: number | null;
 	source_file: string | null;
 	tags: string[];
+	estimate: Estimate | null;
 	created_at: string;
 	updated_at: string;
 	closed_at: string | null;

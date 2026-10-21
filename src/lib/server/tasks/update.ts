@@ -17,6 +17,7 @@ import { withBlockingInfo } from "./read";
 import {
 	emptyToNull,
 	isClosedReason,
+	isEstimate,
 	isPriority,
 	isStatus,
 	normalizeTags,
@@ -109,6 +110,20 @@ export function updateTaskDetailed(
 				field: "priority",
 				from: current.priority,
 				to: patch.priority,
+			});
+		}
+	}
+	if (patch.estimate !== undefined) {
+		if (patch.estimate !== null && !isEstimate(patch.estimate)) {
+			return err(invalid(`invalid estimate: ${patch.estimate}`));
+		}
+		sets.push("estimate = ?");
+		params.push(patch.estimate);
+		if (patch.estimate !== current.estimate) {
+			changes.push({
+				field: "estimate",
+				from: current.estimate,
+				to: patch.estimate,
 			});
 		}
 	}

@@ -88,6 +88,9 @@ export function creationFields(input: object | undefined): string[] {
 	if (Array.isArray(value.tags) && value.tags.length > 0) {
 		fields.push("tags");
 	}
+	if (value.estimate !== undefined && value.estimate !== null) {
+		fields.push("estimate");
+	}
 	return fields;
 }
 

@@ -10,7 +10,7 @@ import {
 	updateTask,
 } from "#lib/remote/tasks.remote.ts";
 import type { TaskPatch } from "#lib/tasks/fields.ts";
-import type { ClosedReason, Priority, Task } from "#lib/types.ts";
+import type { ClosedReason, Estimate, Priority, Task } from "#lib/types.ts";
 
 export interface NewTaskInput {
 	project_id: string;
@@ -22,6 +22,7 @@ export interface NewTaskInput {
 	scope_id?: number | null;
 	source_file?: string | null;
 	tags?: string[];
+	estimate?: Estimate | null;
 }
 
 export function createTaskStore(initial: Task[]) {

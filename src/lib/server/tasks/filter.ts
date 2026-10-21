@@ -61,6 +61,12 @@ export function buildTaskFilter(query: TaskQuery): TaskFilterSql {
 		);
 		params.push(...query.priority);
 	}
+	if (query.estimate?.length) {
+		where.push(
+			`tasks.estimate IN (${query.estimate.map(() => "?").join(", ")})`,
+		);
+		params.push(...query.estimate);
+	}
 	if (query.is_epic !== undefined) {
 		where.push("tasks.is_epic = ?");
 		params.push(query.is_epic ? 1 : 0);

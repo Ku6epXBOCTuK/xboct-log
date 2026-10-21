@@ -6,6 +6,7 @@ import { getProject } from "../projects";
 import { withBlockingInfo } from "./read";
 import {
 	emptyToNull,
+	isEstimate,
 	isPriority,
 	isStatus,
 	normalizeTags,
@@ -56,6 +57,10 @@ export function createTask(
 
 	const tags = normalizeTags(input.tags);
 	const sourceFile = emptyToNull(input.source_file);
+	const estimate = input.estimate ?? null;
+	if (estimate !== null && !isEstimate(estimate)) {
+		return err(invalid(`invalid estimate: ${estimate}`));
+	}
 
 	const epicId = input.epic_id ? input.epic_id : null;
 	let resolvedEpicId: string | null = null;
@@ -87,8 +92,8 @@ export function createTask(
 			db.prepare(
 				`INSERT INTO tasks (
 					id, project_id, number, title, description, status, priority, is_epic,
-					epic_id, scope_id, source_file, tags, created_at, updated_at, closed_at
-				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+					epic_id, scope_id, source_file, tags, estimate, created_at, updated_at, closed_at
+				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			).run(
 				id,
 				project.id,
@@ -102,6 +107,7 @@ export function createTask(
 				scopeId,
 				sourceFile,
 				JSON.stringify(tags),
+				estimate,
 				now,
 				now,
 				closedAt,

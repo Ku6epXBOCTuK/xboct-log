@@ -14,6 +14,7 @@ import type {
 } from "../server/tasks";
 import {
 	CLOSED_REASONS,
+	ESTIMATES,
 	PRIORITIES,
 	STATUSES,
 	type Task,
@@ -51,6 +52,16 @@ const taskFilterShape = {
 			z.array(z.enum(PRIORITIES)).optional(),
 		)
 		.optional(),
+	estimate: z
+		.preprocess(
+			(val) =>
+				val === undefined ? undefined : Array.isArray(val) ? val : [val],
+			z.array(z.enum(ESTIMATES)).optional(),
+		)
+		.optional()
+		.describe(
+			"Filter by estimate: one value or a list of them. Tasks without an estimate are not matched.",
+		),
 	tag: z
 		.preprocess(
 			(val) =>
@@ -222,6 +233,13 @@ const newTask = strictObject({
 			"File or document the task came from; provenance only, never verified, several tasks may share it.",
 		),
 	tags: z.array(z.string()).optional(),
+	estimate: z
+		.enum(ESTIMATES)
+		.nullable()
+		.optional()
+		.describe(
+			"Size of the task: 'S', 'M' or 'L'. null leaves the task without an estimate.",
+		),
 });
 
 const taskPatch = strictObject({
@@ -247,12 +265,17 @@ const taskPatch = strictObject({
 			"File or document the task came from; provenance only, never verified, several tasks may share it.",
 		),
 	tags: z.array(z.string()).optional(),
+	estimate: z
+		.enum(ESTIMATES)
+		.nullable()
+		.optional()
+		.describe("Size of the task: 'S', 'M' or 'L'. null clears the estimate."),
 });
 
 export const getTasks = defineQuery({
 	name: "tasks_list",
 	description:
-		"List tasks with filters (project, status, priority, tags, epic, scope, blocked_by, blocks, text query, title, title_exact, source_file), sorting and pagination. Use q to locate a task by id, title, description, the id of its epic or a partial tag (e.g. q='LOG-4', q='26', q='est:'). Returns {items, total} where total is the count of all matching tasks before limit/offset. limit defaults to 100 (max 1000); use offset and total to paginate. Use fields to limit returned columns; the field names it accepts are listed in the description of the fields parameter, and unknown names are ignored. By default each task carries short_description (first line, ~120 chars) instead of the full description; set include_description to get the full text, in which case short_description is omitted. include_project attaches project names, include_scope attaches scope names, and neither filters; project_archived filters by project archival; include_deleted also returns soft-deleted tasks (hidden by default). Task id is the full 'PREFIX-NUMBER' identifier (e.g. 'LOG-82'); number is the per-project sequence number (e.g. 82), unique only inside its project. project_id accepts one id or a list of ids; exclude_project_id drops the given projects (use it for 'every project except X'). The epic filter accepts a full epic id (e.g. 'LOG-5') or a list of them; scope_id likewise takes one scope id or a list, and null matches tasks without that link. has_epic and has_scope filter by the presence of an epic or a scope. sort accepts updated_at, created_at, priority, number and title. The blocked_by filter returns tasks whose blocked_by list contains the given task, the blocks filter returns tasks whose blocks list contains the given task. The source_file filter matches the source file path of a task partially and case-insensitively, so a fragment such as 'backlog' selects every task imported from that file. Every task carries blocked_by (tasks that block me) and blocks (tasks I block) as id lists.",
+		"List tasks with filters (project, status, priority, estimate, tags, epic, scope, blocked_by, blocks, text query, title, title_exact, source_file), sorting and pagination. Use q to locate a task by id, title, description, the id of its epic or a partial tag (e.g. q='LOG-4', q='26', q='est:'). Returns {items, total} where total is the count of all matching tasks before limit/offset. limit defaults to 100 (max 1000); use offset and total to paginate. Use fields to limit returned columns; the field names it accepts are listed in the description of the fields parameter, and unknown names are ignored. By default each task carries short_description (first line, ~120 chars) instead of the full description; set include_description to get the full text, in which case short_description is omitted. include_project attaches project names, include_scope attaches scope names, and neither filters; project_archived filters by project archival; include_deleted also returns soft-deleted tasks (hidden by default). Task id is the full 'PREFIX-NUMBER' identifier (e.g. 'LOG-82'); number is the per-project sequence number (e.g. 82), unique only inside its project. project_id accepts one id or a list of ids; exclude_project_id drops the given projects (use it for 'every project except X'). The epic filter accepts a full epic id (e.g. 'LOG-5') or a list of them; scope_id likewise takes one scope id or a list, and null matches tasks without that link. has_epic and has_scope filter by the presence of an epic or a scope. The estimate filter takes one size or a list of them ('S', 'M', 'L'); tasks without an estimate are not matched. sort accepts updated_at, created_at, priority, number and title. The blocked_by filter returns tasks whose blocked_by list contains the given task, the blocks filter returns tasks whose blocks list contains the given task. The source_file filter matches the source file path of a task partially and case-insensitively, so a fragment such as 'backlog' selects every task imported from that file. Every task carries blocked_by (tasks that block me) and blocks (tasks I block) as id lists.",
 	kind: "query",
 	input: taskFilters,
 	handler: (filters) => {
@@ -309,7 +332,7 @@ export const getTask = defineQuery({
 export const createTask = defineCommand({
 	name: "tasks_create",
 	description:
-		"Create a task. Requires project_id and title; status, priority, epic, scope, tags are optional. epic_id accepts a full epic id (e.g. 'LOG-5') of the same project. Projects that define scopes expect every task to carry one: the result carries a warnings array, and a warning naming the available scopes appears when the task is created without a scope. source_file names the document or file the task came from; it is provenance only, it is never verified and several tasks may share it.",
+		"Create a task. Requires project_id and title; status, priority, estimate, epic, scope, tags are optional. estimate is the size of the task: 'S', 'M' or 'L'. epic_id accepts a full epic id (e.g. 'LOG-5') of the same project. Projects that define scopes expect every task to carry one: the result carries a warnings array, and a warning naming the available scopes appears when the task is created without a scope. source_file names the document or file the task came from; it is provenance only, it is never verified and several tasks may share it.",
 	kind: "command",
 	input: newTask,
 	handler: (input) => {
@@ -362,7 +385,7 @@ export const createTasks = defineCommand({
 export const updateTask = defineCommand({
 	name: "tasks_update",
 	description:
-		"Update fields of an existing task by id. Every field to change goes inside the patch object (e.g. {id: 'LOG-87', patch: {status: 'in-progress'}}); top-level fields other than id and patch are rejected. The id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). In patch, epic_id accepts a full epic id (e.g. 'LOG-5') of the task's current project. The result carries a warnings array, which is not empty when the task has no scope while its project defines scopes.",
+		"Update fields of an existing task by id. Every field to change goes inside the patch object (e.g. {id: 'LOG-87', patch: {status: 'in-progress'}}); top-level fields other than id and patch are rejected. The id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). In patch, epic_id accepts a full epic id (e.g. 'LOG-5') of the task's current project, and estimate takes the size of the task ('S', 'M' or 'L') or null to clear it. The result carries a warnings array, which is not empty when the task has no scope while its project defines scopes.",
 	kind: "command",
 	input: strictObject({
 		id: taskIdSchema(ID_DESCRIPTION),

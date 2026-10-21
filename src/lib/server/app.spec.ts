@@ -179,6 +179,53 @@ describe("tasks", () => {
 		expect(getTask(db, task.id)).toEqual(task);
 	});
 
+	it("stores the estimate and rejects an unknown one", async () => {
+		const db = await setup();
+		const task = unwrap(
+			createTask(db, { project_id: "spa", title: "Small", estimate: "S" }),
+		);
+
+		expect(task.estimate).toBe("S");
+
+		const error = failure(
+			createTask(db, {
+				project_id: "spa",
+				title: "Wrong",
+				estimate: "XL" as never,
+			}),
+		);
+		expect(error.kind).toBe("validation");
+	});
+
+	it("changes and clears the estimate", async () => {
+		const db = await setup();
+		const task = unwrap(createTask(db, { project_id: "spa", title: "Sized" }));
+		expect(task.estimate).toBeNull();
+
+		const updated = unwrap(updateTask(db, task.id, { estimate: "L" }));
+		expect(updated.estimate).toBe("L");
+
+		const cleared = unwrap(updateTask(db, task.id, { estimate: null }));
+		expect(cleared.estimate).toBeNull();
+	});
+
+	it("filters tasks by estimate", async () => {
+		const db = await setup();
+		unwrap(
+			createTask(db, { project_id: "spa", title: "Small", estimate: "S" }),
+		);
+		unwrap(
+			createTask(db, { project_id: "spa", title: "Medium", estimate: "M" }),
+		);
+		unwrap(createTask(db, { project_id: "spa", title: "Unmeasured" }));
+
+		const small = listTasks(db, { estimate: ["S"] });
+		expect(small.map((task) => task.title)).toEqual(["Small"]);
+
+		const both = listTasks(db, { estimate: ["S", "M"] });
+		expect(both.map((task) => task.title).sort()).toEqual(["Medium", "Small"]);
+	});
+
 	it("returns not_found for an unknown project", async () => {
 		const db = await openMigratedDatabase(":memory:");
 		const error = failure(createTask(db, { project_id: "ghost", title: "X" }));
