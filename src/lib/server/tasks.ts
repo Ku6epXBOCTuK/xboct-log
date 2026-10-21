@@ -13,7 +13,14 @@ import {
 	type Status,
 	type Task,
 } from "../types";
-import { AppError, guard, invalid, notFound, type ErrorKind } from "./errors";
+import {
+	AppError,
+	conflict,
+	guard,
+	invalid,
+	notFound,
+	type ErrorKind,
+} from "./errors";
 import {
 	blockingInfoFor,
 	deleteBlockedByLinks,
@@ -316,12 +323,15 @@ interface TaskRefRow {
 	project_id: string;
 }
 
-function lookupTask(db: DatabaseSync, id: string): TaskRefRow | undefined {
+function lookupTask(
+	db: DatabaseSync,
+	id: string,
+	includeDeleted = false,
+): TaskRefRow | undefined {
+	const alive = includeDeleted ? "" : " AND deleted_at IS NULL";
 	for (const candidate of taskIdCandidates(id)) {
 		const found = db
-			.prepare(
-				"SELECT id, project_id FROM tasks WHERE id = ? AND deleted_at IS NULL",
-			)
+			.prepare(`SELECT id, project_id FROM tasks WHERE id = ?${alive}`)
 			.get(candidate) as TaskRefRow | undefined;
 		if (found) {
 			return found;
@@ -406,23 +416,33 @@ export function resolveTaskId(
 	input: string,
 	inProject?: string,
 ): Result<string, AppError> {
+	return resolveTaskIdInternal(db, input, inProject, false);
+}
+
+function resolveTaskIdInternal(
+	db: DatabaseSync,
+	input: string,
+	inProject: string | undefined,
+	includeDeleted: boolean,
+): Result<string, AppError> {
 	const trimmed = input.trim();
 	const projectResult = resolveProjectId(db, inProject);
 	if (projectResult.isErr()) {
 		return err(projectResult.error);
 	}
 	const project = projectResult.value;
+	const alive = includeDeleted ? "" : " AND deleted_at IS NULL";
 	if (TASK_NUMBER_PATTERN.test(trimmed)) {
 		const rows = (
 			project
 				? db
 						.prepare(
-							"SELECT id FROM tasks WHERE number = ? AND project_id = ? AND deleted_at IS NULL ORDER BY id",
+							`SELECT id FROM tasks WHERE number = ? AND project_id = ?${alive} ORDER BY id`,
 						)
 						.all(Number(trimmed), project)
 				: db
 						.prepare(
-							"SELECT id FROM tasks WHERE number = ? AND deleted_at IS NULL ORDER BY project_id, id",
+							`SELECT id FROM tasks WHERE number = ?${alive} ORDER BY project_id, id`,
 						)
 						.all(Number(trimmed))
 		) as { id: string }[];
@@ -449,7 +469,7 @@ export function resolveTaskId(
 		}
 		return ok(rows[0].id);
 	}
-	const found = lookupTask(db, trimmed);
+	const found = lookupTask(db, trimmed, includeDeleted);
 	if (!found) {
 		const hint = hintForFullId(db, trimmed);
 		return err(
@@ -1392,5 +1412,40 @@ export function deleteTask(
 			db.exec("ROLLBACK");
 			throw error;
 		}
+	});
+}
+
+export function restoreTask(
+	db: DatabaseSync,
+	id: string,
+	inProject?: string,
+): Result<Task, AppError> {
+	const resolved = resolveTaskIdInternal(db, id, inProject, true);
+	if (resolved.isErr()) {
+		return err(resolved.error);
+	}
+	const targetId = resolved.value;
+	const task = taskById(db, targetId);
+	if (!task) {
+		return err(notFound(`task ${targetId} not found`));
+	}
+	if (task.deleted_at === null) {
+		return err(conflict(`task ${targetId} is not deleted`));
+	}
+
+	const now = new Date().toISOString();
+
+	return guard(() => {
+		db.exec("BEGIN IMMEDIATE");
+		try {
+			db.prepare(
+				"UPDATE tasks SET deleted_at = NULL, updated_at = ? WHERE id = ?",
+			).run(now, targetId);
+			db.exec("COMMIT");
+		} catch (error) {
+			db.exec("ROLLBACK");
+			throw error;
+		}
+		return withBlockingInfo(db, [taskById(db, targetId)!])[0];
 	});
 }

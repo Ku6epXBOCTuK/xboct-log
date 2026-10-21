@@ -405,6 +405,20 @@ export const deleteTask = defineCommand({
 		activityEntry("task", deletedId, ["deleted_at"]),
 });
 
+export const restoreTask = defineCommand({
+	name: "tasks_restore",
+	description:
+		"Restore a soft-deleted task by id: clears deleted_at and the task is back on the board. Find deleted tasks with tasks_list(include_deleted: true). The task id accepts the full 'PREFIX-NUMBER' form (e.g. 'LOG-82') or a bare task number (e.g. '82') resolved inside in_project, otherwise it must be unique across the whole backlog. Deleting detaches a task from its epic and drops its blocker links — restoring does not bring those back, set them again with tasks_update. Returns the restored task.",
+	kind: "command",
+	input: strictObject({
+		id: z.string().min(1).describe(ID_DESCRIPTION),
+		in_project: z.string().min(1).optional().describe(IN_PROJECT_DESCRIPTION),
+	}),
+	handler: ({ id, in_project }) => repo.restoreTask(getDb(), id, in_project),
+	activity: (_input, task: Task) =>
+		activityEntry("task", task.id, ["deleted_at"]),
+});
+
 export const moveTask = defineCommand({
 	name: "tasks_move",
 	description:

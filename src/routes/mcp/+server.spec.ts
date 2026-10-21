@@ -6,6 +6,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { getOps } from "#lib/remote/index.ts";
 import { closeDb, getDb } from "#lib/server/db.ts";
 import { migrateDatabase } from "#lib/server/migrations.ts";
+import { createProject } from "#lib/server/projects.ts";
+import { createTask, deleteTask } from "#lib/server/tasks.ts";
 import { GET, POST } from "./+server.js";
 
 let dbDir: string;
@@ -147,5 +149,36 @@ describe("/mcp endpoint", () => {
 		};
 		expect(result.isError).toBe(true);
 		expect(result.content?.[0].text).toContain("titel");
+	});
+
+	it("restores a soft-deleted task", async () => {
+		const db = getDb();
+		const project = createProject(db, {
+			id: "mcp-restore",
+			name: "MCP Restore",
+			prefix: "MPR",
+		});
+		expect(project.isOk()).toBe(true);
+		const task = createTask(db, {
+			project_id: "mcp-restore",
+			title: "Restore me",
+		});
+		expect(task.isOk()).toBe(true);
+		const taskId = task._unsafeUnwrap().id;
+		expect(deleteTask(db, taskId).isOk()).toBe(true);
+
+		const body = await rpc("tools/call", {
+			name: "tasks_restore",
+			arguments: { id: taskId },
+		});
+		expect(body.error).toBeUndefined();
+		const result = body.result as { isError?: boolean };
+		expect(result.isError).toBeUndefined();
+		const structured = body.result?.structuredContent as {
+			id?: string;
+			deleted_at?: string | null;
+		};
+		expect(structured.id).toBe(taskId);
+		expect(structured.deleted_at).toBeNull();
 	});
 });
