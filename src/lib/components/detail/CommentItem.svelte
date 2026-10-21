@@ -1,4 +1,5 @@
 <script lang="ts">
+	import CopyButton from "#lib/components/ui/CopyButton.svelte";
 	import { formatDateTime } from "#lib/tasks/display.ts";
 	import type { Comment } from "#lib/types.ts";
 
@@ -38,6 +39,9 @@
 		<span>{formatDateTime(comment.created_at)}</span>
 		{#if comment.edited_at !== null}
 			<span class="edited">edited</span>
+		{/if}
+		{#if !editing}
+			<CopyButton text={comment.body} label="Copy comment" />
 		{/if}
 	</div>
 	{#if editing}
@@ -84,6 +88,10 @@
 		gap: var(--space-2);
 		color: var(--text-muted);
 		font-size: var(--text-xs);
+	}
+
+	.comment-meta :global(.icon-btn) {
+		margin-left: auto;
 	}
 
 	.edited {

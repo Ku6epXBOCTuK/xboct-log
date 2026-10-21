@@ -7,6 +7,7 @@
 	import TaskRevisions from "#lib/components/detail/TaskRevisions.svelte";
 	import TaskFields from "#lib/components/task/TaskFields.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
+	import CopyButton from "#lib/components/ui/CopyButton.svelte";
 	import IconButton from "#lib/components/ui/IconButton.svelte";
 	import StatusDot from "#lib/components/ui/StatusDot.svelte";
 	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
@@ -15,6 +16,7 @@
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
 	import { STATUS_LABELS, formatDate, messageOf } from "#lib/tasks/display.ts";
 	import { blockingCandidates } from "#lib/tasks/blocking.ts";
+	import { taskText } from "#lib/tasks/clipboard.ts";
 	import { collectTags } from "#lib/tasks/filter.ts";
 	import {
 		siblingEpics,
@@ -234,6 +236,11 @@
 					</span>
 				</div>
 				<div class="detail-actions">
+					<CopyButton
+						text={taskText(selected.title, selected.description)}
+						label="Copy title and description"
+						title="Copy title and description"
+					/>
 					<IconButton
 						label="Task history"
 						title="Task history"
@@ -253,12 +260,19 @@
 					</IconButton>
 				</div>
 			</div>
-			<input
-				class="title-input"
-				value={selected.title}
-				onchange={saveTitle}
-				aria-label="Title"
-			/>
+			<div class="title-row">
+				<input
+					class="title-input"
+					value={selected.title}
+					onchange={saveTitle}
+					aria-label="Title"
+				/>
+				<CopyButton
+					text={selected.title}
+					label="Copy title"
+					title="Copy title"
+				/>
+			</div>
 			<ErrorNote message={failure} />
 		</div>
 		<div class="panel-body">
@@ -493,6 +507,16 @@
 	.muted {
 		color: var(--text-muted);
 		font-variant-numeric: tabular-nums;
+	}
+
+	.title-row {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+	}
+
+	.title-row :global(.icon-btn) {
+		margin-top: var(--space-3);
 	}
 
 	.title-input {

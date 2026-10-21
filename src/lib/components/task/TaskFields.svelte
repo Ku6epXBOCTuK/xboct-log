@@ -1,6 +1,7 @@
 <script lang="ts">
 	import SingleSelect from "#lib/components/ui/select/SingleSelect.svelte";
 	import TagInput from "#lib/components/ui/select/TagInput.svelte";
+	import CopyButton from "#lib/components/ui/CopyButton.svelte";
 	import {
 		CLOSED_REASON_LABELS,
 		formatDate,
@@ -126,17 +127,26 @@
 		onchange={changeDescription}
 		placeholder="Description"
 		aria-label="Description"></textarea>
-	{#if commentsCount !== undefined}
-		<button
-			class="comments-count"
-			type="button"
-			onclick={() => oncomments?.()}
-			disabled={oncomments === undefined}
-		>
-			{commentsCount}
-			{commentsCount === 1 ? "comment" : "comments"}
-		</button>
-	{/if}
+	<div class="description-actions">
+		{#if editing}
+			<CopyButton
+				text={value.description}
+				label="Copy description"
+				title="Copy description"
+			/>
+		{/if}
+		{#if commentsCount !== undefined}
+			<button
+				class="comments-count"
+				type="button"
+				onclick={() => oncomments?.()}
+				disabled={oncomments === undefined}
+			>
+				{commentsCount}
+				{commentsCount === 1 ? "comment" : "comments"}
+			</button>
+		{/if}
+	</div>
 </div>
 
 <div class="detail-grid">
@@ -257,8 +267,14 @@
 		font-size: var(--text-md);
 	}
 
-	.comments-count {
+	.description-actions {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
 		margin-top: var(--space-2);
+	}
+
+	.comments-count {
 		border: 1px solid var(--border);
 		border-radius: var(--radius-sm);
 		padding: 0 var(--space-2);
