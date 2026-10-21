@@ -79,9 +79,31 @@ export const updateScope = defineCommand({
 
 export const deleteScope = defineCommand({
 	name: "scopes_delete",
-	description: "Delete a scope by id; its tasks lose the scope assignment.",
+	description:
+		"Delete a scope by id; its tasks lose the scope assignment. Pass dry_run: true to preview the deletion - it returns the scope and the ids of the tasks and epics that would lose it, and changes nothing.",
 	kind: "command",
-	input: strictObject({ id: z.number().int() }),
-	handler: ({ id }) => scopes.deleteScope(getDb(), id),
-	activity: (input) => activityEntry("scope", input.id, []),
+	input: strictObject({
+		id: z.number().int(),
+		dry_run: z
+			.boolean()
+			.optional()
+			.describe(
+				"Preview the deletion instead of performing it: returns the scope and the ids of the tasks and epics that would lose the scope.",
+			),
+	}),
+	handler: ({ id, dry_run }) =>
+		dry_run
+			? scopes.previewScopeDelete(getDb(), id)
+			: scopes.deleteScopeDetailed(getDb(), id),
+	activity: (input, result: scopes.ScopeDeleteReport) =>
+		input.dry_run
+			? null
+			: [
+					activityEntry("scope", input.id, []),
+					...[...result.task_ids, ...result.epic_ids].map((taskId) =>
+						activityEntry("task", taskId, ["scope_id"], null, [
+							{ field: "scope_id", from: input.id, to: null },
+						]),
+					),
+				],
 });

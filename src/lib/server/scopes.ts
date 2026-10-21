@@ -200,13 +200,48 @@ export function updateScope(
 	});
 }
 
-export function deleteScope(
+export interface ScopeDeleteReport {
+	scope: Scope;
+	task_ids: string[];
+	epic_ids: string[];
+	dry_run: boolean;
+}
+
+function scopeMembers(
+	db: DatabaseSync,
+	scopeId: number,
+): { task_ids: string[]; epic_ids: string[] } {
+	const rows = db
+		.prepare(
+			"SELECT id, is_epic FROM tasks WHERE scope_id = ? AND deleted_at IS NULL ORDER BY id",
+		)
+		.all(scopeId) as unknown as { id: string; is_epic: number }[];
+	return {
+		task_ids: rows.filter((row) => row.is_epic === 0).map((row) => row.id),
+		epic_ids: rows.filter((row) => row.is_epic === 1).map((row) => row.id),
+	};
+}
+
+export function previewScopeDelete(
 	db: DatabaseSync,
 	id: number,
-): Result<number, AppError> {
-	if (!getScope(db, id)) {
+): Result<ScopeDeleteReport, AppError> {
+	const scope = getScope(db, id);
+	if (!scope) {
 		return err(notFound(`scope ${id} not found`));
 	}
+	return ok({ scope, ...scopeMembers(db, id), dry_run: true });
+}
+
+export function deleteScopeDetailed(
+	db: DatabaseSync,
+	id: number,
+): Result<ScopeDeleteReport, AppError> {
+	const scope = getScope(db, id);
+	if (!scope) {
+		return err(notFound(`scope ${id} not found`));
+	}
+	const members = scopeMembers(db, id);
 
 	return guard(() => {
 		db.exec("BEGIN IMMEDIATE");
@@ -214,10 +249,18 @@ export function deleteScope(
 			db.prepare("UPDATE tasks SET scope_id = NULL WHERE scope_id = ?").run(id);
 			db.prepare("DELETE FROM scopes WHERE id = ?").run(id);
 			db.exec("COMMIT");
-			return id;
+			return { scope, ...members, dry_run: false };
 		} catch (error) {
 			db.exec("ROLLBACK");
 			throw error;
 		}
 	});
+}
+
+export function deleteScope(
+	db: DatabaseSync,
+	id: number,
+): Result<number, AppError> {
+	const result = deleteScopeDetailed(db, id);
+	return result.isOk() ? ok(result.value.scope.id) : err(result.error);
 }
