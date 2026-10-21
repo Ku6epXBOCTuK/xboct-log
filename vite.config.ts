@@ -21,17 +21,23 @@ function buildVersion(): string {
 
 export default defineConfig(({ mode }) => {
 	if (mode === "test") {
-		process.env.XBOCT_LOG_DB ??= ":memory:";
+		// NOTE: the tests must not inherit the values of the local .env, so
+		// every variable they depend on is set here instead of being filled in
+		// only when it is missing.
+		process.env.XBOCT_LOG_DB = ":memory:";
 		// NOTE: the tests must see the migrations of the working copy, not the
 		// deployed ones in the production directory.
-		process.env.XBOCT_LOG_MIGRATIONS ??= join(process.cwd(), "migrations");
+		process.env.XBOCT_LOG_MIGRATIONS = join(process.cwd(), "migrations");
 		// NOTE: the default backup directory points at the production copies,
 		// so the tests would write their snapshots there.
-		process.env.XBOCT_LOG_BACKUP_DIR ??= join(
+		process.env.XBOCT_LOG_BACKUP_DIR = join(
 			process.cwd(),
 			".dev",
 			"test-backups",
 		);
+		// NOTE: the local .env disables the scheduled backups for development,
+		// but the tests exercise the backup code paths.
+		process.env.XBOCT_LOG_BACKUP_DISABLED = "0";
 	}
 
 	return {

@@ -9,7 +9,7 @@
 		"deploy": "powershell -ExecutionPolicy Bypass -File scripts/deploy.ps1",
 		"dev": "node scripts/dev.mjs",
 		"dev:vite": "vite dev",
-		"dev:clone": "node --env-file-if-exists=.env scripts/dev-clone.mjs",
+		"dev:seed": "node scripts/dev-seed.mjs",
 		"build": "vite build",
 		"build:ext": "npm --prefix vscode-extension run compile && npm --prefix vscode-extension run package",
 		"preview": "vite preview",
