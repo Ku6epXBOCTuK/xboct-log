@@ -312,7 +312,7 @@ describe("activity log", () => {
 		expect(rows()).toHaveLength(1);
 	});
 
-	it("follows the history of a moved task and accepts a bare number", async () => {
+	it("follows the history of a moved task", async () => {
 		const db = getDb();
 		const task = unwrap(createTask(db, { project_id: "spa", title: "Mover" }));
 		clear();
@@ -323,7 +323,6 @@ describe("activity log", () => {
 		})) as { id: string };
 		const history = (await call("tasks_history", {
 			id: moved.id,
-			in_project: "bil",
 		})) as { items: ActivityItem[]; total: number };
 
 		expect(history.total).toBe(1);

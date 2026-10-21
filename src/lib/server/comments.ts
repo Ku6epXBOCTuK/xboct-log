@@ -20,7 +20,6 @@ interface CommentRow {
 export interface NewComment {
 	task_id: string;
 	body: string;
-	in_project?: string;
 }
 
 function mapComment(row: CommentRow): Comment {
@@ -88,7 +87,7 @@ export function addComment(
 	db: DatabaseSync,
 	input: NewComment,
 ): Result<Comment, AppError> {
-	const resolved = resolveTaskId(db, input.task_id, input.in_project);
+	const resolved = resolveTaskId(db, input.task_id);
 	if (resolved.isErr()) {
 		return err(resolved.error);
 	}

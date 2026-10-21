@@ -115,20 +115,6 @@ describe("task filters", () => {
 		]);
 	});
 
-	it("resolves bare epic numbers inside the given projects", async () => {
-		unwrap(createTask(db, { project_id: "spa", title: "Epic", is_epic: true }));
-		unwrap(createTask(db, { project_id: "bil", title: "Epic", is_epic: true }));
-		unwrap(createTask(db, { project_id: "spa", title: "Child", epic_id: "1" }));
-		unwrap(createTask(db, { project_id: "bil", title: "Child", epic_id: "1" }));
-
-		const found = listTasks(db, {
-			epic_id: ["1"],
-			project_id: ["spa"],
-		});
-
-		expect(found.map((task) => task.id)).toEqual(["SPA-2"]);
-	});
-
 	it("filters by the presence of an epic and of a scope", async () => {
 		const scope = unwrap(
 			createScope(db, { project_id: "spa", name: "frontend" }),

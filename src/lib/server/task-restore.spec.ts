@@ -37,16 +37,23 @@ describe("task restore", () => {
 		);
 	});
 
-	it("restores by a bare task number inside a project", () => {
-		const task = unwrap(
+	it("rejects a bare task number and names the candidate ids", () => {
+		const first = unwrap(
 			createTask(db, { project_id: "spa", title: "Shop task" }),
 		);
-		unwrap(deleteTask(db, task.id));
+		const second = unwrap(
+			createTask(db, { project_id: "bil", title: "Billing task" }),
+		);
+		unwrap(deleteTask(db, first.id));
+		unwrap(deleteTask(db, second.id));
 
-		const restored = unwrap(restoreTask(db, String(task.number), "spa"));
+		const result = restoreTask(db, String(first.number));
 
-		expect(restored.id).toBe(task.id);
-		expect(restored.deleted_at).toBeNull();
+		expect(result.isErr()).toBe(true);
+		expect(result._unsafeUnwrapErr().status).toBe(400);
+		expect(result._unsafeUnwrapErr().message).toContain("PREFIX-NUMBER");
+		expect(result._unsafeUnwrapErr().message).toContain("SPA-1");
+		expect(result._unsafeUnwrapErr().message).toContain("BIL-1");
 	});
 
 	it("fails when the task is not deleted", () => {
@@ -67,32 +74,15 @@ describe("task restore", () => {
 		expect(result._unsafeUnwrapErr().status).toBe(404);
 	});
 
-	it("fails when a bare number is ambiguous across projects", () => {
-		const first = unwrap(
-			createTask(db, { project_id: "spa", title: "Shop task" }),
-		);
-		const second = unwrap(
-			createTask(db, { project_id: "bil", title: "Billing task" }),
-		);
-		unwrap(deleteTask(db, first.id));
-		unwrap(deleteTask(db, second.id));
-
-		const result = restoreTask(db, String(first.number));
-
-		expect(result.isErr()).toBe(true);
-		expect(result._unsafeUnwrapErr().status).toBe(400);
-		expect(result._unsafeUnwrapErr().message).toContain("ambiguous");
-	});
-
-	it("fails when the task belongs to another project", () => {
+	it("restores a task of another project by its full id", () => {
 		const task = unwrap(
 			createTask(db, { project_id: "spa", title: "Shop task" }),
 		);
 		unwrap(deleteTask(db, task.id));
 
-		const result = restoreTask(db, task.id, "bil");
+		const result = restoreTask(db, task.id);
 
-		expect(result.isErr()).toBe(true);
-		expect(result._unsafeUnwrapErr().status).toBe(400);
+		expect(result.isErr()).toBe(false);
+		expect(unwrap(result).id).toBe(task.id);
 	});
 });

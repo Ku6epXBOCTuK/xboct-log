@@ -124,7 +124,7 @@ describe("/mcp endpoint", () => {
 			arguments: {
 				project_id: ["spa", "bil"],
 				scope_id: [1, 2],
-				epic_id: ["LOG-5", "6"],
+				epic_id: ["LOG-5", "LOG-6"],
 				exclude_project_id: "old",
 				has_scope: true,
 				has_epic: false,

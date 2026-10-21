@@ -76,15 +76,13 @@ describe("blocker tools", () => {
 		expect(byBlocked.total).toBe(1);
 	});
 
-	it("accepts bare numbers inside in_project", async () => {
-		const blocked = await callTask("tasks_add_blocker", {
-			id: "2",
-			blocked_by: "1",
-			in_project: "bil",
-		});
-
-		expect(blocked.id).toBe("BIL-2");
-		expect(blocked.blocked_by).toEqual(["BIL-1"]);
+	it("rejects bare numbers", async () => {
+		await expect(
+			callTask("tasks_add_blocker", {
+				id: "2",
+				blocked_by: "1",
+			}),
+		).rejects.toThrow(/PREFIX-NUMBER/);
 	});
 
 	it("removes the link and releases the blocked status", async () => {

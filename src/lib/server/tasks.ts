@@ -235,31 +235,36 @@ export function resolveEpicId(
 	selfId?: string,
 ): Result<string, AppError> {
 	const trimmed = input.trim();
-	let row: EpicRow | undefined;
 	if (TASK_NUMBER_PATTERN.test(trimmed)) {
-		row = db
-			.prepare(
-				"SELECT id, project_id, is_epic, deleted_at FROM tasks WHERE number = ? AND project_id = ? AND deleted_at IS NULL",
-			)
-			.get(Number(trimmed), projectId) as EpicRow | undefined;
-		if (!row) {
-			return err(notFound(`epic ${trimmed} not found in project ${projectId}`));
-		}
-	} else {
-		for (const candidate of taskIdCandidates(trimmed)) {
-			const found = db
+		const candidates = (
+			db
 				.prepare(
-					"SELECT id, project_id, is_epic, deleted_at FROM tasks WHERE id = ?",
+					"SELECT id FROM tasks WHERE number = ? AND project_id = ? AND is_epic = 1 AND deleted_at IS NULL ORDER BY id",
 				)
-				.get(candidate) as EpicRow | undefined;
-			if (found && found.deleted_at === null) {
-				row = found;
-				break;
-			}
+				.all(Number(trimmed), projectId) as { id: string }[]
+		).map((row) => row.id);
+		return err(
+			invalid(
+				candidates.length > 0
+					? `epic id must be 'PREFIX-NUMBER' — use ${candidates.join(", ")}`
+					: `epic id must be 'PREFIX-NUMBER' — no epic ${trimmed} in project ${projectId}`,
+			),
+		);
+	}
+	let row: EpicRow | undefined;
+	for (const candidate of taskIdCandidates(trimmed)) {
+		const found = db
+			.prepare(
+				"SELECT id, project_id, is_epic, deleted_at FROM tasks WHERE id = ?",
+			)
+			.get(candidate) as EpicRow | undefined;
+		if (found && found.deleted_at === null) {
+			row = found;
+			break;
 		}
-		if (!row) {
-			return err(notFound(`epic ${trimmed} not found`));
-		}
+	}
+	if (!row) {
+		return err(notFound(`epic ${trimmed} not found`));
 	}
 	if (selfId !== undefined && row.id === selfId) {
 		return err(invalid("a task cannot be its own epic"));
@@ -320,6 +325,20 @@ function taskIdCandidates(id: string): string[] {
 	return candidates;
 }
 
+function idsByNumber(
+	db: DatabaseSync,
+	number: number,
+	includeDeleted = false,
+): string[] {
+	const alive = includeDeleted ? "" : " AND deleted_at IS NULL";
+	const rows = db
+		.prepare(
+			`SELECT id FROM tasks WHERE number = ?${alive} ORDER BY project_id, id`,
+		)
+		.all(number) as { id: string }[];
+	return rows.map((row) => row.id);
+}
+
 interface TaskRefRow {
 	id: string;
 	project_id: string;
@@ -340,21 +359,6 @@ function lookupTask(
 		}
 	}
 	return undefined;
-}
-
-function resolveProjectId(
-	db: DatabaseSync,
-	ref: string | undefined,
-): Result<string | undefined, AppError> {
-	const trimmed = ref?.trim() ?? "";
-	if (trimmed === "") {
-		return ok(undefined);
-	}
-	const project = resolveProjectRef(db, trimmed);
-	if (!project) {
-		return err(notFound(`project ${trimmed} not found`));
-	}
-	return ok(project.id);
 }
 
 function nearTaskIds(
@@ -397,92 +401,34 @@ function hintForFullId(db: DatabaseSync, id: string): string | undefined {
 	return near.length > 0 ? `did you mean ${near.join(" or ")}?` : undefined;
 }
 
-function hintForNumber(
-	db: DatabaseSync,
-	number: number,
-	projectId: string | undefined,
-): string | undefined {
-	if (projectId === undefined) {
-		return undefined;
-	}
-	const row = db
-		.prepare(
-			"SELECT id FROM tasks WHERE number = ? AND project_id <> ? AND deleted_at IS NULL ORDER BY id LIMIT 1",
-		)
-		.get(number, projectId) as { id: string } | undefined;
-	return row ? `did you mean ${row.id}?` : undefined;
-}
-
 export function resolveTaskId(
 	db: DatabaseSync,
 	input: string,
-	inProject?: string,
 ): Result<string, AppError> {
-	return resolveTaskIdInternal(db, input, inProject, false);
+	return resolveTaskIdInternal(db, input, false);
 }
 
 function resolveTaskIdInternal(
 	db: DatabaseSync,
 	input: string,
-	inProject: string | undefined,
 	includeDeleted: boolean,
 ): Result<string, AppError> {
 	const trimmed = input.trim();
-	const projectResult = resolveProjectId(db, inProject);
-	if (projectResult.isErr()) {
-		return err(projectResult.error);
-	}
-	const project = projectResult.value;
-	const alive = includeDeleted ? "" : " AND deleted_at IS NULL";
 	if (TASK_NUMBER_PATTERN.test(trimmed)) {
-		const rows = (
-			project
-				? db
-						.prepare(
-							`SELECT id FROM tasks WHERE number = ? AND project_id = ?${alive} ORDER BY id`,
-						)
-						.all(Number(trimmed), project)
-				: db
-						.prepare(
-							`SELECT id FROM tasks WHERE number = ?${alive} ORDER BY project_id, id`,
-						)
-						.all(Number(trimmed))
-		) as { id: string }[];
-		if (rows.length === 0) {
-			const hint = hintForNumber(db, Number(trimmed), project);
-			return err(
-				notFound(
-					`task ${trimmed} not found${
-						project ? ` in project ${project}` : ""
-					}${hint ? ` — ${hint}` : ""}`,
-				),
-			);
-		}
-		if (rows.length > 1) {
-			return err(
-				invalid(
-					`task number ${trimmed} is ambiguous: ${rows
-						.map((row) => row.id)
-						.join(", ")} — use the full id${
-						project ? ` or pass in_project: "${project}"` : ""
-					}`,
-				),
-			);
-		}
-		return ok(rows[0].id);
+		const candidates = idsByNumber(db, Number(trimmed), includeDeleted);
+		return err(
+			invalid(
+				candidates.length > 0
+					? `task id must be 'PREFIX-NUMBER' — use ${candidates.join(", ")}`
+					: `task id must be 'PREFIX-NUMBER' — no task ${trimmed} in the backlog`,
+			),
+		);
 	}
 	const found = lookupTask(db, trimmed, includeDeleted);
 	if (!found) {
 		const hint = hintForFullId(db, trimmed);
 		return err(
 			notFound(`task ${trimmed} not found${hint ? ` — ${hint}` : ""}`),
-		);
-	}
-	if (project && found.project_id !== project) {
-		return err(
-			invalid(
-				`task ${found.id} belongs to project ${found.project_id}, not ${project}`,
-			),
 		);
 	}
 	return ok(found.id);
@@ -504,18 +450,14 @@ export function withBlockingInfo(db: DatabaseSync, tasks: Task[]): Task[] {
 	});
 }
 
-export function getTask(
-	db: DatabaseSync,
-	id: string,
-	inProject?: string,
-): Task | undefined {
+export function getTask(db: DatabaseSync, id: string): Task | undefined {
 	const task = taskById(db, id);
 	if (task) {
 		return task.deleted_at === null
 			? withBlockingInfo(db, [task])[0]
 			: undefined;
 	}
-	const resolved = resolveTaskId(db, id, inProject);
+	const resolved = resolveTaskId(db, id);
 	if (resolved.isErr()) {
 		return undefined;
 	}
@@ -527,59 +469,16 @@ export interface TasksByIds {
 	missing: string[];
 }
 
-export function getTasksByIds(
-	db: DatabaseSync,
-	ids: string[],
-	inProject?: string,
-): TasksByIds {
+export function getTasksByIds(db: DatabaseSync, ids: string[]): TasksByIds {
 	const unique = [...new Set(ids)];
 	if (unique.length === 0) {
 		return { items: [], missing: [] };
-	}
-
-	const projectResult = resolveProjectId(db, inProject);
-	if (projectResult.isErr()) {
-		return { items: [], missing: unique };
-	}
-	const project = projectResult.value;
-
-	const numbers = unique
-		.filter((id) => TASK_NUMBER_PATTERN.test(id.trim()))
-		.map((id) => Number(id.trim()));
-	const rowsByNumber = new Map<number, string[]>();
-	if (numbers.length > 0) {
-		const rows = (
-			project
-				? db
-						.prepare(
-							`SELECT number, id FROM tasks
-							 WHERE number IN (${numbers.map(() => "?").join(", ")}) AND project_id = ? AND deleted_at IS NULL
-							 ORDER BY id`,
-						)
-						.all(...numbers, project)
-				: db
-						.prepare(
-							`SELECT number, id FROM tasks
-							 WHERE number IN (${numbers.map(() => "?").join(", ")}) AND deleted_at IS NULL
-							 ORDER BY project_id, id`,
-						)
-						.all(...numbers)
-		) as { number: number; id: string }[];
-		for (const row of rows) {
-			const list = rowsByNumber.get(row.number) ?? [];
-			list.push(row.id);
-			rowsByNumber.set(row.number, list);
-		}
 	}
 
 	const resolvedInput = new Map<string, string>();
 	for (const id of unique) {
 		const trimmed = id.trim();
 		if (TASK_NUMBER_PATTERN.test(trimmed)) {
-			const candidates = rowsByNumber.get(Number(trimmed)) ?? [];
-			if (candidates.length === 1) {
-				resolvedInput.set(id, candidates[0]);
-			}
 			continue;
 		}
 		const found = lookupTask(db, trimmed);
@@ -729,13 +628,7 @@ function blockingIdMatch(value: string): {
 	sql: string;
 	params: (string | number)[];
 } {
-	const trimmed = value.trim();
-	if (TASK_NUMBER_PATTERN.test(trimmed)) {
-		return {
-			sql: "(SELECT id FROM tasks WHERE number = ? AND deleted_at IS NULL)",
-			params: [Number(trimmed)],
-		};
-	}
+	const trimmed = normalizeTaskIdInput(value.trim());
 	return {
 		sql: "(SELECT id FROM tasks WHERE id = ? AND deleted_at IS NULL)",
 		params: [trimmed],
@@ -796,22 +689,9 @@ function buildTaskFilter(query: TaskQuery): TaskFilterSql {
 			const epicRefs = toStringList(query.epic_id);
 			const clauses: string[] = [];
 			for (const ref of epicRefs) {
-				const trimmed = ref.trim();
-				if (TASK_NUMBER_PATTERN.test(trimmed)) {
-					const scope = projectIds?.length
-						? ` AND project_id IN (${projectIds.map(() => "?").join(", ")})`
-						: "";
-					clauses.push(
-						`tasks.epic_id IN (SELECT id FROM tasks WHERE number = ? AND deleted_at IS NULL${scope})`,
-					);
-					params.push(Number(trimmed));
-					if (projectIds?.length) {
-						params.push(...projectIds);
-					}
-				} else {
-					clauses.push("tasks.epic_id = ?");
-					params.push(trimmed);
-				}
+				const trimmed = normalizeTaskIdInput(ref.trim());
+				clauses.push("tasks.epic_id = ?");
+				params.push(trimmed);
 			}
 			if (clauses.length) {
 				where.push(`(${clauses.join(" OR ")})`);
@@ -1002,9 +882,8 @@ export function updateTaskDetailed(
 	db: DatabaseSync,
 	id: string,
 	patch: TaskPatch,
-	inProject?: string,
 ): Result<TaskUpdateOutcome, AppError> {
-	const resolved = resolveTaskId(db, id, inProject);
+	const resolved = resolveTaskId(db, id);
 	if (resolved.isErr()) {
 		return err(resolved.error);
 	}
@@ -1190,9 +1069,8 @@ export function updateTask(
 	db: DatabaseSync,
 	id: string,
 	patch: TaskPatch,
-	inProject?: string,
 ): Result<Task, AppError> {
-	const result = updateTaskDetailed(db, id, patch, inProject);
+	const result = updateTaskDetailed(db, id, patch);
 	return result.isOk() ? ok(result.value.task) : err(result.error);
 }
 
@@ -1200,12 +1078,11 @@ export function closeTaskDetailed(
 	db: DatabaseSync,
 	id: string,
 	reason: ClosedReason,
-	inProject?: string,
 ): Result<TaskUpdateOutcome, AppError> {
 	if (!isClosedReason(reason)) {
 		return err(invalid(`invalid close reason: ${reason}`));
 	}
-	const resolved = resolveTaskId(db, id, inProject);
+	const resolved = resolveTaskId(db, id);
 	if (resolved.isErr()) {
 		return err(resolved.error);
 	}
@@ -1242,9 +1119,8 @@ export function closeTask(
 	db: DatabaseSync,
 	id: string,
 	reason: ClosedReason,
-	inProject?: string,
 ): Result<Task, AppError> {
-	const result = closeTaskDetailed(db, id, reason, inProject);
+	const result = closeTaskDetailed(db, id, reason);
 	return result.isOk() ? ok(result.value.task) : err(result.error);
 }
 
@@ -1305,20 +1181,18 @@ function batchItem(
 export function closeTasksMany(
 	db: DatabaseSync,
 	items: { id: string; reason: ClosedReason }[],
-	inProject?: string,
 ): BatchItem[] {
 	return items.map((item) =>
-		batchItem(item.id, closeTaskDetailed(db, item.id, item.reason, inProject)),
+		batchItem(item.id, closeTaskDetailed(db, item.id, item.reason)),
 	);
 }
 
 export function updateTasksMany(
 	db: DatabaseSync,
 	items: { id: string; patch: TaskPatch }[],
-	inProject?: string,
 ): BatchItem[] {
 	return items.map((item) =>
-		batchItem(item.id, updateTaskDetailed(db, item.id, item.patch, inProject)),
+		batchItem(item.id, updateTaskDetailed(db, item.id, item.patch)),
 	);
 }
 
@@ -1339,9 +1213,8 @@ export function moveTask(
 	db: DatabaseSync,
 	id: string,
 	projectId: string,
-	inProject?: string,
 ): Result<Task, AppError> {
-	const resolved = resolveTaskId(db, id, inProject);
+	const resolved = resolveTaskId(db, id);
 	if (resolved.isErr()) {
 		return err(resolved.error);
 	}
@@ -1410,9 +1283,8 @@ export interface DeleteTaskOutcome {
 export function deleteTaskDetailed(
 	db: DatabaseSync,
 	id: string,
-	inProject?: string,
 ): Result<DeleteTaskOutcome, AppError> {
-	const resolved = resolveTaskId(db, id, inProject);
+	const resolved = resolveTaskId(db, id);
 	if (resolved.isErr()) {
 		return err(resolved.error);
 	}
@@ -1482,9 +1354,8 @@ export function deleteTaskDetailed(
 export function deleteTask(
 	db: DatabaseSync,
 	id: string,
-	inProject?: string,
 ): Result<string, AppError> {
-	const result = deleteTaskDetailed(db, id, inProject);
+	const result = deleteTaskDetailed(db, id);
 	if (result.isErr()) {
 		return err(result.error);
 	}
@@ -1494,9 +1365,8 @@ export function deleteTask(
 export function restoreTask(
 	db: DatabaseSync,
 	id: string,
-	inProject?: string,
 ): Result<Task, AppError> {
-	const resolved = resolveTaskIdInternal(db, id, inProject, true);
+	const resolved = resolveTaskIdInternal(db, id, true);
 	if (resolved.isErr()) {
 		return err(resolved.error);
 	}
