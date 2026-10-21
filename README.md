@@ -27,26 +27,29 @@ pnpm install
 pnpm dev
 ```
 
-`pnpm dev` runs on an isolated clone so it never touches the real database: it
-uses `./.dev/dev.db` (override with `XBOCT_LOG_DEV_DB`), writes backups to
-`./.dev/backups`, and ignores the production `XBOCT_LOG_DB` from `.env`. The
-`.dev` directory is gitignored.
+`pnpm dev` runs against an isolated database: it uses `./.dev/dev.db` (override
+with `XBOCT_LOG_DEV_DB`), writes backups to `./.dev/backups`, and turns the
+scheduled backups off. The `.dev` directory is gitignored.
 
-Refresh the clone from the live production database at any time:
+Seed the dev database from a snapshot when you need fresh data:
 
 ```sh
-pnpm dev:clone
+pnpm dev:seed
 ```
+
+The script copies the newest `*.db` file from `./.dev/seed/` into
+`./.dev/dev.db`. Drop a snapshot into that folder yourself — nothing in the
+repository fetches it from the production host.
 
 ## Configuration
 
-`XBOCT_LOG_DB` is required by everything that touches the real database: the
-production server and `pnpm dev:clone`. Put it in `.env` at the repo root, and
-in `~/.xboct-log/app/.env` on the production host. Copy `.env.example` as a
+`XBOCT_LOG_DB` is required by everything that touches a real database. Put it in
+`.env` at the repo root and keep the production copy in the `.env` that the
+deployment writes next to the application folder. Copy `.env.example` as a
 starting point:
 
 ```sh
-XBOCT_LOG_DB=C:\Users\you\.xboct-log\xboct-log.db
+XBOCT_LOG_DB=.dev/dev.db
 ```
 
 There is no built-in default, so a fresh checkout fails to build: `pnpm build`
@@ -54,8 +57,8 @@ exits with `env_invalid` until you create `.env` with `XBOCT_LOG_DB`. The server
 refuses to start for the same reason instead of silently opening the production
 database. The app reads the variable through `$app/env/private` (declared in
 `src/env.ts`), so the dev server picks it up from `.env` automatically.
-`pnpm dev:clone` runs with `--env-file-if-exists=.env`, and the production
-launcher reads `app/.env` at startup.
+`pnpm dev` overrides it anyway, and the production launcher reads the `.env`
+next to the application folder at startup.
 
 All server-side variables are declared in `src/env.ts` with their defaults:
 `XBOCT_LOG_MIGRATIONS`, `XBOCT_LOG_BACKUP_*`, `XBOCT_LOG_ACTIVITY_KEEP_DAYS`.
@@ -66,7 +69,7 @@ they target the dev database (`XBOCT_LOG_DEV_DB`, default `./.dev/dev.db`).
 Production migrations run inside the server on startup.
 
 `pnpm dev:vite` is the raw Vite run; it reads `.env` too, so it points at the
-production database unless the variable is overridden:
+database named there unless the variable is overridden:
 
 ```sh
 XBOCT_LOG_DB=./tasks.db pnpm dev:vite
@@ -74,7 +77,8 @@ XBOCT_LOG_DB=./tasks.db pnpm dev:vite
 
 ## Backups
 
-The production server copies the database into `~/.xboct-log/backups`:
+The server copies the database into the backup directory
+(`XBOCT_LOG_BACKUP_DIR`):
 
 - `auto/xboct-log-YYYY-MM-DD-HHMMSS.db` — a snapshot taken before the first MCP
   write of every 30-minute window, so a bad agent session can be rolled back.
@@ -88,17 +92,17 @@ time, a catch-up copy runs on the next start.
 Development uses a separate directory and turns backups off, so it never
 overwrites a production copy.
 
-| Variable                             | Default                | Meaning                        |
-| ------------------------------------ | ---------------------- | ------------------------------ |
-| `XBOCT_LOG_BACKUP_DIR`               | `~/.xboct-log/backups` | Where copies are written       |
-| `XBOCT_LOG_BACKUP_HOUR`              | `3`                    | Hour of the daily run          |
-| `XBOCT_LOG_BACKUP_MINUTE`            | `0`                    | Minute of the daily run        |
-| `XBOCT_LOG_BACKUP_WEEKDAY`           | `0`                    | Weekly run day (`0` is Sunday) |
-| `XBOCT_LOG_BACKUP_DAILY_KEEP`        | `7`                    | Daily copies to keep           |
-| `XBOCT_LOG_BACKUP_WEEKLY_KEEP`       | `4`                    | Weekly copies to keep          |
-| `XBOCT_LOG_BACKUP_AUTO_KEEP`         | `48`                   | Auto snapshots to keep         |
-| `XBOCT_LOG_BACKUP_AUTO_INTERVAL_MIN` | `30`                   | Minutes between auto snapshots |
-| `XBOCT_LOG_BACKUP_DISABLED`          | off                    | Set to `1` to turn backups off |
+| Variable                             | Default | Meaning                        |
+| ------------------------------------ | ------- | ------------------------------ |
+| `XBOCT_LOG_BACKUP_DIR`               | —       | Where copies are written       |
+| `XBOCT_LOG_BACKUP_HOUR`              | `3`     | Hour of the daily run          |
+| `XBOCT_LOG_BACKUP_MINUTE`            | `0`     | Minute of the daily run        |
+| `XBOCT_LOG_BACKUP_WEEKDAY`           | `0`     | Weekly run day (`0` is Sunday) |
+| `XBOCT_LOG_BACKUP_DAILY_KEEP`        | `7`     | Daily copies to keep           |
+| `XBOCT_LOG_BACKUP_WEEKLY_KEEP`       | `4`     | Weekly copies to keep          |
+| `XBOCT_LOG_BACKUP_AUTO_KEEP`         | `48`    | Auto snapshots to keep         |
+| `XBOCT_LOG_BACKUP_AUTO_INTERVAL_MIN` | `30`    | Minutes between auto snapshots |
+| `XBOCT_LOG_BACKUP_DISABLED`          | off     | Set to `1` to turn backups off |
 
 ### Restoring
 
@@ -106,26 +110,37 @@ Restoring replaces the live database file, so the server has to be stopped
 first. The restore is a CLI script rather than an app feature: it has to work
 when the application itself is broken.
 
+In development, the script in this repository works on the dev database:
+
 ```sh
 pnpm restore list                        # every snapshot, newest first
-nssm stop xboct-log
 pnpm restore restore <path-to-snapshot>
-nssm start xboct-log
 ```
 
-The script refuses to run while the server still listens on the port, saves the
-current database into the `manual` folder before replacing it, and removes the
-stale `-wal`/`-shm` files. The database path comes from `--db`, then
-`XBOCT_LOG_DB`, then `~/.xboct-log/xboct-log.db`.
+On the production host the same script is deployed next to the application
+folder and reads its paths from the `.env` file placed there, so it is run as a
+plain Node script with the service stopped:
 
-The same list is available over MCP through the `backup_list` tool.
+```sh
+node <app-dir>\restore.mjs list
+node <app-dir>\restore.mjs restore <path-to-snapshot>
+```
+
+The script refuses to run while the server still listens on the port, checks the
+snapshot with `PRAGMA integrity_check`, saves the current database into the
+`manual` folder before replacing it, writes the new file atomically, and removes
+the stale `-wal`/`-shm` files. The database path comes from `--db`, then
+`XBOCT_LOG_DB`, then the `.env` next to the script.
+
+The same list is available over MCP through the `backup_list` tool. The tool
+cannot restore anything: it only reports which snapshots exist.
 
 ## Scripts
 
 | Command          | Description                                       |
 | ---------------- | ------------------------------------------------- |
-| `pnpm dev`       | Dev server on an isolated clone of the DB         |
-| `pnpm dev:clone` | Copy the prod DB to `./.dev/dev.db`               |
+| `pnpm dev`       | Dev server on an isolated database                |
+| `pnpm dev:seed`  | Seed `./.dev/dev.db` from the newest snapshot     |
 | `pnpm dev:vite`  | Raw Vite dev server, no isolation                 |
 | `pnpm build`     | Build for production (Node adapter)               |
 | `pnpm preview`   | Preview the production build                      |

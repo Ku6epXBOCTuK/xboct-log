@@ -99,29 +99,43 @@
 
 ## Эксплуатация (prod)
 
-- **Prod** — артефакт в `%USERPROFILE%\.xboct-log\app`, вне git. Служба NSSM
-  `xboct-log`, порт `45881`, `HOST=0.0.0.0`. Старт/стоп идут из обычного
-  PowerShell: DACL службы даёт `IU`/`SU` права `RP`/`WP`.
+- **Prod** — артефакт в `<prod-app-dir>`, вне git. Служба NSSM `xboct-log`, порт
+  `45881`, `HOST=0.0.0.0`. Старт/стоп идут из обычного PowerShell: DACL службы
+  даёт `IU`/`SU` права `RP`/`WP`.
 - **Деплой:** `pnpm run deploy` (не `pnpm deploy` — встроенная команда pnpm
-  перехватывает имя). `scripts/deploy.ps1`: постоянный worktree
-  `%LOCALAPPDATA%\xboct-log\build-wt` на `origin/main` — переиспользуется между
-  деплоями (`reset --hard` + инкрементальный `pnpm install --frozen-lockfile`),
-  не создаётся и не удаляется каждый раз → сборка → копирование `build`,
-  `migrations`, манифеста и `scripts/start-prod.mjs` в `app` →
-  `nssm stop`/`start`. Простой — только `robocopy` + рестарт (порядка 2–3 с).
+  перехватывает имя). `scripts/deploy.ps1`: постоянный worktree `<build-wt>` на
+  `origin/main` — переиспользуется между деплоями (`reset --hard` +
+  инкрементальный `pnpm install --frozen-lockfile`), не создаётся и не удаляется
+  каждый раз → сборка → копирование `build`, `migrations`, манифеста,
+  `scripts/start-prod.mjs`, `scripts/restore.mjs` и `.env` из worktree в
+  `<prod-app-dir>` → `nssm stop`/`start`. Простой — только `robocopy` + рестарт
+  (порядка 2–3 с). Пути worktree и папки приложения захардкожены в `deploy.ps1`
+  — это единственные прод-пути в репо.
+- **Деплой fail-closed:** нет `.env` в worktree — падение до первого касания
+  прод-папки. Восстанавливать `.env` придётся руками.
+- **Проверка изоляции (разовая, после правок путей):**
+  ```powershell
+  git grep -n -E "xboct-log|build-wt|nssm"
+  ```
+  Прод-пути (`.xboct-log\`, `build-wt`) допустимы только в `scripts/deploy.ps1`.
+  Остальные совпадения — имя приложения/службы и подсказки
+  `nssm start xboct-log` в `scripts/restore.mjs` и
+  `vscode-extension/src/extension.ts`. Постоянного скрипта-проверки нет: барьер
+  держится вручную.
 - **Путь к прод-БД вшивается в сборку.** Все серверные переменные объявлены в
   `src/env.ts` и помечены `static: true`, поэтому SvelteKit подставляет их
   значения **на этапе сборки** (`build/server/chunks/db.js`). Источник при
   сборке — `.env` в корне worktree, где идёт `pnpm build`, то есть
-  `%LOCALAPPDATA%\xboct-log\build-wt\.env`. `app/.env` на проде не существует и
-  не нужен: `start.mjs` его ищет, но не находит. Переменная `XBOCT_LOG_DB` в
-  окружении службы NSSM (`AppEnvironmentExtra`) — наследие первого ручного
-  `nssm set` из старого `docs/deploy-plan.md`; с момента перехода на `static`
-  env её никто не читает, значение совпадает с вшитым в билд. Без `XBOCT_LOG_DB`
-  не собирается и сборка. Прод-миграции применяются внутри сервера на старте
-  (`hooks.server.ts`). `scripts/migrate.mjs` — только для dev: он не читает
-  `.env` и ходит в `XBOCT_LOG_DEV_DB` (по умолчанию `.dev/dev.db`), поэтому
-  случайный `pnpm migrate` не может задеть прод.
+  `<build-wt>\.env`. Этот же файл деплой копирует в `<prod-app-dir>\.env`, и его
+  читает `restore.mjs` — так у скрипта восстановления нет ни одной прописанной
+  прод-пути. Переменная `XBOCT_LOG_DB` в окружении службы NSSM
+  (`AppEnvironmentExtra`) — наследие первого ручного `nssm set` из старого
+  `docs/deploy-plan.md`; с момента перехода на `static` env её никто не читает,
+  значение совпадает с вшитым в билд. Без `XBOCT_LOG_DB` не собирается и сборка.
+  Прод-миграции применяются внутри сервера на старте (`hooks.server.ts`).
+  `scripts/migrate.mjs` — только для dev: он не читает `.env` и ходит в
+  `XBOCT_LOG_DEV_DB` (по умолчанию `.dev/dev.db`), поэтому случайный
+  `pnpm migrate` не может задеть прод.
 - **Костыль схемы запроса.** `adapter-node` без `PROTOCOL_HEADER` считает схему
   `https` и отбивает любой не-GET как cross-site (403
   `Cross-site remote requests are forbidden`). `app/start.mjs` (=
@@ -153,20 +167,26 @@
   `backup(source, path)`, обратной операции «залить файл в живой `DatabaseSync`»
   нет, а `getDb()` держит синглтон на процесс. Плюс скрипт должен работать
   тогда, когда сервер вообще не стартует.
-- `scripts/restore.mjs` отказывается работать, пока порт слушается, и сохраняет
-  текущую БД в `manual/` перед заменой. Путь к БД: `--db` → `XBOCT_LOG_DB` →
-  `~/.xboct-log/xboct-log.db`.
+- `scripts/restore.mjs` отказывается работать, пока порт слушается, проверяет
+  снимок (`PRAGMA integrity_check` + наличие `schema_migrations`), сохраняет
+  текущую БД в `manual/` перед заменой и пишет новую БД атомарно (`.new` +
+  rename). Путь к БД: `--db` → `XBOCT_LOG_DB` → `.env` рядом со скриптом. На
+  проде скрипт лежит рядом с приложением и берёт пути из своего `.env`.
 - Тесты пишут бэкапы в `.dev/test-backups` (`vite.config.ts`, режим `test`):
   дефолт `XBOCT_LOG_BACKUP_DIR` указывает на прод-папку.
 - Переменные бэкапов `static: true`, поэтому в прод-сборке они **вшиты**: смена
   `XBOCT_LOG_BACKUP_AUTO_KEEP`/`_INTERVAL_MIN` требует пересборки и рестарта
   службы, а не правки `.env` на сервере.
+- **Совместимость снимка и кода.** Старый снимок на текущем коде безопасен:
+  миграции догоняют на старте. Обратное — нет: новый снимок на старом коде
+  ломает схему. Откат кода требует согласованной пары `version.txt` + worktree
+  на нужном коммите.
 
 ## Разработка
 
-- `pnpm dev:clone` — копия прод-БД (через `backup()` из `node:sqlite`) в
-  `.dev/dev.db`. Прод-путь берётся из `XBOCT_LOG_DB` (`.env`), живую базу читает
-  в `readOnly`.
+- `pnpm dev:seed` — копия свежего снапшота из `.dev/seed/` (новейший `*.db`) в
+  `.dev/dev.db` через `backup()` из `node:sqlite`. Прод не читается: снимок
+  кладёт человек.
 - `pnpm dev` — `scripts/dev.mjs`: dev-БД, `XBOCT_LOG_BACKUP_DISABLED=1` и
   отдельный `.dev/backups`, чтобы dev не перезаписал прод-бэкап
   `xboct-log-YYYY-MM-DD.db`. `XBOCT_LOG_DB` из `.env` игнорируется — dev всегда
