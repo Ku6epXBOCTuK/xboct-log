@@ -1,13 +1,15 @@
 <script lang="ts">
 	import { isTypingTarget, matchesHotkey } from "#lib/hotkeys/hotkeys.ts";
 	import Search from "~icons/lucide/search";
+	import X from "~icons/lucide/x";
 
 	interface Props {
 		value: string;
 		oninput: (value: string) => void;
+		onclear?: () => void;
 	}
 
-	let { value, oninput }: Props = $props();
+	let { value, oninput, onclear }: Props = $props();
 
 	let input = $state<HTMLInputElement | undefined>();
 
@@ -31,7 +33,13 @@
 		placeholder="Search by title, description, and ID"
 		aria-label="Search tasks"
 	/>
-	<kbd>/</kbd>
+	{#if value !== "" && onclear}
+		<button class="clear-button" onclick={onclear} aria-label="Clear search">
+			<X />
+		</button>
+	{:else}
+		<kbd>/</kbd>
+	{/if}
 </div>
 
 <style>
@@ -80,5 +88,31 @@
 		padding: 0 var(--space-1);
 		font-size: var(--text-xs);
 		line-height: 1.35rem;
+	}
+
+	.clear-button {
+		position: absolute;
+		right: var(--space-2);
+		display: grid;
+		place-items: center;
+		width: var(--control-h-sm);
+		height: var(--control-h-sm);
+		border: 0;
+		background: transparent;
+		color: var(--text-muted);
+		border-radius: var(--radius-sm);
+		cursor: pointer;
+	}
+
+	.clear-button:hover {
+		color: var(--foreground);
+		background: var(--hover);
+	}
+
+	.clear-button :global(svg) {
+		position: static;
+		width: 0.875rem;
+		height: 0.875rem;
+		color: inherit;
 	}
 </style>

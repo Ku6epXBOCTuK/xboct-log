@@ -1,5 +1,6 @@
 <script lang="ts">
 	import EpicFilter from "#lib/components/filters/EpicFilter.svelte";
+	import FilterBlock from "#lib/components/filters/FilterBlock.svelte";
 	import ScopeFilter from "#lib/components/filters/ScopeFilter.svelte";
 	import TagFilterSelect from "#lib/components/ui/select/TagFilterSelect.svelte";
 	import type { Filters } from "#lib/state/filters.svelte.ts";
@@ -34,28 +35,46 @@
 </script>
 
 <div class="meta-row">
-	<EpicFilter
-		value={filters.epic}
-		{epics}
-		{countEpic}
-		{countActiveEpic}
-		onselect={(value) => (filters.epic = value)}
-	/>
-	{#if scopes.length > 0}
-		<ScopeFilter
-			value={filters.scope}
-			{scopes}
-			{countScope}
-			{countActiveScope}
-			onselect={(value) => (filters.scope = value)}
+	<FilterBlock
+		label="epic"
+		active={filters.epicChanged}
+		onreset={() => filters.resetEpic()}
+	>
+		<EpicFilter
+			value={filters.epic}
+			{epics}
+			{countEpic}
+			{countActiveEpic}
+			onselect={(value) => (filters.epic = value)}
 		/>
+	</FilterBlock>
+	{#if scopes.length > 0}
+		<FilterBlock
+			label="scope"
+			active={filters.scopeChanged}
+			onreset={() => filters.resetScope()}
+		>
+			<ScopeFilter
+				value={filters.scope}
+				{scopes}
+				{countScope}
+				{countActiveScope}
+				onselect={(value) => (filters.scope = value)}
+			/>
+		</FilterBlock>
 	{/if}
-	<TagFilterSelect
-		{tags}
-		selected={filters.selectedTags}
-		ontoggle={(tag) => filters.toggleTag(tag)}
-		onclear={() => filters.clearTags()}
-	/>
+	<FilterBlock
+		label="tag"
+		active={filters.tagsChanged}
+		onreset={() => filters.clearTags()}
+	>
+		<TagFilterSelect
+			{tags}
+			selected={filters.selectedTags}
+			ontoggle={(tag) => filters.toggleTag(tag)}
+			onclear={() => filters.clearTags()}
+		/>
+	</FilterBlock>
 	<span class="result-count">
 		{visibleCount} visible / {total} total
 	</span>

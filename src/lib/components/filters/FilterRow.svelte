@@ -1,4 +1,5 @@
 <script lang="ts">
+	import FilterBlock from "#lib/components/filters/FilterBlock.svelte";
 	import PriorityFilter from "#lib/components/filters/PriorityFilter.svelte";
 	import StatusFilter from "#lib/components/filters/StatusFilter.svelte";
 	import type { Priority, Status } from "#lib/types.ts";
@@ -8,9 +9,13 @@
 		status: Status | "all";
 		priority: Priority | "all";
 		hideClosed: boolean;
+		statusChanged: boolean;
+		priorityChanged: boolean;
 		onstatus: (value: Status | "all") => void;
 		onpriority: (value: Priority | "all") => void;
 		ontoggleclosed: () => void;
+		onresetstatus: () => void;
+		onresetpriority: () => void;
 		onclear: () => void;
 	}
 
@@ -18,21 +23,33 @@
 		status,
 		priority,
 		hideClosed,
+		statusChanged,
+		priorityChanged,
 		onstatus,
 		onpriority,
 		ontoggleclosed,
+		onresetstatus,
+		onresetpriority,
 		onclear,
 	}: Props = $props();
 </script>
 
 <div class="filter-row">
-	<StatusFilter
-		value={status}
-		onselect={onstatus}
-		{hideClosed}
-		{ontoggleclosed}
-	/>
-	<PriorityFilter value={priority} onselect={onpriority} />
+	<FilterBlock label="status" active={statusChanged} onreset={onresetstatus}>
+		<StatusFilter
+			value={status}
+			onselect={onstatus}
+			{hideClosed}
+			{ontoggleclosed}
+		/>
+	</FilterBlock>
+	<FilterBlock
+		label="priority"
+		active={priorityChanged}
+		onreset={onresetpriority}
+	>
+		<PriorityFilter value={priority} onselect={onpriority} />
+	</FilterBlock>
 	<button class="clear-filters" onclick={onclear}>
 		<X /> Clear
 	</button>

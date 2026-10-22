@@ -44,9 +44,13 @@ export function filterTasks(tasks: Task[], criteria: FilterCriteria): Task[] {
 			return false;
 		}
 		if (criteria.epic === "none" && task.epic_id !== null) return false;
+		if (criteria.epic === "only" && !task.is_epic) return false;
+		if (criteria.epic === "inside" && task.epic_id === null) return false;
 		if (
 			criteria.epic !== "any" &&
 			criteria.epic !== "none" &&
+			criteria.epic !== "only" &&
+			criteria.epic !== "inside" &&
 			task.epic_id !== criteria.epic
 		) {
 			return false;

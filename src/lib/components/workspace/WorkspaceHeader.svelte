@@ -68,14 +68,19 @@
 	<SearchBar
 		value={filters.query}
 		oninput={(value) => (filters.query = value)}
+		onclear={() => filters.resetQuery()}
 	/>
 	<FilterRow
 		status={filters.status}
 		priority={filters.priority}
 		hideClosed={filters.hideClosed}
+		statusChanged={filters.statusChanged}
+		priorityChanged={filters.priorityChanged}
 		onstatus={(value) => (filters.status = value)}
 		onpriority={(value) => (filters.priority = value)}
 		ontoggleclosed={() => filters.toggleClosed()}
+		onresetstatus={() => filters.resetStatus()}
+		onresetpriority={() => filters.resetPriority()}
 		onclear={() => filters.clear()}
 	/>
 	<MetaRow

@@ -126,6 +126,26 @@ describe("query", () => {
 	});
 });
 
+describe("epic modes", () => {
+	const epicTasks = [
+		task({ id: "E-1", is_epic: true }),
+		task({ id: "A-1", epic_id: "E-1" }),
+		task({ id: "A-2" }),
+	];
+
+	it("keeps only the epics", () => {
+		const visible = filterTasks(epicTasks, criteria({ epic: "only" }));
+
+		expect(visible.map((item) => item.id)).toEqual(["E-1"]);
+	});
+
+	it("keeps only the tasks inside epics", () => {
+		const visible = filterTasks(epicTasks, criteria({ epic: "inside" }));
+
+		expect(visible.map((item) => item.id)).toEqual(["A-1"]);
+	});
+});
+
 describe("countActiveTasksInProject", () => {
 	it("counts only non-closed tasks in the project", () => {
 		const projectTasks = [

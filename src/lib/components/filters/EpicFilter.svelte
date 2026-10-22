@@ -32,10 +32,24 @@
 		meta: "",
 		keywords: "none",
 	};
+	const ONLY: Choice = {
+		key: "only",
+		label: "Epic: only epics",
+		meta: "",
+		keywords: "only epics",
+	};
+	const INSIDE: Choice = {
+		key: "inside",
+		label: "Epic: inside epics",
+		meta: "",
+		keywords: "inside epics",
+	};
 
 	const choices = $derived<Choice[]>([
 		ANY,
 		NONE,
+		ONLY,
+		INSIDE,
 		...epics.map((epic) => ({
 			key: epic.id,
 			label: `${epic.id} — ${epic.title}`,

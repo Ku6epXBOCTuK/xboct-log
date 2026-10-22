@@ -50,11 +50,24 @@ export function createFilters(initialProject: ProjectFilter) {
 		toggleClosed() {
 			hideClosed = !hideClosed;
 		},
+		get statusChanged() {
+			return status !== "all" || !hideClosed;
+		},
+		resetStatus() {
+			status = "all";
+			hideClosed = true;
+		},
 		get priority() {
 			return priority;
 		},
 		set priority(value: Priority | "all") {
 			priority = value;
+		},
+		get priorityChanged() {
+			return priority !== "all";
+		},
+		resetPriority() {
+			priority = "all";
 		},
 		get epic() {
 			return epic;
@@ -62,17 +75,35 @@ export function createFilters(initialProject: ProjectFilter) {
 		set epic(value: string) {
 			epic = value;
 		},
+		get epicChanged() {
+			return epic !== "any";
+		},
+		resetEpic() {
+			epic = "any";
+		},
 		get scope() {
 			return scope;
 		},
 		set scope(value: "any" | "none" | number) {
 			scope = value;
 		},
+		get scopeChanged() {
+			return scope !== "any";
+		},
+		resetScope() {
+			scope = "any";
+		},
 		get query() {
 			return query;
 		},
 		set query(value: string) {
 			query = value;
+		},
+		get queryChanged() {
+			return query !== "";
+		},
+		resetQuery() {
+			query = "";
 		},
 		get selectedTags() {
 			return selectedTags;
@@ -84,6 +115,9 @@ export function createFilters(initialProject: ProjectFilter) {
 		},
 		clearTags() {
 			selectedTags = [];
+		},
+		get tagsChanged() {
+			return selectedTags.length > 0;
 		},
 		get sortKey() {
 			return sortKey;
