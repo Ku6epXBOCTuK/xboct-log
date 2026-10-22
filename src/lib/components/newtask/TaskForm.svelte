@@ -2,6 +2,7 @@
 	import ProjectScopeFields from "#lib/components/task/ProjectScopeFields.svelte";
 	import TaskFields from "#lib/components/task/TaskFields.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
+	import type { DraftStore } from "#lib/state/draft.svelte.ts";
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
 	import { messageOf } from "#lib/tasks/display.ts";
@@ -15,25 +16,31 @@
 		type TaskPatch,
 	} from "#lib/tasks/fields.ts";
 	import { INBOX_PROJECT_ID, type Project } from "#lib/types.ts";
+	import { untrack } from "svelte";
+	import ArrowLeft from "~icons/lucide/arrow-left";
 
 	interface Props {
 		tasks: TaskStore;
 		projects: Project[];
 		scopes: ScopeStore;
+		draftStore: DraftStore;
 		initialProject?: string;
 		initialEpic?: string | null;
 		initialScope?: number | null;
 		onclose: () => void;
+		onopen?: (id: string) => void;
 	}
 
 	let {
 		tasks,
 		projects,
 		scopes,
+		draftStore,
 		initialProject,
 		initialEpic = null,
 		initialScope = null,
 		onclose,
+		onopen,
 	}: Props = $props();
 
 	function defaultProject(): string {
@@ -75,6 +82,12 @@
 	let titleInput = $state<HTMLInputElement | null>(null);
 	let formElement = $state<HTMLFormElement | null>(null);
 
+	const restored = untrack(() => draftStore.saved);
+	if (restored) {
+		draft = restored.values;
+		title = restored.title;
+	}
+
 	const epicOptions = $derived(
 		epicsForProject(tasks.epics, draft.project_id, draft.epic_id),
 	);
@@ -99,6 +112,21 @@
 		Object.assign(draft, patch);
 		failure = null;
 		invalidField = false;
+	}
+
+	function cancel() {
+		draftStore.clearDraft();
+		onclose();
+	}
+
+	function backToLast() {
+		const last = draftStore.last;
+		if (!last) return;
+		draftStore.save({
+			values: { ...draft, tags: [...draft.tags] },
+			title,
+		});
+		onopen?.(last.id);
 	}
 
 	function onproject(projectId: string) {
@@ -167,7 +195,7 @@
 		saving = true;
 
 		try {
-			await tasks.create({
+			const created = await tasks.create({
 				project_id: draft.project_id,
 				title: title.trim(),
 				description: draft.description,
@@ -181,6 +209,9 @@
 				assignee: draft.assignee,
 				due_at: draft.due_at,
 			});
+
+			draftStore.setLast({ id: created.id, title: created.title });
+			draftStore.clearDraft();
 
 			if (keepOpen) {
 				reset();
@@ -239,7 +270,18 @@
 				Create another
 				<kbd>Ctrl+Alt+C</kbd>
 			</label>
-			<button class="icon-button" type="button" onclick={onclose}>
+			{#if draftStore.last}
+				<button
+					class="back-button"
+					type="button"
+					onclick={backToLast}
+					title={draftStore.last.title}
+				>
+					<ArrowLeft />
+					{draftStore.last.id}
+				</button>
+			{/if}
+			<button class="icon-button" type="button" onclick={cancel}>
 				Cancel
 			</button>
 			<button class="new-task" type="submit" disabled={saving}>
@@ -302,5 +344,30 @@
 		padding: 0 var(--space-1);
 		font-size: var(--text-xs);
 		line-height: 1.35rem;
+	}
+
+	.back-button {
+		display: flex;
+		align-items: center;
+		gap: var(--space-1);
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		background: var(--panel);
+		color: var(--text-secondary);
+		padding: 0 var(--space-2);
+		height: var(--control-h-sm);
+		font-family: var(--font-mono);
+		font-size: var(--text-xs);
+	}
+
+	.back-button:hover {
+		color: var(--foreground);
+		background: var(--hover);
+	}
+
+	.back-button :global(svg) {
+		width: 0.875rem;
+		height: 0.875rem;
+		flex: none;
 	}
 </style>

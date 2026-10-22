@@ -9,7 +9,8 @@
 	import { getActiveTotal } from "#lib/tasks/filter.ts";
 	import type { Task } from "#lib/types.ts";
 
-	const { tasks, projects, scopes, comments, filters, theme } = useBoard();
+	const { tasks, projects, scopes, comments, filters, theme, draft } =
+		useBoard();
 
 	let selectedId = $state<string | null>(null);
 	let creating = $state(false);
@@ -102,9 +103,14 @@
 	{projects}
 	{scopes}
 	{tasks}
+	draftStore={draft}
 	initialProject={createDefaults.projectId}
 	initialEpic={createDefaults.epicId}
 	initialScope={createDefaults.scopeId}
+	onopen={(id) => {
+		selectedId = id;
+		creating = false;
+	}}
 />
 
 <style>

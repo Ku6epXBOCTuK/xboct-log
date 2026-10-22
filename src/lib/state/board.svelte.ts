@@ -4,6 +4,7 @@ import { page } from "$app/state";
 import { SvelteURL } from "svelte/reactivity";
 import { getContext, setContext } from "svelte";
 import { createCommentsStore } from "#lib/state/comments.svelte.ts";
+import { createDraftStore } from "#lib/state/draft.svelte.ts";
 import { createFilters } from "#lib/state/filters.svelte.ts";
 import { createProjectStore } from "#lib/state/projects.svelte.ts";
 import { createScopeStore } from "#lib/state/scopes.svelte.ts";
@@ -26,6 +27,7 @@ export function createBoard(input: BoardInput) {
 	const comments = createCommentsStore();
 	const filters = createFilters(input.project);
 	const theme = createTheme(input.theme);
+	const draft = createDraftStore();
 
 	function setActiveProject(projectId: ProjectFilter) {
 		filters.activeProject = projectId;
@@ -52,6 +54,7 @@ export function createBoard(input: BoardInput) {
 		comments,
 		filters,
 		theme,
+		draft,
 		setActiveProject,
 	};
 }

@@ -2,6 +2,7 @@
 	import NewProjectForm from "#lib/components/newtask/NewProjectForm.svelte";
 	import TaskForm from "#lib/components/newtask/TaskForm.svelte";
 	import Modal from "#lib/components/ui/Modal.svelte";
+	import type { DraftStore } from "#lib/state/draft.svelte.ts";
 	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
@@ -11,9 +12,11 @@
 		projects: ProjectStore;
 		scopes: ScopeStore;
 		tasks: TaskStore;
+		draftStore: DraftStore;
 		initialProject?: string;
 		initialEpic?: string | null;
 		initialScope?: number | null;
+		onopen?: (id: string) => void;
 	}
 
 	let {
@@ -21,9 +24,11 @@
 		projects,
 		scopes,
 		tasks,
+		draftStore,
 		initialProject,
 		initialEpic = null,
 		initialScope = null,
+		onopen,
 	}: Props = $props();
 
 	let createdProject = $state<string | undefined>(undefined);
@@ -47,11 +52,13 @@
 		<TaskForm
 			{tasks}
 			{scopes}
+			{draftStore}
 			projects={projects.active}
 			initialProject={createdProject ?? initialProject}
 			{initialEpic}
 			{initialScope}
 			onclose={close}
+			{onopen}
 		/>
 	{/if}
 </Modal>
