@@ -16,9 +16,12 @@
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { CommentsStore } from "#lib/state/comments.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
+	import type { UiStore } from "#lib/state/ui.svelte.ts";
+	import AdvancedToggle from "#lib/components/task/AdvancedToggle.svelte";
 	import { STATUS_LABELS, formatDate, messageOf } from "#lib/tasks/display.ts";
 	import { blockingCandidates } from "#lib/tasks/blocking.ts";
 	import { taskText } from "#lib/tasks/clipboard.ts";
+	import { advancedFilledCount } from "#lib/tasks/fields.ts";
 	import { collectTags } from "#lib/tasks/filter.ts";
 	import {
 		siblingEpics,
@@ -39,6 +42,7 @@
 		projects: ProjectStore;
 		scopes: ScopeStore;
 		comments: CommentsStore;
+		ui: UiStore;
 		onclear: () => void;
 		ondelete?: (id: string) => void;
 		oncreatechild?: (task: Task) => void;
@@ -50,6 +54,7 @@
 		projects,
 		scopes,
 		comments,
+		ui,
 		onclear,
 		ondelete,
 		oncreatechild,
@@ -306,12 +311,20 @@
 				epics={siblingEpics(tasks.epics, selected)}
 				{tagSuggestions}
 				editing
+				advanced={ui.advanced}
 				onfield={save}
 				onerror={(message) => (failure = message)}
 				oncreatechild={createChild}
 				commentsCount={comments.count(selected.id)}
 				oncomments={() => (commentsOpen = true)}
 			/>
+			<div class="advanced-row">
+				<AdvancedToggle
+					count={advancedFilledCount(selected)}
+					checked={ui.advanced}
+					onchange={(value) => ui.set(value)}
+				/>
+			</div>
 			<TaskAttachments task={selected} />
 		</div>
 		<DetailActions
@@ -412,6 +425,12 @@
 	.detail-head {
 		flex: none;
 		padding: var(--edge-pad) var(--edge-pad) 0;
+	}
+
+	.advanced-row {
+		display: flex;
+		justify-content: flex-end;
+		margin-top: var(--space-3);
 	}
 
 	.panel-body {

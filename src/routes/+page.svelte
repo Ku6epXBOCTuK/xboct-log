@@ -9,7 +9,7 @@
 	import { getActiveTotal } from "#lib/tasks/filter.ts";
 	import type { Task } from "#lib/types.ts";
 
-	const { tasks, projects, scopes, comments, filters, theme, draft } =
+	const { tasks, projects, scopes, comments, filters, theme, draft, ui } =
 		useBoard();
 
 	let selectedId = $state<string | null>(null);
@@ -93,6 +93,7 @@
 	{projects}
 	{scopes}
 	{comments}
+	{ui}
 	onclear={() => (selectedId = null)}
 	ondelete={forgetEpic}
 	oncreatechild={openChild}
@@ -104,6 +105,7 @@
 	{scopes}
 	{tasks}
 	draftStore={draft}
+	{ui}
 	initialProject={createDefaults.projectId}
 	initialEpic={createDefaults.epicId}
 	initialScope={createDefaults.scopeId}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { epicsForProject, siblingEpics } from "./fields";
+import { advancedFilledCount, epicsForProject, siblingEpics } from "./fields";
 import type { Task } from "#lib/types.ts";
 
 function task(overrides: Partial<Task>): Task {
@@ -27,6 +27,44 @@ function task(overrides: Partial<Task>): Task {
 		...overrides,
 	};
 }
+
+describe("advancedFilledCount", () => {
+	it("counts the filled advanced fields", () => {
+		expect(
+			advancedFilledCount({
+				project_id: "inbox",
+				priority: "medium",
+				is_epic: false,
+				epic_id: null,
+				scope_id: null,
+				source_file: "docs/backlog.md",
+				tags: [],
+				estimate: "M",
+				assignee: null,
+				due_at: "2026-10-30",
+				description: "",
+			}),
+		).toBe(3);
+	});
+
+	it("counts an epic type as a filled field", () => {
+		expect(
+			advancedFilledCount({
+				project_id: "inbox",
+				priority: "medium",
+				is_epic: true,
+				epic_id: null,
+				scope_id: null,
+				source_file: null,
+				tags: [],
+				estimate: null,
+				assignee: null,
+				due_at: null,
+				description: "",
+			}),
+		).toBe(1);
+	});
+});
 
 describe("epicsForProject", () => {
 	it("keeps open and in-progress epics of the project", () => {

@@ -6,6 +6,7 @@
 	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
+	import type { UiStore } from "#lib/state/ui.svelte.ts";
 
 	interface Props {
 		open: boolean;
@@ -13,6 +14,7 @@
 		scopes: ScopeStore;
 		tasks: TaskStore;
 		draftStore: DraftStore;
+		ui: UiStore;
 		initialProject?: string;
 		initialEpic?: string | null;
 		initialScope?: number | null;
@@ -25,6 +27,7 @@
 		scopes,
 		tasks,
 		draftStore,
+		ui,
 		initialProject,
 		initialEpic = null,
 		initialScope = null,
@@ -53,6 +56,7 @@
 			{tasks}
 			{scopes}
 			{draftStore}
+			{ui}
 			projects={projects.active}
 			initialProject={createdProject ?? initialProject}
 			{initialEpic}

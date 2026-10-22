@@ -5,12 +5,15 @@
 	import type { DraftStore } from "#lib/state/draft.svelte.ts";
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
+	import type { UiStore } from "#lib/state/ui.svelte.ts";
+	import AdvancedToggle from "#lib/components/task/AdvancedToggle.svelte";
 	import { messageOf } from "#lib/tasks/display.ts";
 	import { fileToBase64, formatSize } from "#lib/tasks/attachments.ts";
 	import { addTaskAttachment } from "#lib/remote/attachments.remote.ts";
 	import { collectTags } from "#lib/tasks/filter.ts";
 	import { matchesHotkey } from "#lib/hotkeys/hotkeys.ts";
 	import { fieldNavigation } from "#lib/hotkeys/fields.ts";
+	import { advancedFilledCount } from "#lib/tasks/fields.ts";
 	import {
 		epicsForProject,
 		validateTaskDraft,
@@ -30,6 +33,7 @@
 		projects: Project[];
 		scopes: ScopeStore;
 		draftStore: DraftStore;
+		ui: UiStore;
 		initialProject?: string;
 		initialEpic?: string | null;
 		initialScope?: number | null;
@@ -42,6 +46,7 @@
 		projects,
 		scopes,
 		draftStore,
+		ui,
 		initialProject,
 		initialEpic = null,
 		initialScope = null,
@@ -277,20 +282,32 @@
 			{onnewscope}
 		/>
 
-		<label class="field detail-field">
-			Title
-			<input
-				class="field-control"
-				bind:this={titleInput}
-				bind:value={title}
-				placeholder="What needs to be done"
-			/>
-		</label>
+		<div class="field detail-field title-field">
+			<label for="new-task-title">Title</label>
+			<div class="title-row">
+				<input
+					id="new-task-title"
+					class="field-control"
+					bind:this={titleInput}
+					bind:value={title}
+					placeholder="What needs to be done"
+				/>
+				<IconButton
+					label="Attach a file"
+					title="Attach a file"
+					size="md"
+					onclick={() => fileInput?.click()}
+				>
+					<Paperclip />
+				</IconButton>
+			</div>
+		</div>
 
 		<TaskFields
 			value={draft}
 			epics={epicOptions}
 			{tagSuggestions}
+			advanced={ui.advanced}
 			{onfield}
 			onerror={(message) => {
 				failure = message;
@@ -346,6 +363,11 @@
 				Create another
 				<kbd>Ctrl+Alt+C</kbd>
 			</label>
+			<AdvancedToggle
+				count={advancedFilledCount(draft)}
+				checked={ui.advanced}
+				onchange={(value) => ui.set(value)}
+			/>
 			{#if draftStore.last}
 				<button
 					class="back-button"
@@ -448,6 +470,17 @@
 		flex: none;
 		margin: 0 calc(var(--modal-pad) * -1) calc(var(--modal-pad) * -1);
 		padding: var(--space-3) var(--modal-pad) var(--modal-pad);
+	}
+
+	.title-row {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+	}
+
+	.title-row :global(.field-control) {
+		flex: 1 1 auto;
+		min-width: 0;
 	}
 
 	.modal-actions {

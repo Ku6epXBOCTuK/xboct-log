@@ -50,6 +50,17 @@ export function validateTaskDraft(draft: {
 	return null;
 }
 
+export function advancedFilledCount(values: TaskFieldValues): number {
+	let count = 0;
+	if (values.estimate !== null && values.estimate !== undefined) count += 1;
+	if (values.due_at !== null && values.due_at !== undefined) count += 1;
+	if (values.assignee !== null && values.assignee !== undefined) count += 1;
+	if (values.source_file !== null && values.source_file !== undefined)
+		count += 1;
+	if (values.is_epic) count += 1;
+	return count;
+}
+
 export function epicsForProject(
 	epics: Task[],
 	projectId: ProjectFilter,

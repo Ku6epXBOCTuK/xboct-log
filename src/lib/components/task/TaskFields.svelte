@@ -28,6 +28,7 @@
 		epics: Task[];
 		tagSuggestions?: string[];
 		editing?: boolean;
+		advanced?: boolean;
 		onfield: (patch: TaskPatch) => void;
 		onerror: (message: string) => void;
 		oncreatechild?: () => void;
@@ -40,6 +41,7 @@
 		epics,
 		tagSuggestions = [],
 		editing = false,
+		advanced = true,
 		onfield,
 		onerror,
 		oncreatechild,
@@ -162,31 +164,6 @@
 			ariaLabel="Priority"
 		/>
 	</div>
-	<div class="field">
-		Estimate
-		<SingleSelect
-			items={estimateChoices}
-			value={estimateChoice}
-			getKey={(choice) => choice.key}
-			getLabel={(choice) => choice.label}
-			onselect={(choice) =>
-				onfield({ estimate: choice.key === "" ? null : choice.key })}
-			variant="field"
-			ariaLabel="Estimate"
-		/>
-	</div>
-	<div class="field">
-		Type
-		<SingleSelect
-			items={TASK_TYPES}
-			value={value.is_epic ? "epic" : "task"}
-			getKey={(type) => type}
-			getLabel={(type) => type}
-			onselect={(type) => onfield({ is_epic: type === "epic" })}
-			variant="field"
-			ariaLabel="Type"
-		/>
-	</div>
 	{#if editing && value.is_epic && oncreatechild}
 		<div class="field-action">
 			<button class="icon-button" onclick={oncreatechild}>
@@ -231,34 +208,61 @@
 	/>
 </div>
 
-<div class="detail-grid">
-	<label class="field">
-		Source file
-		<input
-			class="field-control"
-			value={value.source_file ?? ""}
-			onchange={changeSourceFile}
-		/>
-	</label>
-	<label class="field">
-		Assignee
-		<input
-			class="field-control"
-			value={value.assignee ?? ""}
-			onchange={changeAssignee}
-			placeholder="nobody"
-		/>
-	</label>
-	<label class="field">
-		Due
-		<input
-			class="field-control"
-			type="date"
-			value={value.due_at ?? ""}
-			onchange={changeDueAt}
-		/>
-	</label>
-</div>
+{#if advanced}
+	<div class="detail-grid">
+		<label class="field">
+			Due
+			<input
+				class="field-control"
+				type="date"
+				value={value.due_at ?? ""}
+				onchange={changeDueAt}
+			/>
+		</label>
+		<div class="field">
+			Estimate
+			<SingleSelect
+				items={estimateChoices}
+				value={estimateChoice}
+				getKey={(choice) => choice.key}
+				getLabel={(choice) => choice.label}
+				onselect={(choice) =>
+					onfield({ estimate: choice.key === "" ? null : choice.key })}
+				variant="field"
+				ariaLabel="Estimate"
+			/>
+		</div>
+		<div class="field">
+			Type
+			<SingleSelect
+				items={TASK_TYPES}
+				value={value.is_epic ? "epic" : "task"}
+				getKey={(type) => type}
+				getLabel={(type) => type}
+				onselect={(type) => onfield({ is_epic: type === "epic" })}
+				variant="field"
+				ariaLabel="Type"
+			/>
+		</div>
+		<label class="field">
+			Assignee
+			<input
+				class="field-control"
+				value={value.assignee ?? ""}
+				onchange={changeAssignee}
+				placeholder="nobody"
+			/>
+		</label>
+		<label class="field">
+			Source file
+			<input
+				class="field-control"
+				value={value.source_file ?? ""}
+				onchange={changeSourceFile}
+			/>
+		</label>
+	</div>
+{/if}
 
 <style>
 	.description {
