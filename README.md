@@ -6,13 +6,17 @@ Built with SvelteKit and Svelte 5.
 ## Features
 
 - **Tasks** with a `PREFIX-NUMBER` id, title, description, status, priority,
-  tags, epics, and closed reasons.
+  estimate, assignee, due date, tags, epics, blockers, and closed reasons.
 - **Projects** with an id, name, and task prefix. Rename, archive, and restore
   them from the sidebar.
 - **Scopes** — optional per-project grouping that turns on once a project has at
   least one scope.
-- **List view** with search and status, priority, tag, epic, and scope filters.
-- **Detail panel** for editing a task without leaving the list.
+- **Tasks view** with search and status, priority, tag, epic, scope, blocker,
+  and project filters.
+- **Kanban** board grouped by status.
+- **Task detail** with comments, revisions, and attachments, without leaving the
+  list.
+- **Activity** log and **Deleted** tasks with restore.
 - **Light and dark** themes.
 
 ## Requirements
@@ -60,9 +64,9 @@ database. The app reads the variable through `$app/env/private` (declared in
 `pnpm dev` overrides it anyway, and the production launcher reads the `.env`
 next to the application folder at startup.
 
-All server-side variables are declared in `src/env.ts` with their defaults:
-`XBOCT_LOG_MIGRATIONS`, `XBOCT_LOG_BACKUP_*`, `XBOCT_LOG_ACTIVITY_KEEP_DAYS`.
-`.env.example` lists them.
+All server-side variables are declared in `src/env.ts`; `.env.example` lists
+them with the defaults: `XBOCT_LOG_MIGRATIONS`, `XBOCT_LOG_BACKUP_*`,
+`XBOCT_LOG_ACTIVITY_KEEP_DAYS`.
 
 `migrate:*` scripts never read `.env` and never open the production database:
 they target the dev database (`XBOCT_LOG_DEV_DB`, default `./.dev/dev.db`).
@@ -81,9 +85,12 @@ The server copies the database into the backup directory
 (`XBOCT_LOG_BACKUP_DIR`):
 
 - `auto/xboct-log-YYYY-MM-DD-HHMMSS.db` — a snapshot taken before the first MCP
-  write of every 30-minute window, so a bad agent session can be rolled back.
-- `daily/xboct-log-YYYY-MM-DD.db` — once a day at 03:00.
-- `weekly/xboct-log-YYYY-Www.db` — on Sundays at 03:00.
+  write of every configured interval (30 minutes by default), so a bad agent
+  session can be rolled back.
+- `daily/xboct-log-YYYY-MM-DD.db` — once a day at the configured time (03:00 by
+  default).
+- `weekly/xboct-log-YYYY-Www.db` — on the configured weekday (Sunday by
+  default), at the same time.
 - `manual/xboct-log-YYYY-MM-DD-HHMMSS.db` — written by the `backup_create` tool.
 
 Old copies are pruned automatically. If the server was off at the scheduled
@@ -137,21 +144,21 @@ cannot restore anything: it only reports which snapshots exist.
 
 ## Scripts
 
-| Command          | Description                                       |
-| ---------------- | ------------------------------------------------- |
-| `pnpm dev`       | Dev server on an isolated database                |
-| `pnpm dev:seed`  | Seed `./.dev/dev.db` from the newest snapshot     |
-| `pnpm dev:vite`  | Raw Vite dev server, no isolation                 |
-| `pnpm build`     | Build for production (Node adapter)               |
-| `pnpm preview`   | Preview the production build                      |
-| `pnpm deploy`    | Build and deploy to the `xboct-log` service       |
-| `pnpm build:ext` | Compile and package the VS Code extension         |
-| `pnpm check`     | Type-check with `svelte-check`                    |
-| `pnpm lint`      | Prettier check and ESLint                         |
-| `pnpm format`    | Format with Prettier                              |
-| `pnpm test`      | Run unit tests with Vitest                        |
-| `pnpm migrate`   | Apply pending database migrations                 |
-| `pnpm restore`   | List snapshots or restore one (`list`, `restore`) |
+| Command           | Description                                       |
+| ----------------- | ------------------------------------------------- |
+| `pnpm dev`        | Dev server on an isolated database                |
+| `pnpm dev:seed`   | Seed `./.dev/dev.db` from the newest snapshot     |
+| `pnpm dev:vite`   | Raw Vite dev server, no isolation                 |
+| `pnpm build`      | Build for production (Node adapter)               |
+| `pnpm preview`    | Preview the production build                      |
+| `pnpm run deploy` | Build and deploy to the `xboct-log` service       |
+| `pnpm build:ext`  | Compile and package the VS Code extension         |
+| `pnpm check`      | Type-check with `svelte-check`                    |
+| `pnpm lint`       | Prettier check and ESLint                         |
+| `pnpm format`     | Format with Prettier                              |
+| `pnpm test`       | Run unit tests with Vitest                        |
+| `pnpm migrate`    | Apply pending database migrations                 |
+| `pnpm restore`    | List snapshots or restore one (`list`, `restore`) |
 
 The `migrate:*` variants (`status`, `rollback`, `baseline`, `unlock`) are in
 `package.json`.
