@@ -4,6 +4,7 @@
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import type { DraftStore } from "#lib/state/draft.svelte.ts";
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
+	import type { TagStore } from "#lib/state/tags.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
 	import type { UiStore } from "#lib/state/ui.svelte.ts";
 	import AdvancedToggle from "#lib/components/task/AdvancedToggle.svelte";
@@ -32,6 +33,7 @@
 		tasks: TaskStore;
 		projects: Project[];
 		scopes: ScopeStore;
+		tags: TagStore;
 		draftStore: DraftStore;
 		ui: UiStore;
 		initialProject?: string;
@@ -45,6 +47,7 @@
 		tasks,
 		projects,
 		scopes,
+		tags,
 		draftStore,
 		ui,
 		initialProject,
@@ -84,7 +87,13 @@
 	}
 
 	let draft = $state<TaskFieldValues>(blankDraft());
-	let tagSuggestions = $derived(collectTags(tasks.tasks).map((tag) => tag.tag));
+	let tagEntries = $derived(
+		tags.ranked(collectTags(tasks.tasks, draft.project_id)),
+	);
+	let tagSuggestions = $derived(tagEntries.map((entry) => entry.tag));
+	let tagCounts = $derived(
+		Object.fromEntries(tagEntries.map((entry) => [entry.tag, entry.count])),
+	);
 	let title = $state("");
 	let keepOpen = $state(false);
 	let saving = $state(false);
@@ -307,6 +316,7 @@
 			value={draft}
 			epics={epicOptions}
 			{tagSuggestions}
+			{tagCounts}
 			advanced={ui.advanced}
 			{onfield}
 			onerror={(message) => {

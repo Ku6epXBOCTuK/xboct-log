@@ -27,6 +27,7 @@
 		value: TaskFieldValues;
 		epics: Task[];
 		tagSuggestions?: string[];
+		tagCounts?: Record<string, number>;
 		editing?: boolean;
 		advanced?: boolean;
 		onfield: (patch: TaskPatch) => void;
@@ -40,6 +41,7 @@
 		value,
 		epics,
 		tagSuggestions = [],
+		tagCounts = {},
 		editing = false,
 		advanced = true,
 		onfield,
@@ -203,6 +205,7 @@
 	<TagInput
 		value={value.tags}
 		suggestions={tagSuggestions}
+		counts={tagCounts}
 		onchange={(tags) => onfield({ tags })}
 		ariaLabel="Tags"
 	/>

@@ -15,6 +15,7 @@
 	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { CommentsStore } from "#lib/state/comments.svelte.ts";
+	import type { TagStore } from "#lib/state/tags.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
 	import type { UiStore } from "#lib/state/ui.svelte.ts";
 	import AdvancedToggle from "#lib/components/task/AdvancedToggle.svelte";
@@ -41,6 +42,7 @@
 		tasks: TaskStore;
 		projects: ProjectStore;
 		scopes: ScopeStore;
+		tags: TagStore;
 		comments: CommentsStore;
 		ui: UiStore;
 		onclear: () => void;
@@ -53,6 +55,7 @@
 		tasks,
 		projects,
 		scopes,
+		tags,
 		comments,
 		ui,
 		onclear,
@@ -64,7 +67,13 @@
 	let failure = $state<string | null>(null);
 	let historyOpen = $state(false);
 	let commentsOpen = $state(false);
-	let tagSuggestions = $derived(collectTags(tasks.tasks).map((tag) => tag.tag));
+	let tagEntries = $derived(
+		tags.ranked(collectTags(tasks.tasks, selected?.project_id ?? null)),
+	);
+	let tagSuggestions = $derived(tagEntries.map((entry) => entry.tag));
+	let tagCounts = $derived(
+		Object.fromEntries(tagEntries.map((entry) => [entry.tag, entry.count])),
+	);
 	let blockerCandidates = $derived(
 		selected === null ? [] : blockingCandidates(tasks.tasks, selected),
 	);
@@ -310,6 +319,7 @@
 				value={selected}
 				epics={siblingEpics(tasks.epics, selected)}
 				{tagSuggestions}
+				{tagCounts}
 				editing
 				advanced={ui.advanced}
 				onfield={save}

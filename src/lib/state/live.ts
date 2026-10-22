@@ -5,6 +5,7 @@ import { getTasks } from "#lib/remote/tasks.remote.ts";
 import type { CommentsStore } from "./comments.svelte.ts";
 import type { ProjectStore } from "./projects.svelte.ts";
 import type { ScopeStore } from "./scopes.svelte.ts";
+import type { TagStore } from "./tags.svelte.ts";
 import type { TaskStore } from "./tasks.svelte.ts";
 
 const COALESCE_MS = 300;
@@ -16,6 +17,7 @@ interface LiveStores {
 	tasks: TaskStore;
 	projects: ProjectStore;
 	scopes: ScopeStore;
+	tags: TagStore;
 	comments: CommentsStore;
 }
 
@@ -47,6 +49,11 @@ export function startLiveSync(stores: LiveStores): () => void {
 						stores.tasks.replaceAll(items);
 					} catch (error) {
 						console.warn("[live] tasks reload failed", error);
+					}
+					try {
+						await stores.tags.refresh();
+					} catch (error) {
+						console.warn("[live] tags reload failed", error);
 					}
 					try {
 						await stores.comments.refresh();

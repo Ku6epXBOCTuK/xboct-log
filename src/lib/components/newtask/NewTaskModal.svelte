@@ -5,6 +5,7 @@
 	import type { DraftStore } from "#lib/state/draft.svelte.ts";
 	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
+	import type { TagStore } from "#lib/state/tags.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
 	import type { UiStore } from "#lib/state/ui.svelte.ts";
 
@@ -13,6 +14,7 @@
 		projects: ProjectStore;
 		scopes: ScopeStore;
 		tasks: TaskStore;
+		tags: TagStore;
 		draftStore: DraftStore;
 		ui: UiStore;
 		initialProject?: string;
@@ -26,6 +28,7 @@
 		projects,
 		scopes,
 		tasks,
+		tags,
 		draftStore,
 		ui,
 		initialProject,
@@ -55,6 +58,7 @@
 		<TaskForm
 			{tasks}
 			{scopes}
+			{tags}
 			{draftStore}
 			{ui}
 			projects={projects.active}

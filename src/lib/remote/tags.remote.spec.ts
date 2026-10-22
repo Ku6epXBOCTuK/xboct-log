@@ -57,8 +57,8 @@ describe("tags_list", () => {
 
 		expect(result.total).toBe(2);
 		expect(result.items).toEqual([
-			{ tag: "mcp", count: 2 },
-			{ tag: "ui", count: 1 },
+			{ tag: "mcp", count: 2, active: 2 },
+			{ tag: "ui", count: 1, active: 1 },
 		]);
 	});
 
@@ -72,8 +72,8 @@ describe("tags_list", () => {
 		};
 
 		expect(result.items).toEqual([
-			{ tag: "mcp", count: 2 },
-			{ tag: "ui", count: 1 },
+			{ tag: "mcp", count: 2, active: 2 },
+			{ tag: "ui", count: 1, active: 1 },
 		]);
 	});
 

@@ -28,8 +28,8 @@ describe("listTags", () => {
 		unwrap(createTask(db, { project_id: "spa", title: "Three" }));
 
 		expect(listTags(db)).toEqual([
-			{ tag: "mcp", count: 2 },
-			{ tag: "ui", count: 1 },
+			{ tag: "mcp", count: 2, active: 2 },
+			{ tag: "ui", count: 1, active: 1 },
 		]);
 	});
 
@@ -39,11 +39,11 @@ describe("listTags", () => {
 		unwrap(createTask(db, { project_id: "bil", title: "Two", tags: ["ui"] }));
 
 		expect(listTags(db, { project_id: "bil" })).toEqual([
-			{ tag: "ui", count: 1 },
+			{ tag: "ui", count: 1, active: 1 },
 		]);
 		expect(listTags(db, { project_id: ["spa", "bil"] })).toEqual([
-			{ tag: "mcp", count: 1 },
-			{ tag: "ui", count: 1 },
+			{ tag: "mcp", count: 1, active: 1 },
+			{ tag: "ui", count: 1, active: 1 },
 		]);
 	});
 
@@ -60,10 +60,10 @@ describe("listTags", () => {
 		unwrap(createTask(db, { project_id: "spa", title: "Two", tags: ["mcp"] }));
 
 		expect(listTags(db, { status: ["done"] })).toEqual([
-			{ tag: "mcp", count: 1 },
+			{ tag: "mcp", count: 1, active: 0 },
 		]);
 		expect(listTags(db, { status: ["open"] })).toEqual([
-			{ tag: "mcp", count: 1 },
+			{ tag: "mcp", count: 1, active: 1 },
 		]);
 	});
 

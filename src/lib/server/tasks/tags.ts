@@ -1,9 +1,10 @@
 import type { DatabaseSync } from "node:sqlite";
-import type { Status } from "../../types";
+import { CLOSED_STATUSES, type Status } from "../../types";
 
 export interface TagCount {
 	tag: string;
 	count: number;
+	active: number;
 }
 
 export interface TagQuery {
@@ -29,16 +30,24 @@ export function listTags(db: DatabaseSync, query: TagQuery = {}): TagCount[] {
 		params.push(...query.status);
 	}
 
-	const sql = `SELECT je.value AS tag, COUNT(*) AS count
+	const closedSlots = CLOSED_STATUSES.map(() => "?").join(", ");
+	const sql = `SELECT je.value AS tag, COUNT(*) AS count,
+			SUM(CASE WHEN tasks.status IN (${closedSlots}) THEN 0 ELSE 1 END)
+				AS active
 		FROM tasks, json_each(tasks.tags) AS je
 		WHERE ${where.join(" AND ")}
 		GROUP BY je.value
 		ORDER BY count DESC, tag ASC`;
 
-	const rows = db.prepare(sql).all(...params) as {
+	const rows = db.prepare(sql).all(...CLOSED_STATUSES, ...params) as {
 		tag: string;
 		count: number;
+		active: number;
 	}[];
 
-	return rows.map((row) => ({ tag: row.tag, count: Number(row.count) }));
+	return rows.map((row) => ({
+		tag: row.tag,
+		count: Number(row.count),
+		active: Number(row.active),
+	}));
 }

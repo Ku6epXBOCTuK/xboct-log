@@ -6,6 +6,7 @@
 	interface Props {
 		value: string[];
 		suggestions?: string[];
+		counts?: Record<string, number>;
 		onchange: (tags: string[]) => void;
 		placeholder?: string;
 		ariaLabel?: string;
@@ -16,6 +17,7 @@
 	let {
 		value,
 		suggestions = [],
+		counts = {},
 		onchange,
 		placeholder = "Add tags",
 		ariaLabel = "Tags",
@@ -122,6 +124,9 @@
 
 {#snippet option(tag: string)}
 	<span class="select-option-label">{tag}</span>
+	{#if counts[tag] !== undefined}
+		<span class="select-option-count">{counts[tag]}</span>
+	{/if}
 {/snippet}
 
 <Select

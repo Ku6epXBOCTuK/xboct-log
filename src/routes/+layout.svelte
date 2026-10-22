@@ -18,6 +18,7 @@
 			tasks: data.tasks,
 			projects: data.projects,
 			scopes: data.scopes,
+			tags: data.tags,
 			project: page.url.searchParams.get("project"),
 			theme:
 				requestedTheme === "light" || requestedTheme === "dark"
