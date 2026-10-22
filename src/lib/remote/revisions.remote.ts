@@ -10,7 +10,7 @@ import { ID_DESCRIPTION, taskIdSchema } from "#lib/tasks/ids.ts";
 export const getTaskRevisions = defineQuery({
 	name: "tasks_revisions_list",
 	description:
-		"Read the previous texts of one task: the description and the comment bodies that were replaced by an edit. Read-only. Returns { items, total }, oldest first; each item is { id, task_id, field, ref_id, body, created_at }, where field is 'description' or 'comment' and ref_id is the id of the edited comment for a comment revision. The current text is not included. Use it to see how a description changed; the activity log only names the touched fields.",
+		"Read the previous texts of one task: the description and the comment bodies that were replaced by an edit. Read-only. Returns: {items, total}, oldest first; each item is { id, task_id, field, ref_id, body, created_at }, where field is 'description' or 'comment' and ref_id is the id of the edited comment for a comment revision. The current text is not included. Use it to see how a description changed; the activity log only names the touched fields.",
 	kind: "query",
 	input: strictObject({
 		id: taskIdSchema(ID_DESCRIPTION),

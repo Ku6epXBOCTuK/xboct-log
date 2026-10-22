@@ -5,12 +5,15 @@ import { getDb } from "../server/db";
 import * as scopes from "../server/scopes";
 import type { Scope } from "../types";
 import { defineCommand, defineQuery } from "./define";
+import { SCOPE_FIELDS } from "./shape";
 import { strictObject } from "./strict";
 
 export const getScopes = defineQuery({
 	name: "scopes_list",
 	description:
-		"List scopes, each with task_count (active non-epic tasks assigned, i.e. open/in-progress/blocked) and epics_count (non-deleted epics assigned). Pass project_id to limit to one project; omit it to list scopes across all projects.",
+		"List scopes, each with task_count (active non-epic tasks assigned, i.e. open/in-progress/blocked) and epics_count (non-deleted epics assigned). Pass project_id to limit to one project; omit it to list scopes across all projects. Returns: the list of scopes - every item is " +
+		SCOPE_FIELDS +
+		".",
 	kind: "query",
 	input: strictObject({ project_id: z.string().min(1).optional() }),
 	handler: ({ project_id }) => {
@@ -26,7 +29,9 @@ export const getScopes = defineQuery({
 export const getScope = defineQuery({
 	name: "scopes_get",
 	description:
-		"Get a single scope by id, including its task_count (active non-epic tasks) and epics_count.",
+		"Get a single scope by id, including its task_count (active non-epic tasks) and epics_count. Returns: the scope - " +
+		SCOPE_FIELDS +
+		".",
 	kind: "query",
 	input: strictObject({ id: z.number().int() }),
 	handler: ({ id }) => {
@@ -45,7 +50,8 @@ export const getScope = defineQuery({
 
 export const getScopedProjectIds = defineQuery({
 	name: "scopes_project_ids",
-	description: "List ids of all projects that have at least one scope.",
+	description:
+		"List ids of all projects that have at least one scope. Returns: the list of project ids.",
 	kind: "query",
 	input: strictObject({}),
 	handler: () => scopes.scopedProjectIds(getDb()),
@@ -54,7 +60,9 @@ export const getScopedProjectIds = defineQuery({
 export const createScope = defineCommand({
 	name: "scopes_create",
 	description:
-		"Create a scope in a project. A scope groups the tasks of that project; a task points at its scope through scope_id.",
+		"Create a scope in a project. A scope groups the tasks of that project; a task points at its scope through scope_id. Returns: the created scope - " +
+		SCOPE_FIELDS +
+		".",
 	kind: "command",
 	input: strictObject({
 		project_id: z.string().min(1),
@@ -67,7 +75,8 @@ export const createScope = defineCommand({
 
 export const updateScope = defineCommand({
 	name: "scopes_update",
-	description: "Rename a scope by id.",
+	description:
+		"Rename a scope by id. Returns: the updated scope - " + SCOPE_FIELDS + ".",
 	kind: "command",
 	input: strictObject({
 		id: z.number().int(),
@@ -81,7 +90,7 @@ export const updateScope = defineCommand({
 export const deleteScope = defineCommand({
 	name: "scopes_delete",
 	description:
-		"Delete a scope by id; its tasks lose the scope assignment. Pass dry_run: true to preview the deletion - it returns the scope and the ids of the tasks and epics that would lose it, and changes nothing.",
+		"Delete a scope by id; its tasks lose the scope assignment. Pass dry_run: true to preview the deletion - it returns the scope and the ids of the tasks and epics that would lose it, and changes nothing. Returns: {scope, task_ids, epic_ids, dry_run} - the deleted scope and the ids of the tasks and epics that lost it; with dry_run the same report without changing anything.",
 	kind: "command",
 	input: strictObject({
 		id: z.number().int(),

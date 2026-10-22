@@ -10,6 +10,7 @@ import {
 import { getDb } from "../server/db";
 import * as repo from "../server/tasks";
 import { defineCommand, defineQuery } from "./define";
+import { ATTACHMENT_FIELDS } from "./shape";
 import { strictObject } from "./strict";
 import { ID_DESCRIPTION, taskIdSchema } from "#lib/tasks/ids.ts";
 
@@ -24,7 +25,9 @@ function resolve(db: ReturnType<typeof getDb>, id: string): string {
 export const getTaskAttachments = defineQuery({
 	name: "attachments_list",
 	description:
-		"List the files attached to one task. Read-only. Returns { items }, each item is { id, task_id, file_name, mime_type, size, created_at, missing }. A file that is gone from the media folder is still listed, with missing set to true.",
+		"List the files attached to one task. Read-only. Returns: {items} - every item is " +
+		ATTACHMENT_FIELDS +
+		". A file that is gone from the media folder is still listed, with missing set to true.",
 	kind: "query",
 	input: strictObject({
 		id: taskIdSchema(ID_DESCRIPTION),
@@ -38,7 +41,9 @@ export const getTaskAttachments = defineQuery({
 export const addTaskAttachment = defineCommand({
 	name: "attachments_add",
 	description:
-		"Attach a file to a task. The file is stored in the media folder of the app, the task keeps only a reference to it. Give either path (a file on the machine where the app runs) or content_base64 (the file content encoded as base64) together with filename. Returns { item }.",
+		"Attach a file to a task. The file is stored in the media folder of the app, the task keeps only a reference to it. Give either path (a file on the machine where the app runs) or content_base64 (the file content encoded as base64) together with filename. Returns: {item} - the created attachment - " +
+		ATTACHMENT_FIELDS +
+		".",
 	kind: "command",
 	input: strictObject({
 		id: taskIdSchema(ID_DESCRIPTION),
@@ -94,7 +99,7 @@ export const addTaskAttachment = defineCommand({
 export const removeTaskAttachment = defineCommand({
 	name: "attachments_delete",
 	description:
-		"Delete one attachment of a task: the file in the media folder and the reference to it. The id is the one returned by attachments_list. Returns { id }.",
+		"Delete one attachment of a task: the file in the media folder and the reference to it. The id is the one returned by attachments_list. Returns: {id} - the id of the deleted attachment.",
 	kind: "command",
 	input: strictObject({
 		id: z.string().uuid().describe("The id of the attachment."),
@@ -111,7 +116,7 @@ export const removeTaskAttachment = defineCommand({
 export const checkTaskAttachments = defineQuery({
 	name: "attachments_verify",
 	description:
-		"Check the files of the attachments: which ones are still in the media folder and which ones are gone. Read-only. Returns { ok, missing }. Give id to check one task only, omit it to check everything.",
+		"Check the files of the attachments: which ones are still in the media folder and which ones are gone. Read-only. Returns: {ok, missing} - ok is the list of attachments still in the media folder, missing the ones that are gone. Give id to check one task only, omit it to check everything.",
 	kind: "query",
 	input: strictObject({
 		id: taskIdSchema(ID_DESCRIPTION).optional(),

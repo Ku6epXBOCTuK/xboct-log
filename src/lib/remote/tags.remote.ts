@@ -8,7 +8,7 @@ import { strictObject } from "./strict";
 export const getTags = defineQuery({
 	name: "tags_list",
 	description:
-		"Read the tag dictionary of the backlog: every tag in use with the number of tasks that carry it. Read-only. Use it before filtering by tag, so you pick an existing tag name instead of guessing one. Accepts the filters project_id and status; soft-deleted tasks are not counted. Returns { items, total }, where each item is { tag, count }, most used first.",
+		"Read the tag dictionary of the backlog: every tag in use with the number of tasks that carry it. Read-only. Use it before filtering by tag, so you pick an existing tag name instead of guessing one. Accepts the filters project_id and status; soft-deleted tasks are not counted. Returns: {items, total}, where each item is { tag, count }, most used first.",
 	kind: "query",
 	input: strictObject({
 		project_id: z

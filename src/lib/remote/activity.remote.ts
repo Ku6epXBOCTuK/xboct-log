@@ -10,7 +10,7 @@ import { ID_DESCRIPTION, taskIdSchema } from "#lib/tasks/ids.ts";
 export const getTaskHistory = defineQuery({
 	name: "tasks_history",
 	description:
-		"Show the change log of one task: when it was changed, from which surface (source: 'ui' or 'mcp') and which fields were touched. Returns { items, total }, newest first; each item is { ts, source, op, fields, old_id }. A changed field keeps the old and the new value, a creation lists only the fields set beyond the defaults. Reads are not logged themselves. The history of a task follows it after a move to another project.",
+		"Show the change log of one task: when it was changed, from which surface (source: 'ui' or 'mcp') and which fields were touched. Returns: {items, total}, newest first; each item is { ts, source, op, fields, old_id }. A changed field keeps the old and the new value, a creation lists only the fields set beyond the defaults. Reads are not logged themselves. The history of a task follows it after a move to another project.",
 	kind: "query",
 	input: strictObject({
 		id: taskIdSchema(ID_DESCRIPTION),
@@ -39,7 +39,7 @@ export const getTaskHistory = defineQuery({
 export const listActivityLog = defineQuery({
 	name: "activity_list",
 	description:
-		"Read the interaction log of the whole backlog: every recorded change with its time, source ('ui', 'mcp' or 'cli'), operation, entity type and id and the list of touched fields. A changed field keeps the old and the new value, a creation lists only the fields set beyond the defaults. Supports filters (source, op, entity, from, to) and pagination via limit and offset. Returns { items, total, ops }, where ops is the list of known operation names.",
+		"Read the interaction log of the whole backlog: every recorded change with its time, source ('ui', 'mcp' or 'cli'), operation, entity type and id and the list of touched fields. A changed field keeps the old and the new value, a creation lists only the fields set beyond the defaults. Supports filters (source, op, entity, from, to) and pagination via limit and offset. Returns: {items, total, ops}, where ops is the list of known operation names.",
 	kind: "query",
 	input: strictObject({
 		source: z

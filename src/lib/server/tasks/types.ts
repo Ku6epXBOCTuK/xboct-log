@@ -131,14 +131,22 @@ export interface BatchError {
 
 export type BatchItem =
 	| {
+			index: number;
 			id: string;
 			ok: true;
 			task: Task;
 			changes: TaskChange[];
-			released?: ReleasedLink[];
+			released: ReleasedLink[];
 	  }
-	| { id: string; ok: false; error: BatchError };
+	| { index: number; id: string; ok: false; error: BatchError };
 
 export type CreateBatchItem =
-	| { index: number; ok: true; task: Task }
-	| { index: number; ok: false; error: BatchError };
+	| {
+			index: number;
+			id: string;
+			ok: true;
+			task: Task;
+			changes: TaskChange[];
+			released: ReleasedLink[];
+	  }
+	| { index: number; id: null; ok: false; error: BatchError };

@@ -7,6 +7,7 @@ import { resolveTaskId } from "../server/tasks";
 import type { Comment } from "../types";
 import { ID_DESCRIPTION, taskIdSchema } from "#lib/tasks/ids.ts";
 import { defineCommand, defineQuery } from "./define";
+import { COMMENT_FIELDS } from "./shape";
 import { strictObject } from "./strict";
 
 function resolveTask(db: ReturnType<typeof getDb>, taskId: string): string {
@@ -20,7 +21,9 @@ function resolveTask(db: ReturnType<typeof getDb>, taskId: string): string {
 export const listComments = defineQuery({
 	name: "tasks_comments_list",
 	description:
-		"List the comments of a task, oldest first. Deleted comments are hidden. The task id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). Returns { items, total }.",
+		"List the comments of a task, oldest first. Deleted comments are hidden. The task id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). Returns: {items, total} - every item is a comment - " +
+		COMMENT_FIELDS +
+		".",
 	kind: "query",
 	input: strictObject({
 		task_id: taskIdSchema(ID_DESCRIPTION),
@@ -36,7 +39,9 @@ export const listComments = defineQuery({
 export const addComment = defineCommand({
 	name: "tasks_comments_add",
 	description:
-		"Add a comment to a task. The task id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). Returns the created comment. Editing a comment later keeps its previous text as a revision.",
+		"Add a comment to a task. The task id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). Returns: the created comment - " +
+		COMMENT_FIELDS +
+		". Editing a comment later keeps its previous text as a revision.",
 	kind: "command",
 	input: strictObject({
 		task_id: taskIdSchema(ID_DESCRIPTION),
@@ -56,7 +61,9 @@ export const addComment = defineCommand({
 export const editComment = defineCommand({
 	name: "tasks_comments_edit",
 	description:
-		"Edit the text of a comment by its id. The previous text is kept as a revision, so nothing is lost. Returns the updated comment with edited_at set.",
+		"Edit the text of a comment by its id. The previous text is kept as a revision, so nothing is lost. Returns: the updated comment - " +
+		COMMENT_FIELDS +
+		" with edited_at set.",
 	kind: "command",
 	input: strictObject({
 		id: z.string().min(1).describe("Comment id."),
@@ -75,7 +82,9 @@ export const editComment = defineCommand({
 export const deleteComment = defineCommand({
 	name: "tasks_comments_delete",
 	description:
-		"Soft-delete a comment by its id. The comment disappears from the task, but its id and history stay in the database. Returns the deleted comment.",
+		"Soft-delete a comment by its id. The comment disappears from the task, but its id and history stay in the database. Returns: the deleted comment - " +
+		COMMENT_FIELDS +
+		" with deleted_at set.",
 	kind: "command",
 	input: strictObject({
 		id: z.string().min(1).describe("Comment id."),

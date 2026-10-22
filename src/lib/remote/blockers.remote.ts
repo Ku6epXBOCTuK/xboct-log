@@ -9,6 +9,7 @@ import * as repo from "../server/tasks";
 import type { ActivityChange, Task, TaskWithChanges } from "../types";
 import { taskIdSchema } from "#lib/tasks/ids.ts";
 import { defineCommand } from "./define";
+import { TASK_FIELDS } from "./shape";
 import { strictObject } from "./strict";
 
 const BLOCKING_ID_DESCRIPTION =
@@ -41,7 +42,9 @@ function linkChanges(before: Task, after: Task): ActivityChange[] {
 export const addBlocker = defineCommand({
 	name: "tasks_add_blocker",
 	description:
-		"Link two tasks: the task `id` becomes blocked by the task `blocked_by` (that is the blocker). Both ids must use the full 'PREFIX-NUMBER' form. The blocker may live in another project. A task cannot block itself and cycles are rejected. The blocked task keeps its current status: set status 'blocked' with tasks_update yourself. Returns the updated blocked task with its blocked_by and blocks lists and a changes array describing the link.",
+		"Link two tasks: the task `id` becomes blocked by the task `blocked_by` (that is the blocker). Both ids must use the full 'PREFIX-NUMBER' form. The blocker may live in another project. A task cannot block itself and cycles are rejected. The blocked task keeps its current status: set status 'blocked' with tasks_update yourself. Returns: the updated blocked task - " +
+		TASK_FIELDS +
+		" with a changes array describing the link.",
 	kind: "command",
 	input: strictObject({
 		id: taskIdSchema(BLOCKED_ID_DESCRIPTION),
@@ -66,7 +69,9 @@ export const addBlocker = defineCommand({
 export const removeBlocker = defineCommand({
 	name: "tasks_remove_blocker",
 	description:
-		"Remove a blocking link: the task `id` is no longer blocked by the task `blocked_by`. Both ids must use the full 'PREFIX-NUMBER' form. If no open blocker remains, the blocked task leaves status 'blocked' and returns to the status it had before it was blocked ('open' when that status is unknown). Returns the updated blocked task with its blocked_by and blocks lists and a changes array describing the link and the status release.",
+		"Remove a blocking link: the task `id` is no longer blocked by the task `blocked_by`. Both ids must use the full 'PREFIX-NUMBER' form. If no open blocker remains, the blocked task leaves status 'blocked' and returns to the status it had before it was blocked ('open' when that status is unknown). Returns: the updated blocked task - " +
+		TASK_FIELDS +
+		" with a changes array describing the link and the status release.",
 	kind: "command",
 	input: strictObject({
 		id: taskIdSchema(BLOCKED_ID_DESCRIPTION),
