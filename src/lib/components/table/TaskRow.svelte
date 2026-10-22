@@ -68,34 +68,36 @@
 		{/if}
 	</td>
 	<td class="task-title">
-		<span class="task-title-text" title={task.title}>{task.title}</span>
-		{#if task.is_epic}
-			<button
-				class={`epic-badge epic-marker${epicEmpty ? " epic-marker-empty" : ""}`}
-				title={epicEmpty ? "No tasks yet" : "Show tasks of this epic"}
-				onclick={(event) => filterEpic(event, task.id)}
-			>
-				EPIC
-			</button>
-			{#if progress !== null && progress.total > 0}
-				<span class="epic-progress"
-					>{progress.closed}/{progress.total} closed</span
+		<div class="title-row">
+			<span class="task-title-text" title={task.title}>{task.title}</span>
+			{#if task.is_epic}
+				<button
+					class={`epic-badge epic-marker${epicEmpty ? " epic-marker-empty" : ""}`}
+					title={epicEmpty ? "No tasks yet" : "Show tasks of this epic"}
+					onclick={(event) => filterEpic(event, task.id)}
 				>
+					EPIC
+				</button>
+				{#if progress !== null && progress.total > 0}
+					<span class="epic-progress"
+						>{progress.closed}/{progress.total} closed</span
+					>
+				{/if}
+			{:else if task.epic_id !== null}
+				<button
+					class="epic-badge epic-filter"
+					title="Show tasks of this epic"
+					onclick={(event) => filterEpic(event, task.epic_id)}
+				>
+					{task.epic_id}
+				</button>
 			{/if}
-		{:else if task.epic_id !== null}
-			<button
-				class="epic-badge epic-filter"
-				title="Show tasks of this epic"
-				onclick={(event) => filterEpic(event, task.epic_id)}
-			>
-				{task.epic_id}
-			</button>
-		{/if}
-		{#if blockers.length > 0}
-			<span class="blocker-badge" title={`Blocked by ${blockers.join(", ")}`}>
-				blocked by {blockers.join(", ")}
-			</span>
-		{/if}
+			{#if blockers.length > 0}
+				<span class="blocker-badge" title={`Blocked by ${blockers.join(", ")}`}>
+					blocked by {blockers.join(", ")}
+				</span>
+			{/if}
+		</div>
 	</td>
 	<td
 		class="tags-cell optional-column"
@@ -169,10 +171,14 @@
 	}
 
 	.task-title {
+		color: var(--foreground);
+		overflow: hidden;
+	}
+
+	.title-row {
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
-		color: var(--foreground);
 		overflow: hidden;
 	}
 
