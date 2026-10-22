@@ -195,6 +195,38 @@ describe("/mcp endpoint", () => {
 		expect(readdirSync(autoDir)).toHaveLength(1);
 	});
 
+	it("reports an empty patch instead of a silent success", async () => {
+		const db = getDb();
+		const project = createProject(db, {
+			id: "mcp-patch",
+			name: "MCP Patch",
+			prefix: "MPP",
+		});
+		expect(project.isOk()).toBe(true);
+		const task = createTask(db, {
+			project_id: "mcp-patch",
+			title: "Patch me",
+		});
+		expect(task.isOk()).toBe(true);
+
+		const body = await rpc("tools/call", {
+			name: "tasks_update_many",
+			arguments: {
+				items: [{ id: task._unsafeUnwrap().id, patch: {} }],
+			},
+		});
+		const structured = body.result?.structuredContent as {
+			items?: { ok: boolean; error?: { kind?: string; message?: string } }[];
+			succeeded: number;
+			failed: number;
+		};
+		expect(structured.succeeded).toBe(0);
+		expect(structured.failed).toBe(1);
+		expect(structured.items?.[0].ok).toBe(false);
+		expect(structured.items?.[0].error?.kind).toBe("validation");
+		expect(structured.items?.[0].error?.message).toContain("patch is empty");
+	});
+
 	it("restores a soft-deleted task", async () => {
 		const db = getDb();
 		const project = createProject(db, {

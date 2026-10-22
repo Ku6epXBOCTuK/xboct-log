@@ -32,11 +32,54 @@ import type {
 	TaskUpdateOutcome,
 } from "./types";
 
+const PATCH_FIELDS = [
+	"title",
+	"description",
+	"status",
+	"priority",
+	"is_epic",
+	"epic_id",
+	"scope_id",
+	"source_file",
+	"tags",
+	"estimate",
+	"assignee",
+	"due_at",
+] as const;
+
+function validatePatch(patch: TaskPatch): AppError | null {
+	const keys = Object.keys(patch) as (keyof TaskPatch)[];
+	const unknown = keys.filter(
+		(key) => !(PATCH_FIELDS as readonly string[]).includes(key),
+	);
+	if (unknown.length > 0) {
+		return invalid(
+			`unknown patch field(s): ${unknown.join(", ")}. Allowed fields: ${PATCH_FIELDS.join(", ")}`,
+		);
+	}
+	const undefinedFields = keys.filter((key) => patch[key] === undefined);
+	if (undefinedFields.length > 0) {
+		return invalid(
+			`patch field(s) ${undefinedFields.join(", ")} are undefined: pass a value or leave the field out`,
+		);
+	}
+	if (keys.length === 0) {
+		return invalid(
+			"patch is empty: name at least one field to change (a field set to undefined is not a value)",
+		);
+	}
+	return null;
+}
+
 export function updateTaskDetailed(
 	db: DatabaseSync,
 	id: string,
 	patch: TaskPatch,
 ): Result<TaskUpdateOutcome, AppError> {
+	const patchError = validatePatch(patch);
+	if (patchError) {
+		return err(patchError);
+	}
 	const resolved = resolveTaskId(db, id);
 	if (resolved.isErr()) {
 		return err(resolved.error);

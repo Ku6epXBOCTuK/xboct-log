@@ -488,7 +488,7 @@ export const createTasks = defineCommand({
 export const updateTask = defineCommand({
 	name: "tasks_update",
 	description:
-		"Update fields of an existing task by id. Every field to change goes inside the patch object (e.g. {id: 'LOG-87', patch: {status: 'in-progress'}}); top-level fields other than id and patch are rejected. The id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). In patch, epic_id accepts a full epic id (e.g. 'LOG-5') of the task's current project, estimate takes the size of the task ('S', 'M' or 'L') or null to clear it, assignee takes the name of the responsible person or null to clear it, and due_at takes the due date (YYYY-MM-DD) or null to clear it. The result carries a warnings array, which is not empty when the task has no scope while its project defines scopes.",
+		"Update fields of an existing task by id. Every field to change goes inside the patch object (e.g. {id: 'LOG-87', patch: {status: 'in-progress'}}); top-level fields other than id and patch are rejected. The id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). In patch, epic_id accepts a full epic id (e.g. 'LOG-5') of the task's current project, estimate takes the size of the task ('S', 'M' or 'L') or null to clear it, assignee takes the name of the responsible person or null to clear it, and due_at takes the due date (YYYY-MM-DD) or null to clear it. The patch must name at least one field with a value: an empty patch, a field set to undefined, an unknown field or an epic id that does not exist is an error, the task is left untouched. The result carries a warnings array, which is not empty when the task has no scope while its project defines scopes.",
 	kind: "command",
 	input: strictObject({
 		id: taskIdSchema(ID_DESCRIPTION),
@@ -523,7 +523,7 @@ function warningsFor(db: DatabaseSync, task: Task): string[] {
 export const updateTasks = defineCommand({
 	name: "tasks_update_many",
 	description:
-		"Update several tasks in one call. Each item is applied independently and the response reports ok/error per item; a failing item does not cancel the others. Every id must use the full 'PREFIX-NUMBER' form. Every successful item carries its own warnings array, which is not empty when the task has no scope while its project defines scopes.",
+		"Update several tasks in one call. Each item is applied independently and the response reports ok/error per item; a failing item does not cancel the others. Every id must use the full 'PREFIX-NUMBER' form. Every patch must name at least one field with a value: an empty patch, a field set to undefined, an unknown field or an epic id that does not exist is an error for that item, the task is left untouched and the item reports ok:false. Every successful item carries its own warnings array, which is not empty when the task has no scope while its project defines scopes.",
 	kind: "command",
 	input: strictObject({
 		items: z
