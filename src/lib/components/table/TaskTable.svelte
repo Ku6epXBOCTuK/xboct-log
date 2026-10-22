@@ -93,6 +93,7 @@
 				{/if}
 				<th class="scope-col optional-column">Scope</th>
 				<th>Task</th>
+				<th class="attach-col optional-column">Files</th>
 				<th class="tags-col optional-column">Tags</th>
 				{@render sortHeader("status", "Status", "status-col")}
 				{@render sortHeader(
@@ -181,6 +182,10 @@
 
 	.scope-col {
 		width: 100px;
+	}
+
+	.attach-col {
+		width: 56px;
 	}
 
 	.tags-col {

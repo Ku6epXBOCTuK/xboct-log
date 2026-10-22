@@ -63,6 +63,10 @@ const handler = createMcpHandler(registerTools, {
 		"texts of a task. tasks_board returns the backlog grouped by status. " +
 		"tasks_deleted_list returns the soft-deleted tasks, the ones that " +
 		"tasks_restore can bring back. " +
+		"attachments_list, attachments_add, attachments_delete and " +
+		"attachments_verify work with the files of a task: they are kept in " +
+		"the media folder, and attachments_verify reports the files that are " +
+		"gone from it. " +
 		"Comments are written for a human: short, " +
 		"factual, no dumps and no volatile details. " +
 		"backup_create makes a manual database backup, " +

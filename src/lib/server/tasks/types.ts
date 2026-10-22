@@ -30,6 +30,7 @@ export interface TaskRow {
 	deleted_at: string | null;
 	project_name?: string;
 	scope_name?: string;
+	attachments_count?: number;
 }
 
 export interface NewTask {

@@ -29,6 +29,7 @@ export function mapTask(row: TaskRow): Task {
 		estimate: (row.estimate as Estimate | null) ?? null,
 		assignee: row.assignee,
 		due_at: row.due_at,
+		attachments_count: row.attachments_count ?? 0,
 		created_at: row.created_at,
 		updated_at: row.updated_at,
 		closed_at: row.closed_at,

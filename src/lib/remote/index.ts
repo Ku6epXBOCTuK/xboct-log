@@ -1,4 +1,5 @@
 import "./activity.remote";
+import "./attachments.remote";
 import "./backup.remote";
 import "./blockers.remote";
 import "./comments.remote";

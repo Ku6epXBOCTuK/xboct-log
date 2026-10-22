@@ -147,6 +147,7 @@ export interface Task {
 	estimate: Estimate | null;
 	assignee: string | null;
 	due_at: string | null;
+	attachments_count?: number;
 	created_at: string;
 	updated_at: string;
 	closed_at: string | null;
@@ -157,4 +158,14 @@ export interface Task {
 	short_description?: string;
 	blocked_by?: string[];
 	blocks?: string[];
+}
+
+export interface TaskAttachment {
+	id: string;
+	task_id: string;
+	file_name: string;
+	mime_type: string | null;
+	size: number;
+	created_at: string;
+	missing: boolean;
 }

@@ -4,6 +4,7 @@
 	import type { EpicProgress } from "#lib/tasks/filter.ts";
 	import { CLOSED_STATUSES, type Scope, type Task } from "#lib/types.ts";
 	import type { Snippet } from "svelte";
+	import Paperclip from "~icons/lucide/paperclip";
 
 	interface Props {
 		task: Task;
@@ -98,6 +99,14 @@
 				</span>
 			{/if}
 		</div>
+	</td>
+	<td class="attach-cell optional-column">
+		{#if (task.attachments_count ?? 0) > 0}
+			<span class="attach-icon" title="Attached files">
+				<Paperclip />
+				{task.attachments_count}
+			</span>
+		{/if}
 	</td>
 	<td
 		class="tags-cell optional-column"
@@ -269,6 +278,24 @@
 
 	.tags-cell {
 		overflow: hidden;
+	}
+
+	.attach-cell {
+		text-align: center;
+	}
+
+	.attach-icon {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-1);
+		color: var(--text-muted);
+		font-size: var(--text-xs);
+		font-variant-numeric: tabular-nums;
+	}
+
+	.attach-icon :global(svg) {
+		width: 0.875rem;
+		height: 0.875rem;
 	}
 
 	.tag-list {

@@ -6,6 +6,8 @@
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
 	import { messageOf } from "#lib/tasks/display.ts";
+	import { fileToBase64, formatSize } from "#lib/tasks/attachments.ts";
+	import { addTaskAttachment } from "#lib/remote/attachments.remote.ts";
 	import { collectTags } from "#lib/tasks/filter.ts";
 	import { matchesHotkey } from "#lib/hotkeys/hotkeys.ts";
 	import { fieldNavigation } from "#lib/hotkeys/fields.ts";
@@ -18,6 +20,10 @@
 	import { INBOX_PROJECT_ID, type Project } from "#lib/types.ts";
 	import { untrack } from "svelte";
 	import ArrowLeft from "~icons/lucide/arrow-left";
+	import IconButton from "#lib/components/ui/IconButton.svelte";
+	import Paperclip from "~icons/lucide/paperclip";
+	import Upload from "~icons/lucide/upload";
+	import X from "~icons/lucide/x";
 
 	interface Props {
 		tasks: TaskStore;
@@ -81,6 +87,8 @@
 	let invalidField = $state(false);
 	let titleInput = $state<HTMLInputElement | null>(null);
 	let formElement = $state<HTMLFormElement | null>(null);
+	let fileInput = $state<HTMLInputElement | null>(null);
+	let files = $state<File[]>([]);
 
 	const restored = untrack(() => draftStore.saved);
 	if (restored) {
@@ -104,8 +112,29 @@
 			scope_id: draft.scope_id,
 		};
 		title = "";
+		files = [];
 		failure = null;
 		invalidField = false;
+	}
+
+	function pickFiles(event: Event) {
+		const target = event.currentTarget as HTMLInputElement;
+		const picked = [...(target.files ?? [])];
+		target.value = "";
+		if (picked.length === 0) return;
+		files = [...files, ...picked];
+	}
+
+	async function uploadFiles(taskId: string) {
+		for (const file of files) {
+			const content = await fileToBase64(file);
+			await addTaskAttachment({
+				id: taskId,
+				filename: file.name,
+				content_base64: content,
+				mime_type: file.type || undefined,
+			});
+		}
 	}
 
 	function onfield(patch: TaskPatch) {
@@ -213,6 +242,15 @@
 			draftStore.setLast({ id: created.id, title: created.title });
 			draftStore.clearDraft();
 
+			if (files.length > 0) {
+				try {
+					await uploadFiles(created.id);
+				} catch (error) {
+					failure = messageOf(error);
+				}
+				files = [];
+			}
+
 			if (keepOpen) {
 				reset();
 			} else {
@@ -259,6 +297,44 @@
 				invalidField = true;
 			}}
 		/>
+
+		<div class="attachments">
+			<div class="attachments-head">
+				<span class="attachments-title">Attachments</span>
+				<IconButton
+					label="Attach a file"
+					title="Attach a file"
+					onclick={() => fileInput?.click()}
+				>
+					<Upload />
+				</IconButton>
+				<input
+					bind:this={fileInput}
+					type="file"
+					multiple
+					hidden
+					onchange={pickFiles}
+				/>
+			</div>
+			{#if files.length > 0}
+				<ul class="attachment-list">
+					{#each files as file, index (file.name + index)}
+						<li class="attachment">
+							<Paperclip />
+							<span class="attachment-name">{file.name}</span>
+							<span class="attachment-size">{formatSize(file.size)}</span>
+							<IconButton
+								label="Remove the file"
+								title="Remove the file"
+								onclick={() => (files = files.filter((_, i) => i !== index))}
+							>
+								<X />
+							</IconButton>
+						</li>
+					{/each}
+				</ul>
+			{/if}
+		</div>
 	</div>
 
 	<div class="modal-foot">
@@ -292,6 +368,69 @@
 </form>
 
 <style>
+	.attachments {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+	}
+
+	.attachments-head {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+	}
+
+	.attachments-title {
+		color: var(--text-muted);
+		font-size: var(--text-xs);
+		font-weight: 600;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+	}
+
+	.attachment-list {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+	}
+
+	.attachment {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		padding: var(--space-2);
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		background: var(--field);
+	}
+
+	.attachment :global(svg) {
+		width: 1rem;
+		height: 1rem;
+		flex: none;
+		color: var(--text-muted);
+	}
+
+	.attachment-name {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		color: var(--text-secondary);
+		font-size: var(--text-sm);
+	}
+
+	.attachment-size {
+		margin-left: auto;
+		color: var(--text-muted);
+		font-size: var(--text-xs);
+		font-variant-numeric: tabular-nums;
+		white-space: nowrap;
+	}
+
 	form {
 		display: flex;
 		flex-direction: column;

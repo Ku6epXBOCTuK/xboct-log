@@ -94,7 +94,10 @@ export function getTasksByIds(db: DatabaseSync, ids: string[]): TasksByIds {
 export function listTasks(db: DatabaseSync, query: TaskQuery = {}): Task[] {
 	const { where, params, joins } = buildTaskFilter(query);
 
-	const columns = ["tasks.*"];
+	const columns = [
+		"tasks.*",
+		"(SELECT COUNT(*) FROM task_attachments a WHERE a.task_id = tasks.id) AS attachments_count",
+	];
 	if (query.include_project) {
 		columns.push("projects.name AS project_name");
 	}

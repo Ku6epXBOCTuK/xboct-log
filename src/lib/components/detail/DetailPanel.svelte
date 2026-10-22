@@ -5,6 +5,7 @@
 	import TaskComments from "#lib/components/detail/TaskComments.svelte";
 	import TaskHistory from "#lib/components/detail/TaskHistory.svelte";
 	import TaskRevisions from "#lib/components/detail/TaskRevisions.svelte";
+	import TaskAttachments from "#lib/components/attachments/TaskAttachments.svelte";
 	import TaskFields from "#lib/components/task/TaskFields.svelte";
 	import { fieldNavigation } from "#lib/hotkeys/fields.ts";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
@@ -311,6 +312,7 @@
 				commentsCount={comments.count(selected.id)}
 				oncomments={() => (commentsOpen = true)}
 			/>
+			<TaskAttachments task={selected} />
 		</div>
 		<DetailActions
 			closed={selected.closed_at !== null}
