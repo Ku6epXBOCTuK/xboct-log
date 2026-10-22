@@ -1,9 +1,12 @@
 import { err, ok, type Result } from "neverthrow";
 import type { DatabaseSync } from "node:sqlite";
+import {
+	normalizeProjectPrefix,
+	projectIdError,
+	projectPrefixError,
+} from "../projects/create";
 import { INBOX_PROJECT_ID, INBOX_PROJECT_PREFIX, type Project } from "../types";
 import { AppError, conflict, guard, invalid, notFound } from "./errors";
-
-const ID_PATTERN = /^[a-z0-9][a-z0-9-]*$/i;
 
 interface ProjectRow {
 	id: string;
@@ -51,18 +54,18 @@ export function createProject(
 ): Result<Project, AppError> {
 	const id = input.id?.trim() ?? "";
 	const name = input.name?.trim() ?? "";
-	const prefix = (input.prefix?.trim() ?? "").toUpperCase();
+	const prefix = normalizeProjectPrefix(input.prefix ?? "");
 
-	if (!ID_PATTERN.test(id)) {
-		return err(
-			invalid("project id must contain only latin letters, digits or dashes"),
-		);
+	const idError = projectIdError(id);
+	if (idError !== null) {
+		return err(invalid(idError));
 	}
 	if (!name) {
 		return err(invalid("project name is required"));
 	}
-	if (!prefix) {
-		return err(invalid("project prefix is required"));
+	const prefixError = projectPrefixError(prefix);
+	if (prefixError !== null) {
+		return err(invalid(prefixError));
 	}
 
 	const clash = db

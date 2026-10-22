@@ -9,7 +9,7 @@
 	import { type Project, type ProjectFilter } from "#lib/types.ts";
 	import ChevronDown from "~icons/lucide/chevron-down";
 	import Plus from "~icons/lucide/plus";
-	import ProjectCreateForm from "./ProjectCreateForm.svelte";
+	import ProjectCreateDialog from "./ProjectCreateDialog.svelte";
 	import ProjectList from "./ProjectList.svelte";
 	import ProjectSettingsDialog from "./ProjectSettingsDialog.svelte";
 
@@ -76,9 +76,6 @@
 	</div>
 	{#if open}
 		<div class="project-list">
-			{#if creating}
-				<ProjectCreateForm {projects} onclose={() => (creating = false)} />
-			{/if}
 			<p class="project-hint">
 				{projects.active.length} active · {projects.archived.length} archived
 			</p>
@@ -104,6 +101,12 @@
 		</div>
 	{/if}
 </div>
+
+<ProjectCreateDialog
+	open={creating}
+	{projects}
+	onclose={() => (creating = false)}
+/>
 
 <ProjectSettingsDialog
 	open={settingsFor !== null}

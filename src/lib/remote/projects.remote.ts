@@ -49,12 +49,12 @@ export const getProject = defineQuery({
 export const createProject = defineCommand({
 	name: "projects_create",
 	description:
-		"Create a project. id, name and prefix are required. The prefix is stored uppercase and defines the task ids of the project.",
+		"Create a project. name, id and prefix are required. The id is a lowercase slug of latin letters, digits and dashes; it is the key of the project in links and in the project_id parameter, and it cannot be changed later. The prefix is 1-6 uppercase letters or digits, it is stored uppercase and starts every task id of the project, and it cannot be changed later either.",
 	kind: "command",
 	input: strictObject({
-		id: z.string().min(1),
+		id: z.string().min(1).max(40),
 		name: z.string().min(1),
-		prefix: z.string().min(1),
+		prefix: z.string().min(1).max(6),
 	}),
 	handler: (input) => projects.createProject(getDb(), input),
 	activity: (input, project: Project) =>

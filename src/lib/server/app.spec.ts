@@ -116,6 +116,18 @@ describe("projects", () => {
 		expect(error.message).toContain("latin letters");
 	});
 
+	it("rejects a prefix that is not 1-6 letters or digits", async () => {
+		const db = await openMigratedDatabase(":memory:");
+
+		for (const prefix of ["A-B", "ABCDEFG", "AB CD"]) {
+			const error = failure(
+				createProject(db, { id: "shop", name: "Shop", prefix }),
+			);
+			expect(error.kind).toBe("validation");
+			expect(error.message).toContain("1-6");
+		}
+	});
+
 	it("returns not_found when updating a missing project", async () => {
 		const db = await openMigratedDatabase(":memory:");
 		const error = failure(updateProject(db, "ghost", { name: "Ghost" }));
