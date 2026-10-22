@@ -257,12 +257,15 @@
 	}
 
 	.panel-body {
-		padding: 0 var(--edge-pad);
+		flex: 1 1 auto;
+		min-height: 0;
+		overflow-y: auto;
 	}
 
 	.modal-foot {
 		flex: none;
-		padding: 0 var(--edge-pad) var(--edge-pad);
+		margin: 0 calc(var(--modal-pad) * -1) calc(var(--modal-pad) * -1);
+		padding: var(--space-3) var(--modal-pad) var(--modal-pad);
 	}
 
 	.modal-actions {

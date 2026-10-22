@@ -1,17 +1,14 @@
 <script lang="ts">
 	import SingleSelect from "#lib/components/ui/select/SingleSelect.svelte";
-	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import type { TaskFieldValues, TaskPatch } from "#lib/tasks/fields.ts";
-	import { messageOf } from "#lib/tasks/display.ts";
 	import {
 		scopeChoices as buildScopeChoices,
 		scopeIdOf,
-		scopeNameError,
 		type ScopeChoice,
 	} from "#lib/tasks/scopes.ts";
 	import type { Project, Scope } from "#lib/types.ts";
 	import Plus from "~icons/lucide/plus";
-	import Check from "~icons/lucide/check";
+	import ScopeCreateDialog from "./ScopeCreateDialog.svelte";
 
 	interface Props {
 		value: TaskFieldValues;
@@ -34,10 +31,6 @@
 	}: Props = $props();
 
 	let creatingScope = $state(false);
-	let scopeName = $state("");
-	let scopeError = $state<string | null>(null);
-	let savingScope = $state(false);
-	let scopeInput = $state<HTMLInputElement | null>(null);
 
 	let scopeChoices = $derived<ScopeChoice[]>(buildScopeChoices(scopes));
 
@@ -52,51 +45,13 @@
 		projects.find((project) => project.id === value.project_id) ?? null,
 	);
 
-	$effect(() => {
-		if (creatingScope) scopeInput?.focus();
-	});
-
 	function pickScope(choice: ScopeChoice) {
-		creatingScope = false;
-		scopeError = null;
 		onfield({ scope_id: scopeIdOf(choice) });
 	}
 
-	function startScope() {
-		creatingScope = true;
-		scopeName = "";
-		scopeError = null;
-	}
-
-	async function addScope() {
-		const name = scopeName.trim();
-		const invalid = scopeNameError(name);
-		if (invalid !== null) {
-			scopeError = invalid;
-			return;
-		}
-
-		savingScope = true;
-		scopeError = null;
-
-		try {
-			const id = await onnewscope(name);
-			onfield({ scope_id: id });
-			scopeName = "";
-			creatingScope = false;
-		} catch (error) {
-			scopeError = messageOf(error);
-		} finally {
-			savingScope = false;
-		}
-	}
-
-	function onScopeKeydown(event: KeyboardEvent) {
-		if (event.key !== "Enter") return;
-		if (event.ctrlKey || event.metaKey) return;
-		event.preventDefault();
-		event.stopPropagation();
-		void addScope();
+	async function addScope(name: string) {
+		const id = await onnewscope(name);
+		onfield({ scope_id: id });
 	}
 </script>
 
@@ -131,37 +86,21 @@
 			<button
 				class="icon-button"
 				type="button"
-				onclick={startScope}
+				onclick={() => (creatingScope = true)}
 				aria-label="Add scope"
 				title="Add scope"
 			>
 				<Plus />
 			</button>
 		</div>
-		{#if creatingScope}
-			<div class="scope-new">
-				<input
-					bind:this={scopeInput}
-					bind:value={scopeName}
-					placeholder="New scope name"
-					aria-label="New scope name"
-					onkeydown={onScopeKeydown}
-				/>
-				<button
-					class="icon-button"
-					type="button"
-					onclick={() => void addScope()}
-					disabled={savingScope || scopeName.trim() === ""}
-					aria-label="Save scope"
-					title="Save scope"
-				>
-					<Check />
-				</button>
-			</div>
-			<ErrorNote message={scopeError} />
-		{/if}
 	</div>
 </div>
+
+<ScopeCreateDialog
+	open={creatingScope}
+	oncreate={addScope}
+	onclose={() => (creatingScope = false)}
+/>
 
 <style>
 	.scope-row {
@@ -178,29 +117,5 @@
 	.scope-missing :global(.select-trigger) {
 		border-color: color-mix(in oklch, var(--accent) 55%, transparent);
 		color: var(--accent-ink);
-	}
-
-	.scope-new {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-	}
-
-	.scope-new input {
-		flex: 1;
-		min-width: 0;
-		border: 1px solid var(--border-strong);
-		background: var(--field);
-		color: var(--foreground);
-		border-radius: var(--radius);
-		padding: var(--space-2) var(--space-3);
-		min-height: var(--control-h);
-		outline: none;
-		font-size: var(--text-md);
-	}
-
-	.scope-new input:focus {
-		border-color: var(--accent);
-		box-shadow: inset 0 0 0 1px var(--accent);
 	}
 </style>

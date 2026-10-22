@@ -1,6 +1,8 @@
 <script lang="ts">
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import IconButton from "#lib/components/ui/IconButton.svelte";
+	import Modal from "#lib/components/ui/Modal.svelte";
+	import ScopeCreateDialog from "#lib/components/task/ScopeCreateDialog.svelte";
 	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
@@ -9,7 +11,6 @@
 	import { INBOX_PROJECT_ID, type Project } from "#lib/types.ts";
 	import Plus from "~icons/lucide/plus";
 	import Trash2 from "~icons/lucide/trash-2";
-	import X from "~icons/lucide/x";
 
 	interface Props {
 		open: boolean;
@@ -22,9 +23,8 @@
 
 	let { open, project, projects, scopes, tasks, onclose }: Props = $props();
 
-	let panel: HTMLDialogElement | undefined = $state();
 	let name = $state("");
-	let newScope = $state("");
+	let creatingScope = $state(false);
 	let failure = $state<string | null>(null);
 	let saving = $state(false);
 	let confirmingId = $state<number | null>(null);
@@ -35,20 +35,11 @@
 	);
 
 	$effect(() => {
-		if (open && project !== null && panel !== undefined && !panel.open) {
-			panel.showModal();
-			return;
-		}
-
-		if (!open && panel?.open) panel.close();
-	});
-
-	$effect(() => {
 		const id = project?.id ?? null;
 		if (id === lastProjectId) return;
 		lastProjectId = id;
 		name = project?.name ?? "";
-		newScope = "";
+		creatingScope = false;
 		failure = null;
 		confirmingId = null;
 	});
@@ -81,16 +72,10 @@
 		);
 	}
 
-	function addScope(event: SubmitEvent) {
-		event.preventDefault();
+	async function addScope(name: string) {
 		const current = project;
 		if (current === null) return;
-		const clean = newScope.trim();
-		if (clean === "") return;
-		void run(async () => {
-			await scopes.create({ project_id: current.id, name: clean });
-			newScope = "";
-		});
+		await run(() => scopes.create({ project_id: current.id, name }));
 	}
 
 	function renameScope(id: number, event: Event) {
@@ -113,20 +98,8 @@
 	}
 </script>
 
-<dialog
-	bind:this={panel}
-	class="modal-panel"
-	aria-label="Project settings"
-	{onclose}
->
+<Modal {open} title="Project settings" {onclose}>
 	{#if project !== null}
-		<div class="modal-top">
-			<h2>Project settings</h2>
-			<IconButton label="Close project settings" onclick={() => panel?.close()}>
-				<X />
-			</IconButton>
-		</div>
-
 		<section class="settings-section">
 			<h3>Project</h3>
 			<label class="field">
@@ -205,57 +178,27 @@
 					</li>
 				{/each}
 			</ul>
-			<form class="scope-add" onsubmit={addScope}>
-				<input
-					bind:value={newScope}
-					placeholder="New scope"
-					aria-label="New scope name"
-				/>
-				<button
-					class="icon-button"
-					type="submit"
-					disabled={saving || newScope.trim() === ""}
-				>
-					<Plus />
-				</button>
-			</form>
+			<button
+				class="icon-button scope-add"
+				type="button"
+				onclick={() => (creatingScope = true)}
+				aria-label="Add scope"
+			>
+				<Plus /> Add scope
+			</button>
 		</section>
 
 		<ErrorNote message={failure} />
 	{/if}
-</dialog>
+</Modal>
+
+<ScopeCreateDialog
+	open={creatingScope}
+	oncreate={addScope}
+	onclose={() => (creatingScope = false)}
+/>
 
 <style>
-	.modal-panel {
-		width: 480px;
-		max-width: calc(100vw - var(--space-8));
-		max-height: calc(100vh - var(--space-12));
-		border: 1px solid var(--border);
-		border-radius: var(--radius-lg);
-		background: var(--panel);
-		color: var(--foreground);
-		padding: var(--space-6);
-		box-shadow: 0 1.5rem 3.75rem rgb(0 0 0 / 0.55);
-	}
-
-	.modal-panel::backdrop {
-		background: rgb(0 0 0 / 0.6);
-	}
-
-	.modal-top {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		margin-bottom: var(--space-5);
-	}
-
-	.modal-top h2 {
-		margin: 0;
-		font-size: var(--text-lg);
-		letter-spacing: -0.01em;
-		color: var(--foreground);
-	}
-
 	.settings-section {
 		margin-bottom: var(--space-5);
 	}
@@ -279,16 +222,19 @@
 	}
 
 	.inline,
-	.scope-add,
 	.scope-item {
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
 	}
 
+	.scope-add {
+		width: 100%;
+		justify-content: center;
+	}
+
 	.field input,
-	.scope-item input,
-	.scope-add input {
+	.scope-item input {
 		flex: 1;
 		min-width: 0;
 		border: 1px solid var(--border-strong);
@@ -302,8 +248,7 @@
 	}
 
 	.field input:focus,
-	.scope-item input:focus,
-	.scope-add input:focus {
+	.scope-item input:focus {
 		border-color: var(--accent);
 		box-shadow: inset 0 0 0 1px var(--accent);
 	}
