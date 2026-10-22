@@ -2,6 +2,7 @@
 	import { page } from "$app/state";
 	import SideBar from "#lib/components/layout/SideBar.svelte";
 	import UpdateBanner from "#lib/components/ui/UpdateBanner.svelte";
+	import { matchesHotkey } from "#lib/hotkeys/hotkeys.ts";
 	import { createBoard, provideBoard } from "#lib/state/board.svelte.ts";
 	import { startLiveSync } from "#lib/state/live.ts";
 	import { onMount, untrack } from "svelte";
@@ -53,19 +54,28 @@
 					"*",
 				);
 			}
+			if (matchesHotkey(event, "ctrl+b")) {
+				event.preventDefault();
+				board.ui.toggleSidebar();
+			}
 		}
 		window.addEventListener("keydown", handleKeydown);
 		return () => window.removeEventListener("keydown", handleKeydown);
 	});
 </script>
 
-<main class={`app-shell ${board.theme.themeClass}`}>
+<main
+	class={`app-shell ${board.theme.themeClass} ${board.ui.sidebarHidden ? "sidebar-collapsed" : ""}`}
+>
 	<SideBar
 		projects={board.projects}
 		scopes={board.scopes}
 		tasks={board.tasks}
 		activeProject={board.filters.activeProject}
 		onprojectselect={board.setActiveProject}
+		collapsed={board.ui.sidebarHidden}
+		onhide={() => board.ui.setSidebarHidden(true)}
+		onexpand={() => board.ui.setSidebarHidden(false)}
 	/>
 
 	{@render children()}
@@ -80,5 +90,9 @@
 		height: 100dvh;
 		overflow: hidden;
 		background: var(--background);
+	}
+
+	.app-shell.sidebar-collapsed {
+		--sidebar-w: 4rem;
 	}
 </style>

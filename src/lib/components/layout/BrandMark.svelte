@@ -56,10 +56,21 @@
 		color: var(--accent);
 	}
 
-	@media (max-width: 820px) {
+	@container sidebar (max-width: 6rem) {
+		.brand.compact {
+			padding: 0;
+			width: 100%;
+			aspect-ratio: 1;
+		}
+
 		.brand {
-			padding-inline: var(--space-2);
+			padding-inline: 0;
 			justify-content: center;
+		}
+
+		.brand-mark {
+			width: 1.125rem;
+			height: 1.125rem;
 		}
 
 		.brand-word {

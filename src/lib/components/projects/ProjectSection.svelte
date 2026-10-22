@@ -198,7 +198,7 @@
 		color: var(--foreground);
 	}
 
-	@media (max-width: 820px) {
+	@container sidebar (max-width: 6rem) {
 		.projects-heading,
 		.project-list {
 			display: none;

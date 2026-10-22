@@ -63,7 +63,7 @@
 		type="button"
 		onclick={run}
 		disabled={phase !== "idle"}
-		title={detail}
+		title={detail || status || "Back up now"}
 	>
 		{#if phase === "busy"}
 			<span class="spin"><LoaderCircle /></span>
@@ -74,7 +74,7 @@
 		{:else}
 			<DatabaseBackup />
 		{/if}
-		<span>Back up now</span>
+		<span class="backup-label">Back up now</span>
 	</button>
 </div>
 
@@ -169,9 +169,28 @@
 		}
 	}
 
-	@media (max-width: 820px) {
-		.backup-control {
+	@container sidebar (max-width: 6rem) {
+		.backup-status {
 			display: none;
+		}
+
+		.backup-button {
+			justify-content: center;
+			gap: 0;
+			padding: 0;
+			min-height: 0;
+			aspect-ratio: 1;
+			border-color: transparent;
+			background: transparent;
+		}
+
+		.backup-label {
+			display: none;
+		}
+
+		.backup-button :global(svg) {
+			width: 1.125rem;
+			height: 1.125rem;
 		}
 	}
 </style>

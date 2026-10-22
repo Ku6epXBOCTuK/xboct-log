@@ -21,34 +21,28 @@
 	const onDeleted = $derived(page.url.pathname === "/deleted");
 </script>
 
-<nav class="primary-nav" aria-label="Primary navigation">
-	{#if !onlyActive || onTasks}
-		<a class="nav-item" class:active={onTasks} href={resolve("/")}>
-			<ClipBoardList /> Tasks
-			<span class="nav-count">{taskCount}</span>
-		</a>
-	{/if}
-	{#if !onlyActive || onKanban}
-		<a class="nav-item" class:active={onKanban} href={resolve("/kanban")}>
-			<FolderKanban /> Kanban
-			<span class="nav-count">{inProgressCount}</span>
-		</a>
-	{/if}
-	{#if !onlyActive || onActivity}
-		<a class="nav-item" class:active={onActivity} href={resolve("/activity")}>
-			<Activity /> Activity
-		</a>
-	{/if}
-	{#if !onlyActive || onDeleted}
-		<a class="nav-item" class:active={onDeleted} href={resolve("/deleted")}>
-			<ArchiveRestore /> Deleted
-		</a>
-	{/if}
-	{#if !onlyActive}
-		<button class="nav-item">
-			<BarChart3 /> Statistics
-		</button>
-	{/if}
+<nav
+	class="primary-nav"
+	class:only-active={onlyActive}
+	aria-label="Primary navigation"
+>
+	<a class="nav-item" class:active={onTasks} href={resolve("/")}>
+		<ClipBoardList /> Tasks
+		<span class="nav-count">{taskCount}</span>
+	</a>
+	<a class="nav-item" class:active={onKanban} href={resolve("/kanban")}>
+		<FolderKanban /> Kanban
+		<span class="nav-count">{inProgressCount}</span>
+	</a>
+	<a class="nav-item" class:active={onActivity} href={resolve("/activity")}>
+		<Activity /> Activity
+	</a>
+	<a class="nav-item" class:active={onDeleted} href={resolve("/deleted")}>
+		<ArchiveRestore /> Deleted
+	</a>
+	<button class="nav-item">
+		<BarChart3 /> Statistics
+	</button>
 </nav>
 
 <style>
@@ -89,6 +83,10 @@
 		background: var(--selected);
 	}
 
+	.only-active .nav-item:not(.active) {
+		display: none;
+	}
+
 	.nav-count {
 		margin-left: auto;
 		color: var(--text-muted);
@@ -96,10 +94,17 @@
 		font-variant-numeric: tabular-nums;
 	}
 
-	@media (max-width: 820px) {
+	@container sidebar (max-width: 6rem) {
 		.nav-item {
 			justify-content: center;
+			gap: 0;
 			font-size: 0;
+			padding: 0;
+			aspect-ratio: 1;
+		}
+
+		.only-active .nav-item:not(.active) {
+			display: flex;
 		}
 
 		.nav-item :global(svg) {
