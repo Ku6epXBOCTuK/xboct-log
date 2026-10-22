@@ -6,6 +6,7 @@
 	import TaskHistory from "#lib/components/detail/TaskHistory.svelte";
 	import TaskRevisions from "#lib/components/detail/TaskRevisions.svelte";
 	import TaskFields from "#lib/components/task/TaskFields.svelte";
+	import { fieldNavigation } from "#lib/hotkeys/fields.ts";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import CopyButton from "#lib/components/ui/CopyButton.svelte";
 	import IconButton from "#lib/components/ui/IconButton.svelte";
@@ -220,7 +221,12 @@
 <svelte:window {onkeydown} />
 
 {#if selected !== null}
-	<aside class="detail-panel" transition:slideRight aria-label="Task details">
+	<aside
+		class="detail-panel"
+		transition:slideRight
+		aria-label="Task details"
+		use:fieldNavigation={{ exclude: ".panel-overlay" }}
+	>
 		<div class="detail-head">
 			<div class="detail-top">
 				<div class="detail-id">

@@ -7,6 +7,7 @@
 	import { messageOf } from "#lib/tasks/display.ts";
 	import { collectTags } from "#lib/tasks/filter.ts";
 	import { matchesHotkey } from "#lib/hotkeys/hotkeys.ts";
+	import { fieldNavigation } from "#lib/hotkeys/fields.ts";
 	import {
 		epicsForProject,
 		validateTaskDraft,
@@ -196,7 +197,7 @@
 
 <svelte:window {onkeydown} />
 
-<form bind:this={formElement} onsubmit={submit}>
+<form bind:this={formElement} onsubmit={submit} use:fieldNavigation>
 	<div class="panel-body">
 		<ProjectScopeFields
 			value={draft}
