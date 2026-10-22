@@ -85,14 +85,22 @@
 			<tr>
 				{@render sortHeader("id", "ID", "id-col")}
 				{#if showProject}
-					{@render sortHeader("project", "Project", "optional-column")}
+					{@render sortHeader(
+						"project",
+						"Project",
+						"project-col optional-column",
+					)}
 				{/if}
-				<th class="optional-column">Scope</th>
+				<th class="scope-col optional-column">Scope</th>
 				<th>Task</th>
-				<th class="optional-column">Tags</th>
-				{@render sortHeader("status", "Status", "")}
-				{@render sortHeader("priority", "Priority", "optional-column")}
-				<th class="optional-column">Est</th>
+				<th class="tags-col optional-column">Tags</th>
+				{@render sortHeader("status", "Status", "status-col")}
+				{@render sortHeader(
+					"priority",
+					"Priority",
+					"priority-col optional-column",
+				)}
+				<th class="est-col optional-column">Est</th>
 				{@render sortHeader("created", "Created", "date-col optional-column")}
 				<th class="date-col optional-column">Due</th>
 				{@render sortHeader("closed", "Closed", "date-col optional-column")}
@@ -140,7 +148,8 @@
 	table {
 		width: 100%;
 		border-collapse: collapse;
-		min-width: 780px;
+		table-layout: fixed;
+		min-width: 1280px;
 	}
 
 	th {
@@ -156,19 +165,47 @@
 		position: sticky;
 		top: 0;
 		z-index: 1;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.id-col {
-		width: 100px;
+		width: 88px;
 		padding-left: var(--edge-pad);
 	}
 
+	.project-col {
+		width: 110px;
+	}
+
+	.scope-col {
+		width: 100px;
+	}
+
+	.tags-col {
+		width: 180px;
+	}
+
+	.status-col {
+		width: 118px;
+	}
+
+	.priority-col {
+		width: 96px;
+	}
+
+	.est-col {
+		width: 56px;
+	}
+
 	.date-col {
+		width: 100px;
 		padding-right: var(--edge-pad);
 	}
 
 	.action-col {
-		width: 1%;
+		width: 150px;
 		text-align: right;
 		white-space: nowrap;
 	}

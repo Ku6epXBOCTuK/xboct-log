@@ -60,7 +60,7 @@
 	{#if showProject}
 		<td class="project-label optional-column">{projectName}</td>
 	{/if}
-	<td class="optional-column">
+	<td class="scope-cell optional-column">
 		{#if scope !== null}
 			<span class="scope-badge">{scope.name}</span>
 		{:else if scoped}
@@ -97,7 +97,10 @@
 			</span>
 		{/if}
 	</td>
-	<td class="optional-column">
+	<td
+		class="tags-cell optional-column"
+		title={task.tags.map((tag) => `#${tag}`).join(" ")}
+	>
 		<div class="tag-list">
 			{#each task.tags as tag (tag)}
 				<span class="tag">
@@ -161,20 +164,24 @@
 		font-family: var(--font-mono);
 		font-size: var(--text-xs);
 		font-variant-numeric: tabular-nums;
+		white-space: nowrap;
+		overflow: hidden;
 	}
 
 	.task-title {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
 		color: var(--foreground);
-		min-width: 300px;
+		overflow: hidden;
 	}
 
 	.task-title-text {
-		display: inline-block;
-		max-width: 32rem;
+		flex: 1 1 auto;
+		min-width: 0;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
-		vertical-align: bottom;
 	}
 
 	.epic-filter {
@@ -183,6 +190,7 @@
 		color: var(--green-ink);
 		cursor: pointer;
 		font-family: var(--font-mono);
+		flex: none;
 	}
 
 	.epic-filter:hover {
@@ -197,6 +205,7 @@
 		font-family: var(--font-mono);
 		font-weight: 600;
 		letter-spacing: 0.04em;
+		flex: none;
 	}
 
 	.epic-marker:hover {
@@ -214,11 +223,11 @@
 	}
 
 	.epic-progress {
-		margin-left: var(--space-2);
 		color: var(--text-muted);
 		font-size: var(--text-xs);
 		font-variant-numeric: tabular-nums;
 		white-space: nowrap;
+		flex: none;
 	}
 
 	.scope-badge {
@@ -237,7 +246,6 @@
 	}
 
 	.blocker-badge {
-		margin-left: var(--space-2);
 		border: 1px solid color-mix(in oklch, var(--accent) 55%, transparent);
 		color: var(--accent-ink);
 		border-radius: var(--radius-sm);
@@ -246,12 +254,23 @@
 		font-size: var(--text-xs);
 		line-height: 1.5;
 		white-space: nowrap;
+		flex: none;
+	}
+
+	.scope-cell {
+		overflow: hidden;
+	}
+
+	.tags-cell {
+		overflow: hidden;
 	}
 
 	.tag-list {
 		display: flex;
 		gap: var(--space-1);
 		flex-wrap: wrap;
+		row-gap: var(--space-1);
+		overflow: hidden;
 	}
 
 	.tag {
@@ -261,6 +280,8 @@
 		padding: 0 var(--space-2);
 		font-size: var(--text-xs);
 		line-height: 1.5;
+		white-space: nowrap;
+		flex: none;
 	}
 
 	.status-label {
@@ -269,11 +290,14 @@
 		gap: var(--space-2);
 		color: var(--text-secondary);
 		white-space: nowrap;
+		overflow: hidden;
 	}
 
 	.priority-label {
 		text-transform: lowercase;
 		color: var(--text-secondary);
+		white-space: nowrap;
+		overflow: hidden;
 	}
 
 	.priority-label.critical {
@@ -289,6 +313,7 @@
 	.date-label {
 		color: var(--text-muted);
 		white-space: nowrap;
+		overflow: hidden;
 		font-variant-numeric: tabular-nums;
 	}
 
@@ -306,6 +331,8 @@
 	.project-label {
 		color: var(--text-secondary);
 		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 
 	.due-overdue {
