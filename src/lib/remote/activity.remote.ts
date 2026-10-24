@@ -1,9 +1,8 @@
-import { error } from "@sveltejs/kit";
 import { z } from "zod";
 import { listActivity, searchActivity } from "../server/activity";
 import { getDb } from "../server/db";
-import * as repo from "../server/tasks";
 import { defineQuery } from "./define";
+import { resolveTaskOrThrow } from "./ids";
 import { strictObject } from "./strict";
 import { ID_DESCRIPTION, taskIdSchema } from "#lib/tasks/ids.ts";
 
@@ -24,13 +23,9 @@ export const getTaskHistory = defineQuery({
 	}),
 	handler: ({ id, limit }) => {
 		const db = getDb();
-		const resolved = repo.resolveTaskId(db, id);
-		if (resolved.isErr()) {
-			error(resolved.error.status, resolved.error.message);
-		}
 		return listActivity(db, {
 			entity: "task",
-			entity_id: resolved.value,
+			entity_id: resolveTaskOrThrow(db, id),
 			limit,
 		});
 	},

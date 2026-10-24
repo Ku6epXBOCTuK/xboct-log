@@ -1,4 +1,4 @@
-import { error } from "@sveltejs/kit";
+import { err } from "neverthrow";
 import { z } from "zod";
 import {
 	addAttachmentFromBase64,
@@ -8,19 +8,12 @@ import {
 	verifyAttachments,
 } from "../server/attachments";
 import { getDb } from "../server/db";
-import * as repo from "../server/tasks";
+import { invalid } from "../server/errors";
 import { defineCommand, defineQuery } from "./define";
+import { resolveTaskOrThrow } from "./ids";
 import { ATTACHMENT_FIELDS } from "./shape";
 import { strictObject } from "./strict";
 import { ID_DESCRIPTION, taskIdSchema } from "#lib/tasks/ids.ts";
-
-function resolve(db: ReturnType<typeof getDb>, id: string): string {
-	const resolved = repo.resolveTaskId(db, id);
-	if (resolved.isErr()) {
-		error(resolved.error.status, resolved.error.message);
-	}
-	return resolved.value;
-}
 
 export const getTaskAttachments = defineQuery({
 	name: "attachments_list",
@@ -34,7 +27,7 @@ export const getTaskAttachments = defineQuery({
 	}),
 	handler: ({ id }) => {
 		const db = getDb();
-		return { items: listAttachments(db, resolve(db, id)) };
+		return { items: listAttachments(db, resolveTaskOrThrow(db, id)) };
 	},
 });
 
@@ -73,7 +66,7 @@ export const addTaskAttachment = defineCommand({
 	}),
 	handler: ({ id, filename, path, content_base64, mime_type }) => {
 		const db = getDb();
-		const taskId = resolve(db, id);
+		const taskId = resolveTaskOrThrow(db, id);
 		const result =
 			path !== undefined
 				? addAttachmentFromPath(db, taskId, path)
@@ -87,10 +80,10 @@ export const addTaskAttachment = defineCommand({
 						)
 					: null;
 		if (result === null) {
-			error(400, "give either path or content_base64");
+			return err(invalid("give either path or content_base64"));
 		}
 		if (result.isErr()) {
-			error(result.error.status, result.error.message);
+			return err(result.error);
 		}
 		return { item: result.value };
 	},
@@ -107,7 +100,7 @@ export const removeTaskAttachment = defineCommand({
 	handler: ({ id }) => {
 		const result = deleteAttachment(getDb(), id);
 		if (result.isErr()) {
-			error(result.error.status, result.error.message);
+			return err(result.error);
 		}
 		return result.value;
 	},
@@ -123,7 +116,7 @@ export const checkTaskAttachments = defineQuery({
 	}),
 	handler: ({ id }) => {
 		const db = getDb();
-		const taskId = id === undefined ? undefined : resolve(db, id);
+		const taskId = id === undefined ? undefined : resolveTaskOrThrow(db, id);
 		return verifyAttachments(db, taskId);
 	},
 });

@@ -1,22 +1,13 @@
-import { error } from "@sveltejs/kit";
 import { z } from "zod";
 import { activityEntry } from "../server/activity";
 import * as comments from "../server/comments";
 import { getDb } from "../server/db";
-import { resolveTaskId } from "../server/tasks";
 import type { Comment } from "../types";
 import { ID_DESCRIPTION, taskIdSchema } from "#lib/tasks/ids.ts";
 import { defineCommand, defineQuery } from "./define";
+import { resolveTaskOrThrow } from "./ids";
 import { COMMENT_FIELDS } from "./shape";
 import { strictObject } from "./strict";
-
-function resolveTask(db: ReturnType<typeof getDb>, taskId: string): string {
-	const resolved = resolveTaskId(db, taskId);
-	if (resolved.isErr()) {
-		error(resolved.error.status, resolved.error.message);
-	}
-	return resolved.value;
-}
 
 export const listComments = defineQuery({
 	name: "tasks_comments_list",
@@ -30,7 +21,7 @@ export const listComments = defineQuery({
 	}),
 	handler: ({ task_id }) => {
 		const db = getDb();
-		const taskId = resolveTask(db, task_id);
+		const taskId = resolveTaskOrThrow(db, task_id);
 		const items = comments.listComments(db, taskId);
 		return { items, total: items.length };
 	},

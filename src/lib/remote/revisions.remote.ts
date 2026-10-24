@@ -1,9 +1,8 @@
-import { error } from "@sveltejs/kit";
 import { z } from "zod";
 import { getDb } from "../server/db";
 import { listRevisions, REVISION_FIELDS } from "../server/revisions";
-import * as repo from "../server/tasks";
 import { defineQuery } from "./define";
+import { resolveTaskOrThrow } from "./ids";
 import { strictObject } from "./strict";
 import { ID_DESCRIPTION, taskIdSchema } from "#lib/tasks/ids.ts";
 
@@ -30,11 +29,8 @@ export const getTaskRevisions = defineQuery({
 	}),
 	handler: ({ id, field, limit }) => {
 		const db = getDb();
-		const resolved = repo.resolveTaskId(db, id);
-		if (resolved.isErr()) {
-			error(resolved.error.status, resolved.error.message);
-		}
-		const revisions = listRevisions(db, resolved.value)
+		const taskId = resolveTaskOrThrow(db, id);
+		const revisions = listRevisions(db, taskId)
 			.filter((revision) => field === undefined || revision.field === field)
 			.slice(0, limit ?? 50);
 		return { items: revisions, total: revisions.length };
