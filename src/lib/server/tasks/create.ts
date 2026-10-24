@@ -3,6 +3,7 @@ import { err, type Result } from "neverthrow";
 import { CLOSED_STATUSES, type Task } from "../../types";
 import { guard, invalid, notFound, type AppError } from "../errors";
 import { getProject } from "../projects";
+import { withTransaction } from "../db";
 import { normalizeDueDate } from "../../tasks/display";
 import { withBlockingInfo } from "./read";
 import {
@@ -89,9 +90,8 @@ export function createTask(
 	const now = new Date().toISOString();
 	const closedAt = CLOSED_STATUSES.includes(status) ? now : null;
 
-	return guard(() => {
-		db.exec("BEGIN IMMEDIATE");
-		try {
+	return guard(() =>
+		withTransaction(db, () => {
 			const n = allocateNumber(db, project.id);
 			const id = `${project.prefix}-${n}`;
 
@@ -121,11 +121,7 @@ export function createTask(
 				now,
 				closedAt,
 			);
-			db.exec("COMMIT");
 			return withBlockingInfo(db, [taskById(db, id)!])[0];
-		} catch (error) {
-			db.exec("ROLLBACK");
-			throw error;
-		}
-	});
+		}),
+	);
 }

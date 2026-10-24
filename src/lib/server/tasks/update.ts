@@ -13,6 +13,7 @@ import {
 	releaseBlockedStatus,
 } from "../blockers";
 import { guard, invalid, type AppError } from "../errors";
+import { withTransaction } from "../db";
 import { recordRevision } from "../revisions";
 import { withBlockingInfo } from "./read";
 import {
@@ -273,9 +274,8 @@ export function updateTaskDetailed(
 		patch.description !== undefined &&
 		patch.description !== current.description;
 
-	return guard(() => {
-		db.exec("BEGIN IMMEDIATE");
-		try {
+	return guard(() =>
+		withTransaction(db, () => {
 			if (descriptionChanged) {
 				recordRevision(db, {
 					task_id: targetId,
@@ -287,16 +287,12 @@ export function updateTaskDetailed(
 				...params,
 				targetId,
 			);
-			db.exec("COMMIT");
 			return {
 				task: withBlockingInfo(db, [taskById(db, targetId)!])[0],
 				changes,
 			};
-		} catch (error) {
-			db.exec("ROLLBACK");
-			throw error;
-		}
-	});
+		}),
+	);
 }
 
 export function updateTask(
@@ -330,23 +326,25 @@ export function closeTaskDetailed(
 
 	const now = new Date().toISOString();
 
-	return guard(() => {
-		db.prepare(
-			`UPDATE tasks
-			 SET status = ?, closed_at = ?, closed_reason = ?, updated_at = ?
-			 WHERE id = ?`,
-		).run(status, now, reason, now, targetId);
-		const releasedIds = releaseBlockedStatus(db, listBlocks(db, targetId));
-		const released: ReleasedLink[] = releasedIds.map((item) => ({
-			task_id: item.task_id,
-			changes: [{ field: "status", from: "blocked", to: item.status }],
-		}));
-		return {
-			task: withBlockingInfo(db, [taskById(db, targetId)!])[0],
-			changes,
-			released,
-		};
-	});
+	return guard(() =>
+		withTransaction(db, () => {
+			db.prepare(
+				`UPDATE tasks
+				 SET status = ?, closed_at = ?, closed_reason = ?, updated_at = ?
+				 WHERE id = ?`,
+			).run(status, now, reason, now, targetId);
+			const releasedIds = releaseBlockedStatus(db, listBlocks(db, targetId));
+			const released: ReleasedLink[] = releasedIds.map((item) => ({
+				task_id: item.task_id,
+				changes: [{ field: "status", from: "blocked", to: item.status }],
+			}));
+			return {
+				task: withBlockingInfo(db, [taskById(db, targetId)!])[0],
+				changes,
+				released,
+			};
+		}),
+	);
 }
 
 export function closeTask(

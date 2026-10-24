@@ -1,6 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { err, ok, type Result } from "neverthrow";
 import { guard, notFound, type AppError } from "../errors";
+import { withTransaction } from "../db";
 import { getProject } from "../projects";
 import { allocateNumber } from "./create";
 import { withBlockingInfo } from "./read";
@@ -42,9 +43,8 @@ export function moveTask(
 
 	const now = new Date().toISOString();
 
-	return guard(() => {
-		db.exec("BEGIN IMMEDIATE");
-		try {
+	return guard(() =>
+		withTransaction(db, () => {
 			// NOTE: epic_id has no ON UPDATE CASCADE and foreign keys check
 			// immediately, so rewriting ids before children follow fails.
 			// PRAGMA defer_foreign_keys defers validation until COMMIT.
@@ -71,11 +71,7 @@ export function moveTask(
 					 WHERE id = ?`,
 				).run(node.newId, target.id, node.number, newEpicId, now, node.oldId);
 			}
-			db.exec("COMMIT");
 			return withBlockingInfo(db, [taskById(db, newIds.get(sourceId)!)!])[0];
-		} catch (error) {
-			db.exec("ROLLBACK");
-			throw error;
-		}
-	});
+		}),
+	);
 }

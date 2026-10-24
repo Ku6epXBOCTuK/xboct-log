@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
 import type { Comment } from "../types";
 import { AppError, guard, invalid, notFound } from "./errors";
+import { withTransaction } from "./db";
 import { recordRevision } from "./revisions";
 import { resolveTaskId } from "./tasks";
 
@@ -127,9 +128,8 @@ export function editComment(
 
 	const now = new Date().toISOString();
 
-	return guard(() => {
-		db.exec("BEGIN IMMEDIATE");
-		try {
+	return guard(() =>
+		withTransaction(db, () => {
 			recordRevision(
 				db,
 				{
@@ -143,13 +143,9 @@ export function editComment(
 			db.prepare(
 				"UPDATE task_comments SET body = ?, edited_at = ? WHERE id = ?",
 			).run(next.value, now, id);
-			db.exec("COMMIT");
 			return getComment(db, id)!;
-		} catch (error) {
-			db.exec("ROLLBACK");
-			throw error;
-		}
-	});
+		}),
+	);
 }
 
 export function deleteComment(

@@ -2,6 +2,7 @@ import { err, ok, type Result } from "neverthrow";
 import type { DatabaseSync } from "node:sqlite";
 import type { Scope } from "../types";
 import { AppError, conflict, guard, invalid, notFound } from "./errors";
+import { withTransaction } from "./db";
 import { getProject } from "./projects";
 
 interface ScopeRow {
@@ -243,18 +244,13 @@ export function deleteScopeDetailed(
 	}
 	const members = scopeMembers(db, id);
 
-	return guard(() => {
-		db.exec("BEGIN IMMEDIATE");
-		try {
+	return guard(() =>
+		withTransaction(db, () => {
 			db.prepare("UPDATE tasks SET scope_id = NULL WHERE scope_id = ?").run(id);
 			db.prepare("DELETE FROM scopes WHERE id = ?").run(id);
-			db.exec("COMMIT");
 			return { scope, ...members, dry_run: false };
-		} catch (error) {
-			db.exec("ROLLBACK");
-			throw error;
-		}
-	});
+		}),
+	);
 }
 
 export function deleteScope(

@@ -52,3 +52,15 @@ export function closeDb(): void {
 	}
 	local = undefined;
 }
+
+export function withTransaction<T>(db: DatabaseSync, run: () => T): T {
+	db.exec("BEGIN IMMEDIATE");
+	try {
+		const value = run();
+		db.exec("COMMIT");
+		return value;
+	} catch (error) {
+		db.exec("ROLLBACK");
+		throw error;
+	}
+}

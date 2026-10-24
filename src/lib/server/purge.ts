@@ -1,6 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { removeTaskAttachments } from "./attachments";
 import { deleteBlockedByLinks } from "./blockers";
+import { withTransaction } from "./db";
 
 const DAY_MS = 86_400_000;
 
@@ -26,19 +27,14 @@ export function purgeSoftDeletedTasks(
 	}
 
 	const remove = db.prepare("DELETE FROM tasks WHERE id = ?");
-	let purged = 0;
-	db.exec("BEGIN IMMEDIATE");
-	try {
+	return withTransaction(db, () => {
+		let purged = 0;
 		for (const id of ids) {
 			deleteBlockedByLinks(db, id);
 			removeTaskAttachments(db, id);
 			remove.run(id);
 			purged += 1;
 		}
-		db.exec("COMMIT");
-	} catch (error) {
-		db.exec("ROLLBACK");
-		throw error;
-	}
-	return purged;
+		return purged;
+	});
 }

@@ -8,6 +8,7 @@ import {
 	releaseBlockedStatus,
 } from "../blockers";
 import { conflict, guard, notFound, type AppError } from "../errors";
+import { withTransaction } from "../db";
 import { withBlockingInfo } from "./read";
 import { taskById } from "./rows";
 import { resolveTaskId, resolveTaskIdInternal } from "./resolve";
@@ -36,9 +37,8 @@ export function deleteTaskDetailed(
 
 	const now = new Date().toISOString();
 
-	return guard(() => {
-		db.exec("BEGIN IMMEDIATE");
-		try {
+	return guard(() =>
+		withTransaction(db, () => {
 			db.prepare(
 				"UPDATE tasks SET epic_id = NULL, updated_at = ? WHERE epic_id = ?",
 			).run(now, targetId);
@@ -47,7 +47,6 @@ export function deleteTaskDetailed(
 			).run(now, now, targetId);
 			deleteBlockedByLinks(db, targetId);
 			const releasedIds = releaseBlockedStatus(db, blockedIds);
-			db.exec("COMMIT");
 
 			const restored = new Map(
 				releasedIds.map((item) => [item.task_id, item.status]),
@@ -81,11 +80,8 @@ export function deleteTaskDetailed(
 				],
 				released,
 			};
-		} catch (error) {
-			db.exec("ROLLBACK");
-			throw error;
-		}
-	});
+		}),
+	);
 }
 
 export function deleteTask(
@@ -119,16 +115,11 @@ export function restoreTask(
 	const now = new Date().toISOString();
 
 	return guard(() => {
-		db.exec("BEGIN IMMEDIATE");
-		try {
+		withTransaction(db, () => {
 			db.prepare(
 				"UPDATE tasks SET deleted_at = NULL, updated_at = ? WHERE id = ?",
 			).run(now, targetId);
-			db.exec("COMMIT");
-		} catch (error) {
-			db.exec("ROLLBACK");
-			throw error;
-		}
+		});
 		return withBlockingInfo(db, [taskById(db, targetId)!])[0];
 	});
 }
