@@ -1,4 +1,11 @@
-import { backupConfig, catchUp, reportBackup, runScheduled } from "./backup";
+import {
+	backupConfig,
+	catchUp,
+	reportBackup,
+	runScheduled,
+	scheduledFor,
+	type BackupConfig,
+} from "./backup";
 import { getDb } from "./db";
 import { purgeSoftDeletedTasks } from "./purge";
 
@@ -17,20 +24,8 @@ function claimScheduler(): boolean {
 	return true;
 }
 
-function scheduledFor(hour: number, minute: number, now: Date): Date {
-	return new Date(
-		now.getFullYear(),
-		now.getMonth(),
-		now.getDate(),
-		hour,
-		minute,
-		0,
-		0,
-	);
-}
-
-function msUntilNext(hour: number, minute: number, now: Date): number {
-	const next = scheduledFor(hour, minute, now);
+function msUntilNext(config: BackupConfig, now: Date): number {
+	const next = scheduledFor(config, now);
 	if (next.getTime() <= now.getTime()) {
 		next.setDate(next.getDate() + 1);
 	}
@@ -66,7 +61,7 @@ export function startScheduler(): void {
 				runJobs("scheduled");
 				schedule();
 			},
-			msUntilNext(config.hour, config.minute, new Date()),
+			msUntilNext(config, new Date()),
 		);
 		timer.unref();
 	};

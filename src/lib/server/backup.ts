@@ -199,7 +199,7 @@ export async function runScheduled(
 	return ok(saved);
 }
 
-function scheduledFor(config: BackupConfig, now: Date): Date {
+export function scheduledFor(config: BackupConfig, now: Date): Date {
 	return new Date(
 		now.getFullYear(),
 		now.getMonth(),

@@ -5,7 +5,6 @@ import { openMigratedDatabase } from "./migrations";
 import { type AppError } from "./errors";
 import { createProject } from "./projects";
 import {
-	countScopeTotals,
 	countTasksByScope,
 	createScope,
 	deleteScope,
@@ -137,8 +136,8 @@ describe("scopes", () => {
 		unwrap(createTask(db, { project_id: "spa", title: "Loose" }));
 
 		expect(countTasksByScope(db, "spa")).toEqual({
-			[frontend.id]: { tasks: 2, epics: 0 },
-			[backend.id]: { tasks: 1, epics: 0 },
+			[frontend.id]: { tasks: 2, active_tasks: 2, epics: 0 },
+			[backend.id]: { tasks: 1, active_tasks: 1, epics: 0 },
 		});
 	});
 
@@ -184,7 +183,7 @@ describe("scopes", () => {
 		);
 
 		expect(countTasksByScope(db, "spa")).toEqual({
-			[scope.id]: { tasks: 2, epics: 1 },
+			[scope.id]: { tasks: 4, active_tasks: 2, epics: 1 },
 		});
 	});
 
@@ -213,8 +212,8 @@ describe("scopes", () => {
 			}),
 		);
 
-		expect(countScopeTotals(db, "spa")).toEqual({
-			[scope.id]: { tasks: 2, epics: 1 },
+		expect(countTasksByScope(db, "spa")).toEqual({
+			[scope.id]: { tasks: 2, active_tasks: 1, epics: 1 },
 		});
 	});
 
@@ -257,8 +256,8 @@ describe("scopes", () => {
 		);
 
 		expect(countTasksByScope(db)).toEqual({
-			[frontend.id]: { tasks: 1, epics: 0 },
-			[billing.id]: { tasks: 1, epics: 0 },
+			[frontend.id]: { tasks: 1, active_tasks: 1, epics: 0 },
+			[billing.id]: { tasks: 1, active_tasks: 1, epics: 0 },
 		});
 	});
 });

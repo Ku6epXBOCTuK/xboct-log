@@ -20,8 +20,16 @@ export const getScopes = defineQuery({
 		const db = getDb();
 		const counts = scopes.countTasksByScope(db, project_id);
 		return scopes.listScopes(db, project_id).map((scope) => {
-			const count = counts[scope.id] ?? { tasks: 0, epics: 0 };
-			return { ...scope, task_count: count.tasks, epics_count: count.epics };
+			const count = counts[scope.id] ?? {
+				tasks: 0,
+				active_tasks: 0,
+				epics: 0,
+			};
+			return {
+				...scope,
+				task_count: count.active_tasks,
+				epics_count: count.epics,
+			};
 		});
 	},
 });
@@ -42,9 +50,14 @@ export const getScope = defineQuery({
 		}
 		const count = scopes.countTasksByScope(db)[scope.id] ?? {
 			tasks: 0,
+			active_tasks: 0,
 			epics: 0,
 		};
-		return { ...scope, task_count: count.tasks, epics_count: count.epics };
+		return {
+			...scope,
+			task_count: count.active_tasks,
+			epics_count: count.epics,
+		};
 	},
 });
 

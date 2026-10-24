@@ -66,7 +66,7 @@ export const getProject = defineQuery({
 			error(404, `project ${id} not found`);
 		}
 		const scopeRows = scopes.listScopes(db, id);
-		const scopeTotals = scopes.countScopeTotals(db, id);
+		const scopeCounts = scopes.countTasksByScope(db, id);
 		return {
 			...project,
 			task_counts: countTasksByStatus(db, id),
@@ -74,8 +74,8 @@ export const getProject = defineQuery({
 			scope_counts: scopeRows.map((scope) => ({
 				scope_id: scope.id,
 				name: scope.name,
-				tasks: scopeTotals[scope.id]?.tasks ?? 0,
-				epics: scopeTotals[scope.id]?.epics ?? 0,
+				tasks: scopeCounts[scope.id]?.tasks ?? 0,
+				epics: scopeCounts[scope.id]?.epics ?? 0,
 			})),
 		};
 	},
