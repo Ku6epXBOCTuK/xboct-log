@@ -1,5 +1,6 @@
 <script lang="ts">
 	import SearchBar from "#lib/components/filters/SearchBar.svelte";
+	import Pager from "#lib/components/ui/Pager.svelte";
 	import TaskTable from "#lib/components/table/TaskTable.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import IconButton from "#lib/components/ui/IconButton.svelte";
@@ -8,6 +9,7 @@
 	import { reloadApp } from "#lib/reload.ts";
 	import { useBoard } from "#lib/state/board.svelte.ts";
 	import { createDebouncedValue } from "#lib/state/debounce.svelte.ts";
+	import { createPagedQuery } from "#lib/state/paged.svelte.ts";
 	import { formatDateTime, messageOf } from "#lib/tasks/display.ts";
 	import {
 		defaultOrderFor,
@@ -25,18 +27,23 @@
 
 	const { projects, scopes, filters, theme } = useBoard();
 
-	let offset = $state(0);
-	let items = $state<Task[]>([]);
-	let total = $state(0);
-	let failed = $state(false);
-	let loaded = $state(false);
 	let error = $state("");
 	let busy = $state("");
 	let sortKey = $state<TaskSortKey>("updated");
 	let sortOrder = $state<SortOrder>("desc");
-	let requestId = 0;
 
 	const search = createDebouncedValue("");
+
+	const paged = createPagedQuery<Task>((offset) =>
+		fetchFresh(
+			listDeletedTasks({
+				project_id: filters.activeProject ?? undefined,
+				q: search.applied === "" ? undefined : search.applied,
+				limit: LIMIT,
+				offset,
+			}),
+		),
+	);
 
 	const projectNames = $derived(
 		new Map(projects.all.map((project) => [project.id, project.name])),
@@ -47,46 +54,23 @@
 	);
 
 	const visible = $derived(
-		sortTasks(items, sortKey, sortOrder, { projectNames }),
+		sortTasks(paged.items, sortKey, sortOrder, { projectNames }),
 	);
 
 	$effect(() => {
-		void load(0);
+		void paged.load(0);
 	});
 
 	$effect(() => {
 		return () => search.cancel();
 	});
 
-	async function load(nextOffset: number) {
-		const current = ++requestId;
-		offset = nextOffset;
-		try {
-			const result = await fetchFresh(
-				listDeletedTasks({
-					project_id: filters.activeProject ?? undefined,
-					q: search.applied === "" ? undefined : search.applied,
-					limit: LIMIT,
-					offset: nextOffset,
-				}),
-			);
-			if (current !== requestId) return;
-			items = result.items;
-			total = result.total;
-			failed = false;
-			loaded = true;
-		} catch {
-			if (current !== requestId) return;
-			failed = true;
-		}
-	}
-
 	async function restore(id: string) {
 		error = "";
 		busy = id;
 		try {
 			await restoreTask({ id });
-			await load(offset);
+			await paged.load(paged.offset);
 		} catch (cause) {
 			error = messageOf(cause);
 		} finally {
@@ -102,9 +86,6 @@
 		sortKey = key;
 		sortOrder = defaultOrderFor(key);
 	}
-
-	const canPrev = $derived(offset > 0);
-	const canNext = $derived(offset + LIMIT < total);
 </script>
 
 {#snippet restoreAction(task: Task)}
@@ -129,7 +110,7 @@
 	<header class="page-head">
 		<h1>Deleted tasks</h1>
 		<span class="muted">
-			{activeProjectName ?? "All projects"} · {total} deleted
+			{activeProjectName ?? "All projects"} · {paged.total} deleted
 		</span>
 		<div class="head-actions">
 			<IconButton
@@ -161,14 +142,14 @@
 		</div>
 	{/if}
 
-	{#if failed}
+	{#if paged.failed}
 		<p class="empty">Deleted tasks are unavailable</p>
-	{:else if !loaded}
+	{:else if !paged.loaded}
 		<p class="empty">Loading…</p>
 	{:else}
 		<TaskTable
 			tasks={visible}
-			allTasks={items}
+			allTasks={paged.items}
 			{scopes}
 			projects={projects.all}
 			showProject={filters.activeProject === null}
@@ -176,35 +157,19 @@
 			{sortKey}
 			{sortOrder}
 			onsort={sortBy}
-			{total}
+			total={paged.total}
 			action={restoreAction}
 			empty={emptyState}
 		/>
 	{/if}
 
-	<footer class="pager">
-		<span class="muted">
-			{total === 0
-				? "0 tasks"
-				: `${offset + 1}–${Math.min(offset + LIMIT, total)} of ${total}`}
-		</span>
-		<div class="pager-buttons">
-			<button
-				class="page-button"
-				disabled={!canPrev}
-				onclick={() => void load(Math.max(0, offset - LIMIT))}
-			>
-				Previous
-			</button>
-			<button
-				class="page-button"
-				disabled={!canNext}
-				onclick={() => void load(offset + LIMIT)}
-			>
-				Next
-			</button>
-		</div>
-	</footer>
+	<Pager
+		offset={paged.offset}
+		limit={LIMIT}
+		total={paged.total}
+		emptyLabel="0 tasks"
+		onchange={(next) => void paged.load(next)}
+	/>
 </section>
 
 <style>
@@ -265,34 +230,5 @@
 		padding: var(--space-8) var(--edge-pad);
 		color: var(--text-muted);
 		font-size: var(--text-sm);
-	}
-
-	.pager {
-		flex: none;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--space-3);
-		padding: var(--space-3) var(--edge-pad);
-		border-top: 1px solid var(--border);
-	}
-
-	.pager-buttons {
-		display: flex;
-		gap: var(--space-2);
-	}
-
-	.page-button {
-		border: 1px solid var(--border-strong);
-		border-radius: var(--radius);
-		padding: 0 var(--space-3);
-		min-height: var(--control-h-sm);
-		color: var(--text-secondary);
-		font-size: var(--text-sm);
-	}
-
-	.page-button:hover:not(:disabled) {
-		background: var(--hover);
-		color: var(--foreground);
 	}
 </style>

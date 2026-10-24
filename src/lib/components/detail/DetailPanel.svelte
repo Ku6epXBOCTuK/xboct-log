@@ -5,6 +5,7 @@
 	import TaskComments from "#lib/components/detail/TaskComments.svelte";
 	import TaskHistory from "#lib/components/detail/TaskHistory.svelte";
 	import TaskRevisions from "#lib/components/detail/TaskRevisions.svelte";
+	import PanelOverlay from "#lib/components/detail/PanelOverlay.svelte";
 	import TaskAttachments from "#lib/components/attachments/TaskAttachments.svelte";
 	import TaskFields from "#lib/components/task/TaskFields.svelte";
 	import { fieldNavigation } from "#lib/hotkeys/fields.ts";
@@ -31,7 +32,6 @@
 	} from "#lib/tasks/fields.ts";
 	import type { ClosedReason, Status, Task } from "#lib/types.ts";
 	import { cubicOut } from "svelte/easing";
-	import ArrowLeft from "~icons/lucide/arrow-left";
 	import Clock3 from "~icons/lucide/clock-3";
 	import MessageSquare from "~icons/lucide/message-square";
 	import RefreshCw from "~icons/lucide/refresh-cw";
@@ -345,72 +345,50 @@
 			ondelete={remove}
 		/>
 		{#if historyOpen}
-			<div class="panel-overlay" role="dialog" aria-label="Task history">
-				<div class="panel-overlay-head">
-					<span class="panel-overlay-title">History</span>
-					<div class="detail-actions">
-						<IconButton
-							label="Back to task details"
-							title="Back to task details"
-							onclick={() => (historyOpen = false)}
-						>
-							<ArrowLeft />
-						</IconButton>
-						<IconButton label="Close task details" onclick={onclear}>
-							<X />
-						</IconButton>
-					</div>
+			<PanelOverlay
+				title="History"
+				label="Task history"
+				onback={() => (historyOpen = false)}
+				onclose={onclear}
+			>
+				<TaskHistory task={selected} />
+				<div class="previous-versions">
+					<div class="previous-versions-heading">Previous versions</div>
+					<TaskRevisions task={selected} />
 				</div>
-				<div class="panel-overlay-body">
-					<TaskHistory task={selected} />
-					<div class="previous-versions">
-						<div class="panel-overlay-title">Previous versions</div>
-						<TaskRevisions task={selected} />
-					</div>
-				</div>
-			</div>
+			</PanelOverlay>
 		{/if}
 		{#if commentsOpen}
-			<div class="panel-overlay" role="dialog" aria-label="Task comments">
-				<div class="panel-overlay-head">
-					<span class="panel-overlay-title">Comments</span>
-					<div class="detail-actions">
-						<IconButton
-							label="Reload comments"
-							title="Reload comments"
-							onclick={() => {
-								void comments.load(selected.id).catch(() => {});
-							}}
-						>
-							<RefreshCw />
-						</IconButton>
-						<IconButton
-							label="Back to task details"
-							title="Back to task details"
-							onclick={() => (commentsOpen = false)}
-						>
-							<ArrowLeft />
-						</IconButton>
-						<IconButton label="Close task details" onclick={onclear}>
-							<X />
-						</IconButton>
+			<PanelOverlay
+				title="Comments"
+				label="Task comments"
+				onback={() => (commentsOpen = false)}
+				onclose={onclear}
+			>
+				{#snippet actions()}
+					<IconButton
+						label="Reload comments"
+						title="Reload comments"
+						onclick={() => {
+							void comments.load(selected.id).catch(() => {});
+						}}
+					>
+						<RefreshCw />
+					</IconButton>
+				{/snippet}
+				<div class="task-summary">
+					<div class="summary-title">{selected.title}</div>
+					<div class="summary-meta">
+						<span class="epic-badge">{selected.id}</span>
+						<StatusDot status={selected.status} />
+						<span>{STATUS_LABELS[selected.status]}</span>
 					</div>
+					{#if selected.description.trim() !== ""}
+						<p class="summary-description">{selected.description}</p>
+					{/if}
 				</div>
-				<div class="panel-overlay-body">
-					<div class="task-summary">
-						<div class="summary-title">{selected.title}</div>
-						<div class="summary-meta">
-							<span class="epic-badge">{selected.id}</span>
-							<StatusDot status={selected.status} />
-							<span>{STATUS_LABELS[selected.status]}</span>
-						</div>
-						{#if selected.description.trim() !== ""}
-							<p class="summary-description">{selected.description}</p>
-						{/if}
-					</div>
-					<TaskComments taskId={selected.id} {comments} />
-				</div>
-			</div>
+				<TaskComments taskId={selected.id} {comments} />
+			</PanelOverlay>
 		{/if}
 	</aside>
 {/if}
@@ -461,39 +439,6 @@
 		flex: none;
 	}
 
-	.panel-overlay {
-		position: absolute;
-		inset: 0;
-		z-index: 20;
-		background: var(--panel);
-		display: flex;
-		flex-direction: column;
-	}
-
-	.panel-overlay-head {
-		flex: none;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--space-2);
-		min-height: var(--control-h);
-		padding: var(--edge-pad);
-		border-bottom: 1px solid var(--border);
-	}
-
-	.panel-overlay-title {
-		font-size: var(--text-xl);
-		font-weight: 600;
-		letter-spacing: -0.02em;
-	}
-
-	.panel-overlay-body {
-		flex: 1 1 auto;
-		min-height: 0;
-		overflow: auto;
-		padding: var(--space-4) var(--edge-pad) var(--space-5);
-	}
-
 	.previous-versions {
 		display: flex;
 		flex-direction: column;
@@ -501,6 +446,12 @@
 		margin-top: var(--space-5);
 		padding-top: var(--space-4);
 		border-top: 1px solid var(--border);
+	}
+
+	.previous-versions-heading {
+		font-size: var(--text-xl);
+		font-weight: 600;
+		letter-spacing: -0.02em;
 	}
 
 	.task-summary {

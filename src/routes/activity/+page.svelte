@@ -1,9 +1,11 @@
 <script lang="ts">
 	import ActivityChanges from "#lib/components/activity/ActivityChanges.svelte";
+	import Pager from "#lib/components/ui/Pager.svelte";
 	import { activityFieldLabel, activityOpLabel } from "#lib/activity/labels.ts";
 	import { listActivityLog } from "#lib/remote/activity.remote.ts";
 	import { fetchFresh } from "#lib/remote/fresh.ts";
 	import { useBoard } from "#lib/state/board.svelte.ts";
+	import { createPagedQuery } from "#lib/state/paged.svelte.ts";
 	import { formatDateTime } from "#lib/tasks/display.ts";
 	import type {
 		ActivityEntity,
@@ -20,45 +22,28 @@
 	let entity = $state("");
 	let from = $state("");
 	let to = $state("");
-	let offset = $state(0);
-
-	let items = $state<ActivityLogItem[]>([]);
-	let total = $state(0);
 	let ops = $state<string[]>([]);
-	let failed = $state(false);
-	let loaded = $state(false);
-	let requestId = 0;
 
-	$effect(() => {
-		void load();
+	const paged = createPagedQuery<ActivityLogItem>(async (offset) => {
+		const result = await fetchFresh(
+			listActivityLog({
+				source: source === "" ? undefined : (source as ActivitySource),
+				op: op === "" ? undefined : op,
+				entity: entity === "" ? undefined : (entity as ActivityEntity),
+				project_id: filters.activeProject ?? undefined,
+				from: from === "" ? undefined : `${from}T00:00:00.000Z`,
+				to: to === "" ? undefined : `${to}T23:59:59.999Z`,
+				limit: LIMIT,
+				offset,
+			}),
+		);
+		ops = result.ops;
+		return result;
 	});
 
-	async function load() {
-		const current = ++requestId;
-		try {
-			const result = await fetchFresh(
-				listActivityLog({
-					source: source === "" ? undefined : (source as ActivitySource),
-					op: op === "" ? undefined : op,
-					entity: entity === "" ? undefined : (entity as ActivityEntity),
-					project_id: filters.activeProject ?? undefined,
-					from: from === "" ? undefined : `${from}T00:00:00.000Z`,
-					to: to === "" ? undefined : `${to}T23:59:59.999Z`,
-					limit: LIMIT,
-					offset,
-				}),
-			);
-			if (current !== requestId) return;
-			items = result.items;
-			total = result.total;
-			ops = result.ops;
-			failed = false;
-			loaded = true;
-		} catch {
-			if (current !== requestId) return;
-			failed = true;
-		}
-	}
+	$effect(() => {
+		void paged.load(0);
+	});
 
 	function reset() {
 		source = "";
@@ -66,7 +51,6 @@
 		entity = "";
 		from = "";
 		to = "";
-		offset = 0;
 		setActiveProject(null);
 	}
 
@@ -78,14 +62,12 @@
 			from !== "" ||
 			to !== "",
 	);
-	const canPrev = $derived(offset > 0);
-	const canNext = $derived(offset + LIMIT < total);
 </script>
 
 <section class="activity-page">
 	<header class="page-head">
 		<h1>Activity</h1>
-		<span class="muted">{total} entries</span>
+		<span class="muted">{paged.total} entries</span>
 	</header>
 
 	<div class="filters">
@@ -96,7 +78,6 @@
 				value={filters.activeProject ?? ""}
 				onchange={(event) => {
 					const value = event.currentTarget.value;
-					offset = 0;
 					setActiveProject(value === "" ? null : value);
 				}}
 			>
@@ -108,7 +89,7 @@
 		</label>
 		<label class="filter">
 			<span>Source</span>
-			<select class="control" bind:value={source} onchange={() => (offset = 0)}>
+			<select class="control" bind:value={source}>
 				<option value="">Any</option>
 				<option value="ui">ui</option>
 				<option value="mcp">mcp</option>
@@ -117,7 +98,7 @@
 		</label>
 		<label class="filter">
 			<span>Operation</span>
-			<select class="control" bind:value={op} onchange={() => (offset = 0)}>
+			<select class="control" bind:value={op}>
 				<option value="">Any</option>
 				{#each ops as name (name)}
 					<option value={name}>{name}</option>
@@ -126,7 +107,7 @@
 		</label>
 		<label class="filter">
 			<span>Entity</span>
-			<select class="control" bind:value={entity} onchange={() => (offset = 0)}>
+			<select class="control" bind:value={entity}>
 				<option value="">Any</option>
 				<option value="task">task</option>
 				<option value="project">project</option>
@@ -135,32 +116,22 @@
 		</label>
 		<label class="filter">
 			<span>From</span>
-			<input
-				class="control"
-				type="date"
-				bind:value={from}
-				onchange={() => (offset = 0)}
-			/>
+			<input class="control" type="date" bind:value={from} />
 		</label>
 		<label class="filter">
 			<span>To</span>
-			<input
-				class="control"
-				type="date"
-				bind:value={to}
-				onchange={() => (offset = 0)}
-			/>
+			<input class="control" type="date" bind:value={to} />
 		</label>
 		{#if hasFilters}
 			<button class="reset" onclick={reset}>Reset</button>
 		{/if}
 	</div>
 
-	{#if failed}
+	{#if paged.failed}
 		<p class="empty">Activity log is unavailable</p>
-	{:else if !loaded}
+	{:else if !paged.loaded}
 		<p class="empty">Loading…</p>
-	{:else if items.length === 0}
+	{:else if paged.items.length === 0}
 		<p class="empty">
 			{hasFilters ? "No entries match the filters" : "No activity recorded yet"}
 		</p>
@@ -177,7 +148,7 @@
 					</tr>
 				</thead>
 				<tbody>
-					{#each items as item, index (index)}
+					{#each paged.items as item, index (index)}
 						<tr>
 							<td class="when">{formatDateTime(item.ts)}</td>
 							<td>
@@ -214,29 +185,13 @@
 		</div>
 	{/if}
 
-	<footer class="pager">
-		<span class="muted">
-			{total === 0
-				? "0 entries"
-				: `${offset + 1}–${Math.min(offset + LIMIT, total)} of ${total}`}
-		</span>
-		<div class="pager-buttons">
-			<button
-				class="page-button"
-				disabled={!canPrev}
-				onclick={() => (offset = Math.max(0, offset - LIMIT))}
-			>
-				Previous
-			</button>
-			<button
-				class="page-button"
-				disabled={!canNext}
-				onclick={() => (offset = offset + LIMIT)}
-			>
-				Next
-			</button>
-		</div>
-	</footer>
+	<Pager
+		offset={paged.offset}
+		limit={LIMIT}
+		total={paged.total}
+		emptyLabel="0 entries"
+		onchange={(next) => void paged.load(next)}
+	/>
 </section>
 
 <style>
@@ -432,34 +387,5 @@
 		padding: var(--space-8) var(--edge-pad);
 		color: var(--text-muted);
 		font-size: var(--text-sm);
-	}
-
-	.pager {
-		flex: none;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--space-3);
-		padding: var(--space-3) var(--edge-pad);
-		border-top: 1px solid var(--border);
-	}
-
-	.pager-buttons {
-		display: flex;
-		gap: var(--space-2);
-	}
-
-	.page-button {
-		border: 1px solid var(--border-strong);
-		border-radius: var(--radius);
-		padding: 0 var(--space-3);
-		min-height: var(--control-h-sm);
-		color: var(--text-secondary);
-		font-size: var(--text-sm);
-	}
-
-	.page-button:hover:not(:disabled) {
-		background: var(--hover);
-		color: var(--foreground);
 	}
 </style>
