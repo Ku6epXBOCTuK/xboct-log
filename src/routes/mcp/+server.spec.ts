@@ -139,6 +139,33 @@ describe("/mcp endpoint", () => {
 		expect(result.isError).toBeUndefined();
 	});
 
+	it("filters by a JSON-encoded project list sent over rpc", async () => {
+		const project = createProject(getDb(), {
+			id: "lst",
+			name: "List",
+			prefix: "LST",
+		});
+		expect(project.isOk()).toBe(true);
+		const task = createTask(getDb(), { project_id: "lst", title: "Listed" });
+		expect(task.isOk()).toBe(true);
+
+		const body = await rpc("tools/call", {
+			name: "tasks_list",
+			arguments: { project_id: '["lst", "spa"]' },
+		});
+		expect(body.error).toBeUndefined();
+		const result = body.result as {
+			isError?: boolean;
+			structuredContent?: {
+				total?: number;
+				items?: { project_id?: string }[];
+			};
+		};
+		expect(result.isError).toBeUndefined();
+		expect(result.structuredContent?.total).toBe(1);
+		expect(result.structuredContent?.items?.[0]?.project_id).toBe("lst");
+	});
+
 	it("rejects an unknown parameter instead of ignoring it", async () => {
 		const body = await rpc("tools/call", {
 			name: "tasks_list",

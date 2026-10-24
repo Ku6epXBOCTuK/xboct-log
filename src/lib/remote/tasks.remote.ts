@@ -1,3 +1,4 @@
+import { ID_DESCRIPTION, taskIdSchema } from "#lib/tasks/ids.ts";
 import { error } from "@sveltejs/kit";
 import { err, ok } from "neverthrow";
 import type { DatabaseSync } from "node:sqlite";
@@ -5,13 +6,14 @@ import { z } from "zod";
 import { activityEntry, creationFields, fieldNames } from "../server/activity";
 import { getDb } from "../server/db";
 import { missingScopeWarning } from "../server/scopes";
-import * as repo from "../server/tasks";
 import type {
 	BatchItem,
 	CreateBatchItem,
 	DeleteTaskOutcome,
 	ReleasedLink,
 } from "../server/tasks";
+import * as repo from "../server/tasks";
+import { FIELDS_DESCRIPTION } from "../server/tasks/field-names";
 import {
 	CLOSED_REASONS,
 	ESTIMATES,
@@ -20,25 +22,18 @@ import {
 	type Task,
 	type TaskWithChanges,
 } from "../types";
-import { ID_DESCRIPTION, taskIdSchema } from "#lib/tasks/ids.ts";
-import { FIELDS_DESCRIPTION } from "../server/tasks/field-names";
 import { defineCommand, defineQuery } from "./define";
+import { oneOrList } from "./list";
 import { TASK_FIELDS } from "./shape";
 import { strictObject } from "./strict";
 
 const taskFilterShape = {
-	project_id: z
-		.union([z.string().min(1), z.array(z.string().min(1)).min(1)])
-		.optional()
-		.describe(
-			"Filter by project id (e.g. 'eit'). Accepts one id or a list of ids; a list matches tasks of any of them.",
-		),
-	exclude_project_id: z
-		.union([z.string().min(1), z.array(z.string().min(1)).min(1)])
-		.optional()
-		.describe(
-			"Exclude projects: only tasks of other projects are returned. Accepts one id or a list of ids. Combine with project_id to get 'every project except X'.",
-		),
+	project_id: oneOrList(z.array(z.string().min(1)).optional()).describe(
+		"Filter by project id (e.g. 'eit'). Accepts one id or a list of ids; a list matches tasks of any of them.",
+	),
+	exclude_project_id: oneOrList(z.array(z.string().min(1)).optional()).describe(
+		"Exclude projects: only tasks of other projects are returned. Accepts one id or a list of ids. Combine with project_id to get 'every project except X'.",
+	),
 	status: z
 		.preprocess(
 			(val) =>
@@ -96,16 +91,18 @@ const taskFilterShape = {
 			"Exact tag match, case-sensitive; no wildcards. Use q to match a partial tag.",
 		),
 	is_epic: z.boolean().optional(),
-	epic_id: z
-		.union([
-			taskIdSchema("Epic id in the full 'PREFIX-NUMBER' form (e.g. 'LOG-5')."),
-			z.array(taskIdSchema("Epic id in the full 'PREFIX-NUMBER' form.")).min(1),
-		])
-		.nullable()
-		.optional()
-		.describe(
-			"Filter by epic. Accepts the full epic id (e.g. 'LOG-5') or a list of them; a list matches tasks of any of the given epics. null matches tasks without an epic.",
-		),
+	epic_id: oneOrList(
+		z
+			.array(
+				taskIdSchema(
+					"Epic id in the full 'PREFIX-NUMBER' form (e.g. 'LOG-5').",
+				),
+			)
+			.nullable()
+			.optional(),
+	).describe(
+		"Filter by epic. Accepts the full epic id (e.g. 'LOG-5') or a list of them; a list matches tasks of any of the given epics. null matches tasks without an epic.",
+	),
 	scope_id: z
 		.union([z.number().int(), z.array(z.number().int()).min(1)])
 		.nullable()
@@ -180,7 +177,7 @@ const taskFilterShape = {
 		.boolean()
 		.optional()
 		.describe(
-			"Filter by project archival: false — active projects only, true — archived projects only. Omitted — both.",
+			"Filter by project archival: false - active projects only, true - archived projects only. Omitted - both.",
 		),
 	sort: z
 		.enum([
