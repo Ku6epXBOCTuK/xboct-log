@@ -422,7 +422,8 @@ export const getTask = defineQuery({
 	name: "tasks_get",
 	description:
 		"Get a single task by id. The id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'); a bare number is rejected because it is unique only inside a project. Returns: the task itself - " +
-		TASK_FIELDS,
+		TASK_FIELDS +
+		". For a task with is_epic=true the result also carries children_counts: the number of its child tasks per status (open, in-progress, blocked, done, cancelled) plus their total.",
 	kind: "query",
 	input: strictObject({
 		id: taskIdSchema(ID_DESCRIPTION),
@@ -433,7 +434,14 @@ export const getTask = defineQuery({
 		if (resolved.isErr()) {
 			error(resolved.error.status, resolved.error.message);
 		}
-		return repo.getTask(db, resolved.value)!;
+		const task = repo.getTask(db, resolved.value)!;
+		if (!task.is_epic) {
+			return task;
+		}
+		return {
+			...task,
+			children_counts: repo.countEpicChildrenByStatus(db, task.id),
+		};
 	},
 });
 

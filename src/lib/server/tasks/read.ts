@@ -200,3 +200,28 @@ export function countEpicsByStatus(
 ): Record<Status, number> {
 	return countByStatus(db, projectId, true);
 }
+
+export interface EpicChildCounts extends Record<Status, number> {
+	total: number;
+}
+
+export function countEpicChildrenByStatus(
+	db: DatabaseSync,
+	epicId: string,
+): EpicChildCounts {
+	const rows = db
+		.prepare(
+			"SELECT status, COUNT(*) AS count FROM tasks WHERE epic_id = ? AND deleted_at IS NULL GROUP BY status",
+		)
+		.all(epicId) as { status: string; count: number }[];
+
+	const counts = Object.fromEntries(
+		STATUSES.map((status) => [status, 0]),
+	) as Record<Status, number>;
+	let total = 0;
+	for (const row of rows) {
+		counts[row.status as Status] = row.count;
+		total += row.count;
+	}
+	return { ...counts, total };
+}

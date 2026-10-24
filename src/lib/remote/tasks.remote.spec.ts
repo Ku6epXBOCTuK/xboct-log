@@ -6,7 +6,7 @@ import { z } from "zod";
 import { closeDb, getDb } from "../server/db";
 import { migrateDatabase } from "../server/migrations";
 import { createProject } from "../server/projects";
-import { createTask } from "../server/tasks";
+import { closeTask, createTask } from "../server/tasks";
 import { runOp } from "./define";
 import { getOps } from "./index.js";
 import { TASK_LIST_FIELDS } from "../server/tasks/field-names";
@@ -97,6 +97,57 @@ describe("tasks_list fields parameter", () => {
 		const task = await list({ include_description: true });
 		expect(task.description).toBe("first line\nsecond line");
 		expect(Object.keys(task)).not.toContain("short_description");
+	});
+
+	it("counts the children of an epic by status", async () => {
+		const db = getDb();
+		const epic = createTask(db, {
+			project_id: "spa",
+			title: "Epic",
+			is_epic: true,
+		});
+		expect(epic.isOk()).toBe(true);
+		const epicId = epic._unsafeUnwrap().id;
+		const first = createTask(db, {
+			project_id: "spa",
+			title: "Open child",
+			epic_id: epicId,
+		});
+		expect(first.isOk()).toBe(true);
+		const second = createTask(db, {
+			project_id: "spa",
+			title: "Busy child",
+			epic_id: epicId,
+			status: "in-progress",
+		});
+		expect(second.isOk()).toBe(true);
+		const third = createTask(db, {
+			project_id: "spa",
+			title: "Done child",
+			epic_id: epicId,
+		});
+		expect(third.isOk()).toBe(true);
+		const closed = closeTask(db, third._unsafeUnwrap().id, "fixed");
+		expect(closed.isOk()).toBe(true);
+
+		const result = (await runOp(op("tasks_get"), { id: epicId }, "mcp")) as {
+			children_counts: Record<string, number>;
+		};
+		expect(result.children_counts).toEqual({
+			open: 1,
+			"in-progress": 1,
+			blocked: 0,
+			done: 1,
+			cancelled: 0,
+			total: 3,
+		});
+
+		const plain = (await runOp(
+			op("tasks_get"),
+			{ id: first._unsafeUnwrap().id },
+			"mcp",
+		)) as { children_counts?: unknown };
+		expect(plain.children_counts).toBeUndefined();
 	});
 
 	it("keeps only the requested fields", async () => {
