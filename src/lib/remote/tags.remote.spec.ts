@@ -77,6 +77,56 @@ describe("tags_list", () => {
 		]);
 	});
 
+	it("matches the same tags for status array and JSON string", async () => {
+		const viaArray = (await runOp(
+			op("tags_list"),
+			{ status: ["open"] },
+			"mcp",
+		)) as { items: unknown[] };
+		const viaJson = (await runOp(
+			op("tags_list"),
+			{ status: '["open"]' },
+			"mcp",
+		)) as { items: unknown[] };
+
+		expect(viaArray.items).toHaveLength(2);
+		expect(viaJson.items).toEqual(viaArray.items);
+	});
+
+	it("normalizes status and project_id string forms", () => {
+		const parsed = op("tags_list").input.parse({
+			status: '["open", "done"]',
+			project_id: "spa, bil",
+		}) as { status?: string[]; project_id?: string[] };
+
+		expect(parsed.status).toEqual(["open", "done"]);
+		expect(parsed.project_id).toEqual(["spa", "bil"]);
+	});
+
+	it("filters by a JSON-encoded project list", async () => {
+		const db = getDb();
+		const project = createProject(db, {
+			id: "bil",
+			name: "Billing",
+			prefix: "BIL",
+		});
+		expect(project.isOk()).toBe(true);
+		const task = createTask(db, {
+			project_id: "bil",
+			title: "Gamma",
+			tags: ["db"],
+		});
+		expect(task.isOk()).toBe(true);
+
+		const result = (await runOp(
+			op("tags_list"),
+			{ project_id: '["bil"]' },
+			"mcp",
+		)) as { items: { tag: string; count: number }[] };
+
+		expect(result.items).toEqual([{ tag: "db", count: 1, active: 1 }]);
+	});
+
 	it("rejects an unknown parameter", async () => {
 		await expect(
 			runOp(op("tags_list"), { project: "spa" }, "mcp"),
