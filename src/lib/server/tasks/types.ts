@@ -87,6 +87,7 @@ export interface TaskQuery {
 	scope_id?: number | number[] | null;
 	has_epic?: boolean;
 	has_scope?: boolean;
+	has_tags?: boolean;
 	blocked_by?: string;
 	blocks?: string;
 	q?: string;

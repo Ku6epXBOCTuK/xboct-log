@@ -122,6 +122,12 @@ const taskFilterShape = {
 		.describe(
 			"Filter by the presence of a scope: true matches tasks with a scope assigned, false matches tasks without one.",
 		),
+	has_tags: z
+		.boolean()
+		.optional()
+		.describe(
+			"Filter by the presence of tags: true matches tasks with at least one tag, false matches tasks without tags.",
+		),
 	blocked_by: taskIdSchema(
 		"Full task id (e.g. 'LOG-5') of the blocker: returns tasks whose blocked_by list contains it.",
 	)

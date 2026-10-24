@@ -124,6 +124,13 @@ export function buildTaskFilter(query: TaskQuery): TaskFilterSql {
 			query.has_scope ? "tasks.scope_id IS NOT NULL" : "tasks.scope_id IS NULL",
 		);
 	}
+	if (query.has_tags !== undefined) {
+		where.push(
+			query.has_tags
+				? "json_array_length(tasks.tags) > 0"
+				: "json_array_length(tasks.tags) = 0",
+		);
+	}
 	if (query.blocked_by !== undefined) {
 		const match = blockingIdMatch(query.blocked_by);
 		where.push(

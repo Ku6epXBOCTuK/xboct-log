@@ -77,6 +77,18 @@ describe("task filters", () => {
 		expect(missed).toEqual([]);
 	});
 
+	it("filters by the presence of tags", async () => {
+		unwrap(
+			createTask(db, { project_id: "spa", title: "Tagged", tags: ["mcp"] }),
+		);
+		unwrap(createTask(db, { project_id: "spa", title: "Untagged" }));
+
+		const tagged = listTasks(db, { has_tags: true });
+		expect(tagged.map((task) => task.title)).toEqual(["Tagged"]);
+		const untagged = listTasks(db, { has_tags: false });
+		expect(untagged.map((task) => task.title)).toEqual(["Untagged"]);
+	});
+
 	it("filters by several scopes at once", async () => {
 		const frontend = unwrap(
 			createScope(db, { project_id: "spa", name: "frontend" }),
