@@ -63,6 +63,20 @@ describe("task filters", () => {
 		expect(found.map((task) => task.title)).toEqual(["Shop task"]);
 	});
 
+	it("matches tags case-insensitively", async () => {
+		unwrap(
+			createTask(db, { project_id: "spa", title: "Tagged", tags: ["mcp"] }),
+		);
+		unwrap(createTask(db, { project_id: "spa", title: "Untagged" }));
+
+		for (const tag of ["MCP", "McP", "mcp"]) {
+			const found = listTasks(db, { tag: [tag] });
+			expect(found.map((task) => task.title)).toEqual(["Tagged"]);
+		}
+		const missed = listTasks(db, { tag: ["nope"] });
+		expect(missed).toEqual([]);
+	});
+
 	it("filters by several scopes at once", async () => {
 		const frontend = unwrap(
 			createScope(db, { project_id: "spa", name: "frontend" }),

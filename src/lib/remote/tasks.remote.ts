@@ -88,7 +88,7 @@ const taskFilterShape = {
 		)
 		.optional()
 		.describe(
-			"Exact tag match, case-sensitive; no wildcards. Use q to match a partial tag.",
+			"Exact tag match, case-insensitive; no wildcards. Use q to match a partial tag.",
 		),
 	is_epic: z.boolean().optional(),
 	epic_id: oneOrList(

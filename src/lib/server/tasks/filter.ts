@@ -140,11 +140,11 @@ export function buildTaskFilter(query: TaskQuery): TaskFilterSql {
 	}
 	if (query.tag?.length) {
 		where.push(
-			`EXISTS (SELECT 1 FROM json_each(tasks.tags) WHERE json_each.value IN (${query.tag
+			`EXISTS (SELECT 1 FROM json_each(tasks.tags) WHERE LOWER(json_each.value) IN (${query.tag
 				.map(() => "?")
 				.join(", ")}))`,
 		);
-		params.push(...query.tag);
+		params.push(...query.tag.map((tag) => tag.toLowerCase()));
 	}
 	if (query.q) {
 		const like = `%${query.q.toLowerCase()}%`;
