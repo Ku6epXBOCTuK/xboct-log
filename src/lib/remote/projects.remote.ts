@@ -13,12 +13,42 @@ import { strictObject } from "./strict";
 export const getProjects = defineQuery({
 	name: "projects_list",
 	description:
-		"List projects; set includeArchived to also return archived ones. Returns: the list of projects - every item is " +
+		"List projects; set includeArchived to also return archived ones. " +
+		"q filters by a case-insensitive substring of the project name, id or prefix. " +
+		"Every item carries task_counts and epic_counts: the number of its " +
+		"non-epic tasks and epics per status. Returns: the list of projects - " +
+		"every item is " +
 		PROJECT_FIELDS +
-		".",
+		" with task_counts and epic_counts.",
 	kind: "query",
-	input: strictObject({ includeArchived: z.boolean().optional() }).default({}),
-	handler: (options) => projects.listProjects(getDb(), options),
+	input: strictObject({
+		includeArchived: z.boolean().optional(),
+		q: z
+			.string()
+			.min(1)
+			.optional()
+			.describe(
+				"Case-insensitive substring match on the project name, id or prefix.",
+			),
+	}).default({}),
+	handler: (options) => {
+		const db = getDb();
+		const q = options.q?.trim().toLowerCase();
+		return projects
+			.listProjects(db, options)
+			.filter((project) =>
+				q
+					? project.id.toLowerCase().includes(q) ||
+						project.name.toLowerCase().includes(q) ||
+						project.prefix.toLowerCase().includes(q)
+					: true,
+			)
+			.map((project) => ({
+				...project,
+				task_counts: countTasksByStatus(db, project.id),
+				epic_counts: countEpicsByStatus(db, project.id),
+			}));
+	},
 });
 
 export const getProject = defineQuery({
