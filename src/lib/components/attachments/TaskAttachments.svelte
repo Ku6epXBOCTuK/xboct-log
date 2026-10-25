@@ -69,10 +69,12 @@
 
 	function paste(event: ClipboardEvent) {
 		if (document.querySelector("dialog[open]") !== null) return;
-		const files = [...(event.clipboardData?.files ?? [])];
-		if (files.length === 0) return;
+		const images = [...(event.clipboardData?.files ?? [])].filter((file) =>
+			isImage(file.type),
+		);
+		if (images.length === 0) return;
 		event.preventDefault();
-		void addFiles(files);
+		void addFiles(images);
 	}
 
 	function upload(event: Event) {

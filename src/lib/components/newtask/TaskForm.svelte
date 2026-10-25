@@ -11,7 +11,7 @@
 	import type { UiStore } from "#lib/state/ui.svelte.ts";
 	import AdvancedToggle from "#lib/components/task/AdvancedToggle.svelte";
 	import { messageOf } from "#lib/tasks/display.ts";
-	import { fileToBase64 } from "#lib/tasks/attachments.ts";
+	import { fileToBase64, isImage } from "#lib/tasks/attachments.ts";
 	import { addTaskAttachment } from "#lib/remote/attachments.remote.ts";
 	import { collectTags } from "#lib/tasks/filter.ts";
 	import { matchesHotkey } from "#lib/hotkeys/hotkeys.ts";
@@ -142,10 +142,12 @@
 	}
 
 	function paste(event: ClipboardEvent) {
-		const pasted = [...(event.clipboardData?.files ?? [])];
-		if (pasted.length === 0) return;
+		const images = [...(event.clipboardData?.files ?? [])].filter((file) =>
+			isImage(file.type),
+		);
+		if (images.length === 0) return;
 		event.preventDefault();
-		files = [...files, ...pasted];
+		files = [...files, ...images];
 	}
 
 	function dragOver(event: DragEvent) {
