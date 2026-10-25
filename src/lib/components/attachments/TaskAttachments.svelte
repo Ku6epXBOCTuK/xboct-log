@@ -45,7 +45,7 @@
 	}
 
 	async function addFiles(files: File[]) {
-		if (files.length === 0) return;
+		if (files.length === 0 || busy) return;
 		busy = true;
 		failure = "";
 		try {
@@ -65,6 +65,13 @@
 		} finally {
 			busy = false;
 		}
+	}
+
+	function paste(event: ClipboardEvent) {
+		const files = [...(event.clipboardData?.files ?? [])];
+		if (files.length === 0) return;
+		event.preventDefault();
+		void addFiles(files);
 	}
 
 	function upload(event: Event) {
@@ -88,6 +95,8 @@
 		}
 	}
 </script>
+
+<svelte:window onpaste={paste} />
 
 <div class="attachments">
 	<div class="attachments-head">
