@@ -1,12 +1,7 @@
 import type { Result } from "neverthrow";
 import type { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
-import {
-	addBlocker,
-	listBlockedBy,
-	listBlocks,
-	removeBlocker,
-} from "./blockers";
+import { addBlocker, listBlockedBy, listBlocks, removeBlocker } from "./links";
 import { type AppError } from "./errors";
 import { openMigratedDatabase } from "./migrations";
 import { createProject } from "./projects";
@@ -35,7 +30,7 @@ async function setup(): Promise<DatabaseSync> {
 	return db;
 }
 
-describe("blockers", () => {
+describe("links", () => {
 	it("links a blocking task to a blocked task", async () => {
 		const db = await setup();
 		const blocker = unwrap(createTask(db, { project_id: "spa", title: "A" }));

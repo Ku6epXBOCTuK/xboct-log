@@ -3,10 +3,10 @@ import { err, ok, type Result } from "neverthrow";
 import type { ActivityChange, Task } from "../../types";
 import {
 	blockingInfoFor,
-	deleteBlockedByLinks,
+	deleteLinksForTask,
 	listBlockedBy,
 	releaseBlockedStatus,
-} from "../blockers";
+} from "../links";
 import { conflict, guard, notFound, type AppError } from "../errors";
 import { withTransaction } from "../db";
 import { withBlockingInfo } from "./read";
@@ -45,7 +45,7 @@ export function deleteTaskDetailed(
 			db.prepare(
 				"UPDATE tasks SET deleted_at = ?, updated_at = ? WHERE id = ?",
 			).run(now, now, targetId);
-			deleteBlockedByLinks(db, targetId);
+			deleteLinksForTask(db, targetId);
 			const releasedIds = releaseBlockedStatus(db, blockedIds);
 
 			const restored = new Map(

@@ -6,7 +6,7 @@ import {
 	type Status,
 	type Task,
 } from "../../types";
-import { blockingInfoFor } from "../blockers";
+import { blockingInfoFor } from "../links";
 import { buildTaskFilter } from "./filter";
 import {
 	mapTask,

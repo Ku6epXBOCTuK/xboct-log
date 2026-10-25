@@ -1,6 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import { removeTaskAttachments } from "./attachments";
-import { deleteBlockedByLinks } from "./blockers";
+import { deleteLinksForTask } from "./links";
 import { withTransaction } from "./db";
 
 const DAY_MS = 86_400_000;
@@ -30,7 +30,7 @@ export function purgeSoftDeletedTasks(
 	return withTransaction(db, () => {
 		let purged = 0;
 		for (const id of ids) {
-			deleteBlockedByLinks(db, id);
+			deleteLinksForTask(db, id);
 			removeTaskAttachments(db, id);
 			remove.run(id);
 			purged += 1;

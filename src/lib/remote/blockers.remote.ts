@@ -3,7 +3,7 @@ import { activityEntry } from "../server/activity";
 import {
 	addBlocker as addBlockerLink,
 	removeBlocker as removeBlockerLink,
-} from "../server/blockers";
+} from "../server/links";
 import { getDb } from "../server/db";
 import type { AppError } from "../server/errors";
 import * as repo from "../server/tasks";

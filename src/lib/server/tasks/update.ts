@@ -7,11 +7,7 @@ import {
 	type ClosedReason,
 	type Task,
 } from "../../types";
-import {
-	isRestorableStatus,
-	listBlocks,
-	releaseBlockedStatus,
-} from "../blockers";
+import { isRestorableStatus, listBlocks, releaseBlockedStatus } from "../links";
 import { guard, invalid, type AppError } from "../errors";
 import { withTransaction } from "../db";
 import { recordRevision } from "../revisions";
