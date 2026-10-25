@@ -74,11 +74,6 @@
 		box-shadow: inset 0 0 0 1px var(--accent);
 	}
 
-	.search-wrap:focus-within > :global(svg) {
-		border-color: var(--accent);
-		box-shadow: inset 0 0 0 1px var(--accent);
-	}
-
 	.search-wrap kbd {
 		position: absolute;
 		right: var(--space-3);
