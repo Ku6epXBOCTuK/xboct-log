@@ -44,25 +44,22 @@
 		}
 	}
 
-	async function upload(event: Event) {
-		const target = event.currentTarget as HTMLInputElement;
-		const files = [...(target.files ?? [])];
-		target.value = "";
+	async function addFiles(files: File[]) {
 		if (files.length === 0) return;
 		busy = true;
 		failure = "";
 		try {
 			for (const file of files) {
 				const content = await fileToBase64(file);
-				await addTaskAttachment({
+				const { item } = await addTaskAttachment({
 					id: task.id,
 					filename: file.name,
 					content_base64: content,
 					mime_type: file.type || undefined,
 				});
+				items = [...items, item];
 				tasks.bumpAttachments(task.id, 1);
 			}
-			await load(task.id);
 		} catch (error) {
 			failure = messageOf(error);
 		} finally {
@@ -70,13 +67,20 @@
 		}
 	}
 
+	function upload(event: Event) {
+		const target = event.currentTarget as HTMLInputElement;
+		const files = [...(target.files ?? [])];
+		target.value = "";
+		void addFiles(files);
+	}
+
 	async function remove(id: string) {
 		busy = true;
 		failure = "";
 		try {
 			await removeTaskAttachment({ id });
+			items = items.filter((item) => item.id !== id);
 			tasks.bumpAttachments(task.id, -1);
-			await load(task.id);
 		} catch (error) {
 			failure = messageOf(error);
 		} finally {
