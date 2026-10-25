@@ -134,14 +134,14 @@ export function buildTaskFilter(query: TaskQuery): TaskFilterSql {
 	if (query.blocked_by !== undefined) {
 		const match = blockingIdMatch(query.blocked_by);
 		where.push(
-			`tasks.id IN (SELECT blocked_task_id FROM task_blocked_by WHERE blocked_by_task_id IN ${match.sql})`,
+			`tasks.id IN (SELECT target_task_id FROM task_links WHERE link_type = 'blocks' AND source_task_id IN ${match.sql})`,
 		);
 		params.push(...match.params);
 	}
 	if (query.blocks !== undefined) {
 		const match = blockingIdMatch(query.blocks);
 		where.push(
-			`tasks.id IN (SELECT blocked_by_task_id FROM task_blocked_by WHERE blocked_task_id IN ${match.sql})`,
+			`tasks.id IN (SELECT source_task_id FROM task_links WHERE link_type = 'blocks' AND target_task_id IN ${match.sql})`,
 		);
 		params.push(...match.params);
 	}

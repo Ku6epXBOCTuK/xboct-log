@@ -18,6 +18,10 @@ function taskExists(db: DatabaseSync, taskId: string): boolean {
 	return row !== undefined;
 }
 
+function linkVerb(type: LinkType): string {
+	return type === "blocks" ? "block" : type.replace("_", " ");
+}
+
 function orderedPair(
 	sourceTaskId: string,
 	targetTaskId: string,
@@ -96,7 +100,7 @@ export function addLink(
 	targetTaskId: string,
 ): Result<string, AppError> {
 	if (sourceTaskId === targetTaskId) {
-		return err(invalid(`a task cannot ${type.replace("_", " ")} itself`));
+		return err(invalid(`a task cannot ${linkVerb(type)} itself`));
 	}
 	if (!taskExists(db, sourceTaskId)) {
 		return err(notFound(`task ${sourceTaskId} not found`));
