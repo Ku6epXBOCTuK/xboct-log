@@ -1,5 +1,5 @@
 export const TASK_FIELDS =
-	"{id, project_id, number, title, description, status, priority, is_epic, epic_id, scope_id, source_file, tags, estimate, assignee, due_at, attachments_count, created_at, updated_at, closed_at, closed_reason, deleted_at, blocked_by, blocks}";
+	"{id, project_id, number, title, description, status, priority, is_epic, epic_id, scope_id, source_file, tags, estimate, assignee, due_at, attachments_count, created_at, updated_at, closed_at, closed_reason, deleted_at, blocked_by, blocks, relates_to, duplicates, duplicated_by}";
 
 export const COMMENT_FIELDS =
 	"{id, task_id, body, created_at, edited_at, deleted_at}";

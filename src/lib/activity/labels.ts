@@ -17,6 +17,10 @@ const FIELD_LABELS: Record<string, string> = {
 	closed_reason: "Closed reason",
 	deleted_at: "Deleted",
 	blocked_by: "Blocked by",
+	blocks: "Blocks",
+	relates_to: "Relates to",
+	duplicates: "Duplicates",
+	duplicated_by: "Duplicated by",
 	comments: "Comments",
 	name: "Name",
 	prefix: "Prefix",
@@ -29,6 +33,8 @@ const OP_LABELS: Record<string, string> = {
 	tasks_comments_delete: "Comment deleted",
 	tasks_add_blocker: "Blocker added",
 	tasks_remove_blocker: "Blocker removed",
+	tasks_add_link: "Link added",
+	tasks_remove_link: "Link removed",
 };
 
 const ENTITY_LABELS: Record<string, string> = {
