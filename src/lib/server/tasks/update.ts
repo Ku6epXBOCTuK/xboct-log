@@ -192,6 +192,20 @@ export function updateTaskDetailed(
 		}
 	}
 	if (patch.is_epic !== undefined) {
+		if (current.is_epic && !patch.is_epic) {
+			const children = db
+				.prepare(
+					"SELECT COUNT(*) AS count FROM tasks WHERE epic_id = ? AND deleted_at IS NULL",
+				)
+				.get(targetId) as { count: number };
+			if (children.count > 0) {
+				return err(
+					invalid(
+						`cannot demote an epic with ${children.count} subtask(s): detach or move them first`,
+					),
+				);
+			}
+		}
 		sets.push("is_epic = ?");
 		params.push(patch.is_epic ? 1 : 0);
 		if (patch.is_epic !== current.is_epic) {

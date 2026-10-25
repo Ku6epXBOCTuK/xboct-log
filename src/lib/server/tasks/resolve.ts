@@ -33,6 +33,29 @@ export function taskIdCandidates(id: string): string[] {
 	return candidates;
 }
 
+function hasEpicAncestor(
+	db: DatabaseSync,
+	epicId: string,
+	ancestorId: string,
+): boolean {
+	const seen = new Set<string>([epicId]);
+	let cursor = epicId;
+	while (true) {
+		const parent = db
+			.prepare("SELECT epic_id FROM tasks WHERE id = ?")
+			.get(cursor) as { epic_id: string | null } | undefined;
+		const next = parent?.epic_id ?? null;
+		if (next === null || seen.has(next)) {
+			return false;
+		}
+		if (next === ancestorId) {
+			return true;
+		}
+		seen.add(next);
+		cursor = next;
+	}
+}
+
 export function resolveEpicId(
 	db: DatabaseSync,
 	input: string,
@@ -73,6 +96,9 @@ export function resolveEpicId(
 	}
 	if (selfId !== undefined && row.id === selfId) {
 		return err(invalid("a task cannot be its own epic"));
+	}
+	if (selfId !== undefined && hasEpicAncestor(db, row.id, selfId)) {
+		return err(invalid("setting this epic would create a cycle"));
 	}
 	if (row.is_epic !== 1) {
 		return err(invalid(`${row.id} is not an epic`));
