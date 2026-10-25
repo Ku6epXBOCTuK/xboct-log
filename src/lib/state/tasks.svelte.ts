@@ -108,6 +108,19 @@ export function createTaskStore(initial: Task[]) {
 				task.scope_id === scopeId ? { ...task, scope_id: null } : task,
 			);
 		},
+		bumpAttachments(id: string, delta: number) {
+			tasks = tasks.map((task) =>
+				task.id === id
+					? {
+							...task,
+							attachments_count: Math.max(
+								0,
+								(task.attachments_count ?? 0) + delta,
+							),
+						}
+					: task,
+			);
+		},
 	};
 }
 

@@ -335,7 +335,7 @@
 					onchange={(value) => ui.set(value)}
 				/>
 			</div>
-			<TaskAttachments task={selected} />
+			<TaskAttachments task={selected} {tasks} />
 		</div>
 		<DetailActions
 			closed={selected.closed_at !== null}

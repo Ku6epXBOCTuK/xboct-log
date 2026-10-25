@@ -6,6 +6,7 @@
 		removeTaskAttachment,
 	} from "#lib/remote/attachments.remote.ts";
 	import { fetchFresh } from "#lib/remote/fresh.ts";
+	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
 	import { fileToBase64, formatSize, isImage } from "#lib/tasks/attachments.ts";
 	import { messageOf } from "#lib/tasks/display.ts";
 	import type { Task, TaskAttachment } from "#lib/types.ts";
@@ -17,9 +18,10 @@
 
 	interface Props {
 		task: Task;
+		tasks: TaskStore;
 	}
 
-	let { task }: Props = $props();
+	let { task, tasks }: Props = $props();
 
 	let items = $state<TaskAttachment[]>([]);
 	let failed = $state(false);
@@ -58,6 +60,7 @@
 					content_base64: content,
 					mime_type: file.type || undefined,
 				});
+				tasks.bumpAttachments(task.id, 1);
 			}
 			await load(task.id);
 		} catch (error) {
@@ -72,6 +75,7 @@
 		failure = "";
 		try {
 			await removeTaskAttachment({ id });
+			tasks.bumpAttachments(task.id, -1);
 			await load(task.id);
 		} catch (error) {
 			failure = messageOf(error);
