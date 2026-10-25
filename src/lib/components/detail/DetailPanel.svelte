@@ -35,6 +35,7 @@
 	import Clock3 from "~icons/lucide/clock-3";
 	import MessageSquare from "~icons/lucide/message-square";
 	import RefreshCw from "~icons/lucide/refresh-cw";
+	import Upload from "~icons/lucide/upload";
 	import X from "~icons/lucide/x";
 
 	interface Props {
@@ -67,6 +68,8 @@
 	let failure = $state<string | null>(null);
 	let historyOpen = $state(false);
 	let commentsOpen = $state(false);
+	let attachments: TaskAttachments | undefined = $state();
+	let dragging = $state(false);
 	let tagEntries = $derived(
 		tags.ranked(collectTags(tasks.tasks, selected?.project_id ?? null)),
 	);
@@ -205,6 +208,31 @@
 		};
 	}
 
+	function dragOver(event: DragEvent) {
+		if (event.dataTransfer?.types.includes("Files") !== true) return;
+		event.preventDefault();
+		dragging = true;
+	}
+
+	function dragLeave(event: DragEvent) {
+		const panel = event.currentTarget;
+		const related = event.relatedTarget;
+		if (
+			panel instanceof Node &&
+			related instanceof Node &&
+			panel.contains(related)
+		) {
+			return;
+		}
+		dragging = false;
+	}
+
+	function drop(event: DragEvent) {
+		event.preventDefault();
+		dragging = false;
+		void attachments?.addFiles([...(event.dataTransfer?.files ?? [])]);
+	}
+
 	function onkeydown(event: KeyboardEvent) {
 		if (event.key !== "Escape") return;
 		if (selected === null) return;
@@ -241,6 +269,9 @@
 		transition:slideRight
 		aria-label="Task details"
 		use:fieldNavigation={{ exclude: ".panel-overlay" }}
+		ondragover={dragOver}
+		ondragleave={dragLeave}
+		ondrop={drop}
 	>
 		<div class="detail-head">
 			<div class="detail-top">
@@ -335,7 +366,7 @@
 					onchange={(value) => ui.set(value)}
 				/>
 			</div>
-			<TaskAttachments task={selected} {tasks} />
+			<TaskAttachments bind:this={attachments} task={selected} {tasks} />
 		</div>
 		<DetailActions
 			closed={selected.closed_at !== null}
@@ -390,6 +421,12 @@
 				<TaskComments taskId={selected.id} {comments} />
 			</PanelOverlay>
 		{/if}
+		{#if dragging}
+			<div class="drop-overlay" aria-hidden="true">
+				<Upload />
+				<span>Drop files to attach</span>
+			</div>
+		{/if}
 	</aside>
 {/if}
 
@@ -408,6 +445,30 @@
 		display: flex;
 		flex-direction: column;
 		overflow: hidden;
+	}
+
+	.drop-overlay {
+		position: absolute;
+		inset: 0;
+		z-index: 30;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: var(--space-3);
+		border: 2px dashed var(--accent);
+		border-radius: var(--radius);
+		background: color-mix(in oklch, var(--panel) 82%, transparent);
+		color: var(--text-secondary);
+		font-size: var(--text-lg);
+		font-weight: 600;
+		pointer-events: none;
+	}
+
+	.drop-overlay :global(svg) {
+		width: 2rem;
+		height: 2rem;
+		color: var(--accent);
 	}
 
 	.detail-head {

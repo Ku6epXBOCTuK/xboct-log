@@ -44,7 +44,7 @@
 		}
 	}
 
-	async function addFiles(files: File[]) {
+	export async function addFiles(files: File[]) {
 		if (files.length === 0 || busy) return;
 		busy = true;
 		failure = "";
