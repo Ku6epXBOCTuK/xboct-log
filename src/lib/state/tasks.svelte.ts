@@ -3,6 +3,10 @@ import {
 	removeBlocker as removeBlockerCommand,
 } from "#lib/remote/blockers.remote.ts";
 import {
+	addLink as addLinkCommand,
+	removeLink as removeLinkCommand,
+} from "#lib/remote/links.remote.ts";
+import {
 	closeTask,
 	createTask,
 	deleteTask,
@@ -100,6 +104,68 @@ export function createTaskStore(initial: Task[]) {
 					};
 				}
 				return task;
+			});
+			return updated;
+		},
+		async addLink(
+			id: string,
+			linkType: "relates_to" | "duplicates",
+			targetId: string,
+		) {
+			const updated = await addLinkCommand({
+				id,
+				link_type: linkType,
+				target: targetId,
+			});
+			tasks = tasks.map((task) => {
+				if (task.id === updated.id) return updated;
+				if (task.id !== targetId) return task;
+				if (linkType === "relates_to") {
+					const relates = task.relates_to ?? [];
+					return {
+						...task,
+						relates_to: relates.includes(updated.id)
+							? relates
+							: [...relates, updated.id].sort(),
+					};
+				}
+				const by = task.duplicated_by ?? [];
+				return {
+					...task,
+					duplicated_by: by.includes(updated.id)
+						? by
+						: [...by, updated.id].sort(),
+				};
+			});
+			return updated;
+		},
+		async removeLink(
+			id: string,
+			linkType: "relates_to" | "duplicates",
+			targetId: string,
+		) {
+			const updated = await removeLinkCommand({
+				id,
+				link_type: linkType,
+				target: targetId,
+			});
+			tasks = tasks.map((task) => {
+				if (task.id === updated.id) return updated;
+				if (task.id !== targetId) return task;
+				if (linkType === "relates_to") {
+					return {
+						...task,
+						relates_to: (task.relates_to ?? []).filter(
+							(item) => item !== updated.id,
+						),
+					};
+				}
+				return {
+					...task,
+					duplicated_by: (task.duplicated_by ?? []).filter(
+						(item) => item !== updated.id,
+					),
+				};
 			});
 			return updated;
 		},

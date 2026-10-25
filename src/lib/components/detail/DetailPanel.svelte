@@ -1,5 +1,6 @@
 <script lang="ts">
 	import BlockingFields from "#lib/components/task/BlockingFields.svelte";
+	import TaskLinks from "#lib/components/task/TaskLinks.svelte";
 	import DetailActions from "#lib/components/detail/DetailActions.svelte";
 	import ProjectScopeFields from "#lib/components/task/ProjectScopeFields.svelte";
 	import TaskComments from "#lib/components/detail/TaskComments.svelte";
@@ -30,6 +31,7 @@
 		validateTaskDraft,
 		type TaskPatch,
 	} from "#lib/tasks/fields.ts";
+	import { CLOSED_STATUSES } from "#lib/types.ts";
 	import type { ClosedReason, Status, Task } from "#lib/types.ts";
 	import { cubicOut } from "svelte/easing";
 	import Clock3 from "~icons/lucide/clock-3";
@@ -79,6 +81,19 @@
 	);
 	let blockerCandidates = $derived(
 		selected === null ? [] : blockingCandidates(tasks.tasks, selected),
+	);
+	let linkCandidates = $derived(
+		selected === null
+			? []
+			: tasks.tasks.filter((task) => {
+					if (task.id === selected.id) return false;
+					if (CLOSED_STATUSES.includes(task.status)) return false;
+					return (
+						!(selected.relates_to ?? []).includes(task.id) &&
+						!(selected.duplicates ?? []).includes(task.id) &&
+						!(selected.duplicated_by ?? []).includes(task.id)
+					);
+				}),
 	);
 
 	// NOTE: the derived value only changes when the task id changes, so a live
@@ -173,6 +188,32 @@
 		const current = selected;
 		if (current === null) return;
 		void perform(() => tasks.removeBlocker(current.id, blockerId));
+	}
+
+	function addLinkField(
+		field: "relates_to" | "duplicates" | "duplicated_by",
+		id: string,
+	) {
+		const current = selected;
+		if (current === null) return;
+		if (field === "duplicated_by") {
+			void perform(() => tasks.addLink(id, "duplicates", current.id));
+			return;
+		}
+		void perform(() => tasks.addLink(current.id, field, id));
+	}
+
+	function removeLinkField(
+		field: "relates_to" | "duplicates" | "duplicated_by",
+		id: string,
+	) {
+		const current = selected;
+		if (current === null) return;
+		if (field === "duplicated_by") {
+			void perform(() => tasks.removeLink(id, "duplicates", current.id));
+			return;
+		}
+		void perform(() => tasks.removeLink(current.id, field, id));
 	}
 
 	function reopen() {
@@ -345,6 +386,14 @@
 				onstatus={setStatus}
 				onadd={addBlocker}
 				onremove={removeBlocker}
+			/>
+			<TaskLinks
+				relatesTo={selected.relates_to ?? []}
+				duplicates={selected.duplicates ?? []}
+				duplicatedBy={selected.duplicated_by ?? []}
+				candidates={linkCandidates}
+				onadd={addLinkField}
+				onremove={removeLinkField}
 			/>
 			<TaskFields
 				value={selected}
