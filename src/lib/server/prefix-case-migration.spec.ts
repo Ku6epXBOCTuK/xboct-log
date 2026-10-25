@@ -26,8 +26,8 @@ VALUES ('leg-1', 'legacy', 1, 'Epic', '', 'open', 'medium', 1, '${STAMP}', '${ST
 INSERT INTO tasks (id, project_id, number, title, description, status, priority, is_epic, epic_id, created_at, updated_at)
 VALUES ('leg-2', 'legacy', 2, 'Child', '', 'open', 'medium', 0, 'leg-1', '${STAMP}', '${STAMP}');
 
-INSERT INTO task_blocked_by (blocked_task_id, blocked_by_task_id, created_at)
-VALUES ('leg-2', 'leg-1', '${STAMP}');
+INSERT INTO task_links (source_task_id, target_task_id, link_type, created_at)
+VALUES ('leg-1', 'leg-2', 'blocks', '${STAMP}');
 
 INSERT INTO activity (created_at, source, op, entity, entity_id, old_id)
 VALUES ('${STAMP}', 'test', 'move', 'task', 'leg-2', 'leg-1');
@@ -87,12 +87,8 @@ describe("prefix case migration", () => {
 			db.prepare("SELECT epic_id FROM tasks WHERE id = 'LEG-2'").get(),
 		).toEqual({ epic_id: "LEG-1" });
 		expect(
-			db
-				.prepare(
-					"SELECT blocked_task_id, blocked_by_task_id FROM task_blocked_by",
-				)
-				.get(),
-		).toEqual({ blocked_task_id: "LEG-2", blocked_by_task_id: "LEG-1" });
+			db.prepare("SELECT source_task_id, target_task_id FROM task_links").get(),
+		).toEqual({ source_task_id: "LEG-1", target_task_id: "LEG-2" });
 		expect(
 			db
 				.prepare("SELECT entity_id, old_id FROM activity WHERE entity = 'task'")

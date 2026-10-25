@@ -4,6 +4,9 @@ export const TASK_EXTRA_FIELDS = [
 	"short_description",
 	"blocked_by",
 	"blocks",
+	"relates_to",
+	"duplicates",
+	"duplicated_by",
 ] as const;
 
 export const TASK_LIST_FIELDS: string[] = [

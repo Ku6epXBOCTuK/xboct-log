@@ -158,6 +158,9 @@ export interface Task {
 	short_description?: string;
 	blocked_by?: string[];
 	blocks?: string[];
+	relates_to?: string[];
+	duplicates?: string[];
+	duplicated_by?: string[];
 }
 
 export interface TaskAttachment {

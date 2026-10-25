@@ -229,6 +229,19 @@ export function releaseBlockedStatus(
 export interface BlockingInfo {
 	blocked_by: string[];
 	blocks: string[];
+	relates_to: string[];
+	duplicates: string[];
+	duplicated_by: string[];
+}
+
+function emptyLinkInfo(): BlockingInfo {
+	return {
+		blocked_by: [],
+		blocks: [],
+		relates_to: [],
+		duplicates: [],
+		duplicated_by: [],
+	};
 }
 
 export function blockingInfoFor(
@@ -237,7 +250,7 @@ export function blockingInfoFor(
 ): Map<string, BlockingInfo> {
 	const info = new Map<string, BlockingInfo>();
 	for (const id of taskIds) {
-		info.set(id, { blocked_by: [], blocks: [] });
+		info.set(id, emptyLinkInfo());
 	}
 	if (taskIds.length === 0) {
 		return info;
@@ -245,21 +258,36 @@ export function blockingInfoFor(
 	const placeholders = taskIds.map(() => "?").join(", ");
 	const rows = db
 		.prepare(
-			`SELECT l.source_task_id, l.target_task_id FROM task_links l
+			`SELECT l.link_type, l.source_task_id, l.target_task_id FROM task_links l
 			 JOIN tasks source ON source.id = l.source_task_id AND source.deleted_at IS NULL
 			 JOIN tasks target ON target.id = l.target_task_id AND target.deleted_at IS NULL
-			 WHERE l.link_type = 'blocks'
-			   AND (l.target_task_id IN (${placeholders}) OR l.source_task_id IN (${placeholders}))`,
+			 WHERE l.target_task_id IN (${placeholders}) OR l.source_task_id IN (${placeholders})`,
 		)
 		.all(...taskIds, ...taskIds) as unknown as {
+		link_type: LinkType;
 		source_task_id: string;
 		target_task_id: string;
 	}[];
 	for (const row of rows) {
-		const blocked = info.get(row.target_task_id);
-		blocked?.blocked_by.push(row.source_task_id);
-		const blocker = info.get(row.source_task_id);
-		blocker?.blocks.push(row.target_task_id);
+		const source = info.get(row.source_task_id);
+		const target = info.get(row.target_task_id);
+		if (row.link_type === "blocks") {
+			target?.blocked_by.push(row.source_task_id);
+			source?.blocks.push(row.target_task_id);
+		} else if (row.link_type === "relates_to") {
+			source?.relates_to.push(row.target_task_id);
+			target?.relates_to.push(row.source_task_id);
+		} else if (row.link_type === "duplicates") {
+			source?.duplicates.push(row.target_task_id);
+			target?.duplicated_by.push(row.source_task_id);
+		}
+	}
+	for (const entry of info.values()) {
+		entry.blocked_by.sort();
+		entry.blocks.sort();
+		entry.relates_to.sort();
+		entry.duplicates.sort();
+		entry.duplicated_by.sort();
 	}
 	return info;
 }

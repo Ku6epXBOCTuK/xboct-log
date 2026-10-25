@@ -29,7 +29,14 @@ export function withBlockingInfo(db: DatabaseSync, tasks: Task[]): Task[] {
 	return tasks.map((task) => {
 		const entry = info.get(task.id);
 		return entry
-			? { ...task, blocked_by: entry.blocked_by, blocks: entry.blocks }
+			? {
+					...task,
+					blocked_by: entry.blocked_by,
+					blocks: entry.blocks,
+					relates_to: entry.relates_to,
+					duplicates: entry.duplicates,
+					duplicated_by: entry.duplicated_by,
+				}
 			: task;
 	});
 }
