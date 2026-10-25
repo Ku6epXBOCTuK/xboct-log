@@ -103,6 +103,7 @@
 	let formElement = $state<HTMLFormElement | null>(null);
 	let fileInput = $state<HTMLInputElement | null>(null);
 	let files = $state<File[]>([]);
+	let dragging = $state(false);
 
 	const restored = untrack(() => draftStore.saved);
 	if (restored) {
@@ -137,6 +138,40 @@
 		target.value = "";
 		if (picked.length === 0) return;
 		files = [...files, ...picked];
+	}
+
+	function paste(event: ClipboardEvent) {
+		const pasted = [...(event.clipboardData?.files ?? [])];
+		if (pasted.length === 0) return;
+		event.preventDefault();
+		files = [...files, ...pasted];
+	}
+
+	function dragOver(event: DragEvent) {
+		if (event.dataTransfer?.types.includes("Files") !== true) return;
+		event.preventDefault();
+		dragging = true;
+	}
+
+	function dragLeave(event: DragEvent) {
+		const form = event.currentTarget;
+		const related = event.relatedTarget;
+		if (
+			form instanceof Node &&
+			related instanceof Node &&
+			form.contains(related)
+		) {
+			return;
+		}
+		dragging = false;
+	}
+
+	function drop(event: DragEvent) {
+		event.preventDefault();
+		dragging = false;
+		const dropped = [...(event.dataTransfer?.files ?? [])];
+		if (dropped.length === 0) return;
+		files = [...files, ...dropped];
 	}
 
 	async function uploadFiles(taskId: string) {
@@ -278,9 +313,16 @@
 	}
 </script>
 
-<svelte:window {onkeydown} />
+<svelte:window {onkeydown} onpaste={paste} />
 
-<form bind:this={formElement} onsubmit={submit} use:fieldNavigation>
+<form
+	bind:this={formElement}
+	onsubmit={submit}
+	use:fieldNavigation
+	ondragover={dragOver}
+	ondragleave={dragLeave}
+	ondrop={drop}
+>
 	<div class="panel-body">
 		<ProjectScopeFields
 			value={draft}
@@ -397,6 +439,13 @@
 			</button>
 		</div>
 	</div>
+
+	{#if dragging}
+		<div class="drop-overlay" aria-hidden="true">
+			<Upload />
+			<span>Drop files to attach</span>
+		</div>
+	{/if}
 </form>
 
 <style>
@@ -468,6 +517,31 @@
 		flex-direction: column;
 		flex: 1 1 auto;
 		min-height: 0;
+		position: relative;
+	}
+
+	.drop-overlay {
+		position: absolute;
+		inset: 0;
+		z-index: 10;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: var(--space-3);
+		border: 2px dashed var(--accent);
+		border-radius: var(--radius);
+		background: color-mix(in oklch, var(--panel) 82%, transparent);
+		color: var(--text-secondary);
+		font-size: var(--text-lg);
+		font-weight: 600;
+		pointer-events: none;
+	}
+
+	.drop-overlay :global(svg) {
+		width: 2rem;
+		height: 2rem;
+		color: var(--accent);
 	}
 
 	.panel-body {

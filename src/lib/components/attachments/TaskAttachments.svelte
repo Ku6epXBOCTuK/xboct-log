@@ -68,6 +68,7 @@
 	}
 
 	function paste(event: ClipboardEvent) {
+		if (document.querySelector("dialog[open]") !== null) return;
 		const files = [...(event.clipboardData?.files ?? [])];
 		if (files.length === 0) return;
 		event.preventDefault();
