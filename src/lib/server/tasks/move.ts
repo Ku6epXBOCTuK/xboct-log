@@ -62,6 +62,25 @@ export function moveTask(
 			}
 
 			const newIds = new Map(plan.map((node) => [node.oldId, node.newId]));
+
+			const subtreeIds = plan.map((node) => node.oldId);
+			const placeholders = subtreeIds.map(() => "?").join(", ");
+			const links = db
+				.prepare(
+					`SELECT source_task_id, target_task_id, link_type, created_at FROM task_links
+					 WHERE source_task_id IN (${placeholders}) OR target_task_id IN (${placeholders})`,
+				)
+				.all(...subtreeIds, ...subtreeIds) as unknown as {
+				source_task_id: string;
+				target_task_id: string;
+				link_type: string;
+				created_at: string;
+			}[];
+			db.prepare(
+				`DELETE FROM task_links
+				 WHERE source_task_id IN (${placeholders}) OR target_task_id IN (${placeholders})`,
+			).run(...subtreeIds, ...subtreeIds);
+
 			for (const node of plan) {
 				const newEpicId =
 					node.oldEpicId === null ? null : (newIds.get(node.oldEpicId) ?? null);
@@ -71,6 +90,19 @@ export function moveTask(
 					 WHERE id = ?`,
 				).run(node.newId, target.id, node.number, newEpicId, now, node.oldId);
 			}
+
+			const insertLink = db.prepare(
+				"INSERT OR IGNORE INTO task_links (source_task_id, target_task_id, link_type, created_at) VALUES (?, ?, ?, ?)",
+			);
+			for (const link of links) {
+				insertLink.run(
+					newIds.get(link.source_task_id) ?? link.source_task_id,
+					newIds.get(link.target_task_id) ?? link.target_task_id,
+					link.link_type,
+					link.created_at,
+				);
+			}
+
 			return withBlockingInfo(db, [taskById(db, newIds.get(sourceId)!)!])[0];
 		}),
 	);
