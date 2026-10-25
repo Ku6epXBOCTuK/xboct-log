@@ -7,13 +7,13 @@
 	} from "#lib/remote/attachments.remote.ts";
 	import { fetchFresh } from "#lib/remote/fresh.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
-	import { fileToBase64, formatSize, isImage } from "#lib/tasks/attachments.ts";
+	import { fileToBase64, isImage } from "#lib/tasks/attachments.ts";
 	import { messageOf } from "#lib/tasks/display.ts";
 	import type { Task, TaskAttachment } from "#lib/types.ts";
+	import AttachmentItem from "#lib/components/attachments/AttachmentItem.svelte";
+	import AttachmentList from "#lib/components/attachments/AttachmentList.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import IconButton from "#lib/components/ui/IconButton.svelte";
-	import Paperclip from "~icons/lucide/paperclip";
-	import Trash2 from "~icons/lucide/trash-2";
 	import Upload from "~icons/lucide/upload";
 
 	interface Props {
@@ -118,38 +118,20 @@
 	{:else if items.length === 0}
 		<p class="attachments-empty">No files</p>
 	{:else}
-		<ul class="attachment-list">
+		<AttachmentList>
 			{#each items as item (item.id)}
-				<li class="attachment" class:missing={item.missing}>
-					{#if item.missing}
-						<span class="attachment-icon"><Paperclip /></span>
-						<span class="attachment-name">{item.file_name}</span>
-						<span class="attachment-gone"
-							>the file is gone from the media folder</span
-						>
-					{:else if isImage(item.mime_type)}
-						<img
-							class="attachment-image"
-							src={resolve("/media/[id]", { id: item.id })}
-							alt={item.file_name}
-						/>
-						<span class="attachment-name">{item.file_name}</span>
-					{:else}
-						<span class="attachment-icon"><Paperclip /></span>
-						<span class="attachment-name">{item.file_name}</span>
-					{/if}
-					<span class="attachment-size">{formatSize(item.size)}</span>
-					<IconButton
-						label="Delete the attachment"
-						title="Delete the attachment"
-						disabled={busy}
-						onclick={() => remove(item.id)}
-					>
-						<Trash2 />
-					</IconButton>
-				</li>
+				<AttachmentItem
+					name={item.file_name}
+					size={item.size}
+					src={isImage(item.mime_type)
+						? resolve("/media/[id]", { id: item.id })
+						: undefined}
+					missing={item.missing}
+					{busy}
+					onremove={() => remove(item.id)}
+				/>
 			{/each}
-		</ul>
+		</AttachmentList>
 	{/if}
 </div>
 
@@ -178,71 +160,5 @@
 		margin: 0;
 		color: var(--text-muted);
 		font-size: var(--text-sm);
-	}
-
-	.attachment-list {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-2);
-	}
-
-	.attachment {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		padding: var(--space-2);
-		border: 1px solid var(--border);
-		border-radius: var(--radius);
-		background: var(--field);
-	}
-
-	.attachment.missing {
-		border-color: color-mix(in oklch, var(--accent) 55%, transparent);
-	}
-
-	.attachment-image {
-		width: 3rem;
-		height: 3rem;
-		object-fit: cover;
-		border-radius: var(--radius-sm);
-		background: var(--surface);
-		flex: none;
-	}
-
-	.attachment-icon {
-		display: inline-flex;
-		color: var(--text-muted);
-		flex: none;
-	}
-
-	.attachment-icon :global(svg) {
-		width: 1rem;
-		height: 1rem;
-	}
-
-	.attachment-name {
-		min-width: 0;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-		color: var(--text-secondary);
-		font-size: var(--text-sm);
-	}
-
-	.attachment-gone {
-		color: var(--accent-ink);
-		font-size: var(--text-xs);
-		white-space: nowrap;
-	}
-
-	.attachment-size {
-		margin-left: auto;
-		color: var(--text-muted);
-		font-size: var(--text-xs);
-		font-variant-numeric: tabular-nums;
-		white-space: nowrap;
 	}
 </style>

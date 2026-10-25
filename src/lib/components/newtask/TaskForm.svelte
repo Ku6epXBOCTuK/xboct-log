@@ -1,4 +1,6 @@
 <script lang="ts">
+	import AttachmentItem from "#lib/components/attachments/AttachmentItem.svelte";
+	import AttachmentList from "#lib/components/attachments/AttachmentList.svelte";
 	import ProjectScopeFields from "#lib/components/task/ProjectScopeFields.svelte";
 	import TaskFields from "#lib/components/task/TaskFields.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
@@ -9,7 +11,7 @@
 	import type { UiStore } from "#lib/state/ui.svelte.ts";
 	import AdvancedToggle from "#lib/components/task/AdvancedToggle.svelte";
 	import { messageOf } from "#lib/tasks/display.ts";
-	import { fileToBase64, formatSize } from "#lib/tasks/attachments.ts";
+	import { fileToBase64 } from "#lib/tasks/attachments.ts";
 	import { addTaskAttachment } from "#lib/remote/attachments.remote.ts";
 	import { collectTags } from "#lib/tasks/filter.ts";
 	import { matchesHotkey } from "#lib/hotkeys/hotkeys.ts";
@@ -27,7 +29,6 @@
 	import IconButton from "#lib/components/ui/IconButton.svelte";
 	import Paperclip from "~icons/lucide/paperclip";
 	import Upload from "~icons/lucide/upload";
-	import X from "~icons/lucide/x";
 
 	interface Props {
 		tasks: TaskStore;
@@ -386,22 +387,17 @@
 				/>
 			</div>
 			{#if files.length > 0}
-				<ul class="attachment-list">
+				<AttachmentList>
 					{#each files as file, index (file.name + index)}
-						<li class="attachment">
-							<Paperclip />
-							<span class="attachment-name">{file.name}</span>
-							<span class="attachment-size">{formatSize(file.size)}</span>
-							<IconButton
-								label="Remove the file"
-								title="Remove the file"
-								onclick={() => (files = files.filter((_, i) => i !== index))}
-							>
-								<X />
-							</IconButton>
-						</li>
+						<AttachmentItem
+							name={file.name}
+							size={file.size}
+							{file}
+							busy={saving}
+							onremove={() => (files = files.filter((_, i) => i !== index))}
+						/>
 					{/each}
-				</ul>
+				</AttachmentList>
 			{/if}
 		</div>
 	</div>
@@ -467,49 +463,6 @@
 		font-weight: 600;
 		letter-spacing: 0.06em;
 		text-transform: uppercase;
-	}
-
-	.attachment-list {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-2);
-	}
-
-	.attachment {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		padding: var(--space-2);
-		border: 1px solid var(--border);
-		border-radius: var(--radius);
-		background: var(--field);
-	}
-
-	.attachment :global(svg) {
-		width: 1rem;
-		height: 1rem;
-		flex: none;
-		color: var(--text-muted);
-	}
-
-	.attachment-name {
-		min-width: 0;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-		color: var(--text-secondary);
-		font-size: var(--text-sm);
-	}
-
-	.attachment-size {
-		margin-left: auto;
-		color: var(--text-muted);
-		font-size: var(--text-xs);
-		font-variant-numeric: tabular-nums;
-		white-space: nowrap;
 	}
 
 	form {
