@@ -128,6 +128,7 @@
 					src={isImage(item.mime_type)
 						? resolve("/media/[id]", { id: item.id })
 						: undefined}
+					href={resolve("/media/[id]", { id: item.id })}
 					missing={item.missing}
 					{busy}
 					onremove={() => remove(item.id)}

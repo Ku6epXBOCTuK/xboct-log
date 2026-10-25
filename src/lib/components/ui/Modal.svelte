@@ -7,7 +7,8 @@
 		open: boolean;
 		title: string;
 		label?: string;
-		size?: "default" | "wide";
+		size?: "default" | "wide" | "full";
+		dismissable?: boolean;
 		onclose: () => void;
 		children: Snippet;
 	}
@@ -17,11 +18,13 @@
 		title,
 		label,
 		size = "default",
+		dismissable = false,
 		onclose,
 		children,
 	}: Props = $props();
 
 	let panel: HTMLDialogElement | undefined = $state();
+	let pressedOnBackdrop = false;
 
 	$effect(() => {
 		if (open && panel !== undefined && !panel.open) {
@@ -30,6 +33,17 @@
 		}
 		if (!open && panel?.open) panel.close();
 	});
+
+	function trackPress(event: MouseEvent) {
+		pressedOnBackdrop = event.target === panel;
+	}
+
+	function closeFromBackdrop(event: MouseEvent) {
+		if (event.target === panel && pressedOnBackdrop) {
+			panel?.close();
+		}
+		pressedOnBackdrop = false;
+	}
 </script>
 
 <dialog
@@ -37,6 +51,8 @@
 	class={`modal-panel modal-panel-${size}`}
 	aria-label={label ?? title}
 	{onclose}
+	onmousedown={dismissable ? trackPress : undefined}
+	onclick={dismissable ? closeFromBackdrop : undefined}
 >
 	<div class="modal-top">
 		<h2>{title}</h2>
@@ -73,6 +89,16 @@
 	.modal-panel-wide {
 		width: 720px;
 		max-height: calc(100dvh - 2 * var(--edge-pad));
+	}
+
+	.modal-panel.modal-panel-full {
+		width: fit-content;
+		max-width: calc(100dvw - 2 * var(--edge-pad));
+		max-height: calc(100dvh - 2 * var(--edge-pad));
+	}
+
+	.modal-panel.modal-panel-full .modal-body {
+		padding: 0 var(--space-3) var(--space-3);
 	}
 
 	.modal-top {
