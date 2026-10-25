@@ -30,9 +30,13 @@ export function publishChange(entity: Entity, op: string): void {
 	}
 }
 
+const ENTITY_BY_PREFIX: Record<string, Entity> = {
+	tasks: "tasks",
+	projects: "projects",
+	scopes: "scopes",
+	attachments: "tasks",
+};
+
 export function entityOf(opName: string): Entity | null {
-	const prefix = opName.split("_")[0];
-	return (ENTITIES as readonly string[]).includes(prefix)
-		? (prefix as Entity)
-		: null;
+	return ENTITY_BY_PREFIX[opName.split("_")[0]] ?? null;
 }

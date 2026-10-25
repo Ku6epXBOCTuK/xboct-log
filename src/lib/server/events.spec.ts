@@ -6,6 +6,8 @@ describe("events", () => {
 		expect(entityOf("tasks_close")).toBe("tasks");
 		expect(entityOf("projects_update")).toBe("projects");
 		expect(entityOf("scopes_delete")).toBe("scopes");
+		expect(entityOf("attachments_add")).toBe("tasks");
+		expect(entityOf("attachments_delete")).toBe("tasks");
 		expect(entityOf("unknown_thing")).toBeNull();
 	});
 

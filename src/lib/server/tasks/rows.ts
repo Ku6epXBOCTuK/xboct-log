@@ -131,7 +131,9 @@ export function normalizeTags(tags: string[] | undefined): string[] {
 
 export function taskById(db: DatabaseSync, id: string): Task | undefined {
 	const row = db
-		.prepare("SELECT * FROM tasks WHERE id = ?")
+		.prepare(
+			"SELECT tasks.*, (SELECT COUNT(*) FROM task_attachments a WHERE a.task_id = tasks.id) AS attachments_count FROM tasks WHERE tasks.id = ?",
+		)
 		.get(id) as unknown as TaskRow | undefined;
 	return row ? mapTask(row) : undefined;
 }
