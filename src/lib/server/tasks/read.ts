@@ -125,7 +125,7 @@ export function listTasks(db: DatabaseSync, query: TaskQuery = {}): Task[] {
 	} else if (sort === "number") {
 		sql += ` ORDER BY tasks.number ${order.toUpperCase()}, tasks.project_id ASC`;
 	} else if (sort === "title") {
-		sql += ` ORDER BY LOWER(tasks.title) ${order.toUpperCase()}, tasks.id ASC`;
+		sql += ` ORDER BY ULOWER(tasks.title) ${order.toUpperCase()}, tasks.id ASC`;
 	} else if (sort === "closed_at") {
 		sql += ` ORDER BY (tasks.closed_at IS NULL) ASC, tasks.closed_at ${order.toUpperCase()}, tasks.id ASC`;
 	} else {

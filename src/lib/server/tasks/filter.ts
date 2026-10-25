@@ -71,7 +71,7 @@ export function buildTaskFilter(query: TaskQuery): TaskFilterSql {
 	}
 	if (query.assignee?.length) {
 		where.push(
-			`LOWER(tasks.assignee) IN (${query.assignee.map(() => "?").join(", ")})`,
+			`ULOWER(tasks.assignee) IN (${query.assignee.map(() => "?").join(", ")})`,
 		);
 		params.push(...query.assignee.map((assignee) => assignee.toLowerCase()));
 	}
@@ -147,7 +147,7 @@ export function buildTaskFilter(query: TaskQuery): TaskFilterSql {
 	}
 	if (query.tag?.length) {
 		where.push(
-			`EXISTS (SELECT 1 FROM json_each(tasks.tags) WHERE LOWER(json_each.value) IN (${query.tag
+			`EXISTS (SELECT 1 FROM json_each(tasks.tags) WHERE ULOWER(json_each.value) IN (${query.tag
 				.map(() => "?")
 				.join(", ")}))`,
 		);
@@ -156,24 +156,24 @@ export function buildTaskFilter(query: TaskQuery): TaskFilterSql {
 	if (query.q) {
 		const like = `%${query.q.toLowerCase()}%`;
 		where.push(
-			`(LOWER(tasks.title) LIKE ? OR LOWER(tasks.description) LIKE ? OR LOWER(tasks.id) LIKE ?
-			  OR LOWER(tasks.epic_id) LIKE ?
-			  OR EXISTS (SELECT 1 FROM json_each(tasks.tags) WHERE LOWER(json_each.value) LIKE ?))`,
+			`(ULOWER(tasks.title) LIKE ? OR ULOWER(tasks.description) LIKE ? OR ULOWER(tasks.id) LIKE ?
+			  OR ULOWER(tasks.epic_id) LIKE ?
+			  OR EXISTS (SELECT 1 FROM json_each(tasks.tags) WHERE ULOWER(json_each.value) LIKE ?))`,
 		);
 		params.push(like, like, like, like, like);
 	}
 	if (query.title) {
 		const like = `%${query.title.toLowerCase()}%`;
-		where.push("LOWER(tasks.title) LIKE ?");
+		where.push("ULOWER(tasks.title) LIKE ?");
 		params.push(like);
 	}
 	if (query.title_exact) {
-		where.push("LOWER(tasks.title) = LOWER(?)");
+		where.push("ULOWER(tasks.title) = ULOWER(?)");
 		params.push(query.title_exact);
 	}
 	if (query.source_file) {
 		const like = `%${query.source_file.toLowerCase()}%`;
-		where.push("LOWER(tasks.source_file) LIKE ?");
+		where.push("ULOWER(tasks.source_file) LIKE ?");
 		params.push(like);
 	}
 	if (query.include_project === true || query.project_archived !== undefined) {

@@ -11,6 +11,9 @@ export function openDatabase(location: string): DatabaseSync {
 	const db = new DatabaseSync(location);
 	db.exec("PRAGMA journal_mode = WAL;");
 	db.exec("PRAGMA foreign_keys = ON;");
+	db.function("ULOWER", { deterministic: true }, (value) =>
+		value == null ? null : String(value).toLowerCase(),
+	);
 	return db;
 }
 
