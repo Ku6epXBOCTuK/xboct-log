@@ -1,4 +1,5 @@
 import { err, type Result } from "neverthrow";
+import type { ZodType } from "zod";
 import { activityEntry } from "../server/activity";
 import {
 	addBlocker as addBlockerLink,
@@ -9,6 +10,7 @@ import type { AppError } from "../server/errors";
 import * as repo from "../server/tasks";
 import type { ActivityChange, Task, TaskWithChanges } from "../types";
 import { taskIdSchema } from "#lib/tasks/ids.ts";
+import { taskRef } from "./contracts";
 import { defineCommand } from "./define";
 import { resolveTaskOrThrow } from "./ids";
 import { TASK_FIELDS } from "./shape";
@@ -42,12 +44,14 @@ type LinkCommand = (
 function defineBlockerLinkOp(options: {
 	name: string;
 	description: string;
+	output: ZodType;
 	run: LinkCommand;
 }) {
 	return defineCommand({
 		name: options.name,
 		description: options.description,
 		kind: "command",
+		output: options.output,
 		input: strictObject({
 			id: taskIdSchema(BLOCKED_ID_DESCRIPTION),
 			blocked_by: taskIdSchema(BLOCKING_ID_DESCRIPTION),
@@ -71,6 +75,7 @@ function defineBlockerLinkOp(options: {
 
 export const addBlocker = defineBlockerLinkOp({
 	name: "tasks_add_blocker",
+	output: taskRef,
 	description:
 		"Link two tasks: the task `id` becomes blocked by the task `blocked_by` (that is the blocker). Both ids must use the full 'PREFIX-NUMBER' form. The blocker may live in another project. A task cannot block itself and cycles are rejected. The blocked task keeps its current status: set status 'blocked' with tasks_update yourself. Returns: the updated blocked task - " +
 		TASK_FIELDS +
@@ -80,6 +85,7 @@ export const addBlocker = defineBlockerLinkOp({
 
 export const removeBlocker = defineBlockerLinkOp({
 	name: "tasks_remove_blocker",
+	output: taskRef,
 	description:
 		"Remove a blocking link: the task `id` is no longer blocked by the task `blocked_by`. Both ids must use the full 'PREFIX-NUMBER' form. If no open blocker remains, the blocked task leaves status 'blocked' and returns to the status it had before it was blocked ('open' when that status is unknown). Returns: the updated blocked task - " +
 		TASK_FIELDS +

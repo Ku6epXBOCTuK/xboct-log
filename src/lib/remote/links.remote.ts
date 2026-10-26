@@ -1,5 +1,5 @@
 import { err, type Result } from "neverthrow";
-import { z } from "zod";
+import { type ZodType, z } from "zod";
 import { activityEntry } from "../server/activity";
 import {
 	addLink as addLinkCore,
@@ -11,6 +11,7 @@ import type { AppError } from "../server/errors";
 import * as repo from "../server/tasks";
 import type { ActivityChange, Task, TaskWithChanges } from "../types";
 import { taskIdSchema } from "#lib/tasks/ids.ts";
+import { taskRef } from "./contracts";
 import { defineCommand } from "./define";
 import { resolveTaskOrThrow } from "./ids";
 import { TASK_FIELDS } from "./shape";
@@ -51,12 +52,14 @@ function linkChanges(
 function defineLinkOp(options: {
 	name: string;
 	description: string;
+	output: ZodType;
 	run: LinkCommand;
 }) {
 	return defineCommand({
 		name: options.name,
 		description: options.description,
 		kind: "command",
+		output: options.output,
 		input: strictObject({
 			id: taskIdSchema(SOURCE_ID_DESCRIPTION),
 			link_type: z
@@ -83,6 +86,7 @@ function defineLinkOp(options: {
 
 export const addLink = defineLinkOp({
 	name: "tasks_add_link",
+	output: taskRef,
 	description:
 		"Add a typed link between two tasks. link_type 'relates_to' marks the tasks as related (symmetric: visible from both, one record is stored); 'duplicates' marks `id` as a duplicate of `target` (directed). Both ids must use the full 'PREFIX-NUMBER' form; the target may live in another project. A task cannot relate to or duplicate itself, duplicate cycles are rejected. Returns: the updated source task - " +
 		TASK_FIELDS +
@@ -93,6 +97,7 @@ export const addLink = defineLinkOp({
 
 export const removeLink = defineLinkOp({
 	name: "tasks_remove_link",
+	output: taskRef,
 	description:
 		"Remove a relates_to or duplicates link between two tasks. Both ids must use the full 'PREFIX-NUMBER' form. If the link does not exist, returns not_found. Returns: the updated source task - " +
 		TASK_FIELDS +

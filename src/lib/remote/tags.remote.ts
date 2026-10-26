@@ -2,12 +2,14 @@ import { z } from "zod";
 import { getDb } from "../server/db";
 import { listTags } from "../server/tasks";
 import { STATUSES } from "../types";
+import { tagList } from "./contracts";
 import { defineQuery } from "./define";
 import { oneOrList } from "./list";
 import { strictObject } from "./strict";
 
 export const getTags = defineQuery({
 	name: "tags_list",
+	output: tagList,
 	description:
 		"Read the tag dictionary of the backlog: every tag in use with the number of tasks that carry it and the number of open ones. Read-only. The dictionary is global by default, so shared tags used only in another project are still listed. Use it before filtering by tag, so you pick an existing tag name instead of guessing one. Accepts the filters project_id and status; soft-deleted tasks are not counted. Returns: {items, total}, where each item is { tag, count, active }, most used first. active counts the tasks whose status is not closed.",
 	kind: "query",

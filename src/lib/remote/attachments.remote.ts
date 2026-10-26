@@ -9,6 +9,12 @@ import {
 } from "../server/attachments";
 import { getDb } from "../server/db";
 import { invalid } from "../server/errors";
+import {
+	attachmentCreated,
+	attachmentDeleted,
+	attachmentList,
+	attachmentVerify,
+} from "./contracts";
 import { defineCommand, defineQuery } from "./define";
 import { resolveTaskOrThrow } from "./ids";
 import { ATTACHMENT_FIELDS } from "./shape";
@@ -17,6 +23,7 @@ import { ID_DESCRIPTION, taskIdSchema } from "#lib/tasks/ids.ts";
 
 export const getTaskAttachments = defineQuery({
 	name: "attachments_list",
+	output: attachmentList,
 	description:
 		"List the files attached to one task. Read-only. Returns: {items} - every item is " +
 		ATTACHMENT_FIELDS +
@@ -33,6 +40,7 @@ export const getTaskAttachments = defineQuery({
 
 export const addTaskAttachment = defineCommand({
 	name: "attachments_add",
+	output: attachmentCreated,
 	description:
 		"Attach a file to a task. The file is stored in the media folder of the app, the task keeps only a reference to it. Give either path (a file on the machine where the app runs) or content_base64 (the file content encoded as base64) together with filename. Returns: {item} - the created attachment - " +
 		ATTACHMENT_FIELDS +
@@ -91,6 +99,7 @@ export const addTaskAttachment = defineCommand({
 
 export const removeTaskAttachment = defineCommand({
 	name: "attachments_delete",
+	output: attachmentDeleted,
 	description:
 		"Delete one attachment of a task: the file in the media folder and the reference to it. The id is the one returned by attachments_list. Returns: {id} - the id of the deleted attachment.",
 	kind: "command",
@@ -108,6 +117,7 @@ export const removeTaskAttachment = defineCommand({
 
 export const checkTaskAttachments = defineQuery({
 	name: "attachments_verify",
+	output: attachmentVerify,
 	description:
 		"Check the files of the attachments: which ones are still in the media folder and which ones are gone. Read-only. Returns: {ok, missing} - ok is the list of attachments still in the media folder, missing the ones that are gone. Give id to check one task only, omit it to check everything.",
 	kind: "query",

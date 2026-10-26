@@ -4,6 +4,7 @@ import * as comments from "../server/comments";
 import { getDb } from "../server/db";
 import type { Comment } from "../types";
 import { ID_DESCRIPTION, taskIdSchema } from "#lib/tasks/ids.ts";
+import { commentList, commentRef } from "./contracts";
 import { defineCommand, defineQuery } from "./define";
 import { resolveTaskOrThrow } from "./ids";
 import { COMMENT_FIELDS } from "./shape";
@@ -11,6 +12,7 @@ import { strictObject } from "./strict";
 
 export const listComments = defineQuery({
 	name: "tasks_comments_list",
+	output: commentList,
 	description:
 		"List the comments of a task, oldest first. Deleted comments are hidden. The task id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). Returns: {items, total} - every item is a comment - " +
 		COMMENT_FIELDS +
@@ -29,6 +31,7 @@ export const listComments = defineQuery({
 
 export const addComment = defineCommand({
 	name: "tasks_comments_add",
+	output: commentRef,
 	description:
 		"Add a comment to a task. The task id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). Returns: the created comment - " +
 		COMMENT_FIELDS +
@@ -51,6 +54,7 @@ export const addComment = defineCommand({
 
 export const editComment = defineCommand({
 	name: "tasks_comments_edit",
+	output: commentRef,
 	description:
 		"Edit the text of a comment by its id. The previous text is kept as a revision, so nothing is lost. Returns: the updated comment - " +
 		COMMENT_FIELDS +
@@ -72,6 +76,7 @@ export const editComment = defineCommand({
 
 export const deleteComment = defineCommand({
 	name: "tasks_comments_delete",
+	output: commentRef,
 	description:
 		"Soft-delete a comment by its id. The comment disappears from the task, but its id and history stay in the database. Returns: the deleted comment - " +
 		COMMENT_FIELDS +

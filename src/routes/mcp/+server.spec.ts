@@ -90,6 +90,12 @@ describe("/mcp endpoint", () => {
 		expect(body.result?.tools?.map((tool) => tool.name).sort()).toEqual(
 			[...getOps().keys()].sort(),
 		);
+		for (const tool of body.result?.tools ?? []) {
+			expect(
+				tool.outputSchema,
+				`${tool.name} has no outputSchema`,
+			).toBeDefined();
+		}
 	});
 
 	it("publishes the output schema and answers a flat create payload", async () => {

@@ -6,12 +6,14 @@ import * as projects from "../server/projects";
 import * as scopes from "../server/scopes";
 import { countEpicsByStatus, countTasksByStatus } from "../server/tasks";
 import type { Project } from "../types";
+import { projectList, projectRef } from "./contracts";
 import { defineCommand, defineQuery } from "./define";
 import { PROJECT_FIELDS } from "./shape";
 import { strictObject } from "./strict";
 
 export const getProjects = defineQuery({
 	name: "projects_list",
+	output: projectList,
 	description:
 		"List projects; set includeArchived to also return archived ones. " +
 		"q filters by a case-insensitive substring of the project name, id or prefix. " +
@@ -53,6 +55,7 @@ export const getProjects = defineQuery({
 
 export const getProject = defineQuery({
 	name: "projects_get",
+	output: projectRef,
 	description:
 		"Get a single project by id, including task counts by status: task_counts counts non-epic tasks, epic_counts counts epics. scope_counts lists the project's scopes with their task and epic totals. Returns: the project - " +
 		PROJECT_FIELDS +
@@ -83,6 +86,7 @@ export const getProject = defineQuery({
 
 export const createProject = defineCommand({
 	name: "projects_create",
+	output: projectRef,
 	description:
 		"Create a project. name, id and prefix are required. The id is a lowercase slug of latin letters, digits and dashes; it is the key of the project in links and in the project_id parameter, and it cannot be changed later. The prefix is 1-6 uppercase letters or digits, it is stored uppercase and starts every task id of the project, and it cannot be changed later either. Returns: the created project - " +
 		PROJECT_FIELDS +
@@ -100,6 +104,7 @@ export const createProject = defineCommand({
 
 export const updateProject = defineCommand({
 	name: "projects_update",
+	output: projectRef,
 	description:
 		"Rename a project or change its archived flag. The prefix is immutable — it defines task ids. Returns: the updated project - " +
 		PROJECT_FIELDS +
