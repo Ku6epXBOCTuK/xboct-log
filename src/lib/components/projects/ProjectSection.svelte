@@ -3,9 +3,9 @@
 	import IconButton from "#lib/components/ui/IconButton.svelte";
 	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
+	import type { StatsStore } from "#lib/state/stats.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
 	import { messageOf } from "#lib/tasks/display.ts";
-	import { countActiveTasksInProject } from "#lib/tasks/filter.ts";
 	import { type Project, type ProjectFilter } from "#lib/types.ts";
 	import ChevronDown from "~icons/lucide/chevron-down";
 	import Plus from "~icons/lucide/plus";
@@ -17,6 +17,7 @@
 		projects: ProjectStore;
 		scopes: ScopeStore;
 		tasks: TaskStore;
+		stats: StatsStore;
 		activeProject: ProjectFilter;
 		selectionProjectId?: string | null;
 		onselect: (projectId: ProjectFilter) => void;
@@ -26,6 +27,7 @@
 		projects,
 		scopes,
 		tasks,
+		stats,
 		activeProject,
 		selectionProjectId = null,
 		onselect,
@@ -43,9 +45,7 @@
 			? null
 			: (projects.all.find((project) => project.id === settingsFor) ?? null),
 	);
-	const totalActiveTasks = $derived(
-		countActiveTasksInProject(tasks.tasks, null),
-	);
+	const totalActiveTasks = $derived(stats.activeTasks);
 
 	async function toggleArchived(project: Project) {
 		failure = null;
@@ -69,7 +69,7 @@
 		</button>
 		<span>
 			{totalActiveTasks}
-			{tasks.tasks.length === 1 ? "task" : "tasks"}
+			{totalActiveTasks === 1 ? "task" : "tasks"}
 		</span>
 		<IconButton
 			label="New project"
@@ -90,7 +90,7 @@
 			<ErrorNote message={failure} class="project-error" />
 			<ProjectList
 				projects={visible}
-				tasks={tasks.tasks}
+				totalTasks={stats.activeTasks}
 				{activeProject}
 				{selectionProjectId}
 				{onselect}

@@ -13,7 +13,7 @@ export const getScopes = defineQuery({
 	name: "scopes_list",
 	output: scopeList,
 	description:
-		"List scopes, each with task_count (active non-epic tasks assigned, i.e. open/in-progress/blocked) and epics_count (non-deleted epics assigned). Pass project_id to limit to one project; omit it to list scopes across all projects. Returns: {items} - every item is " +
+		"List scopes, each with task_count (active non-epic tasks assigned, i.e. open/in-progress/blocked), tasks_total (all unfinished and closed non-epic tasks assigned) and epics_count (non-deleted epics assigned). Pass project_id to limit to one project; omit it to list scopes across all projects. Returns: {items} - every item is " +
 		SCOPE_FIELDS +
 		".",
 	kind: "query",
@@ -30,6 +30,7 @@ export const getScopes = defineQuery({
 			return {
 				...scope,
 				task_count: count.active_tasks,
+				tasks_total: count.tasks,
 				epics_count: count.epics,
 			};
 		});
@@ -40,7 +41,7 @@ export const getScope = defineQuery({
 	name: "scopes_get",
 	output: scopeRef,
 	description:
-		"Get a single scope by id, including its task_count (active non-epic tasks) and epics_count. Returns: the scope - " +
+		"Get a single scope by id, including its task_count (active non-epic tasks), tasks_total (all non-epic tasks) and epics_count. Returns: the scope - " +
 		SCOPE_FIELDS +
 		".",
 	kind: "query",
@@ -59,6 +60,7 @@ export const getScope = defineQuery({
 		return {
 			...scope,
 			task_count: count.active_tasks,
+			tasks_total: count.tasks,
 			epics_count: count.epics,
 		};
 	},

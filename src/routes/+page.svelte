@@ -14,6 +14,7 @@
 		tasks,
 		projects,
 		scopes,
+		stats,
 		tags,
 		comments,
 		filters,
@@ -68,6 +69,7 @@
 		{filters}
 		{scopes}
 		{projects}
+		{stats}
 		tagStore={tags}
 		{theme}
 		onnew={openNew}

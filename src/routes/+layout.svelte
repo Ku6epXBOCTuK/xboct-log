@@ -71,6 +71,7 @@
 		projects={board.projects}
 		scopes={board.scopes}
 		tasks={board.tasks}
+		stats={board.stats}
 		activeProject={board.filters.activeProject}
 		selectionProjectId={board.selection.projectId}
 		onprojectselect={board.setActiveProject}

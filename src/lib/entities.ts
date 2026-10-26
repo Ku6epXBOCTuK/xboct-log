@@ -8,6 +8,8 @@ export const projectSchema = z.object({
 	repo: z.string().nullable(),
 	created_at: z.string(),
 	archived_at: z.string().nullable(),
+	task_counts: z.record(z.string(), z.number()).optional(),
+	epic_counts: z.record(z.string(), z.number()).optional(),
 });
 
 export const scopeSchema = z.object({
@@ -16,6 +18,7 @@ export const scopeSchema = z.object({
 	name: z.string(),
 	created_at: z.string(),
 	task_count: z.number().optional(),
+	tasks_total: z.number().optional(),
 	epics_count: z.number().optional(),
 });
 

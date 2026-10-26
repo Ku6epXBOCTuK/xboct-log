@@ -9,6 +9,7 @@ export {
 } from "./update";
 export { moveTask } from "./move";
 export {
+	countChildrenByEpic,
 	countEpicChildrenByStatus,
 	countEpicsByStatus,
 	countTasks,

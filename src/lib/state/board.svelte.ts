@@ -9,6 +9,7 @@ import { createFilters } from "#lib/state/filters.svelte.ts";
 import { createProjectStore } from "#lib/state/projects.svelte.ts";
 import { createScopeStore } from "#lib/state/scopes.svelte.ts";
 import { createSelection } from "#lib/state/selection.svelte.ts";
+import { createStatsStore } from "#lib/state/stats.svelte.ts";
 import { createTagStore, type TagEntry } from "#lib/state/tags.svelte.ts";
 import { createTaskStore } from "#lib/state/tasks.svelte.ts";
 import { createTheme, type ThemeName } from "#lib/state/theme.svelte.ts";
@@ -28,6 +29,7 @@ export function createBoard(input: BoardInput) {
 	const tasks = createTaskStore();
 	const projects = createProjectStore(input.projects);
 	const scopes = createScopeStore(input.scopes);
+	const stats = createStatsStore();
 	const tags = createTagStore(input.tags);
 	const comments = createCommentsStore();
 	const filters = createFilters(input.project);
@@ -37,6 +39,10 @@ export function createBoard(input: BoardInput) {
 	const selection = createSelection(tasks);
 
 	$effect.root(() => {
+		$effect(() => {
+			void stats.load();
+		});
+
 		$effect(() => {
 			void tasks.load(buildTaskQuery(filters));
 		});
@@ -70,6 +76,7 @@ export function createBoard(input: BoardInput) {
 		tasks,
 		projects,
 		scopes,
+		stats,
 		tags,
 		comments,
 		filters,

@@ -186,20 +186,31 @@ export function countTasks(db: DatabaseSync, query: TaskQuery = {}): number {
 	return row.count;
 }
 
+function emptyStatusCounts(): Record<Status, number> {
+	return Object.fromEntries(STATUSES.map((status) => [status, 0])) as Record<
+		Status,
+		number
+	>;
+}
+
 function countByStatus(
 	db: DatabaseSync,
-	projectId: string,
+	projectId: string | null,
 	isEpic: boolean,
 ): Record<Status, number> {
+	const where = ["deleted_at IS NULL", "is_epic = ?"];
+	const params: (string | number)[] = [isEpic ? 1 : 0];
+	if (projectId !== null) {
+		where.push("project_id = ?");
+		params.push(projectId);
+	}
 	const rows = db
 		.prepare(
-			"SELECT status, COUNT(*) AS count FROM tasks WHERE project_id = ? AND deleted_at IS NULL AND is_epic = ? GROUP BY status",
+			`SELECT status, COUNT(*) AS count FROM tasks WHERE ${where.join(" AND ")} GROUP BY status`,
 		)
-		.all(projectId, isEpic ? 1 : 0) as { status: string; count: number }[];
+		.all(...params) as { status: string; count: number }[];
 
-	const counts = Object.fromEntries(
-		STATUSES.map((status) => [status, 0]),
-	) as Record<Status, number>;
+	const counts = emptyStatusCounts();
 	for (const row of rows) {
 		counts[row.status as Status] = row.count;
 	}
@@ -208,39 +219,58 @@ function countByStatus(
 
 export function countTasksByStatus(
 	db: DatabaseSync,
-	projectId: string,
+	projectId: string | null = null,
 ): Record<Status, number> {
 	return countByStatus(db, projectId, false);
 }
 
 export function countEpicsByStatus(
 	db: DatabaseSync,
-	projectId: string,
+	projectId: string | null = null,
 ): Record<Status, number> {
 	return countByStatus(db, projectId, true);
 }
 
-export interface EpicChildCounts extends Record<Status, number> {
+export type EpicChildCounts = Record<Status, number> & {
 	total: number;
-}
+};
 
 export function countEpicChildrenByStatus(
 	db: DatabaseSync,
 	epicId: string,
 ): EpicChildCounts {
+	const counts = emptyStatusCounts();
 	const rows = db
 		.prepare(
 			"SELECT status, COUNT(*) AS count FROM tasks WHERE epic_id = ? AND deleted_at IS NULL GROUP BY status",
 		)
 		.all(epicId) as { status: string; count: number }[];
 
-	const counts = Object.fromEntries(
-		STATUSES.map((status) => [status, 0]),
-	) as Record<Status, number>;
 	let total = 0;
 	for (const row of rows) {
 		counts[row.status as Status] = row.count;
 		total += row.count;
 	}
 	return { ...counts, total };
+}
+
+export function countChildrenByEpic(
+	db: DatabaseSync,
+): Record<string, EpicChildCounts> {
+	const rows = db
+		.prepare(
+			"SELECT epic_id, status, COUNT(*) AS count FROM tasks WHERE epic_id IS NOT NULL AND deleted_at IS NULL GROUP BY epic_id, status",
+		)
+		.all() as { epic_id: string; status: Status; count: number }[];
+
+	const counts: Record<string, EpicChildCounts> = {};
+	for (const row of rows) {
+		const entry = (counts[row.epic_id] ??= {
+			...emptyStatusCounts(),
+			total: 0,
+		});
+		entry[row.status] = row.count;
+		entry.total += row.count;
+	}
+	return counts;
 }

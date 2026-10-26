@@ -105,6 +105,11 @@ export const scopeList = z.looseObject({
 	items: z.array(scopeRef),
 });
 
+export const taskStats = z.looseObject({
+	tasks: z.record(z.string(), z.number().int()),
+	epics: z.array(taskListItem),
+});
+
 export const scopeDeleteReport = z.looseObject({
 	scope: scopeRef,
 	task_ids: z.array(z.string()),

@@ -3,8 +3,8 @@
 	import IconButton from "#lib/components/ui/IconButton.svelte";
 	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
+	import type { StatsStore } from "#lib/state/stats.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
-	import { countInProgress } from "#lib/tasks/filter.ts";
 	import type { ProjectFilter } from "#lib/types.ts";
 	import ChevronDown from "~icons/lucide/chevron-down";
 	import ChevronUp from "~icons/lucide/chevron-up";
@@ -18,6 +18,7 @@
 		projects: ProjectStore;
 		scopes: ScopeStore;
 		tasks: TaskStore;
+		stats: StatsStore;
 		activeProject: ProjectFilter;
 		selectionProjectId?: string | null;
 		onprojectselect?: (projectId: ProjectFilter) => void;
@@ -30,6 +31,7 @@
 		projects,
 		scopes,
 		tasks,
+		stats,
 		activeProject,
 		selectionProjectId = null,
 		onprojectselect,
@@ -79,8 +81,8 @@
 		</div>
 	{/if}
 	<PrimaryNav
-		taskCount={tasks.tasks.length}
-		inProgressCount={countInProgress(tasks.tasks)}
+		taskCount={stats.activeTasks}
+		inProgressCount={stats.inProgress}
 		onlyActive={!navOpen}
 	/>
 	<div class="sidebar-scroll">
@@ -88,6 +90,7 @@
 			{projects}
 			{scopes}
 			{tasks}
+			{stats}
 			{activeProject}
 			{selectionProjectId}
 			onselect={onprojectselect ?? (() => {})}

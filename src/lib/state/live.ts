@@ -5,6 +5,7 @@ import type { CommentsStore } from "./comments.svelte.ts";
 import type { ProjectStore } from "./projects.svelte.ts";
 import type { ScopeStore } from "./scopes.svelte.ts";
 import type { TagStore } from "./tags.svelte.ts";
+import type { StatsStore } from "./stats.svelte.ts";
 import type { TaskStore } from "./tasks.svelte.ts";
 
 const COALESCE_MS = 300;
@@ -18,6 +19,7 @@ interface LiveStores {
 	scopes: ScopeStore;
 	tags: TagStore;
 	comments: CommentsStore;
+	stats: StatsStore;
 }
 
 async function loadScopes() {
@@ -47,6 +49,11 @@ export function startLiveSync(stores: LiveStores): () => void {
 						console.warn("[live] tasks reload failed", error);
 					}
 					try {
+						await stores.stats.refresh();
+					} catch (error) {
+						console.warn("[live] stats reload failed", error);
+					}
+					try {
 						await stores.tags.refresh();
 					} catch (error) {
 						console.warn("[live] tags reload failed", error);
@@ -56,6 +63,8 @@ export function startLiveSync(stores: LiveStores): () => void {
 					} catch (error) {
 						console.warn("[live] comments reload failed", error);
 					}
+					entities.add("projects");
+					entities.add("scopes");
 				}
 				if (entities.has("projects")) {
 					const next = await fetchFresh(getProjects({ includeArchived: true }));

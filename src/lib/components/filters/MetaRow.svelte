@@ -5,6 +5,12 @@
 	import TagFilterSelect from "#lib/components/ui/select/TagFilterSelect.svelte";
 	import type { Filters } from "#lib/state/filters.svelte.ts";
 	import type { TagCount } from "#lib/tasks/filter.ts";
+	import {
+		activeCount,
+		scopeActive,
+		scopeTotal,
+		totalCount,
+	} from "#lib/tasks/counts.ts";
 	import type { Scope, Task } from "#lib/types.ts";
 
 	interface Props {
@@ -14,24 +20,34 @@
 		tags: TagCount[];
 		visibleCount: number;
 		total: number;
-		countEpic: (epicId: string) => number;
-		countScope: (scopeId: number) => number;
-		countActiveEpic: (epicId: string) => number;
-		countActiveScope: (scopeId: number) => number;
 	}
 
-	let {
-		filters,
-		epics,
-		scopes,
-		tags,
-		visibleCount,
-		total,
-		countEpic,
-		countScope,
-		countActiveEpic,
-		countActiveScope,
-	}: Props = $props();
+	let { filters, epics, scopes, tags, visibleCount, total }: Props = $props();
+
+	const epicCounts = $derived(
+		new Map(epics.map((epic) => [epic.id, epic.children_counts])),
+	);
+	const scopeCounts = $derived(
+		new Map(scopes.map((scope) => [scope.id, scope])),
+	);
+
+	function countEpic(epicId: string): number {
+		return totalCount(epicCounts.get(epicId));
+	}
+
+	function countActiveEpic(epicId: string): number {
+		return activeCount(epicCounts.get(epicId));
+	}
+
+	function countScope(scopeId: number): number {
+		const scope = scopeCounts.get(scopeId);
+		return scope === undefined ? 0 : scopeTotal(scope);
+	}
+
+	function countActiveScope(scopeId: number): number {
+		const scope = scopeCounts.get(scopeId);
+		return scope === undefined ? 0 : scopeActive(scope);
+	}
 </script>
 
 <div class="meta-row">

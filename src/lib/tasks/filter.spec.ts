@@ -2,11 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
 	collectEpicProgress,
 	collectTags,
-	countActiveTasksInEpic,
-	countActiveTasksInProject,
-	countActiveTasksInScope,
-	countTasksInEpic,
-	countTasksInScope,
 	filterTasks,
 	type FilterCriteria,
 } from "./filter";
@@ -227,24 +222,7 @@ describe("epic modes", () => {
 	});
 });
 
-describe("countActiveTasksInProject", () => {
-	it("counts only non-closed tasks in the project", () => {
-		const projectTasks = [
-			task({ id: "P-1", project_id: "proj-1", status: "open" }),
-			task({ id: "P-2", project_id: "proj-1", status: "in-progress" }),
-			task({ id: "P-3", project_id: "proj-1", status: "blocked" }),
-			task({ id: "P-4", project_id: "proj-1", status: "done" }),
-			task({ id: "P-5", project_id: "proj-1", status: "cancelled" }),
-			task({ id: "P-6", project_id: "proj-2", status: "open" }),
-		];
-
-		expect(countActiveTasksInProject(projectTasks, "proj-1")).toBe(3);
-		expect(countActiveTasksInProject(projectTasks, "proj-2")).toBe(1);
-		expect(countActiveTasksInProject(projectTasks, "proj-3")).toBe(0);
-	});
-});
-
-describe("active counts of epics, scopes and tags", () => {
+describe("active counts of tags", () => {
 	const grouped = [
 		task({ id: "X-1", epic_id: "E-1", scope_id: 1, tags: ["a"] }),
 		task({ id: "X-2", epic_id: "E-1", scope_id: 1, tags: ["a", "b"] }),
@@ -263,16 +241,6 @@ describe("active counts of epics, scopes and tags", () => {
 			tags: ["b"],
 		}),
 	];
-
-	it("counts the open tasks of an epic", () => {
-		expect(countTasksInEpic(grouped, "E-1")).toBe(3);
-		expect(countActiveTasksInEpic(grouped, "E-1")).toBe(2);
-	});
-
-	it("counts the open tasks of a scope", () => {
-		expect(countTasksInScope(grouped, 1)).toBe(3);
-		expect(countActiveTasksInScope(grouped, 1)).toBe(2);
-	});
 
 	it("counts the open and the total tasks of a tag", () => {
 		expect(collectTags(grouped)).toEqual([

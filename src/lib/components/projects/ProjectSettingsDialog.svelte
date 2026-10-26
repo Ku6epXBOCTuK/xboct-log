@@ -7,7 +7,7 @@
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
 	import { messageOf } from "#lib/tasks/display.ts";
-	import { countTasksInScope } from "#lib/tasks/filter.ts";
+	import { scopeTotal } from "#lib/tasks/counts.ts";
 	import { INBOX_PROJECT_ID, type Project } from "#lib/types.ts";
 	import Plus from "~icons/lucide/plus";
 	import Trash2 from "~icons/lucide/trash-2";
@@ -176,11 +176,11 @@
 							onchange={(event) => renameScope(scope.id, event)}
 						/>
 						<span class="scope-count">
-							{countTasksInScope(tasks.tasks, scope.id)}
+							{scopeTotal(scope)}
 						</span>
 						{#if confirmingId === scope.id}
 							<span class="scope-warning">
-								{countTasksInScope(tasks.tasks, scope.id)} tasks will become unassigned
+								{scopeTotal(scope)} tasks will become unassigned
 							</span>
 							<button
 								class="danger armed"

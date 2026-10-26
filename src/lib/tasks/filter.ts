@@ -1,4 +1,3 @@
-import type { Filters } from "#lib/state/filters.svelte.ts";
 import {
 	isExactTerm,
 	matchesSearch,
@@ -124,38 +123,6 @@ export function collectTags(
 	});
 }
 
-export function countTasksInProject(
-	tasks: Task[],
-	projectId: ProjectFilter,
-): number {
-	return projectTasks(tasks, projectId).length;
-}
-
-export function countActiveTasksInProject(
-	tasks: Task[],
-	projectId: ProjectFilter,
-): number {
-	return projectTasks(tasks, projectId).filter(
-		(task) => !CLOSED_STATUSES.includes(task.status),
-	).length;
-}
-
-export function getActiveTotal(tasks: Task[], filters: Filters): number {
-	return filters.activeProject === null
-		? tasks.length
-		: countTasksInProject(tasks, filters.activeProject);
-}
-
-export function countTasksInEpic(tasks: Task[], epicId: string): number {
-	return tasks.filter((task) => task.epic_id === epicId).length;
-}
-
-export function countActiveTasksInEpic(tasks: Task[], epicId: string): number {
-	return tasks.filter(
-		(task) => task.epic_id === epicId && !CLOSED_STATUSES.includes(task.status),
-	).length;
-}
-
 export interface EpicProgress {
 	closed: number;
 	total: number;
@@ -182,22 +149,4 @@ export function collectEpicProgress(tasks: Task[]): Map<string, EpicProgress> {
 	}
 
 	return progress;
-}
-
-export function countTasksInScope(tasks: Task[], scopeId: number): number {
-	return tasks.filter((task) => task.scope_id === scopeId).length;
-}
-
-export function countActiveTasksInScope(
-	tasks: Task[],
-	scopeId: number,
-): number {
-	return tasks.filter(
-		(task) =>
-			task.scope_id === scopeId && !CLOSED_STATUSES.includes(task.status),
-	).length;
-}
-
-export function countInProgress(tasks: Task[]): number {
-	return tasks.filter((task) => task.status === "in-progress").length;
 }
