@@ -169,6 +169,55 @@ describe("/mcp endpoint", () => {
 		expect(Array.isArray(structured.items)).toBe(true);
 	});
 
+	it("returns structuredContent when fields trims the task", async () => {
+		const project = createProject(getDb(), {
+			id: "fld",
+			name: "Fields",
+			prefix: "FLD",
+		});
+		expect(project.isOk()).toBe(true);
+		const task = createTask(getDb(), { project_id: "fld", title: "Trimmed" });
+		expect(task.isOk()).toBe(true);
+
+		const body = await rpc("tools/call", {
+			name: "tasks_list",
+			arguments: { project_id: "fld", fields: "id,project_id,title,status" },
+		});
+		expect(body.error).toBeUndefined();
+		const result = body.result as {
+			isError?: boolean;
+			structuredContent?: { items?: Record<string, unknown>[] };
+		};
+		expect(result.isError).toBeUndefined();
+		expect(
+			Object.keys(result.structuredContent?.items?.[0] ?? {}).sort(),
+		).toEqual(["id", "number", "project_id", "status", "title"]);
+	});
+
+	it("returns structuredContent when fields trims the board", async () => {
+		const body = await rpc("tools/call", {
+			name: "tasks_board",
+			arguments: { project_id: "fld", fields: "title,status" },
+		});
+		expect(body.error).toBeUndefined();
+		const result = body.result as {
+			isError?: boolean;
+			structuredContent?: {
+				columns?: { items?: Record<string, unknown>[] }[];
+			};
+		};
+		expect(result.isError).toBeUndefined();
+		const items = result.structuredContent?.columns?.[0]?.items ?? [];
+		expect(items.length).toBeGreaterThan(0);
+		expect(Object.keys(items[0] ?? {}).sort()).toEqual([
+			"id",
+			"number",
+			"project_id",
+			"status",
+			"title",
+		]);
+	});
+
 	it("accepts list filters and the new sort keys", async () => {
 		const body = await rpc("tools/call", {
 			name: "tasks_list",

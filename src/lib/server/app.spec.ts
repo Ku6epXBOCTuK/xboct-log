@@ -653,7 +653,7 @@ describe("tasks", () => {
 
 		const [task] = listTasks(db, { fields: "id,project_name" });
 
-		expect(Object.keys(task)).toEqual(["id"]);
+		expect(Object.keys(task)).toEqual(["id", "project_id", "number"]);
 	});
 
 	it("attaches scope names when requested", async () => {
@@ -726,7 +726,7 @@ describe("tasks", () => {
 
 		const [task] = listTasks(db, { fields: "id,bogus" });
 
-		expect(Object.keys(task)).toEqual(["id"]);
+		expect(Object.keys(task)).toEqual(["id", "project_id", "number"]);
 		expect(listTasks(db, { fields: "bogus" }).map((item) => item.id)).toEqual([
 			"SPA-1",
 		]);

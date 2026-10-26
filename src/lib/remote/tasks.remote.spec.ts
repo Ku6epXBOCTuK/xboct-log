@@ -152,12 +152,34 @@ describe("tasks_list fields parameter", () => {
 
 	it("keeps only the requested fields", async () => {
 		const task = await list({ fields: "id,title,status" });
-		expect(Object.keys(task).sort()).toEqual(["id", "status", "title"]);
+		expect(Object.keys(task).sort()).toEqual([
+			"id",
+			"number",
+			"project_id",
+			"status",
+			"title",
+		]);
+	});
+
+	it("always keeps the identity fields even when not requested", async () => {
+		const task = await list({ fields: "title" });
+		expect(Object.keys(task).sort()).toEqual([
+			"id",
+			"number",
+			"project_id",
+			"title",
+		]);
 	});
 
 	it("ignores unknown field names", async () => {
 		const task = await list({ fields: "id,bogus" });
-		expect(Object.keys(task)).toEqual(["id"]);
+		expect(Object.keys(task).sort()).toEqual(["id", "number", "project_id"]);
+	});
+
+	it("returns the whole task when no field name matches", async () => {
+		const task = await list({ fields: "bogus" });
+		expect(Object.keys(task)).toContain("title");
+		expect(Object.keys(task)).toContain("status");
 	});
 });
 
@@ -345,5 +367,20 @@ describe("tasks_board", () => {
 		const result = await board({ status: ["open"] });
 
 		expect(result.columns.map((column) => column.status)).toEqual(["open"]);
+	});
+
+	it("trims the items of a column by fields and keeps the identity", async () => {
+		const result = await board({ status: ["open"], fields: "title" });
+
+		const items = result.columns[0]?.items ?? [];
+		expect(items.length).toBeGreaterThan(0);
+		for (const item of items) {
+			expect(Object.keys(item).sort()).toEqual([
+				"id",
+				"number",
+				"project_id",
+				"title",
+			]);
+		}
 	});
 });

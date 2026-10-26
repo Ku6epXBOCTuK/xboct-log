@@ -65,6 +65,6 @@ describe("output contracts", () => {
 		for (const op of getOps().values()) {
 			size += JSON.stringify(z.toJSONSchema(op.output!)).length;
 		}
-		expect(size).toBeLessThanOrEqual(20_000);
+		expect(size).toBeLessThanOrEqual(25_000);
 	});
 });

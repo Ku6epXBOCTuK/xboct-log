@@ -56,16 +56,27 @@ export function parseFields(fields: string | undefined): string[] | null {
 	return requested.length > 0 ? [...new Set(requested)] : null;
 }
 
+export const TASK_IDENTITY_FIELDS = ["id", "project_id", "number"] as const;
+
 export function pickFields(task: Task, fields: string[]): Task {
 	const source = task as unknown as Record<string, unknown>;
 	const picked: Record<string, unknown> = {};
+	let matched = false;
 	for (const field of fields) {
 		if (source[field] !== undefined) {
 			picked[field] = source[field];
+			matched = true;
 		}
 	}
-	const pickedTask = picked as unknown as Task;
-	return Object.keys(picked).length > 0 ? pickedTask : task;
+	if (!matched) {
+		return task;
+	}
+	for (const field of TASK_IDENTITY_FIELDS) {
+		if (picked[field] === undefined && source[field] !== undefined) {
+			picked[field] = source[field];
+		}
+	}
+	return picked as unknown as Task;
 }
 
 const SHORT_DESCRIPTION_LENGTH = 120;

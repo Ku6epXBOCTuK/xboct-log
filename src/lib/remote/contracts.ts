@@ -19,6 +19,8 @@ export const taskRef = taskSchema
 	})
 	.loose();
 
+export const taskListItem = taskSchema.partial().loose();
+
 export const projectRef = projectSchema
 	.pick({ id: true, name: true, prefix: true })
 	.loose();
@@ -69,7 +71,7 @@ export const taskCreated = z.looseObject({
 });
 
 export const taskList = z.looseObject({
-	items: z.array(taskRef),
+	items: z.array(taskListItem),
 	total: z.number().int(),
 });
 
@@ -78,7 +80,7 @@ export const taskBoard = z.looseObject({
 		z.looseObject({
 			status: z.enum(STATUSES),
 			count: z.number().int(),
-			items: z.array(taskRef),
+			items: z.array(taskListItem),
 		}),
 	),
 	total: z.number().int(),

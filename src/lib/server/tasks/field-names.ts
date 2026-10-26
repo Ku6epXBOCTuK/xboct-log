@@ -18,5 +18,6 @@ export const FIELDS_DESCRIPTION =
 	`Comma-separated list of fields to reduce response size (e.g. id,number,title,status). ` +
 	`Supported fields: ${TASK_LIST_FIELDS.join(", ")}. ` +
 	"Requesting 'description' also returns the full text and drops short_description. " +
+	"id, project_id and number are always present, so a follow-up call can still address the task. " +
 	"project_name is present only with include_project, scope_name only with include_scope. " +
 	"Unknown field names are ignored; if no name matches, the whole task is returned.";
