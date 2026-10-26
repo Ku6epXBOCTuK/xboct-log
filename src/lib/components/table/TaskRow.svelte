@@ -5,6 +5,7 @@
 	import { CLOSED_STATUSES, type Scope, type Task } from "#lib/types.ts";
 	import type { Snippet } from "svelte";
 	import BlockedBadge from "#lib/components/table/BlockedBadge.svelte";
+	import EpicBadge from "#lib/components/table/EpicBadge.svelte";
 	import Paperclip from "~icons/lucide/paperclip";
 
 	interface Props {
@@ -34,8 +35,6 @@
 		onepic,
 		action,
 	}: Props = $props();
-
-	const epicEmpty = $derived(progress === null || progress.total === 0);
 
 	const today = new Date().toISOString().slice(0, 10);
 
@@ -73,18 +72,11 @@
 		<div class="title-row">
 			<span class="task-title-text" title={task.title}>{task.title}</span>
 			{#if task.is_epic}
-				<button
-					class={`epic-badge epic-marker${epicEmpty ? " epic-marker-empty" : ""}`}
-					title={epicEmpty ? "No tasks yet" : "Show tasks of this epic"}
-					onclick={(event) => filterEpic(event, task.id)}
-				>
-					EPIC
-				</button>
-				{#if progress !== null && progress.total > 0}
-					<span class="epic-progress"
-						>{progress.closed}/{progress.total} closed</span
-					>
-				{/if}
+				<EpicBadge
+					id={task.id}
+					{progress}
+					onfilter={(target) => onepic?.(target)}
+				/>
 			{:else if task.epic_id !== null}
 				<button
 					class="epic-badge epic-filter"
@@ -209,39 +201,6 @@
 
 	.epic-filter:hover {
 		background: color-mix(in oklch, var(--green) 28%, var(--green-surface));
-	}
-
-	.epic-marker {
-		border: 0;
-		background: var(--violet);
-		color: var(--on-violet);
-		cursor: pointer;
-		font-family: var(--font-mono);
-		font-weight: 600;
-		letter-spacing: 0.04em;
-		flex: none;
-	}
-
-	.epic-marker:hover {
-		background: color-mix(in oklch, var(--violet) 78%, var(--violet-ink));
-	}
-
-	.epic-marker-empty {
-		border: 1px solid color-mix(in oklch, var(--violet) 45%, transparent);
-		background: transparent;
-		color: var(--violet-ink);
-	}
-
-	.epic-marker-empty:hover {
-		background: var(--violet-surface);
-	}
-
-	.epic-progress {
-		color: var(--text-muted);
-		font-size: var(--text-xs);
-		font-variant-numeric: tabular-nums;
-		white-space: nowrap;
-		flex: none;
 	}
 
 	.scope-badge {
