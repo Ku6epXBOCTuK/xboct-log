@@ -8,6 +8,7 @@ export interface OpDefinition {
 	description: string;
 	kind: OpKind;
 	input: ZodType;
+	output?: ZodType;
 	// NOTE: `never` as parameter type makes every concrete handler assignable
 	// (contravariance), while call sites cast their parsed input with `as never`.
 	handler: (input: never) => unknown;

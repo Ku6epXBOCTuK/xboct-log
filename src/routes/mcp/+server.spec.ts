@@ -41,7 +41,13 @@ async function rpc(
 	params: unknown,
 ): Promise<{
 	result?: {
-		tools?: { name: string }[];
+		tools?: {
+			name: string;
+			outputSchema?: {
+				required?: string[];
+				properties?: Record<string, unknown>;
+			};
+		}[];
 		serverInfo?: { name: string };
 		structuredContent?: unknown;
 		isError?: boolean;
@@ -84,6 +90,41 @@ describe("/mcp endpoint", () => {
 		expect(body.result?.tools?.map((tool) => tool.name).sort()).toEqual(
 			[...getOps().keys()].sort(),
 		);
+	});
+
+	it("publishes the output schema and answers a flat create payload", async () => {
+		const list = await rpc("tools/list", {});
+		const tool = list.result?.tools?.find(
+			(item) => item.name === "tasks_create",
+		);
+		expect(tool?.outputSchema?.required).toEqual(
+			expect.arrayContaining(["id", "title", "status", "warnings"]),
+		);
+
+		const project = createProject(getDb(), {
+			id: "out",
+			name: "Output",
+			prefix: "OUT",
+		});
+		expect(project.isOk()).toBe(true);
+
+		const body = await rpc("tools/call", {
+			name: "tasks_create",
+			arguments: { project_id: "out", title: "Created" },
+		});
+		expect(body.error).toBeUndefined();
+		const result = body.result as {
+			isError?: boolean;
+			structuredContent?: {
+				id?: string;
+				status?: string;
+				warnings?: unknown;
+			};
+		};
+		expect(result.isError).toBeUndefined();
+		expect(result.structuredContent?.id).toMatch(/^OUT-\d+$/);
+		expect(result.structuredContent?.status).toBe("open");
+		expect(Array.isArray(result.structuredContent?.warnings)).toBe(true);
 	});
 
 	it("answers GET without crashing", async () => {

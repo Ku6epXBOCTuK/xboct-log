@@ -25,6 +25,7 @@ import {
 	type Task,
 	type TaskWithChanges,
 } from "../types";
+import { taskCreated } from "./contracts";
 import { defineCommand, defineQuery } from "./define";
 import { resolveTaskOrThrow } from "./ids";
 import { TASK_FIELDS } from "./shape";
@@ -241,6 +242,7 @@ export const createTask = defineCommand({
 		" with a warnings array.",
 	kind: "command",
 	input: newTask,
+	output: taskCreated,
 	handler: (input) => {
 		const db = getDb();
 		const result = repo.createTask(db, input);

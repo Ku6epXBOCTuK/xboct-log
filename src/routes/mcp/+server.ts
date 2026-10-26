@@ -32,7 +32,11 @@ function registerTools(server: McpServer): void {
 	for (const op of getOps().values()) {
 		server.registerTool(
 			op.name,
-			{ description: op.description, inputSchema: op.input },
+			{
+				description: op.description,
+				inputSchema: op.input,
+				outputSchema: op.output,
+			},
 			async (args) => {
 				try {
 					const value = await runOp(op, args, "mcp");
