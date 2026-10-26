@@ -4,13 +4,14 @@ import type { Task } from "#lib/types.ts";
 const getTasksByIds = vi.fn();
 const updateTask = vi.fn();
 const deleteTask = vi.fn();
+const createTask = vi.fn();
 
 vi.mock("#lib/remote/tasks.remote.ts", () => ({
 	getTasksByIds: (input: { ids: string[] }) => getTasksByIds(input),
 	updateTask: (input: { id: string; patch: { title?: string } }) =>
 		updateTask(input),
 	deleteTask: (input: { id: string }) => deleteTask(input),
-	createTask: vi.fn(),
+	createTask: (input: unknown) => createTask(input),
 	moveTask: vi.fn(),
 	closeTask: vi.fn(),
 }));
@@ -63,6 +64,7 @@ describe("task store", () => {
 		getTasksByIds.mockReset();
 		updateTask.mockReset();
 		deleteTask.mockReset();
+		createTask.mockReset();
 	});
 
 	it("resolves snapshot tasks by id", () => {
@@ -71,6 +73,40 @@ describe("task store", () => {
 		expect(store.byId("SPA-1")?.title).toBe("SPA-1");
 		expect(store.byId("SPA-9")).toBeUndefined();
 		expect(store.isAbsent("SPA-9")).toBe(false);
+	});
+
+	it("reports a truncated snapshot when the server total is larger", () => {
+		const store = createTaskStore(snapshot, 40);
+
+		expect(store.total).toBe(40);
+		expect(store.truncated).toBe(true);
+
+		store.replaceAll(snapshot);
+
+		expect(store.total).toBe(1);
+		expect(store.truncated).toBe(false);
+	});
+
+	it("follows the server total through a live reload", () => {
+		const store = createTaskStore(snapshot, 1);
+
+		store.replaceAll([task("SPA-1"), task("SPA-2")], 1200);
+
+		expect(store.total).toBe(1200);
+		expect(store.truncated).toBe(true);
+	});
+
+	it("keeps total in step with create and delete", async () => {
+		const store = createTaskStore(snapshot, 1);
+		const created = task("SPA-2");
+		vi.mocked(createTask).mockResolvedValue(created);
+
+		await store.create({ project_id: "spa", title: "SPA-2" });
+		expect(store.total).toBe(2);
+
+		deleteTask.mockResolvedValue({ id: "SPA-2" });
+		await store.destroy("SPA-2");
+		expect(store.total).toBe(1);
 	});
 
 	it("pins a task that is outside the snapshot", async () => {

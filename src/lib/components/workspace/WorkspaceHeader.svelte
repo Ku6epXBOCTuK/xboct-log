@@ -90,6 +90,8 @@
 		{tags}
 		{visibleCount}
 		{total}
+		loadedCount={tasks.tasks.length}
+		snapshotTotal={tasks.total}
 		countEpic={(epicId) => countTasksInEpic(tasks.tasks, epicId)}
 		countScope={(scopeId) => countTasksInScope(tasks.tasks, scopeId)}
 		countActiveEpic={(epicId) => countActiveTasksInEpic(tasks.tasks, epicId)}

@@ -16,6 +16,7 @@
 	const board = untrack(() =>
 		createBoard({
 			tasks: data.tasks,
+			tasksTotal: data.tasksTotal,
 			projects: data.projects,
 			scopes: data.scopes,
 			tags: data.tags,

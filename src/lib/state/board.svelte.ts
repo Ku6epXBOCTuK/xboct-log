@@ -17,6 +17,7 @@ import type { Project, ProjectFilter, Scope, Task } from "#lib/types.ts";
 
 export interface BoardInput {
 	tasks: Task[];
+	tasksTotal?: number;
 	projects: Project[];
 	scopes: Scope[];
 	tags: TagEntry[];
@@ -25,7 +26,7 @@ export interface BoardInput {
 }
 
 export function createBoard(input: BoardInput) {
-	const tasks = createTaskStore(input.tasks);
+	const tasks = createTaskStore(input.tasks, input.tasksTotal);
 	const projects = createProjectStore(input.projects);
 	const scopes = createScopeStore(input.scopes);
 	const tags = createTagStore(input.tags);

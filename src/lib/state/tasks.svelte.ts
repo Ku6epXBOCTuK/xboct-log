@@ -36,14 +36,19 @@ function ids(tasks: Task[]): Set<string> {
 	return new Set(tasks.map((task) => task.id));
 }
 
-export function createTaskStore(initial: Task[]) {
+export function createTaskStore(
+	initial: Task[],
+	initialTotal = initial.length,
+) {
 	let tasks = $state<Task[]>(initial);
+	let total = $state(initialTotal);
 	let pinned = $state<Record<string, Task>>({});
 	let absent = $state<Record<string, true>>({});
 	let failed = $state<Record<string, true>>({});
 	const pending: Record<string, true> = {};
 
 	const epics = $derived(tasks.filter((task) => task.is_epic));
+	const truncated = $derived(total > tasks.length);
 
 	function byId(id: string): Task | undefined {
 		return tasks.find((task) => task.id === id) ?? pinned[id];
@@ -134,12 +139,19 @@ export function createTaskStore(initial: Task[]) {
 		get epics() {
 			return epics;
 		},
+		get total() {
+			return total;
+		},
+		get truncated() {
+			return truncated;
+		},
 		byId,
 		isAbsent,
 		isFailed,
 		pin,
-		replaceAll(next: Task[]) {
+		replaceAll(next: Task[], nextTotal = next.length) {
 			tasks = next;
+			total = nextTotal;
 			const present = ids(next);
 			pinned = Object.fromEntries(
 				Object.entries(pinned).filter(([id]) => !present.has(id)),
@@ -152,6 +164,7 @@ export function createTaskStore(initial: Task[]) {
 		async create(input: NewTaskInput) {
 			const task = await createTask(input);
 			tasks = [task, ...tasks];
+			total += 1;
 			return task;
 		},
 		async save(id: string, patch: TaskPatch) {
@@ -176,6 +189,7 @@ export function createTaskStore(initial: Task[]) {
 				.map((task) =>
 					task.epic_id === id ? { ...task, epic_id: null } : task,
 				);
+			total = Math.max(tasks.length, total - 1);
 			if (pinned[id] !== undefined) {
 				const next = { ...pinned };
 				delete next[id];
