@@ -52,6 +52,9 @@ export function createFilters(initialProject: ProjectFilter) {
 		},
 		toggleClosed() {
 			hideClosed = !hideClosed;
+			if (hideClosed && status !== "all" && CLOSED_STATUSES.includes(status)) {
+				status = "all";
+			}
 			firstPage();
 		},
 		get statusChanged() {

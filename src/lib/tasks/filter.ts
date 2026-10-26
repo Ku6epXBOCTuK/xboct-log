@@ -1,83 +1,9 @@
-import {
-	isExactTerm,
-	matchesSearch,
-	parseSearchQuery,
-} from "#lib/tasks/search.ts";
-import {
-	CLOSED_STATUSES,
-	type Priority,
-	type ProjectFilter,
-	type Status,
-	type Task,
-} from "#lib/types.ts";
-
-export interface FilterCriteria {
-	activeProject: ProjectFilter;
-	status: Status | "all";
-	priority: Priority | "all";
-	hideClosed: boolean;
-	epic: string;
-	scope: "any" | "none" | number;
-	selectedTags: string[];
-	query: string;
-}
+import { CLOSED_STATUSES, type ProjectFilter, type Task } from "#lib/types.ts";
 
 export function projectTasks(tasks: Task[], projectId: ProjectFilter): Task[] {
 	return projectId === null
 		? tasks
 		: tasks.filter((task) => task.project_id === projectId);
-}
-
-export function filterTasks(tasks: Task[], criteria: FilterCriteria): Task[] {
-	const terms = parseSearchQuery(criteria.query);
-	const exact = terms.filter(isExactTerm);
-
-	return tasks.filter((task) => {
-		if (
-			criteria.activeProject !== null &&
-			task.project_id !== criteria.activeProject
-		) {
-			return false;
-		}
-		if (exact.length > 0 && matchesSearch(task, exact)) return true;
-		if (criteria.status !== "all" && task.status !== criteria.status) {
-			return false;
-		}
-		if (criteria.hideClosed && CLOSED_STATUSES.includes(task.status)) {
-			return false;
-		}
-		if (criteria.priority !== "all" && task.priority !== criteria.priority) {
-			return false;
-		}
-		if (criteria.epic === "none" && task.epic_id !== null) return false;
-		if (criteria.epic === "only" && !task.is_epic) return false;
-		if (criteria.epic === "inside" && task.epic_id === null) return false;
-		if (
-			criteria.epic !== "any" &&
-			criteria.epic !== "none" &&
-			criteria.epic !== "only" &&
-			criteria.epic !== "inside" &&
-			task.epic_id !== criteria.epic
-		) {
-			return false;
-		}
-		if (criteria.scope === "none" && task.scope_id !== null) return false;
-		if (
-			criteria.scope !== "any" &&
-			criteria.scope !== "none" &&
-			task.scope_id !== criteria.scope
-		) {
-			return false;
-		}
-		if (
-			criteria.selectedTags.length > 0 &&
-			!criteria.selectedTags.some((tag) => task.tags.includes(tag))
-		) {
-			return false;
-		}
-
-		return matchesSearch(task, terms);
-	});
 }
 
 export interface TagCount {
