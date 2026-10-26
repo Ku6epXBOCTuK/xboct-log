@@ -127,6 +127,86 @@ describe("query", () => {
 	});
 });
 
+describe("exact terms", () => {
+	it("shows a closed task despite hideClosed", () => {
+		const closed = task({
+			id: "LOG-3",
+			number: 3,
+			status: "done",
+			closed_at: "2026-01-02T00:00:00.000Z",
+			closed_reason: "fixed",
+		});
+
+		const visible = filterTasks([closed], criteria({ query: "=3" }));
+
+		expect(visible.map((item) => item.id)).toEqual(["LOG-3"]);
+	});
+
+	it("shows a task despite the other filters", () => {
+		const filtered = task({
+			id: "LOG-3",
+			number: 3,
+			priority: "low",
+			epic_id: "LOG-9",
+			scope_id: 2,
+			tags: ["x"],
+		});
+
+		const visible = filterTasks(
+			[filtered],
+			criteria({
+				query: "=3",
+				priority: "high",
+				epic: "none",
+				scope: "none",
+				selectedTags: ["y"],
+				status: "in-progress",
+			}),
+		);
+
+		expect(visible.map((item) => item.id)).toEqual(["LOG-3"]);
+	});
+
+	it("stays inside the active project", () => {
+		const other = task({ id: "OTHER-3", number: 3, project_id: "proj-2" });
+
+		const visible = filterTasks(
+			[other],
+			criteria({ activeProject: "proj-1", query: "=3" }),
+		);
+
+		expect(visible).toEqual([]);
+	});
+
+	it("does not match a longer number", () => {
+		const visible = filterTasks(
+			[task({ id: "LOG-13", number: 13 })],
+			criteria({ query: "=3" }),
+		);
+
+		expect(visible).toEqual([]);
+	});
+
+	it("shows a closed task by its full id", () => {
+		const closed = task({ id: "LOG-3", number: 3, status: "cancelled" });
+
+		const visible = filterTasks([closed], criteria({ query: "=log-3" }));
+
+		expect(visible.map((item) => item.id)).toEqual(["LOG-3"]);
+	});
+
+	it("still filters the tasks that are not exact matches", () => {
+		const tasks = [
+			task({ id: "LOG-3", number: 3, status: "done" }),
+			task({ id: "LOG-4", number: 4, title: "3 things", status: "done" }),
+		];
+
+		const visible = filterTasks(tasks, criteria({ query: "=3" }));
+
+		expect(visible.map((item) => item.id)).toEqual(["LOG-3"]);
+	});
+});
+
 describe("epic modes", () => {
 	const epicTasks = [
 		task({ id: "E-1", is_epic: true }),

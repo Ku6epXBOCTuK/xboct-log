@@ -1,5 +1,10 @@
 import type { Filters } from "#lib/state/filters.svelte.ts";
 import {
+	isExactTerm,
+	matchesSearch,
+	parseSearchQuery,
+} from "#lib/tasks/search.ts";
+import {
 	CLOSED_STATUSES,
 	type Priority,
 	type ProjectFilter,
@@ -25,7 +30,8 @@ export function projectTasks(tasks: Task[], projectId: ProjectFilter): Task[] {
 }
 
 export function filterTasks(tasks: Task[], criteria: FilterCriteria): Task[] {
-	const needle = criteria.query.trim().toLowerCase();
+	const terms = parseSearchQuery(criteria.query);
+	const exact = terms.filter(isExactTerm);
 
 	return tasks.filter((task) => {
 		if (
@@ -34,6 +40,7 @@ export function filterTasks(tasks: Task[], criteria: FilterCriteria): Task[] {
 		) {
 			return false;
 		}
+		if (exact.length > 0 && matchesSearch(task, exact)) return true;
 		if (criteria.status !== "all" && task.status !== criteria.status) {
 			return false;
 		}
@@ -69,14 +76,8 @@ export function filterTasks(tasks: Task[], criteria: FilterCriteria): Task[] {
 		) {
 			return false;
 		}
-		if (needle === "") return true;
 
-		return (
-			task.id.toLowerCase().includes(needle) ||
-			task.title.toLowerCase().includes(needle) ||
-			task.description.toLowerCase().includes(needle) ||
-			(task.epic_id !== null && task.epic_id.toLowerCase().includes(needle))
-		);
+		return matchesSearch(task, terms);
 	});
 }
 

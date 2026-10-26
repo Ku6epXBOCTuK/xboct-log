@@ -1,5 +1,6 @@
 <script lang="ts">
 	import IconButton from "#lib/components/ui/IconButton.svelte";
+	import SearchHelp from "#lib/components/workspace/SearchHelp.svelte";
 	import Moon from "~icons/lucide/moon";
 	import Plus from "~icons/lucide/plus";
 	import RefreshCw from "~icons/lucide/refresh-cw";
@@ -17,7 +18,10 @@
 </script>
 
 <div class="title-row">
-	<h1>{projectName ?? "Projects"}</h1>
+	<div class="title-group">
+		<h1>{projectName ?? "Projects"}</h1>
+		<SearchHelp />
+	</div>
 	<div class="header-actions">
 		<IconButton
 			label={appearance === "light"
@@ -55,6 +59,14 @@
 		font-size: var(--text-2xl);
 		line-height: 1.1;
 		letter-spacing: -0.02em;
+	}
+
+	.title-group {
+		position: relative;
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		min-width: 0;
 	}
 
 	.header-actions {

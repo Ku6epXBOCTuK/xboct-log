@@ -1,4 +1,5 @@
 import { filterTasks } from "#lib/tasks/filter.ts";
+import { exactFirst, parseSearchQuery } from "#lib/tasks/search.ts";
 import {
 	DEFAULT_SORT_KEY,
 	DEFAULT_SORT_ORDER,
@@ -143,7 +144,7 @@ export function createFilters(initialProject: ProjectFilter) {
 			selectedTags = [];
 		},
 		visible(tasks: Task[], context: SortContext = {}) {
-			return sortTasks(
+			const sorted = sortTasks(
 				filterTasks(tasks, {
 					activeProject,
 					status,
@@ -158,6 +159,8 @@ export function createFilters(initialProject: ProjectFilter) {
 				sortOrder,
 				context,
 			);
+
+			return exactFirst(sorted, parseSearchQuery(query));
 		},
 	};
 }
