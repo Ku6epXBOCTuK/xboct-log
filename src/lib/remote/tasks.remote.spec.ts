@@ -105,6 +105,7 @@ describe("tasks_list fields parameter", () => {
 		const first = createTask(db, {
 			project_id: "spa",
 			title: "Open child",
+			status: "open",
 			epic_id: epicId,
 		});
 		expect(first.isOk()).toBe(true);
@@ -128,6 +129,7 @@ describe("tasks_list fields parameter", () => {
 			children_counts: Record<string, number>;
 		};
 		expect(result.children_counts).toEqual({
+			backlog: 0,
 			open: 1,
 			"in-progress": 1,
 			blocked: 0,

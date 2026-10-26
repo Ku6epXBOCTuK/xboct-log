@@ -161,7 +161,7 @@ describe("blocked_reason", () => {
 			createTask(db, { project_id: "spa", title: "Blocker" }),
 		);
 		const blocked = unwrap(
-			createTask(db, { project_id: "spa", title: "Blocked" }),
+			createTask(db, { project_id: "spa", title: "Blocked", status: "open" }),
 		);
 		await call("tasks_add_blocker", { id: blocked.id, blocked_by: blocker.id });
 		await call("tasks_update", {

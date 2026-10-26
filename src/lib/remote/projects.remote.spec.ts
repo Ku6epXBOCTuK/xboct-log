@@ -28,7 +28,11 @@ beforeAll(async () => {
 		prefix: "BIL",
 	});
 	expect(billing.isOk()).toBe(true);
-	const open = createTask(db, { project_id: "spa", title: "Open" });
+	const open = createTask(db, {
+		project_id: "spa",
+		title: "Open",
+		status: "open",
+	});
 	expect(open.isOk()).toBe(true);
 	const done = createTask(db, { project_id: "spa", title: "Done" });
 	expect(done.isOk()).toBe(true);
@@ -37,6 +41,7 @@ beforeAll(async () => {
 	const epic = createTask(db, {
 		project_id: "spa",
 		title: "Epic",
+		status: "open",
 		is_epic: true,
 	});
 	expect(epic.isOk()).toBe(true);
@@ -72,6 +77,7 @@ describe("projects_list", () => {
 		const items = await listProjects({});
 		const spa = items.find((project) => project.id === "spa");
 		expect(spa?.task_counts).toEqual({
+			backlog: 0,
 			open: 1,
 			"in-progress": 0,
 			blocked: 0,
@@ -79,6 +85,7 @@ describe("projects_list", () => {
 			cancelled: 0,
 		});
 		expect(spa?.epic_counts).toEqual({
+			backlog: 0,
 			open: 1,
 			"in-progress": 0,
 			blocked: 0,

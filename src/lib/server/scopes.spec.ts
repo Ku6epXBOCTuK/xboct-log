@@ -125,13 +125,28 @@ describe("scopes", () => {
 			createScope(db, { project_id: "spa", name: "backend" }),
 		);
 		unwrap(
-			createTask(db, { project_id: "spa", title: "A", scope_id: frontend.id }),
+			createTask(db, {
+				status: "open",
+				project_id: "spa",
+				title: "A",
+				scope_id: frontend.id,
+			}),
 		);
 		unwrap(
-			createTask(db, { project_id: "spa", title: "B", scope_id: frontend.id }),
+			createTask(db, {
+				status: "open",
+				project_id: "spa",
+				title: "B",
+				scope_id: frontend.id,
+			}),
 		);
 		unwrap(
-			createTask(db, { project_id: "spa", title: "C", scope_id: backend.id }),
+			createTask(db, {
+				status: "open",
+				project_id: "spa",
+				title: "C",
+				scope_id: backend.id,
+			}),
 		);
 		unwrap(createTask(db, { project_id: "spa", title: "Loose" }));
 
@@ -147,7 +162,12 @@ describe("scopes", () => {
 			createScope(db, { project_id: "spa", name: "frontend" }),
 		);
 		unwrap(
-			createTask(db, { project_id: "spa", title: "open", scope_id: scope.id }),
+			createTask(db, {
+				status: "open",
+				project_id: "spa",
+				title: "open",
+				scope_id: scope.id,
+			}),
 		);
 		unwrap(
 			createTask(db, {
@@ -176,6 +196,13 @@ describe("scopes", () => {
 		unwrap(
 			createTask(db, {
 				project_id: "spa",
+				title: "backlog",
+				scope_id: scope.id,
+			}),
+		);
+		unwrap(
+			createTask(db, {
+				project_id: "spa",
 				title: "epic",
 				is_epic: true,
 				scope_id: scope.id,
@@ -183,7 +210,7 @@ describe("scopes", () => {
 		);
 
 		expect(countTasksByScope(db, "spa")).toEqual({
-			[scope.id]: { tasks: 4, active_tasks: 2, epics: 1 },
+			[scope.id]: { tasks: 5, active_tasks: 2, epics: 1 },
 		});
 	});
 
@@ -193,7 +220,12 @@ describe("scopes", () => {
 			createScope(db, { project_id: "spa", name: "frontend" }),
 		);
 		unwrap(
-			createTask(db, { project_id: "spa", title: "A", scope_id: scope.id }),
+			createTask(db, {
+				status: "open",
+				project_id: "spa",
+				title: "A",
+				scope_id: scope.id,
+			}),
 		);
 		unwrap(
 			createTask(db, {
@@ -249,10 +281,20 @@ describe("scopes", () => {
 			createScope(db, { project_id: "bil", name: "billing" }),
 		);
 		unwrap(
-			createTask(db, { project_id: "spa", title: "A", scope_id: frontend.id }),
+			createTask(db, {
+				status: "open",
+				project_id: "spa",
+				title: "A",
+				scope_id: frontend.id,
+			}),
 		);
 		unwrap(
-			createTask(db, { project_id: "bil", title: "B", scope_id: billing.id }),
+			createTask(db, {
+				status: "open",
+				project_id: "bil",
+				title: "B",
+				scope_id: billing.id,
+			}),
 		);
 
 		expect(countTasksByScope(db)).toEqual({
@@ -306,7 +348,12 @@ describe("task scopes", () => {
 			createScope(db, { project_id: "spa", name: "frontend" }),
 		);
 		unwrap(
-			createTask(db, { project_id: "spa", title: "A", scope_id: scope.id }),
+			createTask(db, {
+				status: "open",
+				project_id: "spa",
+				title: "A",
+				scope_id: scope.id,
+			}),
 		);
 		unwrap(createTask(db, { project_id: "spa", title: "Loose" }));
 

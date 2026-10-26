@@ -19,7 +19,7 @@ beforeAll(async () => {
 	createProject(db, { id: "spa", name: "Shop", prefix: "SPA" });
 	createProject(db, { id: "bil", name: "Billing", prefix: "BIL" });
 	createTask(db, { project_id: "spa", title: "Blocker" });
-	createTask(db, { project_id: "spa", title: "Blocked" });
+	createTask(db, { project_id: "spa", title: "Blocked", status: "open" });
 	createTask(db, { project_id: "bil", title: "Blocker" });
 	createTask(db, { project_id: "bil", title: "Blocked" });
 });

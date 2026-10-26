@@ -16,6 +16,7 @@ const counts = { open: 2, "in-progress": 1, blocked: 3, done: 4, cancelled: 5 };
 describe("counts", () => {
 	it("starts every status at zero", () => {
 		expect(emptyCounts()).toEqual({
+			backlog: 0,
 			open: 0,
 			"in-progress": 0,
 			blocked: 0,
@@ -27,6 +28,11 @@ describe("counts", () => {
 	it("sums only the statuses that are still active", () => {
 		expect(activeCount(counts)).toBe(6);
 		expect(totalCount(counts)).toBe(15);
+	});
+
+	it("leaves the backlog out of the active count", () => {
+		expect(activeCount({ backlog: 12, open: 2 })).toBe(2);
+		expect(totalCount({ backlog: 12, open: 2 })).toBe(14);
 	});
 
 	it("treats missing counts as zero", () => {
@@ -60,6 +66,7 @@ describe("counts", () => {
 
 	it("counts the open epics of the whole tracker", () => {
 		const epics = [
+			{ status: "backlog" },
 			{ status: "open" },
 			{ status: "in-progress" },
 			{ status: "done" },

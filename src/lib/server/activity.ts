@@ -47,7 +47,7 @@ export function fieldNames(value: object | undefined): string[] {
 }
 
 const CREATION_DEFAULTS = {
-	status: "open",
+	status: "backlog",
 	priority: "medium",
 } as const;
 

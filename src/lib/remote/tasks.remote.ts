@@ -234,7 +234,7 @@ export const getTask = defineQuery({
 	description:
 		"Get a single task by id. The id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'); a bare number is rejected because it is unique only inside a project. Returns: the task itself - " +
 		TASK_FIELDS +
-		". For a task with is_epic=true the result also carries children_counts: the number of its child tasks per status (open, in-progress, blocked, done, cancelled) plus their total.",
+		". For a task with is_epic=true the result also carries children_counts: the number of its child tasks per status (backlog, open, in-progress, blocked, done, cancelled) plus their total.",
 	kind: "query",
 	input: strictObject({
 		id: taskIdSchema(ID_DESCRIPTION),
@@ -256,7 +256,7 @@ export const createTask = defineCommand({
 	name: "tasks_create",
 	output: taskCreated,
 	description:
-		"Create a task. Requires project_id and title; status, priority, estimate, assignee, due_at, blocked_reason, epic, scope, tags are optional. estimate is the size of the task: 'S', 'M' or 'L'. assignee is the person responsible for the task, due_at is its due date (YYYY-MM-DD). blocked_reason is one line of free text explaining a block outside the tracker and is only allowed when status is 'blocked'. epic_id accepts a full epic id (e.g. 'LOG-5') of the same project. Projects that define scopes expect every task to carry one: the result carries a warnings array, and a warning naming the available scopes appears when the task is created without a scope. A project without scopes can get one with scopes_create {project_id, name}. source_file names the document or file the task came from; it is provenance only, it is never verified and several tasks may share it. Returns: the created task - " +
+		"Create a task. Requires project_id and title; status, priority, estimate, assignee, due_at, blocked_reason, epic, scope, tags are optional. status defaults to 'backlog'; move the task to 'open' when it is committed to be done. estimate is the size of the task: 'S', 'M' or 'L'. assignee is the person responsible for the task, due_at is its due date (YYYY-MM-DD). blocked_reason is one line of free text explaining a block outside the tracker and is only allowed when status is 'blocked'. epic_id accepts a full epic id (e.g. 'LOG-5') of the same project. Projects that define scopes expect every task to carry one: the result carries a warnings array, and a warning naming the available scopes appears when the task is created without a scope. A project without scopes can get one with scopes_create {project_id, name}. source_file names the document or file the task came from; it is provenance only, it is never verified and several tasks may share it. Returns: the created task - " +
 		TASK_FIELDS +
 		" with a warnings array.",
 	kind: "command",

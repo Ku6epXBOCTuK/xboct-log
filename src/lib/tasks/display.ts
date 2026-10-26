@@ -1,6 +1,7 @@
 import type { ClosedReason, Status } from "#lib/types.ts";
 
 export const STATUS_LABELS: Record<Status, string> = {
+	backlog: "backlog",
 	open: "open",
 	"in-progress": "in progress",
 	blocked: "blocked",

@@ -52,7 +52,7 @@ export function createTask(
 		return err(invalid("task title is required"));
 	}
 
-	const status = input.status ?? "open";
+	const status = input.status ?? "backlog";
 	if (!isStatus(status)) {
 		return err(invalid(`invalid status: ${status}`));
 	}

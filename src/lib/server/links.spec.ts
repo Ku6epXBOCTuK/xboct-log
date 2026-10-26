@@ -129,7 +129,9 @@ describe("links", () => {
 	it("releases the blocked status when the blocker is closed", async () => {
 		const db = await setup();
 		const blocker = unwrap(createTask(db, { project_id: "spa", title: "A" }));
-		const blocked = unwrap(createTask(db, { project_id: "spa", title: "B" }));
+		const blocked = unwrap(
+			createTask(db, { project_id: "spa", title: "B", status: "open" }),
+		);
 		unwrap(updateTask(db, blocked.id, { status: "blocked" }));
 		unwrap(addBlocker(db, blocker.id, blocked.id));
 
@@ -138,11 +140,39 @@ describe("links", () => {
 		expect(getTask(db, blocked.id)?.status).toBe("open");
 	});
 
+	it("releases the blocked status when the blocker is deleted", async () => {
+		const db = await setup();
+		const blocker = unwrap(createTask(db, { project_id: "spa", title: "A" }));
+		const blocked = unwrap(
+			createTask(db, { project_id: "spa", title: "B", status: "open" }),
+		);
+		unwrap(updateTask(db, blocked.id, { status: "blocked" }));
+		unwrap(addBlocker(db, blocker.id, blocked.id));
+
+		unwrap(deleteTask(db, blocker.id));
+
+		expect(getTask(db, blocked.id)?.status).toBe("open");
+	});
+
+	it("returns a backlog task to the backlog", async () => {
+		const db = await setup();
+		const blocker = unwrap(createTask(db, { project_id: "spa", title: "A" }));
+		const blocked = unwrap(createTask(db, { project_id: "spa", title: "B" }));
+		unwrap(updateTask(db, blocked.id, { status: "blocked" }));
+		unwrap(addBlocker(db, blocker.id, blocked.id));
+
+		unwrap(closeTask(db, blocker.id, "fixed"));
+
+		expect(getTask(db, blocked.id)?.status).toBe("backlog");
+	});
+
 	it("keeps the blocked status while another open blocker remains", async () => {
 		const db = await setup();
 		const first = unwrap(createTask(db, { project_id: "spa", title: "A" }));
 		const second = unwrap(createTask(db, { project_id: "spa", title: "C" }));
-		const blocked = unwrap(createTask(db, { project_id: "spa", title: "B" }));
+		const blocked = unwrap(
+			createTask(db, { project_id: "spa", title: "B", status: "open" }),
+		);
 		unwrap(updateTask(db, blocked.id, { status: "blocked" }));
 		unwrap(addBlocker(db, first.id, blocked.id));
 		unwrap(addBlocker(db, second.id, blocked.id));
@@ -151,18 +181,6 @@ describe("links", () => {
 		expect(getTask(db, blocked.id)?.status).toBe("blocked");
 
 		unwrap(closeTask(db, second.id, "fixed"));
-		expect(getTask(db, blocked.id)?.status).toBe("open");
-	});
-
-	it("releases the blocked status when the blocker is deleted", async () => {
-		const db = await setup();
-		const blocker = unwrap(createTask(db, { project_id: "spa", title: "A" }));
-		const blocked = unwrap(createTask(db, { project_id: "spa", title: "B" }));
-		unwrap(updateTask(db, blocked.id, { status: "blocked" }));
-		unwrap(addBlocker(db, blocker.id, blocked.id));
-
-		unwrap(deleteTask(db, blocker.id));
-
 		expect(getTask(db, blocked.id)?.status).toBe("open");
 	});
 

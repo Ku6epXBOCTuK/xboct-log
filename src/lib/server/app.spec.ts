@@ -184,7 +184,7 @@ describe("tasks", () => {
 			}),
 		);
 
-		expect(task.status).toBe("open");
+		expect(task.status).toBe("backlog");
 		expect(task.priority).toBe("medium");
 		expect(task.tags).toEqual(["perf", "checkout"]);
 		expect(task.source_file).toBe("src/cart.ts");
@@ -557,7 +557,12 @@ describe("tasks", () => {
 	it("filters by status, tag and text", async () => {
 		const db = await setup();
 		const alpha = unwrap(
-			createTask(db, { project_id: "spa", title: "Alpha bug", tags: ["perf"] }),
+			createTask(db, {
+				status: "open",
+				project_id: "spa",
+				title: "Alpha bug",
+				tags: ["perf"],
+			}),
 		);
 		const beta = unwrap(
 			createTask(db, { project_id: "spa", title: "Beta", tags: ["a11y"] }),
@@ -823,13 +828,20 @@ describe("tasks", () => {
 
 	it("counts tasks by status", async () => {
 		const db = await setup();
-		unwrap(createTask(db, { project_id: "spa", title: "A" }));
+		unwrap(createTask(db, { project_id: "spa", title: "A", status: "open" }));
 		const b = unwrap(
-			createTask(db, { project_id: "spa", title: "B", priority: "high" }),
+			createTask(db, {
+				status: "open",
+				project_id: "spa",
+				title: "B",
+				priority: "high",
+			}),
 		);
 		unwrap(updateTask(db, b.id, { status: "blocked" }));
+		unwrap(createTask(db, { project_id: "spa", title: "C" }));
 
 		expect(countTasksByStatus(db, "spa")).toEqual({
+			backlog: 1,
 			open: 1,
 			"in-progress": 0,
 			blocked: 1,
@@ -840,14 +852,24 @@ describe("tasks", () => {
 
 	it("counts tasks and epics by status separately", async () => {
 		const db = await setup();
-		unwrap(createTask(db, { project_id: "spa", title: "Task" }));
-		unwrap(createTask(db, { project_id: "spa", title: "Epic", is_epic: true }));
+		unwrap(
+			createTask(db, { project_id: "spa", title: "Task", status: "open" }),
+		);
+		unwrap(
+			createTask(db, {
+				project_id: "spa",
+				title: "Epic",
+				status: "open",
+				is_epic: true,
+			}),
+		);
 		const done = unwrap(
 			createTask(db, { project_id: "spa", title: "Done", is_epic: true }),
 		);
 		unwrap(updateTask(db, done.id, { status: "done" }));
 
 		expect(countTasksByStatus(db, "spa")).toEqual({
+			backlog: 0,
 			open: 1,
 			"in-progress": 0,
 			blocked: 0,
@@ -855,6 +877,7 @@ describe("tasks", () => {
 			cancelled: 0,
 		});
 		expect(countEpicsByStatus(db, "spa")).toEqual({
+			backlog: 0,
 			open: 1,
 			"in-progress": 0,
 			blocked: 0,

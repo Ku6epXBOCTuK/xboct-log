@@ -22,6 +22,7 @@ function filters(overrides: Partial<Filters> = {}): Filters {
 describe("task query", () => {
 	it("sends only the active statuses while closed tasks are hidden", () => {
 		expect(buildTaskQuery(filters()).status).toEqual([
+			"backlog",
 			"open",
 			"in-progress",
 			"blocked",

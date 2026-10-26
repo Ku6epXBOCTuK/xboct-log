@@ -245,7 +245,7 @@ describe("creationFields", () => {
 			creationFields({
 				project_id: "xboct-log",
 				title: "Fresh",
-				status: "open",
+				status: "backlog",
 				priority: "medium",
 				description: "",
 				tags: [],

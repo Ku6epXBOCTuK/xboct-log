@@ -20,12 +20,14 @@ beforeAll(async () => {
 	const task = createTask(db, {
 		project_id: "spa",
 		title: "Alpha",
+		status: "open",
 		tags: ["mcp", "ui"],
 	});
 	expect(task.isOk()).toBe(true);
 	const other = createTask(db, {
 		project_id: "spa",
 		title: "Beta",
+		status: "open",
 		tags: ["mcp"],
 	});
 	expect(other.isOk()).toBe(true);
@@ -114,6 +116,7 @@ describe("tags_list", () => {
 		const task = createTask(db, {
 			project_id: "bil",
 			title: "Gamma",
+			status: "open",
 			tags: ["db"],
 		});
 		expect(task.isOk()).toBe(true);

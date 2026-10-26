@@ -187,7 +187,7 @@ export function hasOpenBlockedBy(db: DatabaseSync, taskId: string): boolean {
 	return row.count > 0;
 }
 
-const RESTORE_STATUSES = new Set(["open", "in-progress"]);
+const RESTORE_STATUSES = new Set(["backlog", "open", "in-progress"]);
 
 export function isRestorableStatus(status: string): boolean {
 	return RESTORE_STATUSES.has(status);

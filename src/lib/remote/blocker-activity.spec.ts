@@ -76,7 +76,11 @@ describe("blocker activity details", () => {
 			createTask(db, { project_id: "spa", title: "Blocker two" }),
 		);
 		const blocked = unwrap(
-			createTask(db, { project_id: "spa", title: "Blocked two" }),
+			createTask(db, {
+				project_id: "spa",
+				title: "Blocked two",
+				status: "open",
+			}),
 		);
 
 		await call("tasks_add_blocker", {
@@ -106,7 +110,11 @@ describe("blocker activity details", () => {
 			createTask(db, { project_id: "spa", title: "Blocker three" }),
 		);
 		const blocked = unwrap(
-			createTask(db, { project_id: "spa", title: "Blocked three" }),
+			createTask(db, {
+				project_id: "spa",
+				title: "Blocked three",
+				status: "open",
+			}),
 		);
 
 		await call("tasks_add_blocker", {

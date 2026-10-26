@@ -2,6 +2,7 @@
 	import type { Status } from "#lib/types.ts";
 
 	const COLUMNS: { status: Status; label: string }[] = [
+		{ status: "backlog", label: "Backlog" },
 		{ status: "open", label: "Open" },
 		{ status: "in-progress", label: "In progress" },
 		{ status: "blocked", label: "Blocked" },

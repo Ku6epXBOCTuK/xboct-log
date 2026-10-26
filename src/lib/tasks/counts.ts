@@ -1,5 +1,5 @@
 import {
-	CLOSED_STATUSES,
+	ACTIVE_STATUSES,
 	STATUSES,
 	type Project,
 	type Scope,
@@ -15,7 +15,7 @@ export function emptyCounts(): StatusCounts {
 export function activeCount(counts: StatusCounts | undefined): number {
 	if (counts === undefined) return 0;
 
-	return STATUSES.filter((status) => !CLOSED_STATUSES.includes(status)).reduce(
+	return ACTIVE_STATUSES.reduce(
 		(sum, status) => sum + (counts[status] ?? 0),
 		0,
 	);
@@ -28,7 +28,7 @@ export function totalCount(counts: StatusCounts | undefined): number {
 }
 
 export function epicActive(epics: Task[]): number {
-	return epics.filter((epic) => !CLOSED_STATUSES.includes(epic.status)).length;
+	return epics.filter((epic) => ACTIVE_STATUSES.includes(epic.status)).length;
 }
 
 export function projectActive(project: Project): number {

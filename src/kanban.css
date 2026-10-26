@@ -20,7 +20,7 @@
 
 .kanban-board {
 	display: grid;
-	grid-template-columns: repeat(4, minmax(220px, 1fr));
+	grid-template-columns: repeat(5, minmax(220px, 1fr));
 	gap: var(--space-4);
 	padding: var(--space-6);
 	flex: 1 1 auto;
@@ -64,6 +64,10 @@
 	height: 0.6875rem;
 	border-radius: 50%;
 	background: var(--status-open);
+}
+
+.backlog .column-status-dot {
+	background: var(--status-backlog);
 }
 
 .in-progress .column-status-dot {

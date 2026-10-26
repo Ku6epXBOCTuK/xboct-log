@@ -58,7 +58,11 @@ async function blockedPair(title: string) {
 		createTask(db, { project_id: "spa", title: `${title} blocker` }),
 	);
 	const blocked = unwrap(
-		createTask(db, { project_id: "spa", title: `${title} blocked` }),
+		createTask(db, {
+			project_id: "spa",
+			title: `${title} blocked`,
+			status: "open",
+		}),
 	);
 	await call("tasks_add_blocker", { id: blocked.id, blocked_by: blocker.id });
 	await call("tasks_update", { id: blocked.id, patch: { status: "blocked" } });

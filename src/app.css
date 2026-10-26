@@ -68,6 +68,7 @@
 	--green-ink: light-dark(#1f7a3d, #9ce8b4);
 	--green-surface: light-dark(#e4f6ea, #16301f);
 
+	--status-backlog: light-dark(#9aa4ae, #5c646d);
 	--status-open: light-dark(#5f6873, #c3cad2);
 	--status-in-progress: light-dark(#0b5cff, #7ab0ff);
 	--status-blocked: light-dark(#e5231b, #ff877a);

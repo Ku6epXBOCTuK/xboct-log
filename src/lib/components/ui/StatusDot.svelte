@@ -21,6 +21,10 @@
 		flex: 0 0 auto;
 	}
 
+	.status-dot.backlog {
+		background: var(--status-backlog);
+	}
+
 	.status-dot.in-progress {
 		background: var(--status-in-progress);
 	}

@@ -1,6 +1,7 @@
 import { err, ok, type Result } from "neverthrow";
 import type { DatabaseSync } from "node:sqlite";
 import type { Scope } from "../types";
+import { ACTIVE_STATUSES } from "../types";
 import { AppError, conflict, guard, invalid, notFound } from "./errors";
 import { withTransaction } from "./db";
 import { getProject } from "./projects";
@@ -88,17 +89,18 @@ export function countTasksByScope(
 		where.push("project_id = ?");
 		params.push(projectId);
 	}
+	const activeSlots = ACTIVE_STATUSES.map(() => "?").join(", ");
 	const rows = db
 		.prepare(
 			`SELECT scope_id,
 				SUM(CASE WHEN is_epic = 0 THEN 1 ELSE 0 END) AS tasks,
-				SUM(CASE WHEN is_epic = 0 AND status NOT IN ('done', 'cancelled') THEN 1 ELSE 0 END) AS active_tasks,
+				SUM(CASE WHEN is_epic = 0 AND status IN (${activeSlots}) THEN 1 ELSE 0 END) AS active_tasks,
 				SUM(CASE WHEN is_epic = 1 THEN 1 ELSE 0 END) AS epics
 			 FROM tasks
 			 WHERE ${where.join(" AND ")}
 			 GROUP BY scope_id`,
 		)
-		.all(...params) as {
+		.all(...ACTIVE_STATUSES, ...params) as {
 		scope_id: number;
 		tasks: number;
 		active_tasks: number;

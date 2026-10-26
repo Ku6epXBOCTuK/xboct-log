@@ -1,4 +1,5 @@
 export const STATUSES = [
+	"backlog",
 	"open",
 	"in-progress",
 	"blocked",
@@ -9,14 +10,21 @@ export const STATUSES = [
 export type Status = (typeof STATUSES)[number];
 
 export const STATUS_RANK: Record<Status, number> = {
-	open: 0,
-	"in-progress": 1,
-	blocked: 2,
-	done: 3,
-	cancelled: 4,
+	backlog: 0,
+	open: 1,
+	"in-progress": 2,
+	blocked: 3,
+	done: 4,
+	cancelled: 5,
 };
 
 export const CLOSED_STATUSES: readonly Status[] = ["done", "cancelled"];
+
+export const ACTIVE_STATUSES: readonly Status[] = [
+	"open",
+	"in-progress",
+	"blocked",
+];
 
 export const CLOSED_REASONS = [
 	"fixed",

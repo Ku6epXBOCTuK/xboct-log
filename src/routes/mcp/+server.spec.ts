@@ -148,7 +148,7 @@ describe("/mcp endpoint", () => {
 		};
 		expect(result.isError).toBeUndefined();
 		expect(result.structuredContent?.id).toMatch(/^OUT-\d+$/);
-		expect(result.structuredContent?.status).toBe("open");
+		expect(result.structuredContent?.status).toBe("backlog");
 		expect(Array.isArray(result.structuredContent?.warnings)).toBe(true);
 	});
 

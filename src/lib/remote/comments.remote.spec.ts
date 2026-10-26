@@ -159,6 +159,7 @@ describe("activity changes", () => {
 			createTask(db, {
 				project_id: "spa",
 				title: "Old",
+				status: "open",
 				priority: "low",
 				tags: ["a"],
 			}),
@@ -200,7 +201,13 @@ describe("activity changes", () => {
 
 	it("stores the closing status and reason", async () => {
 		const db = getDb();
-		const task = unwrap(createTask(db, { project_id: "spa", title: "Close" }));
+		const task = unwrap(
+			createTask(db, {
+				project_id: "spa",
+				title: "Close",
+				status: "open",
+			}),
+		);
 		clear();
 
 		await call("tasks_close", { id: task.id, reason: "wontfix" });
