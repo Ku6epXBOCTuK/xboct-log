@@ -1,4 +1,8 @@
 <script lang="ts">
+	import { pageCount, pageItems } from "#lib/tasks/paging.ts";
+	import ChevronLeft from "~icons/lucide/chevron-left";
+	import ChevronRight from "~icons/lucide/chevron-right";
+
 	interface Props {
 		offset: number;
 		limit: number;
@@ -9,8 +13,8 @@
 
 	let { offset, limit, total, emptyLabel, onchange }: Props = $props();
 
-	const canPrev = $derived(offset > 0);
-	const canNext = $derived(offset + limit < total);
+	const pages = $derived(pageCount(total, limit));
+	const page = $derived(Math.min(pages, Math.floor(offset / limit) + 1));
 	const range = $derived(
 		total === 0
 			? emptyLabel
@@ -20,22 +24,41 @@
 
 <footer class="pager">
 	<span class="muted">{range}</span>
-	<div class="pager-buttons">
+	<nav class="pages" aria-label="Pagination">
 		<button
-			class="page-button"
-			disabled={!canPrev}
-			onclick={() => onchange(Math.max(0, offset - limit))}
+			class="arrow"
+			disabled={page <= 1}
+			onclick={() => onchange((page - 2) * limit)}
+			aria-label="Previous page"
 		>
-			Previous
+			<ChevronLeft />
 		</button>
+		<span class="compact">{page} / {pages}</span>
+		<div class="numbers">
+			{#each pageItems(page, pages) as item, index (index)}
+				{#if item === "gap"}
+					<span class="gap">…</span>
+				{:else}
+					<button
+						class="number"
+						class:current={item === page}
+						aria-current={item === page ? "page" : undefined}
+						onclick={() => onchange((item - 1) * limit)}
+					>
+						{item}
+					</button>
+				{/if}
+			{/each}
+		</div>
 		<button
-			class="page-button"
-			disabled={!canNext}
-			onclick={() => onchange(offset + limit)}
+			class="arrow"
+			disabled={page >= pages}
+			onclick={() => onchange(page * limit)}
+			aria-label="Next page"
 		>
-			Next
+			<ChevronRight />
 		</button>
-	</div>
+	</nav>
 </footer>
 
 <style>
@@ -55,22 +78,81 @@
 		font-variant-numeric: tabular-nums;
 	}
 
-	.pager-buttons {
+	.pages {
 		display: flex;
-		gap: var(--space-2);
+		align-items: center;
+		gap: var(--space-1);
+		font-variant-numeric: tabular-nums;
 	}
 
-	.page-button {
-		border: 1px solid var(--border-strong);
+	.pages button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
 		border-radius: var(--radius);
-		padding: 0 var(--space-3);
-		min-height: var(--control-h-sm);
 		color: var(--text-secondary);
 		font-size: var(--text-sm);
 	}
 
-	.page-button:hover:not(:disabled) {
+	.arrow {
+		width: 1.75rem;
+		height: 1.75rem;
+	}
+
+	.arrow :global(svg) {
+		width: 1rem;
+		height: 1rem;
+	}
+
+	.numbers {
+		display: flex;
+		align-items: center;
+		gap: var(--space-1);
+	}
+
+	.number {
+		min-width: 1.75rem;
+		height: 1.75rem;
+		padding: 0 var(--space-1);
+	}
+
+	.arrow:hover:not(:disabled),
+	.number:hover {
 		background: var(--hover);
 		color: var(--foreground);
+	}
+
+	.pages button:disabled {
+		opacity: 0.35;
+		cursor: default;
+	}
+
+	.number.current {
+		background: var(--hover);
+		color: var(--foreground);
+		font-weight: 600;
+	}
+
+	.gap {
+		padding: 0 var(--space-1);
+		color: var(--text-muted);
+		font-size: var(--text-sm);
+	}
+
+	.compact {
+		display: none;
+		color: var(--text-muted);
+		font-size: var(--text-sm);
+	}
+
+	@media (max-width: 560px) {
+		.muted,
+		.numbers {
+			display: none;
+		}
+
+		.compact {
+			display: inline;
+		}
 	}
 </style>

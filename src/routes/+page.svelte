@@ -2,10 +2,12 @@
 	import DetailPanel from "#lib/components/detail/DetailPanel.svelte";
 	import NewTaskModal from "#lib/components/newtask/NewTaskModal.svelte";
 	import TaskTable from "#lib/components/table/TaskTable.svelte";
+	import Pager from "#lib/components/ui/Pager.svelte";
 	import WorkspaceHeader from "#lib/components/workspace/WorkspaceHeader.svelte";
 	import { reloadApp } from "#lib/reload.ts";
 	import { useBoard } from "#lib/state/board.svelte.ts";
 	import { isTypingTarget, matchesHotkey } from "#lib/hotkeys/hotkeys.ts";
+	import { TASK_PAGE_SIZE } from "#lib/tasks/paging.ts";
 	import type { Task } from "#lib/types.ts";
 
 	const {
@@ -86,9 +88,18 @@
 		onsort={(key) => filters.setSort(key)}
 		onselect={(id) => selection.select(id)}
 		{total}
+		page={filters.page}
 		onclear={() => filters.clear()}
 		onnew={openNew}
 		onepic={(id) => (filters.epic = id)}
+	/>
+	<Pager
+		offset={(filters.page - 1) * TASK_PAGE_SIZE}
+		limit={TASK_PAGE_SIZE}
+		{total}
+		emptyLabel="0 tasks"
+		onchange={(offset) =>
+			filters.setPage(Math.floor(offset / TASK_PAGE_SIZE) + 1)}
 	/>
 </section>
 

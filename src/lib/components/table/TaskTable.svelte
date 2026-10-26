@@ -19,6 +19,7 @@
 		showProject: boolean;
 		selectedId: string | null;
 		total: number;
+		page?: number;
 		sortKey: TaskSortKey;
 		sortOrder: SortOrder;
 		onclear?: () => void;
@@ -38,6 +39,7 @@
 		showProject,
 		selectedId,
 		total,
+		page = 1,
 		sortKey,
 		sortOrder,
 		onclear,
@@ -61,6 +63,13 @@
 	);
 
 	let wrap = $state<HTMLDivElement | null>(null);
+	let shownPage = 0;
+
+	$effect(() => {
+		if (shownPage === page) return;
+		shownPage = page;
+		wrap?.scrollTo({ top: 0 });
+	});
 
 	$effect(() => {
 		const id = selectedId;
