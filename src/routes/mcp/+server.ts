@@ -40,9 +40,12 @@ function registerTools(server: McpServer): void {
 			async (args) => {
 				try {
 					const value = await runOp(op, args, "mcp");
+					const payload = Array.isArray(value)
+						? { items: value }
+						: (value ?? null);
 					return {
-						content: [{ type: "text", text: JSON.stringify(value ?? null) }],
-						structuredContent: value ?? null,
+						content: [{ type: "text", text: JSON.stringify(payload) }],
+						structuredContent: payload,
 					};
 				} catch (error) {
 					const failure = errorPayload(error);

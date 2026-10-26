@@ -18,7 +18,7 @@ export const getProjects = defineQuery({
 		"List projects; set includeArchived to also return archived ones. " +
 		"q filters by a case-insensitive substring of the project name, id or prefix. " +
 		"Every item carries task_counts and epic_counts: the number of its " +
-		"non-epic tasks and epics per status. Returns: the list of projects - " +
+		"non-epic tasks and epics per status. Returns: {items} - every item is " +
 		"every item is " +
 		PROJECT_FIELDS +
 		" with task_counts and epic_counts.",

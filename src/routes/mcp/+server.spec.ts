@@ -1,4 +1,4 @@
-﻿import type { RequestEvent } from "@sveltejs/kit";
+import type { RequestEvent } from "@sveltejs/kit";
 import { mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -16,6 +16,7 @@ let dbDir: string;
 
 beforeAll(async () => {
 	dbDir = mkdtempSync(join(tmpdir(), "xboct-log-mcp-"));
+	process.env.XBOCT_LOG_MEDIA_DIR = join(dbDir, "media");
 	const db = getDb(join(dbDir, "mcp.db"));
 	await migrateDatabase(db);
 });
@@ -330,5 +331,209 @@ describe("/mcp endpoint", () => {
 		};
 		expect(structured.id).toBe(taskId);
 		expect(structured.deleted_at).toBeNull();
+	});
+});
+
+describe("output contracts", () => {
+	async function call(
+		name: string,
+		args: unknown,
+	): Promise<Record<string, unknown>> {
+		const body = await rpc("tools/call", { name, arguments: args });
+		expect(
+			body.error,
+			`${name} raised ${JSON.stringify(body.error)}`,
+		).toBeUndefined();
+		const result = body.result as {
+			isError?: boolean;
+			structuredContent?: Record<string, unknown>;
+			content?: { text?: string }[];
+		};
+		expect(
+			result.isError,
+			`${name}: ${result.content?.[0]?.text}`,
+		).toBeUndefined();
+		return result.structuredContent ?? {};
+	}
+
+	async function freshTask(): Promise<string> {
+		const task = await call("tasks_create", {
+			project_id: "sweep",
+			title: "Sweep task",
+		});
+		return String(task.id);
+	}
+
+	async function freshScope(): Promise<number> {
+		const scope = await call("scopes_create", {
+			project_id: "sweep",
+			name: "Sweep scope",
+		});
+		return Number(scope.id);
+	}
+
+	let counter = 0;
+
+	it("answers every tool with a payload matching its output schema", async () => {
+		const project = await call("projects_create", {
+			id: "sweep",
+			name: "Sweep",
+			prefix: "SWP",
+		});
+		await call("projects_create", {
+			id: "sweep-target",
+			name: "Sweep target",
+			prefix: "SWT",
+		});
+		const base = String(
+			(
+				await call("tasks_create", {
+					project_id: "sweep",
+					title: "Base",
+				})
+			).id,
+		);
+		const scope = Number(
+			(
+				await call("scopes_create", {
+					project_id: "sweep",
+					name: "Base scope",
+				})
+			).id,
+		);
+		expect(project.id).toBe("sweep");
+
+		const fixtures: Record<string, () => unknown | Promise<unknown>> = {
+			tasks_history: () => ({ id: base }),
+			activity_list: () => ({}),
+			attachments_list: () => ({ id: base }),
+			attachments_add: () => ({
+				id: base,
+				filename: "sweep.txt",
+				content_base64: Buffer.from("hello").toString("base64"),
+			}),
+			attachments_delete: async () => {
+				const added = await call("attachments_add", {
+					id: base,
+					filename: "gone.txt",
+					content_base64: Buffer.from("bye").toString("base64"),
+				});
+				return { id: (added.item as { id: string }).id };
+			},
+			attachments_verify: () => ({}),
+			backup_create: () => ({}),
+			backup_list: () => ({}),
+			tasks_add_blocker: async () => ({
+				id: await freshTask(),
+				blocked_by: base,
+			}),
+			tasks_remove_blocker: async () => {
+				const blocked = await freshTask();
+				await call("tasks_add_blocker", { id: blocked, blocked_by: base });
+				return { id: blocked, blocked_by: base };
+			},
+			tasks_comments_list: () => ({ task_id: base }),
+			tasks_comments_add: () => ({ task_id: base, body: "Sweep comment" }),
+			tasks_comments_edit: async () => {
+				const comment = await call("tasks_comments_add", {
+					task_id: base,
+					body: "Original",
+				});
+				return { id: comment.id, body: "Edited" };
+			},
+			tasks_comments_delete: async () => {
+				const comment = await call("tasks_comments_add", {
+					task_id: base,
+					body: "Doomed",
+				});
+				return { id: comment.id };
+			},
+			tasks_add_link: async () => ({
+				id: await freshTask(),
+				link_type: "relates_to",
+				target: base,
+			}),
+			tasks_remove_link: async () => {
+				const linked = await freshTask();
+				await call("tasks_add_link", {
+					id: linked,
+					link_type: "relates_to",
+					target: base,
+				});
+				return { id: linked, link_type: "relates_to", target: base };
+			},
+			projects_list: () => ({}),
+			projects_get: () => ({ id: "sweep" }),
+			projects_create: () => {
+				counter += 1;
+				return {
+					id: `sweep-${counter}`,
+					name: `Sweep ${counter}`,
+					prefix: `SW${counter}`,
+				};
+			},
+			projects_update: () => ({ id: "sweep", patch: { name: "Sweep" } }),
+			tasks_revisions_list: () => ({ id: base }),
+			scopes_list: () => ({}),
+			scopes_get: () => ({ id: scope }),
+			scopes_project_ids: () => ({}),
+			scopes_create: () => ({ project_id: "sweep", name: "Fresh scope" }),
+			scopes_update: async () => ({
+				id: await freshScope(),
+				patch: { name: "Renamed scope" },
+			}),
+			scopes_delete: async () => ({
+				id: await freshScope(),
+				dry_run: true,
+			}),
+			tags_list: () => ({}),
+			tasks_list: () => ({}),
+			tasks_deleted_list: () => ({}),
+			tasks_board: () => ({}),
+			tasks_get_many: () => ({ ids: [base] }),
+			tasks_get: () => ({ id: base }),
+			tasks_create: () => ({ project_id: "sweep", title: "Created" }),
+			tasks_create_many: () => ({
+				items: [
+					{ project_id: "sweep", title: "Many one" },
+					{ project_id: "sweep", title: "Many two" },
+				],
+			}),
+			tasks_update: async () => ({
+				id: await freshTask(),
+				patch: { priority: "high" },
+			}),
+			tasks_update_many: async () => ({
+				items: [{ id: await freshTask(), patch: { priority: "low" } }],
+			}),
+			tasks_close: async () => ({
+				id: await freshTask(),
+				reason: "fixed",
+			}),
+			tasks_close_many: async () => ({
+				items: [{ id: await freshTask(), reason: "wontfix" }],
+			}),
+			tasks_delete: async () => ({ id: await freshTask() }),
+			tasks_restore: async () => {
+				const doomed = await freshTask();
+				await call("tasks_delete", { id: doomed });
+				return { id: doomed };
+			},
+			tasks_move: async () => ({
+				id: await freshTask(),
+				project_id: "sweep-target",
+			}),
+		};
+
+		expect(Object.keys(fixtures).sort()).toEqual([...getOps().keys()].sort());
+
+		for (const [name, op] of getOps()) {
+			const structured = await call(name, await fixtures[name]());
+			const parsed = op.output!.safeParse(structured);
+			expect(
+				parsed.success,
+				`${name}: ${parsed.success ? "" : parsed.error.message}`,
+			).toBe(true);
+		}
 	});
 });

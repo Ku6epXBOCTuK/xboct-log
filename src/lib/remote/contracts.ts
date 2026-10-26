@@ -106,9 +106,13 @@ export const taskDeleted = z.looseObject({
 	deleted_at: z.string(),
 });
 
-export const projectList = z.array(projectRef);
+export const projectList = z.looseObject({
+	items: z.array(projectRef),
+});
 
-export const scopeList = z.array(scopeRef);
+export const scopeList = z.looseObject({
+	items: z.array(scopeRef),
+});
 
 export const scopeDeleteReport = z.looseObject({
 	scope: scopeRef,
@@ -168,4 +172,6 @@ export const tagList = z.looseObject({
 	total: z.number().int(),
 });
 
-export const idList = z.array(z.string());
+export const idList = z.looseObject({
+	items: z.array(z.string()),
+});

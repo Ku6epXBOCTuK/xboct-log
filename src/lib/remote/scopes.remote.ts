@@ -13,7 +13,7 @@ export const getScopes = defineQuery({
 	name: "scopes_list",
 	output: scopeList,
 	description:
-		"List scopes, each with task_count (active non-epic tasks assigned, i.e. open/in-progress/blocked) and epics_count (non-deleted epics assigned). Pass project_id to limit to one project; omit it to list scopes across all projects. Returns: the list of scopes - every item is " +
+		"List scopes, each with task_count (active non-epic tasks assigned, i.e. open/in-progress/blocked) and epics_count (non-deleted epics assigned). Pass project_id to limit to one project; omit it to list scopes across all projects. Returns: {items} - every item is " +
 		SCOPE_FIELDS +
 		".",
 	kind: "query",
@@ -68,7 +68,7 @@ export const getScopedProjectIds = defineQuery({
 	name: "scopes_project_ids",
 	output: idList,
 	description:
-		"List ids of all projects that have at least one scope. Returns: the list of project ids.",
+		"List ids of all projects that have at least one scope. Returns: {items} - the list of project ids.",
 	kind: "query",
 	input: strictObject({}),
 	handler: () => scopes.scopedProjectIds(getDb()),
