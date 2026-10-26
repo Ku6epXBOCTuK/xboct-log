@@ -110,6 +110,30 @@
 	});
 
 	$effect(() => {
+		const current = selected;
+		if (current === null) return;
+		const referenced = [
+			...(current.relates_to ?? []),
+			...(current.duplicates ?? []),
+			...(current.duplicated_by ?? []),
+			...(current.blocked_by ?? []),
+			...blockingIds(current),
+		];
+		const missing = referenced.filter(
+			(id) => tasks.byId(id) === undefined && !tasks.isAbsent(id),
+		);
+		if (missing.length === 0) return;
+		void tasks.pin(missing);
+	});
+
+	function unavailable(id: string): string | null {
+		if (tasks.byId(id) !== undefined) return null;
+		if (tasks.isAbsent(id)) return `${id} is unavailable: the task is gone`;
+		if (tasks.isFailed(id)) return `${id} could not be loaded`;
+		return `Loading ${id}…`;
+	}
+
+	$effect(() => {
 		const id = selectedId;
 		comments.watch(id ?? null);
 		if (id === undefined) return;
@@ -392,6 +416,7 @@
 				onremove={removeBlocker}
 				onreason={(reason) => save({ blocked_reason: reason })}
 				{onopen}
+				{unavailable}
 			/>
 			<TaskLinks
 				relatesTo={selected.relates_to ?? []}
@@ -401,6 +426,7 @@
 				onadd={addLinkField}
 				onremove={removeLinkField}
 				{onopen}
+				{unavailable}
 			/>
 			<TaskFields
 				value={selected}

@@ -32,10 +32,11 @@ function task(id: string, extra: Partial<Task> = {}): Task {
 }
 
 const tasks = [task("SPA-1"), task("SPA-2", { project_id: "api" })];
+const byId = (id: string) => tasks.find((item) => item.id === id);
 
 describe("selection store", () => {
 	it("starts empty", () => {
-		const selection = createSelection({ tasks });
+		const selection = createSelection({ byId });
 
 		expect(selection.id).toBeNull();
 		expect(selection.task).toBeNull();
@@ -43,7 +44,7 @@ describe("selection store", () => {
 	});
 
 	it("resolves the selected task and its project", () => {
-		const selection = createSelection({ tasks });
+		const selection = createSelection({ byId });
 
 		selection.select("SPA-2");
 
@@ -53,7 +54,7 @@ describe("selection store", () => {
 	});
 
 	it("clears the selection", () => {
-		const selection = createSelection({ tasks });
+		const selection = createSelection({ byId });
 
 		selection.select("SPA-1");
 		selection.clear();
@@ -63,7 +64,7 @@ describe("selection store", () => {
 	});
 
 	it("keeps a stale id but reports no task", () => {
-		const selection = createSelection({ tasks });
+		const selection = createSelection({ byId });
 
 		selection.select("SPA-99");
 

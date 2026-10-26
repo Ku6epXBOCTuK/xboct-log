@@ -11,6 +11,7 @@
 		onadd: (id: string) => void;
 		onremove: (id: string) => void;
 		onopen?: (id: string) => void;
+		unavailable?: (id: string) => string | null;
 		placeholder?: string;
 		ariaLabel?: string;
 		variant?: "filter" | "field";
@@ -23,6 +24,7 @@
 		onadd,
 		onremove,
 		onopen,
+		unavailable,
 		placeholder = "Add task",
 		ariaLabel = "Tasks",
 		variant = "field",
@@ -53,8 +55,9 @@
 {#snippet trigger()}
 	<div class="select-trigger task-trigger" role="presentation">
 		{#each value as id (id)}
-			<span class="task-chip">
-				{#if onopen}
+			{@const hint = unavailable?.(id) ?? null}
+			<span class="task-chip" class:is-unavailable={hint !== null}>
+				{#if onopen && hint === null}
 					<button
 						type="button"
 						class="task-chip-open"
@@ -64,7 +67,9 @@
 						{id}
 					</button>
 				{:else}
-					{id}
+					<span title={hint ?? undefined} aria-disabled={hint !== null}>
+						{id}
+					</span>
 				{/if}
 				<button
 					type="button"
@@ -127,6 +132,15 @@
 		font-family: var(--font-mono);
 		font-size: var(--text-xs);
 		line-height: 1.75;
+	}
+
+	.task-chip.is-unavailable {
+		border-style: dashed;
+		color: var(--text-muted);
+	}
+
+	.task-chip.is-unavailable [aria-disabled="true"] {
+		cursor: not-allowed;
 	}
 
 	.task-chip-open {

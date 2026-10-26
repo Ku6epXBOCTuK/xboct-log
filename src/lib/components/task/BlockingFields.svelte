@@ -21,6 +21,7 @@
 		onremove: (id: string) => void;
 		onreason: (reason: string | null) => void;
 		onopen?: (id: string) => void;
+		unavailable?: (id: string) => string | null;
 	}
 
 	let {
@@ -35,6 +36,7 @@
 		onremove,
 		onreason,
 		onopen,
+		unavailable,
 	}: Props = $props();
 
 	function changeReason(event: Event) {
@@ -86,6 +88,7 @@
 				placeholder="Add blocker"
 				ariaLabel="Blocked by"
 				{onopen}
+				{unavailable}
 			/>
 		</div>
 		{#if blocks.length > 0}
@@ -93,14 +96,25 @@
 				Blocks
 				<div class="block-list">
 					{#each blocks as id (id)}
-						<button
-							type="button"
-							class="block-chip"
-							aria-label={`Open ${id}`}
-							onclick={() => onopen?.(id)}
-						>
-							{id}
-						</button>
+						{@const hint = unavailable?.(id) ?? null}
+						{#if hint === null}
+							<button
+								type="button"
+								class="block-chip"
+								aria-label={`Open ${id}`}
+								onclick={() => onopen?.(id)}
+							>
+								{id}
+							</button>
+						{:else}
+							<span
+								class="block-chip is-unavailable"
+								title={hint}
+								aria-disabled="true"
+							>
+								{id}
+							</span>
+						{/if}
 					{/each}
 				</div>
 			</div>
@@ -172,6 +186,14 @@
 	.block-chip:hover {
 		color: var(--foreground);
 		border-color: var(--accent);
+	}
+
+	.block-chip.is-unavailable,
+	.block-chip.is-unavailable:hover {
+		border-style: dashed;
+		border-color: var(--border-strong);
+		color: var(--text-muted);
+		cursor: not-allowed;
 	}
 
 	.blocking-hint {

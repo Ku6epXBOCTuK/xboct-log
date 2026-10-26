@@ -12,6 +12,7 @@
 		onadd: (field: LinkField, id: string) => void;
 		onremove: (field: LinkField, id: string) => void;
 		onopen?: (id: string) => void;
+		unavailable?: (id: string) => string | null;
 	}
 
 	let {
@@ -22,6 +23,7 @@
 		onadd,
 		onremove,
 		onopen,
+		unavailable,
 	}: Props = $props();
 </script>
 
@@ -36,6 +38,7 @@
 				onadd={(id) => onadd("relates_to", id)}
 				onremove={(id) => onremove("relates_to", id)}
 				{onopen}
+				{unavailable}
 				placeholder="Add related task"
 				ariaLabel="Relates to"
 			/>
@@ -48,6 +51,7 @@
 				onadd={(id) => onadd("duplicates", id)}
 				onremove={(id) => onremove("duplicates", id)}
 				{onopen}
+				{unavailable}
 				placeholder="Add duplicate of"
 				ariaLabel="Duplicates"
 			/>
@@ -60,6 +64,7 @@
 				onadd={(id) => onadd("duplicated_by", id)}
 				onremove={(id) => onremove("duplicated_by", id)}
 				{onopen}
+				{unavailable}
 				placeholder="Add duplicate source"
 				ariaLabel="Duplicated by"
 			/>
