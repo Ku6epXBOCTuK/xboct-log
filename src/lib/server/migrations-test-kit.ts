@@ -130,7 +130,10 @@ function describeTable(db: DatabaseSync, name: string): SchemaTable {
 			notNull: Number(row.notnull),
 			defaultValue: row.dflt_value ?? null,
 			primaryKey: Number(row.pk),
-		}));
+		}))
+		// NOTE: a down that re-adds a dropped column appends it to the table,
+		// and every query reads columns by name, so the order is not compared.
+		.sort((a, b) => a.name.localeCompare(b.name));
 
 	const foreignKeys = db
 		.prepare(`PRAGMA foreign_key_list(${quoteIdentifier(name)})`)
@@ -152,12 +155,15 @@ function describeTable(db: DatabaseSync, name: string): SchemaTable {
 }
 
 function describeIndexes(db: DatabaseSync): SchemaIndex[] {
+	const placeholders = INTERNAL_TABLES.map(() => "?").join(", ");
 	const tables = db
 		.prepare(
 			`SELECT name FROM sqlite_master
-			  WHERE type = 'table' AND name NOT LIKE 'sqlite_%'`,
+			  WHERE type = 'table'
+			    AND name NOT LIKE 'sqlite_%'
+			    AND name NOT IN (${placeholders})`,
 		)
-		.all()
+		.all(...INTERNAL_TABLES)
 		.map((row) => String(row.name));
 
 	const indexes: SchemaIndex[] = [];
