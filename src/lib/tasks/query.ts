@@ -1,6 +1,6 @@
 import type { Filters } from "#lib/state/filters.svelte.ts";
 import { TASK_PAGE_SIZE } from "#lib/tasks/paging.ts";
-import { parseSearchQuery } from "#lib/tasks/search.ts";
+import { isExactTerm, parseSearchQuery } from "#lib/tasks/search.ts";
 import type { TaskSortKey } from "#lib/tasks/sort.ts";
 import {
 	CLOSED_STATUSES,
@@ -53,7 +53,17 @@ function statuses(filters: Filters): Status[] | undefined {
 	return STATUSES.filter((status) => !CLOSED_STATUSES.includes(status));
 }
 
-function addSearch(args: TaskQueryArgs, input: string): void {
+function isExactOnly(input: string): boolean {
+	const terms = parseSearchQuery(input);
+	return terms.length > 0 && terms.every(isExactTerm);
+}
+
+function addSearch(
+	args: TaskQueryArgs,
+	input: string,
+	exactOnly: boolean,
+	projectPrefix?: string,
+): void {
 	const terms = parseSearchQuery(input);
 	const text = terms.flatMap((term) =>
 		term.kind === "text" ? [term.text] : [],
@@ -63,8 +73,13 @@ function addSearch(args: TaskQueryArgs, input: string): void {
 	);
 	const ids = terms.flatMap((term) => (term.kind === "id" ? [term.id] : []));
 
+	if (exactOnly && projectPrefix !== undefined) {
+		ids.push(...numbers.map((number) => `${projectPrefix}-${number}`));
+	} else if (numbers.length > 0) {
+		args.number_exact = numbers;
+	}
+
 	if (text.length > 0) args.q_any = text;
-	if (numbers.length > 0) args.number_exact = numbers;
 	if (ids.length > 0) args.id_exact = ids;
 }
 
@@ -72,6 +87,7 @@ export function buildTaskQuery(
 	filters: Filters,
 	page = filters.page,
 	pageSize = TASK_PAGE_SIZE,
+	projectPrefix?: string,
 ): TaskQueryArgs {
 	const args: TaskQueryArgs = {
 		sort: SERVER_SORT[filters.sortKey],
@@ -81,40 +97,44 @@ export function buildTaskQuery(
 		include_description: true,
 	};
 
-	if (filters.activeProject !== null) {
-		args.project_id = filters.activeProject;
+	const exactOnly = isExactOnly(filters.query);
+
+	if (!exactOnly) {
+		if (filters.activeProject !== null) {
+			args.project_id = filters.activeProject;
+		}
+
+		const status = statuses(filters);
+		if (status !== undefined) {
+			args.status = status;
+		}
+
+		if (filters.priority !== "all") {
+			args.priority = [filters.priority];
+		}
+
+		if (filters.epic === "none") {
+			args.has_epic = false;
+		} else if (filters.epic === "only") {
+			args.is_epic = true;
+		} else if (filters.epic === "inside") {
+			args.has_epic = true;
+		} else if (filters.epic !== "any") {
+			args.epic_id = filters.epic;
+		}
+
+		if (filters.scope === "none") {
+			args.scope_id = null;
+		} else if (typeof filters.scope === "number") {
+			args.scope_id = filters.scope;
+		}
+
+		if (filters.selectedTags.length > 0) {
+			args.tag = [...filters.selectedTags];
+		}
 	}
 
-	const status = statuses(filters);
-	if (status !== undefined) {
-		args.status = status;
-	}
-
-	if (filters.priority !== "all") {
-		args.priority = [filters.priority];
-	}
-
-	if (filters.epic === "none") {
-		args.has_epic = false;
-	} else if (filters.epic === "only") {
-		args.is_epic = true;
-	} else if (filters.epic === "inside") {
-		args.has_epic = true;
-	} else if (filters.epic !== "any") {
-		args.epic_id = filters.epic;
-	}
-
-	if (filters.scope === "none") {
-		args.scope_id = null;
-	} else if (typeof filters.scope === "number") {
-		args.scope_id = filters.scope;
-	}
-
-	if (filters.selectedTags.length > 0) {
-		args.tag = [...filters.selectedTags];
-	}
-
-	addSearch(args, filters.query);
+	addSearch(args, filters.query, exactOnly, projectPrefix);
 
 	return args;
 }

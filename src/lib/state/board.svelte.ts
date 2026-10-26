@@ -15,6 +15,7 @@ import { createTagStore, type TagEntry } from "#lib/state/tags.svelte.ts";
 import { createTaskStore } from "#lib/state/tasks.svelte.ts";
 import { createTheme, type ThemeName } from "#lib/state/theme.svelte.ts";
 import { createUiStore } from "#lib/state/ui.svelte.ts";
+import { TASK_PAGE_SIZE } from "#lib/tasks/paging.ts";
 import { buildTaskQuery } from "#lib/tasks/query.ts";
 import type { Project, ProjectFilter, Scope } from "#lib/types.ts";
 
@@ -46,7 +47,12 @@ export function createBoard(input: BoardInput) {
 		});
 
 		$effect(() => {
-			void tasks.load(buildTaskQuery(filters));
+			const prefix = projects.all.find(
+				(project) => project.id === filters.activeProject,
+			)?.prefix;
+			void tasks.load(
+				buildTaskQuery(filters, filters.page, TASK_PAGE_SIZE, prefix),
+			);
 		});
 
 		$effect(() => {

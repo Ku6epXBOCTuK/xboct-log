@@ -56,7 +56,7 @@
 		bind:this={input}
 		value={search.value}
 		oninput={(event) => search.set(event.currentTarget.value)}
-		placeholder="Search by title, description, and ID"
+		placeholder="Search: text, ID, =29, =LOG-29"
 		aria-label="Search tasks"
 	/>
 	{#if search.value !== "" && onclear}
