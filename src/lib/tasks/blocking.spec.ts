@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
 	blockedDownstream,
 	blockingCandidates,
+	openBlocked,
 	openBlockers,
 } from "./blocking.ts";
 import type { Task } from "#lib/types.ts";
@@ -48,6 +49,23 @@ describe("blocking helpers", () => {
 		const subject = task("SPA-3", { blocked_by: ["SPA-9"] });
 
 		expect(openBlockers([subject], subject)).toEqual(["SPA-9"]);
+	});
+
+	it("counts only open blocked tasks", () => {
+		const subject = task("SPA-1", { blocks: ["SPA-2", "SPA-3", "SPA-4"] });
+		const open = task("SPA-2");
+		const done = task("SPA-3", { status: "done" });
+		const cancelled = task("SPA-4", { status: "cancelled" });
+
+		expect(openBlocked([subject, open, done, cancelled], subject)).toEqual([
+			"SPA-2",
+		]);
+	});
+
+	it("treats an unknown blocked task as open", () => {
+		const subject = task("SPA-1", { blocks: ["SPA-9"] });
+
+		expect(openBlocked([subject], subject)).toEqual(["SPA-9"]);
 	});
 
 	it("collects downstream tasks", () => {

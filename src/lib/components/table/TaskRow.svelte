@@ -5,6 +5,7 @@
 	import { CLOSED_STATUSES, type Scope, type Task } from "#lib/types.ts";
 	import type { Snippet } from "svelte";
 	import BlockedBadge from "#lib/components/table/BlockedBadge.svelte";
+	import BlockingBadge from "#lib/components/table/BlockingBadge.svelte";
 	import EpicBadge from "#lib/components/table/EpicBadge.svelte";
 	import InfoPopover from "#lib/components/ui/InfoPopover.svelte";
 	import Paperclip from "~icons/lucide/paperclip";
@@ -18,6 +19,7 @@
 		isselected: boolean;
 		progress: EpicProgress | null;
 		blockers: string[];
+		blocking: string[];
 		onselect?: () => void;
 		onepic?: (id: string) => void;
 		action?: Snippet<[Task]>;
@@ -32,6 +34,7 @@
 		isselected,
 		progress,
 		blockers,
+		blocking,
 		onselect,
 		onepic,
 		action,
@@ -89,6 +92,7 @@
 			{#if task.status === "blocked"}
 				<BlockedBadge {blockers} reason={task.blocked_reason ?? null} />
 			{/if}
+			<BlockingBadge blocked={blocking} />
 		</div>
 	</td>
 	<td class="attach-cell optional-column">

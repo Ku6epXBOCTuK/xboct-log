@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
-	import { openBlockers } from "#lib/tasks/blocking.ts";
+	import { openBlocked, openBlockers } from "#lib/tasks/blocking.ts";
 	import { collectEpicProgress } from "#lib/tasks/filter.ts";
 	import type { SortOrder, TaskSortKey } from "#lib/tasks/sort.ts";
 	import type { Project, Task } from "#lib/types.ts";
@@ -52,6 +52,9 @@
 	const epicProgress = $derived(collectEpicProgress(allTasks));
 	const blockers = $derived(
 		new Map(allTasks.map((task) => [task.id, openBlockers(allTasks, task)])),
+	);
+	const blocking = $derived(
+		new Map(allTasks.map((task) => [task.id, openBlocked(allTasks, task)])),
 	);
 	const projectNames = $derived(
 		new Map(projects.map((project) => [project.id, project.name])),
@@ -123,6 +126,7 @@
 					isselected={selectedId === task.id}
 					progress={epicProgress.get(task.id) ?? null}
 					blockers={blockers.get(task.id) ?? []}
+					blocking={blocking.get(task.id) ?? []}
 					onselect={onselect ? () => onselect(task.id) : undefined}
 					{onepic}
 					{action}

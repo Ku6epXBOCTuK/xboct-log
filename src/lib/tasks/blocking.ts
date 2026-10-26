@@ -8,14 +8,22 @@ export function blockingIds(task: Task): string[] {
 	return task.blocks ?? [];
 }
 
+function isOpenTask(tasks: Task[], id: string): boolean {
+	const task = tasks.find((item) => item.id === id);
+	if (!task) return true;
+	return !CLOSED_STATUSES.includes(task.status);
+}
+
 export function isOpenBlocker(tasks: Task[], blockerId: string): boolean {
-	const blocker = tasks.find((task) => task.id === blockerId);
-	if (!blocker) return true;
-	return !CLOSED_STATUSES.includes(blocker.status);
+	return isOpenTask(tasks, blockerId);
 }
 
 export function openBlockers(tasks: Task[], task: Task): string[] {
-	return blockedByIds(task).filter((id) => isOpenBlocker(tasks, id));
+	return blockedByIds(task).filter((id) => isOpenTask(tasks, id));
+}
+
+export function openBlocked(tasks: Task[], task: Task): string[] {
+	return blockingIds(task).filter((id) => isOpenTask(tasks, id));
 }
 
 export function blockedDownstream(tasks: Task[], taskId: string): Set<string> {
