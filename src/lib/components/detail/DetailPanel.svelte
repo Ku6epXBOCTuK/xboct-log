@@ -381,11 +381,13 @@
 			<BlockingFields
 				status={selected.status}
 				blockedBy={selected.blocked_by ?? []}
+				blockedReason={selected.blocked_reason ?? ""}
 				candidates={blockerCandidates}
 				busy={saving}
 				onstatus={setStatus}
 				onadd={addBlocker}
 				onremove={removeBlocker}
+				onreason={(reason) => save({ blocked_reason: reason })}
 			/>
 			<TaskLinks
 				relatesTo={selected.relates_to ?? []}

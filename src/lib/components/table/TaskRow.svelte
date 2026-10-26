@@ -44,6 +44,14 @@
 			!CLOSED_STATUSES.includes(task.status),
 	);
 
+	const waitingFor = $derived(task.blocked_reason ?? "");
+	const waitingShort = $derived(
+		waitingFor.length > 40 ? `${waitingFor.slice(0, 39)}…` : waitingFor,
+	);
+	const externalBlock = $derived(
+		task.status === "blocked" && blockers.length === 0,
+	);
+
 	function filterEpic(event: MouseEvent, epicId: string | null) {
 		event.stopPropagation();
 		if (epicId !== null) {
@@ -97,6 +105,20 @@
 				<span class="blocker-badge" title={`Blocked by ${blockers.join(", ")}`}>
 					blocked by {blockers.join(", ")}
 				</span>
+			{/if}
+			{#if externalBlock}
+				{#if waitingFor !== ""}
+					<span class="blocker-badge" title={`Waiting for ${waitingFor}`}>
+						waiting: {waitingShort}
+					</span>
+				{:else}
+					<span
+						class="blocker-badge blocker-empty"
+						title="Blocked with no blocker task and no reason"
+					>
+						blocked, no reason
+					</span>
+				{/if}
 			{/if}
 		</div>
 	</td>
@@ -270,6 +292,11 @@
 		line-height: 1.5;
 		white-space: nowrap;
 		flex: none;
+	}
+
+	.blocker-empty {
+		border-color: var(--border);
+		color: var(--text-muted);
 	}
 
 	.scope-cell {

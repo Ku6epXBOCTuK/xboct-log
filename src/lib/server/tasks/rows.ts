@@ -34,6 +34,7 @@ export function mapTask(row: TaskRow): Task {
 		updated_at: row.updated_at,
 		closed_at: row.closed_at,
 		closed_reason: row.closed_reason as ClosedReason | null,
+		blocked_reason: row.blocked_reason ?? null,
 		deleted_at: row.deleted_at,
 		project_name: row.project_name ?? undefined,
 		scope_name: row.scope_name ?? undefined,

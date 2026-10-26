@@ -51,6 +51,8 @@ export const ESTIMATES = ["S", "M", "L"] as const;
 
 export type Estimate = (typeof ESTIMATES)[number];
 
+export const BLOCKED_REASON_MAX_LENGTH = 200;
+
 export const INBOX_PROJECT_ID = "inbox";
 export const INBOX_PROJECT_PREFIX = "INB";
 

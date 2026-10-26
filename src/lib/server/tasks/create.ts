@@ -1,6 +1,10 @@
 import type { DatabaseSync } from "node:sqlite";
 import { err, type Result } from "neverthrow";
-import { CLOSED_STATUSES, type Task } from "../../types";
+import {
+	CLOSED_STATUSES,
+	BLOCKED_REASON_MAX_LENGTH,
+	type Task,
+} from "../../types";
 import { guard, invalid, notFound, type AppError } from "../errors";
 import { getProject } from "../projects";
 import { withTransaction } from "../db";
@@ -87,6 +91,21 @@ export function createTask(
 		}
 	}
 
+	const blockedReason = emptyToNull(input.blocked_reason);
+	if (
+		blockedReason !== null &&
+		blockedReason.length > BLOCKED_REASON_MAX_LENGTH
+	) {
+		return err(
+			invalid(
+				`blocked_reason is too long: ${blockedReason.length} characters, max ${BLOCKED_REASON_MAX_LENGTH}`,
+			),
+		);
+	}
+	if (blockedReason !== null && status !== "blocked") {
+		return err(invalid("blocked_reason is only allowed on a blocked task"));
+	}
+
 	const now = new Date().toISOString();
 	const closedAt = CLOSED_STATUSES.includes(status) ? now : null;
 
@@ -99,8 +118,8 @@ export function createTask(
 				`INSERT INTO tasks (
 					id, project_id, number, title, description, status, priority, is_epic,
 					epic_id, scope_id, source_file, tags, estimate, assignee, due_at,
-					created_at, updated_at, closed_at
-				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+					blocked_reason, created_at, updated_at, closed_at
+				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			).run(
 				id,
 				project.id,
@@ -117,6 +136,7 @@ export function createTask(
 				estimate,
 				assignee,
 				dueAt,
+				blockedReason,
 				now,
 				now,
 				closedAt,

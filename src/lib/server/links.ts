@@ -223,7 +223,7 @@ export function releaseBlockedStatus(
 				? task.blocked_from_status
 				: "open";
 		db.prepare(
-			"UPDATE tasks SET status = ?, blocked_from_status = NULL, updated_at = ? WHERE id = ?",
+			"UPDATE tasks SET status = ?, blocked_from_status = NULL, blocked_reason = NULL, updated_at = ? WHERE id = ?",
 		).run(restored, now, taskId);
 		released.push({ task_id: taskId, status: restored });
 	}

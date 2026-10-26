@@ -27,6 +27,7 @@ export interface TaskRow {
 	updated_at: string;
 	closed_at: string | null;
 	closed_reason: string | null;
+	blocked_reason: string | null;
 	deleted_at: string | null;
 	project_name?: string;
 	scope_name?: string;
@@ -47,6 +48,7 @@ export interface NewTask {
 	estimate?: Estimate | null;
 	assignee?: string | null;
 	due_at?: string | null;
+	blocked_reason?: string | null;
 }
 
 export interface TaskPatch {
@@ -62,6 +64,7 @@ export interface TaskPatch {
 	estimate?: Estimate | null;
 	assignee?: string | null;
 	due_at?: string | null;
+	blocked_reason?: string | null;
 }
 
 export type TaskChange = ActivityChange;

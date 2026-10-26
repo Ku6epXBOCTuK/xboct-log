@@ -2,27 +2,42 @@
 	import SingleSelect from "#lib/components/ui/select/SingleSelect.svelte";
 	import TaskSelect from "#lib/components/ui/select/TaskSelect.svelte";
 	import { STATUS_LABELS } from "#lib/tasks/display.ts";
-	import { STATUSES, type Status, type Task } from "#lib/types.ts";
+	import {
+		BLOCKED_REASON_MAX_LENGTH,
+		STATUSES,
+		type Status,
+		type Task,
+	} from "#lib/types.ts";
 
 	interface Props {
 		status: Status;
 		blockedBy: string[];
+		blockedReason: string;
 		candidates: Task[];
 		busy?: boolean;
 		onstatus: (status: Status) => void;
 		onadd: (id: string) => void;
 		onremove: (id: string) => void;
+		onreason: (reason: string | null) => void;
 	}
 
 	let {
 		status,
 		blockedBy,
+		blockedReason,
 		candidates,
 		busy = false,
 		onstatus,
 		onadd,
 		onremove,
+		onreason,
 	}: Props = $props();
+
+	function changeReason(event: Event) {
+		const input = event.currentTarget as HTMLInputElement;
+		const reason = input.value.trim();
+		onreason(reason === "" ? null : reason);
+	}
 
 	const canMarkBlocked = $derived(
 		blockedBy.length > 0 && status !== "blocked" && status !== "done",
@@ -68,6 +83,19 @@
 				ariaLabel="Blocked by"
 			/>
 		</div>
+		{#if status === "blocked"}
+			<div class="field">
+				Waiting for
+				<input
+					class="field-control"
+					value={blockedReason}
+					maxlength={BLOCKED_REASON_MAX_LENGTH}
+					onchange={changeReason}
+					placeholder="external blocker: release, answer, access"
+					aria-label="Waiting for"
+				/>
+			</div>
+		{/if}
 	</div>
 </div>
 

@@ -17,6 +17,7 @@ const FIELD_LABELS: Record<string, string> = {
 	closed_reason: "Closed reason",
 	deleted_at: "Deleted",
 	blocked_by: "Blocked by",
+	blocked_reason: "Blocked reason",
 	blocks: "Blocks",
 	relates_to: "Relates to",
 	duplicates: "Duplicates",

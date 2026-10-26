@@ -23,6 +23,7 @@ function task(overrides: Partial<Task>): Task {
 		updated_at: "2026-01-01T00:00:00.000Z",
 		closed_at: null,
 		closed_reason: null,
+		blocked_reason: null,
 		deleted_at: null,
 		...overrides,
 	};

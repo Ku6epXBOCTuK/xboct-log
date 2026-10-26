@@ -58,6 +58,7 @@ export const taskSchema = z.object({
 	updated_at: z.string(),
 	closed_at: z.string().nullable(),
 	closed_reason: z.enum(CLOSED_REASONS).nullable(),
+	blocked_reason: z.string().nullable(),
 	deleted_at: z.string().nullable(),
 	project_name: z.string().optional(),
 	scope_name: z.string().optional(),

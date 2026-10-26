@@ -15,6 +15,7 @@ export type TaskPatch = Partial<
 		| "estimate"
 		| "assignee"
 		| "due_at"
+		| "blocked_reason"
 	>
 >;
 

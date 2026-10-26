@@ -18,6 +18,7 @@ import type {
 } from "../server/tasks";
 import * as repo from "../server/tasks";
 import {
+	BLOCKED_REASON_MAX_LENGTH,
 	CLOSED_REASONS,
 	ESTIMATES,
 	PRIORITIES,
@@ -42,6 +43,9 @@ import { boardFilters, taskFilters } from "./tasks.filters";
 
 const EPIC_ID_DESCRIPTION =
 	"Epic id in the full 'PREFIX-NUMBER' form (e.g. 'LOG-5'). A bare epic number (e.g. '5') is rejected: the epic must belong to the same project as the task.";
+
+const BLOCKED_REASON_DESCRIPTION =
+	"Why the task is blocked, one line of free text. Use it when the blocker is outside the tracker (waiting for a release, an answer, an access). Only allowed on a task with status 'blocked'; null clears it.";
 
 const newTask = strictObject({
 	project_id: z.string().min(1),
@@ -88,6 +92,12 @@ const newTask = strictObject({
 		.describe(
 			"Due date of the task as YYYY-MM-DD; a full ISO timestamp is accepted and cut to the day. null leaves the task without a due date.",
 		),
+	blocked_reason: z
+		.string()
+		.max(BLOCKED_REASON_MAX_LENGTH)
+		.nullable()
+		.optional()
+		.describe(BLOCKED_REASON_DESCRIPTION),
 });
 
 const taskPatch = strictObject({
@@ -132,6 +142,12 @@ const taskPatch = strictObject({
 		.describe(
 			"Due date of the task as YYYY-MM-DD; a full ISO timestamp is accepted and cut to the day. null clears the due date.",
 		),
+	blocked_reason: z
+		.string()
+		.max(BLOCKED_REASON_MAX_LENGTH)
+		.nullable()
+		.optional()
+		.describe(BLOCKED_REASON_DESCRIPTION),
 });
 
 export const getTasks = defineQuery({
@@ -251,7 +267,7 @@ export const createTask = defineCommand({
 	name: "tasks_create",
 	output: taskCreated,
 	description:
-		"Create a task. Requires project_id and title; status, priority, estimate, assignee, due_at, epic, scope, tags are optional. estimate is the size of the task: 'S', 'M' or 'L'. assignee is the person responsible for the task, due_at is its due date (YYYY-MM-DD). epic_id accepts a full epic id (e.g. 'LOG-5') of the same project. Projects that define scopes expect every task to carry one: the result carries a warnings array, and a warning naming the available scopes appears when the task is created without a scope. A project without scopes can get one with scopes_create {project_id, name}. source_file names the document or file the task came from; it is provenance only, it is never verified and several tasks may share it. Returns: the created task - " +
+		"Create a task. Requires project_id and title; status, priority, estimate, assignee, due_at, blocked_reason, epic, scope, tags are optional. estimate is the size of the task: 'S', 'M' or 'L'. assignee is the person responsible for the task, due_at is its due date (YYYY-MM-DD). blocked_reason is one line of free text explaining a block outside the tracker and is only allowed when status is 'blocked'. epic_id accepts a full epic id (e.g. 'LOG-5') of the same project. Projects that define scopes expect every task to carry one: the result carries a warnings array, and a warning naming the available scopes appears when the task is created without a scope. A project without scopes can get one with scopes_create {project_id, name}. source_file names the document or file the task came from; it is provenance only, it is never verified and several tasks may share it. Returns: the created task - " +
 		TASK_FIELDS +
 		" with a warnings array.",
 	kind: "command",
@@ -308,9 +324,9 @@ export const updateTask = defineCommand({
 	name: "tasks_update",
 	output: taskRef,
 	description:
-		"Update fields of an existing task by id. Every field to change goes inside the patch object (e.g. {id: 'LOG-87', patch: {status: 'in-progress'}}); top-level fields other than id and patch are rejected. The id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). In patch, epic_id accepts a full epic id (e.g. 'LOG-5') of the task's current project, estimate takes the size of the task ('S', 'M' or 'L') or null to clear it, assignee takes the name of the responsible person or null to clear it, and due_at takes the due date (YYYY-MM-DD) or null to clear it. The patch must name at least one field with a value: an empty patch, a field set to undefined, an unknown field or an epic id that does not exist is an error, the task is left untouched. Returns: the updated task - " +
+		"Update fields of an existing task by id. Every field to change goes inside the patch object (e.g. {id: 'LOG-87', patch: {status: 'in-progress'}}); top-level fields other than id and patch are rejected. The id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). In patch, epic_id accepts a full epic id (e.g. 'LOG-5') of the task's current project, estimate takes the size of the task ('S', 'M' or 'L') or null to clear it, assignee takes the name of the responsible person or null to clear it, due_at takes the due date (YYYY-MM-DD) or null to clear it, and blocked_reason is one line of free text explaining a block outside the tracker, allowed only on a blocked task; leaving status 'blocked' clears it. The patch must name at least one field with a value: an empty patch, a field set to undefined, an unknown field or an epic id that does not exist is an error, the task is left untouched. Returns: the updated task - " +
 		TASK_FIELDS +
-		" with a changes array and a warnings array, which is not empty when the task has no scope while its project defines scopes.",
+		" with a changes array and a warnings array, which is not empty when the task has no scope while its project defines scopes, or when the task is blocked with neither a blocker task nor a blocked_reason.",
 	kind: "command",
 	input: strictObject({
 		id: taskIdSchema(ID_DESCRIPTION),
@@ -338,8 +354,21 @@ function summarize<T extends { ok: boolean }>(items: T[]) {
 }
 
 function warningsFor(db: DatabaseSync, task: Task): string[] {
-	const warning = missingScopeWarning(db, task.project_id, task.scope_id);
-	return warning ? [warning] : [];
+	const warnings: string[] = [];
+	const scopeWarning = missingScopeWarning(db, task.project_id, task.scope_id);
+	if (scopeWarning) {
+		warnings.push(scopeWarning);
+	}
+	if (
+		task.status === "blocked" &&
+		(task.blocked_by ?? []).length === 0 &&
+		(task.blocked_reason ?? null) === null
+	) {
+		warnings.push(
+			"task is blocked with no blocker task and no blocked_reason: say what or who it waits for, or add a blocker",
+		);
+	}
+	return warnings;
 }
 
 function releasedEntries(released: ReleasedLink[]): ActivityEntry[] {

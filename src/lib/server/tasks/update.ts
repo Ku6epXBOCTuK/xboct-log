@@ -4,6 +4,7 @@ import { normalizeDueDate } from "../../tasks/display";
 import {
 	CLOSED_STATUSES,
 	STATUS_BY_REASON,
+	BLOCKED_REASON_MAX_LENGTH,
 	type ClosedReason,
 	type Task,
 } from "../../types";
@@ -42,6 +43,7 @@ const PATCH_FIELDS = [
 	"estimate",
 	"assignee",
 	"due_at",
+	"blocked_reason",
 ] as const;
 
 function validatePatch(patch: TaskPatch): AppError | null {
@@ -125,6 +127,17 @@ export function updateTaskDetailed(
 			}
 		} else {
 			sets.push("blocked_from_status = NULL");
+			if (
+				current.blocked_reason !== null &&
+				patch.blocked_reason === undefined
+			) {
+				sets.push("blocked_reason = NULL");
+				changes.push({
+					field: "blocked_reason",
+					from: current.blocked_reason,
+					to: null,
+				});
+			}
 		}
 
 		if (CLOSED_STATUSES.includes(patch.status) && current.closed_at === null) {
@@ -138,6 +151,32 @@ export function updateTaskDetailed(
 			params.push(null);
 			sets.push("closed_reason = ?");
 			params.push(null);
+		}
+	}
+	if (patch.blocked_reason !== undefined) {
+		const blockedReason = emptyToNull(patch.blocked_reason);
+		if (
+			blockedReason !== null &&
+			blockedReason.length > BLOCKED_REASON_MAX_LENGTH
+		) {
+			return err(
+				invalid(
+					`blocked_reason is too long: ${blockedReason.length} characters, max ${BLOCKED_REASON_MAX_LENGTH}`,
+				),
+			);
+		}
+		const nextStatus = patch.status ?? current.status;
+		if (blockedReason !== null && nextStatus !== "blocked") {
+			return err(invalid("blocked_reason is only allowed on a blocked task"));
+		}
+		if (blockedReason !== current.blocked_reason) {
+			sets.push("blocked_reason = ?");
+			params.push(blockedReason);
+			changes.push({
+				field: "blocked_reason",
+				from: current.blocked_reason,
+				to: blockedReason,
+			});
 		}
 	}
 	if (patch.priority !== undefined) {
