@@ -103,25 +103,11 @@ function normalizePrefixes(db) {
 		insertPair.run(oldId, newId);
 	}
 
-	// NOTE: 006 is replayable against the head schema, where 016 has already
-	// replaced task_blocked_by with task_links.
-	const hasTaskLinks =
-		db
-			.prepare(
-				"SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'task_links'",
-			)
-			.get() !== undefined;
-	const linkUpdates = hasTaskLinks
-		? `
-UPDATE task_links
-SET source_task_id = (SELECT new_id FROM prefix_id_map WHERE old_id = task_links.source_task_id)
-WHERE source_task_id IN (SELECT old_id FROM prefix_id_map);
+	db.exec(`
+UPDATE tasks
+SET epic_id = (SELECT new_id FROM prefix_id_map WHERE old_id = tasks.epic_id)
+WHERE epic_id IN (SELECT old_id FROM prefix_id_map);
 
-UPDATE task_links
-SET target_task_id = (SELECT new_id FROM prefix_id_map WHERE old_id = task_links.target_task_id)
-WHERE target_task_id IN (SELECT old_id FROM prefix_id_map);
-`
-		: `
 UPDATE task_blocked_by
 SET blocked_task_id = (SELECT new_id FROM prefix_id_map WHERE old_id = task_blocked_by.blocked_task_id)
 WHERE blocked_task_id IN (SELECT old_id FROM prefix_id_map);
@@ -129,13 +115,7 @@ WHERE blocked_task_id IN (SELECT old_id FROM prefix_id_map);
 UPDATE task_blocked_by
 SET blocked_by_task_id = (SELECT new_id FROM prefix_id_map WHERE old_id = task_blocked_by.blocked_by_task_id)
 WHERE blocked_by_task_id IN (SELECT old_id FROM prefix_id_map);
-`;
 
-	db.exec(`
-UPDATE tasks
-SET epic_id = (SELECT new_id FROM prefix_id_map WHERE old_id = tasks.epic_id)
-WHERE epic_id IN (SELECT old_id FROM prefix_id_map);
-${linkUpdates}
 UPDATE activity
 SET entity_id = (SELECT new_id FROM prefix_id_map WHERE old_id = activity.entity_id)
 WHERE activity.entity = 'task' AND entity_id IN (SELECT old_id FROM prefix_id_map);
