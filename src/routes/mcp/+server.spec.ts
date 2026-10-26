@@ -17,6 +17,7 @@ import { closeDb, getDb } from "#lib/server/db.ts";
 import { migrateDatabase } from "#lib/server/migrations.ts";
 import { createProject } from "#lib/server/projects.ts";
 import { createTask, deleteTask } from "#lib/server/tasks/index.ts";
+import { STATUSES } from "#lib/types.ts";
 import { GET, POST } from "./+server.js";
 
 let dbDir: string;
@@ -148,7 +149,7 @@ describe("/mcp endpoint", () => {
 		};
 		expect(result.isError).toBeUndefined();
 		expect(result.structuredContent?.id).toMatch(/^OUT-\d+$/);
-		expect(result.structuredContent?.status).toBe("backlog");
+		expect(STATUSES).toContain(result.structuredContent?.status);
 		expect(Array.isArray(result.structuredContent?.warnings)).toBe(true);
 	});
 

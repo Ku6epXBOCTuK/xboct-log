@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+	PROJECT_ID_MAX_LENGTH,
+	REPO_MAX_LENGTH,
 	normalizeProjectPrefix,
 	normalizeRepo,
 	projectIdError,
@@ -33,7 +35,9 @@ describe("projectIdError", () => {
 		expect(projectIdError("")).not.toBeNull();
 		expect(projectIdError("MCP Game")).not.toBeNull();
 		expect(projectIdError("-game")).not.toBeNull();
-		expect(projectIdError("a".repeat(41))).not.toBeNull();
+		expect(
+			projectIdError("a".repeat(PROJECT_ID_MAX_LENGTH + 1)),
+		).not.toBeNull();
 	});
 });
 
@@ -115,7 +119,9 @@ describe("repoError", () => {
 	});
 
 	it("rejects an overlong value", () => {
-		expect(repoError(`github.com/owner/${"a".repeat(200)}`)).not.toBeNull();
+		expect(
+			repoError(`github.com/owner/${"a".repeat(REPO_MAX_LENGTH)}`),
+		).not.toBeNull();
 	});
 });
 

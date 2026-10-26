@@ -11,31 +11,31 @@ describe("debounced value", () => {
 	});
 
 	it("applies the value only after the delay", () => {
-		const search = createDebouncedValue("");
+		const search = createDebouncedValue("", 10);
 
 		search.set("log");
 
 		expect(search.value).toBe("log");
 		expect(search.applied).toBe("");
 
-		vi.advanceTimersByTime(200);
+		vi.advanceTimersByTime(10);
 
 		expect(search.applied).toBe("log");
 	});
 
 	it("keeps only the last value typed inside the delay", () => {
-		const search = createDebouncedValue("");
+		const search = createDebouncedValue("", 10);
 
 		search.set("l");
 		search.set("lo");
 		search.set("log");
-		vi.advanceTimersByTime(200);
+		vi.advanceTimersByTime(10);
 
 		expect(search.applied).toBe("log");
 	});
 
 	it("applies immediately and drops the pending value", () => {
-		const search = createDebouncedValue("log");
+		const search = createDebouncedValue("log", 10);
 
 		search.set("logging");
 		search.apply("");
@@ -43,17 +43,17 @@ describe("debounced value", () => {
 		expect(search.value).toBe("");
 		expect(search.applied).toBe("");
 
-		vi.advanceTimersByTime(500);
+		vi.advanceTimersByTime(50);
 
 		expect(search.applied).toBe("");
 	});
 
 	it("cancels a pending update", () => {
-		const search = createDebouncedValue("");
+		const search = createDebouncedValue("", 10);
 
 		search.set("log");
 		search.cancel();
-		vi.advanceTimersByTime(500);
+		vi.advanceTimersByTime(50);
 
 		expect(search.value).toBe("log");
 		expect(search.applied).toBe("");

@@ -6,6 +6,7 @@ import { z } from "zod";
 import { closeDb, getDb } from "../server/db";
 import { migrateDatabase } from "../server/migrations";
 import { createProject } from "../server/projects";
+import { statusCounts } from "../server/status-counts-test-kit";
 import { closeTask, createTask } from "../server/tasks";
 import { runOp } from "./define";
 import { getOps } from "./index.js";
@@ -128,15 +129,9 @@ describe("tasks_list fields parameter", () => {
 		const result = (await runOp(op("tasks_get"), { id: epicId }, "mcp")) as {
 			children_counts: Record<string, number>;
 		};
-		expect(result.children_counts).toEqual({
-			backlog: 0,
-			open: 1,
-			"in-progress": 1,
-			blocked: 0,
-			done: 1,
-			cancelled: 0,
-			total: 3,
-		});
+		expect(result.children_counts).toEqual(
+			statusCounts({ open: 1, "in-progress": 1, done: 1 }, 3),
+		);
 
 		const plain = (await runOp(
 			op("tasks_get"),

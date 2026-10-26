@@ -35,7 +35,7 @@ export function projectPrefixError(prefix: string): string | null {
 	return null;
 }
 
-const REPO_MAX_LENGTH = 200;
+export const REPO_MAX_LENGTH = 200;
 const REPO_HOST_PATTERN = /^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?(?::\d{1,5})?$/i;
 const REPO_SEGMENT_PATTERN = /^[A-Za-z0-9._-]+$/;
 

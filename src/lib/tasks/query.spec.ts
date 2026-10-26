@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Filters } from "#lib/state/filters.svelte.ts";
+import { CLOSED_STATUSES, STATUSES } from "#lib/types.ts";
 import { buildTaskQuery } from "./query.ts";
 
 function filters(overrides: Partial<Filters> = {}): Filters {
@@ -21,12 +22,9 @@ function filters(overrides: Partial<Filters> = {}): Filters {
 
 describe("task query", () => {
 	it("sends only the active statuses while closed tasks are hidden", () => {
-		expect(buildTaskQuery(filters()).status).toEqual([
-			"backlog",
-			"open",
-			"in-progress",
-			"blocked",
-		]);
+		expect(buildTaskQuery(filters()).status).toEqual(
+			STATUSES.filter((status) => !CLOSED_STATUSES.includes(status)),
+		);
 		expect(
 			buildTaskQuery(filters({ hideClosed: false })).status,
 		).toBeUndefined();

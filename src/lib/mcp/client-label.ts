@@ -1,6 +1,6 @@
 import { CLIENT_INFO_META_KEY } from "@modelcontextprotocol/server";
 
-const MAX_LENGTH = 80;
+export const CLIENT_LABEL_MAX_LENGTH = 80;
 
 export function clientLabel(envelope: unknown): string | null {
 	if (typeof envelope !== "object" || envelope === null) {
@@ -32,5 +32,5 @@ function shorten(text: string): string | null {
 	if (text === "") {
 		return null;
 	}
-	return text.slice(0, MAX_LENGTH);
+	return text.slice(0, CLIENT_LABEL_MAX_LENGTH);
 }

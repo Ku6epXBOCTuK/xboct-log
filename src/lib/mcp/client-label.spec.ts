@@ -1,6 +1,6 @@
 import { CLIENT_INFO_META_KEY } from "@modelcontextprotocol/server";
 import { describe, expect, it } from "vitest";
-import { clientLabel } from "./client-label.ts";
+import { CLIENT_LABEL_MAX_LENGTH, clientLabel } from "./client-label.ts";
 
 function envelope(info: unknown): Record<string, unknown> {
 	return { [CLIENT_INFO_META_KEY]: info };
@@ -30,8 +30,10 @@ describe("clientLabel", () => {
 		);
 	});
 
-	it("cuts the label at 80 characters", () => {
-		const label = clientLabel(envelope({ name: "x".repeat(200) }));
-		expect(label).toHaveLength(80);
+	it("cuts the label at the maximum length", () => {
+		const label = clientLabel(
+			envelope({ name: "x".repeat(CLIENT_LABEL_MAX_LENGTH * 3) }),
+		);
+		expect(label).toHaveLength(CLIENT_LABEL_MAX_LENGTH);
 	});
 });

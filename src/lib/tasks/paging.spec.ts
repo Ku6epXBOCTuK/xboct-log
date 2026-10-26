@@ -8,9 +8,9 @@ describe("pageCount", () => {
 	});
 
 	it("rounds a partial page up", () => {
-		expect(pageCount(20)).toBe(1);
-		expect(pageCount(21)).toBe(2);
-		expect(pageCount(1250)).toBe(63);
+		expect(pageCount(20, 20)).toBe(1);
+		expect(pageCount(21, 20)).toBe(2);
+		expect(pageCount(1250, 20)).toBe(63);
 	});
 });
 

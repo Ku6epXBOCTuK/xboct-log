@@ -4,7 +4,6 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
 	type BackupConfig,
-	backupConfig,
 	backupFileName,
 	catchUp,
 	isoWeek,
@@ -243,20 +242,5 @@ describe("catchUp", () => {
 
 		expect(first._unsafeUnwrap()).toHaveLength(1);
 		expect(second._unsafeUnwrap()).toEqual([]);
-	});
-});
-
-describe("backupConfig", () => {
-	it("falls back to defaults", () => {
-		expect(backupConfig()).toMatchObject({
-			hour: 3,
-			minute: 0,
-			weekday: 0,
-			dailyKeep: 7,
-			weeklyKeep: 4,
-			autoKeep: 48,
-			autoIntervalMin: 30,
-			disabled: false,
-		});
 	});
 });

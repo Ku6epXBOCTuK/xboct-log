@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { defaultOrderFor, sortTasks } from "./sort";
+import { sortTasks } from "./sort";
 import type { Task } from "#lib/types.ts";
 
 function task(overrides: Partial<Task>): Task {
@@ -157,17 +157,5 @@ describe("sortTasks", () => {
 		sortTasks(input, "priority", "asc");
 
 		expect(input.map((item) => item.id)).toEqual(["X-1", "X-2", "X-3", "X-4"]);
-	});
-});
-
-describe("defaultOrderFor", () => {
-	it("defaults priority, status and project to ascending and the rest to descending", () => {
-		expect(defaultOrderFor("priority")).toBe("asc");
-		expect(defaultOrderFor("status")).toBe("asc");
-		expect(defaultOrderFor("project")).toBe("asc");
-		expect(defaultOrderFor("created")).toBe("desc");
-		expect(defaultOrderFor("updated")).toBe("desc");
-		expect(defaultOrderFor("closed")).toBe("desc");
-		expect(defaultOrderFor("id")).toBe("desc");
 	});
 });

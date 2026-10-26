@@ -5,6 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "../server/db";
 import { migrateDatabase } from "../server/migrations";
 import { createProject } from "../server/projects";
+import { statusCounts } from "../server/status-counts-test-kit";
 import { closeTask, createTask } from "../server/tasks";
 import { runOp } from "./define";
 import { getOps } from "./index.js";
@@ -76,22 +77,8 @@ describe("projects_list", () => {
 	it("returns task and epic counts for every project", async () => {
 		const items = await listProjects({});
 		const spa = items.find((project) => project.id === "spa");
-		expect(spa?.task_counts).toEqual({
-			backlog: 0,
-			open: 1,
-			"in-progress": 0,
-			blocked: 0,
-			done: 1,
-			cancelled: 0,
-		});
-		expect(spa?.epic_counts).toEqual({
-			backlog: 0,
-			open: 1,
-			"in-progress": 0,
-			blocked: 0,
-			done: 0,
-			cancelled: 0,
-		});
+		expect(spa?.task_counts).toEqual(statusCounts({ open: 1, done: 1 }));
+		expect(spa?.epic_counts).toEqual(statusCounts({ open: 1 }));
 		expect(spa?.repo).toBe("github.com/acme/shop");
 	});
 

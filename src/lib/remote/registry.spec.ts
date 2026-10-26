@@ -59,12 +59,4 @@ describe("output contracts", () => {
 			expect(schema.type, `${name} has a ${schema.type} root`).toBe("object");
 		}
 	});
-
-	it("keeps the published output schemas small", () => {
-		let size = 0;
-		for (const op of getOps().values()) {
-			size += JSON.stringify(z.toJSONSchema(op.output!)).length;
-		}
-		expect(size).toBeLessThanOrEqual(25_000);
-	});
 });

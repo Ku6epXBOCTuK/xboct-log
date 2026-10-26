@@ -79,7 +79,7 @@ export function pickFields(task: Task, fields: string[]): Task {
 	return picked as unknown as Task;
 }
 
-const SHORT_DESCRIPTION_LENGTH = 120;
+export const SHORT_DESCRIPTION_LENGTH = 120;
 
 function shortDescription(description: string): string {
 	const firstLine = description.split("\n")[0].trim();

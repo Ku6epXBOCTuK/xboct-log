@@ -27,6 +27,8 @@ import {
 	updateTasksMany,
 } from "./tasks";
 import { addLink, removeLink } from "./links";
+import { statusCounts } from "./status-counts-test-kit";
+import { SHORT_DESCRIPTION_LENGTH } from "./tasks/rows";
 
 function unwrap<T>(result: Result<T, AppError>): T {
 	expect(result.isOk()).toBe(true);
@@ -798,7 +800,9 @@ describe("tasks", () => {
 		const [longTask] = listTasks(db, { title: "Long" });
 		const [emptyTask] = listTasks(db, { title: "Empty" });
 
-		expect(longTask.short_description).toHaveLength(121);
+		expect(longTask.short_description).toHaveLength(
+			SHORT_DESCRIPTION_LENGTH + 1,
+		);
 		expect(longTask.short_description?.endsWith("…")).toBe(true);
 		expect(emptyTask.short_description).toBe("");
 	});
@@ -840,14 +844,9 @@ describe("tasks", () => {
 		unwrap(updateTask(db, b.id, { status: "blocked" }));
 		unwrap(createTask(db, { project_id: "spa", title: "C" }));
 
-		expect(countTasksByStatus(db, "spa")).toEqual({
-			backlog: 1,
-			open: 1,
-			"in-progress": 0,
-			blocked: 1,
-			done: 0,
-			cancelled: 0,
-		});
+		expect(countTasksByStatus(db, "spa")).toEqual(
+			statusCounts({ backlog: 1, open: 1, blocked: 1 }),
+		);
 	});
 
 	it("counts tasks and epics by status separately", async () => {
@@ -868,22 +867,10 @@ describe("tasks", () => {
 		);
 		unwrap(updateTask(db, done.id, { status: "done" }));
 
-		expect(countTasksByStatus(db, "spa")).toEqual({
-			backlog: 0,
-			open: 1,
-			"in-progress": 0,
-			blocked: 0,
-			done: 0,
-			cancelled: 0,
-		});
-		expect(countEpicsByStatus(db, "spa")).toEqual({
-			backlog: 0,
-			open: 1,
-			"in-progress": 0,
-			blocked: 0,
-			done: 1,
-			cancelled: 0,
-		});
+		expect(countTasksByStatus(db, "spa")).toEqual(statusCounts({ open: 1 }));
+		expect(countEpicsByStatus(db, "spa")).toEqual(
+			statusCounts({ open: 1, done: 1 }),
+		);
 	});
 });
 

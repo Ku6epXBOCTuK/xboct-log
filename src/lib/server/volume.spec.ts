@@ -23,6 +23,7 @@ const PROJECTS: SeededProject[] = [
 const STALE = "2025-01-01T00:00:00.000Z";
 const FRESH = "2026-10-01T00:00:00.000Z";
 const PAGE = 100;
+const SMALL_TASKS = PROJECTS.find((project) => project.id === "small")!.tasks;
 
 function unwrap<T>(result: Result<T, AppError>): T {
 	expect(result.isOk()).toBe(true);
@@ -142,16 +143,16 @@ describe("volume smoke", () => {
 
 		const byText = listTasks(db, { q_any: ["SML"] });
 		expect(byText.map((task) => task.id)).toContain(target.id);
-		expect(byText.length).toBe(45);
+		expect(byText.length).toBe(SMALL_TASKS);
 	});
 
 	it("gives a project without fresh tasks its own rows", () => {
 		const page = listTasks(db, { project_id: "small", limit: PAGE });
 		const query = { project_id: "small" };
 
-		expect(page.length).toBe(45);
+		expect(page.length).toBe(SMALL_TASKS);
 		expect(page.every((task) => task.project_id === "small")).toBe(true);
-		expect(countTasks(db, query)).toBe(45);
+		expect(countTasks(db, query)).toBe(SMALL_TASKS);
 	});
 
 	it("keeps the counters equal to the stored rows", () => {

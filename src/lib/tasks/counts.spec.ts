@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Task } from "#lib/types.ts";
+import { STATUSES, type Task } from "#lib/types.ts";
 import {
 	activeCount,
 	emptyCounts,
@@ -15,14 +15,10 @@ const counts = { open: 2, "in-progress": 1, blocked: 3, done: 4, cancelled: 5 };
 
 describe("counts", () => {
 	it("starts every status at zero", () => {
-		expect(emptyCounts()).toEqual({
-			backlog: 0,
-			open: 0,
-			"in-progress": 0,
-			blocked: 0,
-			done: 0,
-			cancelled: 0,
-		});
+		const empty = emptyCounts();
+
+		expect(Object.keys(empty).sort()).toEqual([...STATUSES].sort());
+		expect(Object.values(empty).every((value) => value === 0)).toBe(true);
 	});
 
 	it("sums only the statuses that are still active", () => {
