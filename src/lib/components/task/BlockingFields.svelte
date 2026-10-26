@@ -21,6 +21,7 @@
 		onremove: (id: string) => void;
 		onreason: (reason: string | null) => void;
 		onopen?: (id: string) => void;
+		onsearch?: (query: string) => void;
 		unavailable?: (id: string) => string | null;
 	}
 
@@ -36,6 +37,7 @@
 		onremove,
 		onreason,
 		onopen,
+		onsearch,
 		unavailable,
 	}: Props = $props();
 
@@ -88,6 +90,7 @@
 				placeholder="Add blocker"
 				ariaLabel="Blocked by"
 				{onopen}
+				{onsearch}
 				{unavailable}
 			/>
 		</div>

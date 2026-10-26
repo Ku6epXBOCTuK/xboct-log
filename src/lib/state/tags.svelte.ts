@@ -7,11 +7,6 @@ export interface TagEntry {
 	active: number;
 }
 
-export interface TagUsage {
-	tag: string;
-	count: number;
-}
-
 export function createTagStore(initial: TagEntry[]) {
 	let entries = $state<TagEntry[]>(initial);
 
@@ -26,18 +21,11 @@ export function createTagStore(initial: TagEntry[]) {
 			const { items } = await fetchFresh(getTags({}));
 			entries = items;
 		},
-		ranked(local: TagUsage[]): TagEntry[] {
-			const localCount: Record<string, number> = {};
-			for (const item of local) {
-				localCount[item.tag] = item.count;
-			}
+		ordered(entries: TagEntry[]): TagEntry[] {
 			return entries
 				.filter((entry) => entry.active > 0)
 				.slice()
 				.sort((left, right) => {
-					const byProject =
-						(localCount[right.tag] ?? 0) - (localCount[left.tag] ?? 0);
-					if (byProject !== 0) return byProject;
 					if (right.count !== left.count) return right.count - left.count;
 					return left.tag.localeCompare(right.tag);
 				});

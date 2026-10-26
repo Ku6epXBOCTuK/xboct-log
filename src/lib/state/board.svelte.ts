@@ -6,6 +6,7 @@ import { getContext, setContext } from "svelte";
 import { createCommentsStore } from "#lib/state/comments.svelte.ts";
 import { createDraftStore } from "#lib/state/draft.svelte.ts";
 import { createFilters } from "#lib/state/filters.svelte.ts";
+import { createProjectData } from "#lib/state/project-data.svelte.ts";
 import { createProjectStore } from "#lib/state/projects.svelte.ts";
 import { createScopeStore } from "#lib/state/scopes.svelte.ts";
 import { createSelection } from "#lib/state/selection.svelte.ts";
@@ -30,6 +31,7 @@ export function createBoard(input: BoardInput) {
 	const projects = createProjectStore(input.projects);
 	const scopes = createScopeStore(input.scopes);
 	const stats = createStatsStore();
+	const data = createProjectData();
 	const tags = createTagStore(input.tags);
 	const comments = createCommentsStore();
 	const filters = createFilters(input.project);
@@ -77,6 +79,7 @@ export function createBoard(input: BoardInput) {
 		projects,
 		scopes,
 		stats,
+		data,
 		tags,
 		comments,
 		filters,

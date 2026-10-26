@@ -1,6 +1,11 @@
 <script lang="ts">
 	import Select from "#lib/components/ui/select/Select.svelte";
 	import { createSelect } from "#lib/components/ui/select/select.svelte.ts";
+	import {
+		isExactTerm,
+		matchesSearch,
+		parseSearchQuery,
+	} from "#lib/tasks/search.ts";
 	import type { Task } from "#lib/types.ts";
 	import Plus from "~icons/lucide/plus";
 	import X from "~icons/lucide/x";
@@ -11,6 +16,7 @@
 		onadd: (id: string) => void;
 		onremove: (id: string) => void;
 		onopen?: (id: string) => void;
+		onsearch?: (query: string) => void;
 		unavailable?: (id: string) => string | null;
 		placeholder?: string;
 		ariaLabel?: string;
@@ -24,6 +30,7 @@
 		onadd,
 		onremove,
 		onopen,
+		onsearch,
 		unavailable,
 		placeholder = "Add task",
 		ariaLabel = "Tasks",
@@ -35,11 +42,19 @@
 		return `${task.id} — ${task.title}`;
 	}
 
+	function localMatch(task: Task, needle: string): boolean {
+		const exact = parseSearchQuery(needle).filter(isExactTerm);
+		if (exact.length === 0) return true;
+		return matchesSearch(task, exact);
+	}
+
 	const select = createSelect<Task>({
 		items: () => items.filter((task) => !value.includes(task.id)),
 		getLabel: (task) => label(task),
 		getKeywords: (task) => `${task.id} ${task.title}`,
+		filter: localMatch,
 		closeOnPick: false,
+		onQuery: (query) => onsearch?.(query),
 		onPick: (task) => {
 			onadd(task.id);
 			select.setQuery("");

@@ -15,6 +15,7 @@
 	import IconButton from "#lib/components/ui/IconButton.svelte";
 	import StatusDot from "#lib/components/ui/StatusDot.svelte";
 	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
+	import type { ProjectDataStore } from "#lib/state/project-data.svelte.ts";
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { CommentsStore } from "#lib/state/comments.svelte.ts";
 	import type { TagStore } from "#lib/state/tags.svelte.ts";
@@ -25,7 +26,6 @@
 	import { blockingCandidates, blockingIds } from "#lib/tasks/blocking.ts";
 	import { taskText } from "#lib/tasks/clipboard.ts";
 	import { advancedFilledCount } from "#lib/tasks/fields.ts";
-	import { collectTags } from "#lib/tasks/filter.ts";
 	import {
 		siblingEpics,
 		validateTaskDraft,
@@ -33,6 +33,9 @@
 	} from "#lib/tasks/fields.ts";
 	import { CLOSED_STATUSES } from "#lib/types.ts";
 	import type { ClosedReason, Status, Task } from "#lib/types.ts";
+	import { fetchFresh } from "#lib/remote/fresh.ts";
+	import { getTaskOptions } from "#lib/remote/options.remote.ts";
+	import { createDebouncedValue } from "#lib/state/debounce.svelte.ts";
 	import { cubicOut } from "svelte/easing";
 	import Clock3 from "~icons/lucide/clock-3";
 	import MessageSquare from "~icons/lucide/message-square";
@@ -46,6 +49,7 @@
 		projects: ProjectStore;
 		scopes: ScopeStore;
 		tags: TagStore;
+		data: ProjectDataStore;
 		comments: CommentsStore;
 		ui: UiStore;
 		onclear: () => void;
@@ -60,6 +64,7 @@
 		projects,
 		scopes,
 		tags,
+		data,
 		comments,
 		ui,
 		onclear,
@@ -74,28 +79,71 @@
 	let commentsOpen = $state(false);
 	let attachments: TaskAttachments | undefined = $state();
 	let dragging = $state(false);
-	let tagEntries = $derived(
-		tags.ranked(collectTags(tasks.tasks, selected?.project_id ?? null)),
+	let projectData = $derived(
+		selected === null ? undefined : data.of(selected.project_id),
 	);
+	let tagEntries = $derived(tags.ordered(projectData?.tags ?? []));
 	let tagSuggestions = $derived(tagEntries.map((entry) => entry.tag));
 	let tagCounts = $derived(
 		Object.fromEntries(tagEntries.map((entry) => [entry.tag, entry.count])),
 	);
+	const search = createDebouncedValue("");
+	let found = $state<Task[]>([]);
+	let searchRequest = 0;
+
+	function searchTasks(query: string) {
+		search.set(query);
+	}
+
+	$effect(() => {
+		const text = search.applied.trim();
+		if (text === "") {
+			found = [];
+			return;
+		}
+		const current = ++searchRequest;
+		void fetchFresh(getTaskOptions({ q: text }))
+			.then((page) => {
+				if (current !== searchRequest) return;
+				found = page.items;
+			})
+			.catch(() => {
+				if (current === searchRequest) found = [];
+			});
+	});
+
+	$effect(() => () => search.cancel());
+
+	function append(base: Task[], extra: Task[]): Task[] {
+		const ids = new Set(base.map((task) => task.id));
+		return [...base, ...extra.filter((task) => !ids.has(task.id))];
+	}
+
+	function isLinkCandidate(task: Task): boolean {
+		if (selected === null || task.id === selected.id) return false;
+		if (CLOSED_STATUSES.includes(task.status)) return false;
+		return (
+			!(selected.relates_to ?? []).includes(task.id) &&
+			!(selected.duplicates ?? []).includes(task.id) &&
+			!(selected.duplicated_by ?? []).includes(task.id)
+		);
+	}
+
 	let blockerCandidates = $derived(
-		selected === null ? [] : blockingCandidates(tasks.tasks, selected),
+		selected === null
+			? []
+			: append(
+					blockingCandidates(projectData?.tasks ?? [], selected),
+					blockingCandidates(found, selected),
+				),
 	);
 	let linkCandidates = $derived(
 		selected === null
 			? []
-			: tasks.tasks.filter((task) => {
-					if (task.id === selected.id) return false;
-					if (CLOSED_STATUSES.includes(task.status)) return false;
-					return (
-						!(selected.relates_to ?? []).includes(task.id) &&
-						!(selected.duplicates ?? []).includes(task.id) &&
-						!(selected.duplicated_by ?? []).includes(task.id)
-					);
-				}),
+			: append(
+					(projectData?.tasks ?? []).filter(isLinkCandidate),
+					found.filter(isLinkCandidate),
+				),
 	);
 
 	// NOTE: the derived value only changes when the task id changes, so a live
@@ -107,6 +155,12 @@
 		if (id === undefined) return;
 		historyOpen = false;
 		commentsOpen = false;
+	});
+
+	$effect(() => {
+		const projectId = selected?.project_id;
+		if (projectId === undefined) return;
+		data.ensure(projectId);
 	});
 
 	$effect(() => {
@@ -416,6 +470,7 @@
 				onremove={removeBlocker}
 				onreason={(reason) => save({ blocked_reason: reason })}
 				{onopen}
+				onsearch={searchTasks}
 				{unavailable}
 			/>
 			<TaskLinks
@@ -426,6 +481,7 @@
 				onadd={addLinkField}
 				onremove={removeLinkField}
 				{onopen}
+				onsearch={searchTasks}
 				{unavailable}
 			/>
 			<TaskFields

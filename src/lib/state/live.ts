@@ -2,6 +2,7 @@ import { fetchFresh } from "#lib/remote/fresh.ts";
 import { getProjects } from "#lib/remote/projects.remote.ts";
 import { getScopedProjectIds, getScopes } from "#lib/remote/scopes.remote.ts";
 import type { CommentsStore } from "./comments.svelte.ts";
+import type { ProjectDataStore } from "./project-data.svelte.ts";
 import type { ProjectStore } from "./projects.svelte.ts";
 import type { ScopeStore } from "./scopes.svelte.ts";
 import type { TagStore } from "./tags.svelte.ts";
@@ -20,6 +21,7 @@ interface LiveStores {
 	tags: TagStore;
 	comments: CommentsStore;
 	stats: StatsStore;
+	data: ProjectDataStore;
 }
 
 async function loadScopes() {
@@ -62,6 +64,11 @@ export function startLiveSync(stores: LiveStores): () => void {
 						await stores.comments.refresh();
 					} catch (error) {
 						console.warn("[live] comments reload failed", error);
+					}
+					try {
+						await stores.data.refresh();
+					} catch (error) {
+						console.warn("[live] picker data reload failed", error);
 					}
 					entities.add("projects");
 					entities.add("scopes");

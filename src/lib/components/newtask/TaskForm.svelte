@@ -5,6 +5,7 @@
 	import TaskFields from "#lib/components/task/TaskFields.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import type { DraftStore } from "#lib/state/draft.svelte.ts";
+	import type { ProjectDataStore } from "#lib/state/project-data.svelte.ts";
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { TagStore } from "#lib/state/tags.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
@@ -13,7 +14,6 @@
 	import { messageOf } from "#lib/tasks/display.ts";
 	import { fileToBase64, isImage } from "#lib/tasks/attachments.ts";
 	import { addTaskAttachment } from "#lib/remote/attachments.remote.ts";
-	import { collectTags } from "#lib/tasks/filter.ts";
 	import { matchesHotkey } from "#lib/hotkeys/hotkeys.ts";
 	import { fieldNavigation } from "#lib/hotkeys/fields.ts";
 	import {
@@ -27,7 +27,7 @@
 		type TaskFieldValues,
 		type TaskPatch,
 	} from "#lib/tasks/fields.ts";
-	import { INBOX_PROJECT_ID, type Project } from "#lib/types.ts";
+	import { INBOX_PROJECT_ID, type Project, type Task } from "#lib/types.ts";
 	import { untrack } from "svelte";
 	import ArrowLeft from "~icons/lucide/arrow-left";
 	import IconButton from "#lib/components/ui/IconButton.svelte";
@@ -36,9 +36,11 @@
 
 	interface Props {
 		tasks: TaskStore;
+		epics: Task[];
 		projects: Project[];
 		scopes: ScopeStore;
 		tags: TagStore;
+		data: ProjectDataStore;
 		draftStore: DraftStore;
 		ui: UiStore;
 		initialProject?: string;
@@ -50,9 +52,11 @@
 
 	let {
 		tasks,
+		epics,
 		projects,
 		scopes,
 		tags,
+		data,
 		draftStore,
 		ui,
 		initialProject,
@@ -92,9 +96,8 @@
 	}
 
 	let draft = $state<TaskFieldValues>(blankDraft());
-	let tagEntries = $derived(
-		tags.ranked(collectTags(tasks.tasks, draft.project_id)),
-	);
+	let projectData = $derived(data.of(draft.project_id));
+	let tagEntries = $derived(tags.ordered(projectData?.tags ?? []));
 	let tagSuggestions = $derived(tagEntries.map((entry) => entry.tag));
 	let tagCounts = $derived(
 		Object.fromEntries(tagEntries.map((entry) => [entry.tag, entry.count])),
@@ -117,7 +120,7 @@
 		draft = fitDraftToProjects(
 			{ ...restored.values, tags: [...restored.values.tags] },
 			projects,
-			tasks.epics,
+			epics,
 			scopes.all,
 			defaultProject(),
 		);
@@ -126,9 +129,13 @@
 	});
 
 	const epicOptions = $derived(
-		epicsForProject(tasks.epics, draft.project_id, draft.epic_id),
+		epicsForProject(epics, draft.project_id, draft.epic_id),
 	);
 	const scopeOptions = $derived(scopes.listFor(draft.project_id));
+
+	$effect(() => {
+		data.ensure(draft.project_id);
+	});
 
 	$effect(() => {
 		titleInput?.focus();

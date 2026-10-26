@@ -12,41 +12,29 @@ describe("tag store", () => {
 	it("drops the tags that closed tasks keep alive", () => {
 		const store = createTagStore(dictionary);
 
-		expect(store.ranked([]).map((entry) => entry.tag)).toEqual([
+		expect(store.ordered(dictionary).map((entry) => entry.tag)).toEqual([
 			"enhancement",
 			"ui",
 			"bug",
 		]);
 	});
 
-	it("puts the tags used in the project first", () => {
-		const store = createTagStore(dictionary);
+	it("breaks ties by name", () => {
+		const store = createTagStore([]);
 
 		expect(
 			store
-				.ranked([
-					{ tag: "bug", count: 6 },
-					{ tag: "ui", count: 1 },
+				.ordered([
+					{ tag: "zeta", count: 1, active: 1 },
+					{ tag: "alpha", count: 1, active: 1 },
 				])
 				.map((entry) => entry.tag),
-		).toEqual(["bug", "ui", "enhancement"]);
-	});
-
-	it("breaks ties by name", () => {
-		const store = createTagStore([
-			{ tag: "zeta", count: 1, active: 1 },
-			{ tag: "alpha", count: 1, active: 1 },
-		]);
-
-		expect(store.ranked([]).map((entry) => entry.tag)).toEqual([
-			"alpha",
-			"zeta",
-		]);
+		).toEqual(["alpha", "zeta"]);
 	});
 
 	it("keeps the counts for the dropdown", () => {
-		const store = createTagStore(dictionary);
-		const [first] = store.ranked([]);
+		const store = createTagStore([]);
+		const [first] = store.ordered(dictionary);
 
 		expect(first).toEqual({ tag: "enhancement", count: 12, active: 7 });
 	});

@@ -6,6 +6,8 @@ export interface SelectConfig<T> {
 	closeOnPick?: boolean;
 	onOpen?: () => void;
 	onClose?: () => void;
+	onQuery?: (query: string) => void;
+	filter?: (item: T, needle: string) => boolean;
 }
 
 function matches<T>(
@@ -31,7 +33,9 @@ export function createSelect<T>(config: SelectConfig<T>) {
 		config
 			.items()
 			.filter((item) =>
-				matches(item, needle, config.getLabel, config.getKeywords),
+				config.filter === undefined
+					? matches(item, needle, config.getLabel, config.getKeywords)
+					: config.filter(item, needle),
 			),
 	);
 
@@ -66,6 +70,7 @@ export function createSelect<T>(config: SelectConfig<T>) {
 	function setQuery(value: string) {
 		query = value;
 		activeIndex = 0;
+		config.onQuery?.(value);
 	}
 
 	function move(delta: number) {

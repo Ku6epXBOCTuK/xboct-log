@@ -15,6 +15,7 @@
 		projects,
 		scopes,
 		stats,
+		data,
 		tags,
 		comments,
 		filters,
@@ -28,6 +29,8 @@
 	let childEpic = $state<Task | null>(null);
 
 	const selected = $derived(selection.task);
+
+	const epics = $derived(stats.epics);
 
 	const visibleTasks = $derived(tasks.tasks);
 
@@ -111,6 +114,7 @@
 	{projects}
 	{scopes}
 	{tags}
+	{data}
 	{comments}
 	{ui}
 	onclear={() => selection.clear()}
@@ -124,7 +128,9 @@
 	{projects}
 	{scopes}
 	{tasks}
+	{epics}
 	{tags}
+	{data}
 	draftStore={draft}
 	{ui}
 	initialProject={createDefaults.projectId}
