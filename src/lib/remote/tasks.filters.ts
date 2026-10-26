@@ -170,16 +170,3 @@ export const taskFilters = strictObject({
 		),
 	offset: z.number().int().nonnegative().optional(),
 }).default({ limit: 100 });
-
-export const boardFilters = strictObject({
-	...taskFilterShape,
-	limit: z
-		.number()
-		.int()
-		.positive()
-		.max(200)
-		.default(50)
-		.describe(
-			"Maximum number of tasks in every column (default 50, max 200). The count of a column is not limited.",
-		),
-});

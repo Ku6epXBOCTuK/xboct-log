@@ -28,7 +28,6 @@ import {
 } from "../types";
 import {
 	taskBatch,
-	taskBoard,
 	taskCreated,
 	taskDeleted,
 	taskList,
@@ -39,7 +38,7 @@ import { defineCommand, defineQuery } from "./define";
 import { resolveTaskOrThrow } from "./ids";
 import { TASK_FIELDS } from "./shape";
 import { strictObject } from "./strict";
-import { boardFilters, taskFilters } from "./tasks.filters";
+import { taskFilters } from "./tasks.filters";
 
 const EPIC_ID_DESCRIPTION =
 	"Epic id in the full 'PREFIX-NUMBER' form (e.g. 'LOG-5'). A bare epic number (e.g. '5') is rejected: the epic must belong to the same project as the task. Epics are flat: only a non-epic task carries epic_id, and an epic with epic_id is rejected, so nested epics do not exist.";
@@ -211,16 +210,6 @@ export const listDeletedTasks = defineQuery({
 			total: repo.countTasks(db, query),
 		};
 	},
-});
-
-export const getTaskBoard = defineQuery({
-	name: "tasks_board",
-	output: taskBoard,
-	description:
-		"Read the board of the backlog: the matching tasks grouped by status in one call. Accepts the same filters as tasks_list (project, priority, tags, epic, scope, blocked_by, blocks, text query, title, source_file, project_archived, fields) plus limit, which caps the tasks in every column, not the whole board. fields trims the tasks inside the columns and always keeps id, project_id and number. Returns: {columns, total}, where columns is one entry per status in the order open, in-progress, blocked, done, cancelled (empty statuses are kept), each entry is { status, count, items } and count is the number of matching tasks of that status even when items are cut by the limit; total is the number of matching tasks. Use it for a kanban view and for a summary of the backlog; use tasks_list to page through the tasks of one status.",
-	kind: "query",
-	input: boardFilters,
-	handler: (filters) => repo.boardTasks(getDb(), filters),
 });
 
 export const getTasksByIds = defineQuery({

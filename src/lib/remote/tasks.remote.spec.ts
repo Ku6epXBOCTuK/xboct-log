@@ -19,12 +19,6 @@ beforeAll(async () => {
 	await migrateDatabase(db);
 	const project = createProject(db, { id: "spa", name: "Shop", prefix: "SPA" });
 	expect(project.isOk()).toBe(true);
-	const boardProject = createProject(db, {
-		id: "brd",
-		name: "Board",
-		prefix: "BRD",
-	});
-	expect(boardProject.isOk()).toBe(true);
 	const task = createTask(db, {
 		project_id: "spa",
 		title: "Alpha",
@@ -308,79 +302,5 @@ describe("assignee and due date", () => {
 				"mcp",
 			),
 		).rejects.toBeDefined();
-	});
-});
-
-describe("tasks_board", () => {
-	async function board(input: unknown): Promise<{
-		columns: {
-			status: string;
-			count: number;
-			items: Record<string, unknown>[];
-		}[];
-		total: number;
-	}> {
-		return (await runOp(op("tasks_board"), input, "mcp")) as never;
-	}
-
-	it("returns one column per status and counts the tasks", async () => {
-		const db = getDb();
-		const created = createTask(db, {
-			project_id: "brd",
-			title: "On the board",
-			status: "in-progress",
-		});
-		expect(created.isOk()).toBe(true);
-
-		const result = await board({ project_id: "brd" });
-
-		expect(result.columns.map((column) => column.status)).toEqual([
-			"open",
-			"in-progress",
-			"blocked",
-			"done",
-			"cancelled",
-		]);
-		const column = result.columns.find(
-			(entry) => entry.status === "in-progress",
-		);
-		expect(column?.count).toBe(1);
-		expect(column?.items.map((task) => task.title)).toEqual(["On the board"]);
-		expect(result.total).toBe(1);
-	});
-
-	it("cuts the items of a column by the limit but keeps the count", async () => {
-		const db = getDb();
-		for (const title of ["One", "Two", "Three"]) {
-			const created = createTask(db, { project_id: "brd", title });
-			expect(created.isOk()).toBe(true);
-		}
-
-		const result = await board({ project_id: "brd", limit: 1 });
-
-		const column = result.columns.find((entry) => entry.status === "open");
-		expect(column?.count).toBe(3);
-		expect(column?.items).toHaveLength(1);
-	});
-
-	it("keeps only the requested status columns", async () => {
-		const result = await board({ status: ["open"] });
-
-		expect(result.columns.map((column) => column.status)).toEqual(["open"]);
-	});
-
-	it("trims the items of a column by fields and keeps the identity", async () => {
-		const result = await board({ status: ["open"], fields: "title" });
-
-		const items = result.columns[0]?.items ?? [];
-		expect(items.length).toBeGreaterThan(0);
-		for (const item of items) {
-			expect(Object.keys(item).sort()).toEqual([
-				"id",
-				"number",
-				"project_id",
-				"title",
-			]);
-		}
 	});
 });

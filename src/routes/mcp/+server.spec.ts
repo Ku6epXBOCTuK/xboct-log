@@ -247,30 +247,6 @@ describe("/mcp endpoint", () => {
 		).toEqual(["id", "number", "project_id", "status", "title"]);
 	});
 
-	it("returns structuredContent when fields trims the board", async () => {
-		const body = await rpc("tools/call", {
-			name: "tasks_board",
-			arguments: { project_id: "fld", fields: "title,status" },
-		});
-		expect(body.error).toBeUndefined();
-		const result = body.result as {
-			isError?: boolean;
-			structuredContent?: {
-				columns?: { items?: Record<string, unknown>[] }[];
-			};
-		};
-		expect(result.isError).toBeUndefined();
-		const items = result.structuredContent?.columns?.[0]?.items ?? [];
-		expect(items.length).toBeGreaterThan(0);
-		expect(Object.keys(items[0] ?? {}).sort()).toEqual([
-			"id",
-			"number",
-			"project_id",
-			"status",
-			"title",
-		]);
-	});
-
 	it("accepts list filters and the new sort keys", async () => {
 		const body = await rpc("tools/call", {
 			name: "tasks_list",
@@ -592,7 +568,6 @@ describe("output contracts", () => {
 			tags_list: () => ({}),
 			tasks_list: () => ({}),
 			tasks_deleted_list: () => ({}),
-			tasks_board: () => ({}),
 			tasks_get_many: () => ({ ids: [base] }),
 			tasks_get: () => ({ id: base }),
 			tasks_create: () => ({ project_id: "sweep", title: "Created" }),

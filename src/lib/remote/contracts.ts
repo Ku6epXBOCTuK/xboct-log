@@ -6,7 +6,6 @@ import {
 	scopeSchema,
 	taskSchema,
 } from "../entities";
-import { STATUSES } from "../types";
 
 export const taskRef = taskSchema
 	.pick({
@@ -73,17 +72,6 @@ export const taskCreated = z.looseObject({
 
 export const taskList = z.looseObject({
 	items: z.array(taskListItem),
-	total: z.number().int(),
-});
-
-export const taskBoard = z.looseObject({
-	columns: z.array(
-		z.looseObject({
-			status: z.enum(STATUSES),
-			count: z.number().int(),
-			items: z.array(taskListItem),
-		}),
-	),
 	total: z.number().int(),
 });
 
