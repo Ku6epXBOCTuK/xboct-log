@@ -8,6 +8,7 @@
 		projects: Project[];
 		tasks: Task[];
 		activeProject: ProjectFilter;
+		selectionProjectId?: string | null;
 		onselect: (projectId: ProjectFilter) => void;
 		onarchive: (project: Project) => void;
 		onsettings: (project: Project) => void;
@@ -17,6 +18,7 @@
 		projects,
 		tasks,
 		activeProject,
+		selectionProjectId = null,
 		onselect,
 		onarchive,
 		onsettings,
@@ -37,6 +39,8 @@
 	<ProjectRow
 		{project}
 		active={activeProject === project.id}
+		selection={project.id === selectionProjectId &&
+			project.id !== activeProject}
 		count={countActiveTasksInProject(tasks, project.id)}
 		onselect={() => onselect(project.id)}
 		onarchive={() => onarchive(project)}

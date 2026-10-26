@@ -59,6 +59,8 @@
 	onclick={onselect}
 	class:interactive={onselect !== undefined}
 	class={isselected ? "row-selected" : ""}
+	data-task-id={task.id}
+	aria-current={isselected ? "true" : undefined}
 >
 	<td class="task-id">{task.id}</td>
 	{#if showProject}
@@ -164,6 +166,19 @@
 
 	.row-selected td {
 		background: var(--violet-row);
+	}
+
+	.row-selected td:first-child {
+		box-shadow: inset 3px 0 var(--violet);
+	}
+
+	.row-selected .task-id {
+		color: var(--violet-ink);
+		font-weight: 600;
+	}
+
+	.row-selected:hover td {
+		background: color-mix(in oklch, var(--violet-row) 88%, var(--violet));
 	}
 
 	.task-id {

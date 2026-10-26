@@ -18,10 +18,18 @@
 		scopes: ScopeStore;
 		tasks: TaskStore;
 		activeProject: ProjectFilter;
+		selectionProjectId?: string | null;
 		onselect: (projectId: ProjectFilter) => void;
 	}
 
-	let { projects, scopes, tasks, activeProject, onselect }: Props = $props();
+	let {
+		projects,
+		scopes,
+		tasks,
+		activeProject,
+		selectionProjectId = null,
+		onselect,
+	}: Props = $props();
 
 	let open = $state(true);
 	let showArchived = $state(false);
@@ -84,6 +92,7 @@
 				projects={visible}
 				tasks={tasks.tasks}
 				{activeProject}
+				{selectionProjectId}
 				{onselect}
 				onarchive={toggleArchived}
 				onsettings={(project) => (settingsFor = project.id)}

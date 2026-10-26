@@ -19,6 +19,7 @@
 		scopes: ScopeStore;
 		tasks: TaskStore;
 		activeProject: ProjectFilter;
+		selectionProjectId?: string | null;
 		onprojectselect?: (projectId: ProjectFilter) => void;
 		collapsed?: boolean;
 		onhide?: () => void;
@@ -30,6 +31,7 @@
 		scopes,
 		tasks,
 		activeProject,
+		selectionProjectId = null,
 		onprojectselect,
 		collapsed = false,
 		onhide,
@@ -87,6 +89,7 @@
 			{scopes}
 			{tasks}
 			{activeProject}
+			{selectionProjectId}
 			onselect={onprojectselect ?? (() => {})}
 		/>
 	</div>

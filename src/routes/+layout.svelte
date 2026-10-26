@@ -73,6 +73,7 @@
 		scopes={board.scopes}
 		tasks={board.tasks}
 		activeProject={board.filters.activeProject}
+		selectionProjectId={board.selection.projectId}
 		onprojectselect={board.setActiveProject}
 		collapsed={board.ui.sidebarHidden}
 		onhide={() => board.ui.setSidebarHidden(true)}

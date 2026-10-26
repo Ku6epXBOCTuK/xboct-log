@@ -8,6 +8,7 @@ import { createDraftStore } from "#lib/state/draft.svelte.ts";
 import { createFilters } from "#lib/state/filters.svelte.ts";
 import { createProjectStore } from "#lib/state/projects.svelte.ts";
 import { createScopeStore } from "#lib/state/scopes.svelte.ts";
+import { createSelection } from "#lib/state/selection.svelte.ts";
 import { createTagStore, type TagEntry } from "#lib/state/tags.svelte.ts";
 import { createTaskStore } from "#lib/state/tasks.svelte.ts";
 import { createTheme, type ThemeName } from "#lib/state/theme.svelte.ts";
@@ -33,6 +34,7 @@ export function createBoard(input: BoardInput) {
 	const theme = createTheme(input.theme);
 	const draft = createDraftStore();
 	const ui = createUiStore();
+	const selection = createSelection(tasks);
 
 	function setActiveProject(projectId: ProjectFilter) {
 		filters.activeProject = projectId;
@@ -62,6 +64,7 @@ export function createBoard(input: BoardInput) {
 		theme,
 		draft,
 		ui,
+		selection,
 		setActiveProject,
 	};
 }

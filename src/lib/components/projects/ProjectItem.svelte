@@ -3,17 +3,25 @@
 
 	interface Props {
 		active: boolean;
+		selection?: boolean;
 		count: number;
 		onselect: () => void;
 		children: Snippet;
 	}
 
-	let { active, count, onselect, children }: Props = $props();
+	let {
+		active,
+		selection = false,
+		count,
+		onselect,
+		children,
+	}: Props = $props();
 </script>
 
 <button
-	class={`project-item ${active ? "selected" : ""}`}
+	class={`project-item ${active ? "selected" : ""} ${selection ? "has-selection" : ""}`}
 	aria-pressed={active}
+	title={selection ? "Contains the selected task" : undefined}
 	onclick={onselect}
 >
 	<span class="project-mark"></span>
@@ -47,6 +55,18 @@
 
 	.project-item:hover {
 		background: var(--hover);
+	}
+
+	.project-item.has-selection {
+		color: var(--foreground);
+		background: var(--violet-row);
+		box-shadow: inset 2px 0 var(--violet);
+		border-top-left-radius: 0;
+		border-bottom-left-radius: 0;
+	}
+
+	.project-item.has-selection .project-mark {
+		border-color: var(--violet);
 	}
 
 	.project-name {

@@ -9,16 +9,23 @@
 	import { getActiveTotal } from "#lib/tasks/filter.ts";
 	import type { Task } from "#lib/types.ts";
 
-	const { tasks, projects, scopes, tags, comments, filters, theme, draft, ui } =
-		useBoard();
+	const {
+		tasks,
+		projects,
+		scopes,
+		tags,
+		comments,
+		filters,
+		theme,
+		draft,
+		ui,
+		selection,
+	} = useBoard();
 
-	let selectedId = $state<string | null>(null);
 	let creating = $state(false);
 	let childEpic = $state<Task | null>(null);
 
-	const selected = $derived(
-		tasks.tasks.find((task) => task.id === selectedId) ?? null,
-	);
+	const selected = $derived(selection.task);
 
 	const projectNames = $derived(
 		new Map(projects.all.map((project) => [project.id, project.name])),
@@ -75,11 +82,11 @@
 		{scopes}
 		projects={projects.all}
 		showProject={filters.activeProject === null}
-		{selectedId}
+		selectedId={selection.id}
 		sortKey={filters.sortKey}
 		sortOrder={filters.sortOrder}
 		onsort={(key) => filters.setSort(key)}
-		onselect={(id) => (selectedId = id)}
+		onselect={(id) => selection.select(id)}
 		{total}
 		onclear={() => filters.clear()}
 		onnew={openNew}
@@ -95,10 +102,10 @@
 	{tags}
 	{comments}
 	{ui}
-	onclear={() => (selectedId = null)}
+	onclear={() => selection.clear()}
 	ondelete={forgetEpic}
 	oncreatechild={openChild}
-	onopen={(id) => (selectedId = id)}
+	onopen={(id) => selection.select(id)}
 />
 
 <NewTaskModal
@@ -113,7 +120,7 @@
 	initialEpic={createDefaults.epicId}
 	initialScope={createDefaults.scopeId}
 	onopen={(id) => {
-		selectedId = id;
+		selection.select(id);
 		creating = false;
 	}}
 />

@@ -59,6 +59,16 @@
 	const projectNames = $derived(
 		new Map(projects.map((project) => [project.id, project.name])),
 	);
+
+	let wrap = $state<HTMLDivElement | null>(null);
+
+	$effect(() => {
+		const id = selectedId;
+		if (id === null || wrap === null) return;
+		wrap
+			.querySelector(`[data-task-id="${CSS.escape(id)}"]`)
+			?.scrollIntoView({ block: "nearest" });
+	});
 </script>
 
 {#snippet sortHeader(key: TaskSortKey, label: string, className: string)}
@@ -82,7 +92,7 @@
 	</th>
 {/snippet}
 
-<div class="table-wrap">
+<div class="table-wrap" bind:this={wrap}>
 	<table>
 		<thead>
 			<tr>

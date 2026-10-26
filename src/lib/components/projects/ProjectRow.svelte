@@ -9,18 +9,26 @@
 	interface Props {
 		project: Project;
 		active: boolean;
+		selection?: boolean;
 		count: number;
 		onselect: () => void;
 		onarchive: () => void;
 		onsettings: () => void;
 	}
 
-	let { project, active, count, onselect, onarchive, onsettings }: Props =
-		$props();
+	let {
+		project,
+		active,
+		selection = false,
+		count,
+		onselect,
+		onarchive,
+		onsettings,
+	}: Props = $props();
 </script>
 
 <div class="project-row">
-	<ProjectItem {active} {count} {onselect}>
+	<ProjectItem {active} {selection} {count} {onselect}>
 		{project.name}
 	</ProjectItem>
 	<div class="project-actions">
