@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Ban from "~icons/lucide/ban";
 	import Clock from "~icons/lucide/clock";
-	import Info from "~icons/lucide/info";
+	import TriangleAlert from "~icons/lucide/triangle-alert";
 
 	interface Props {
 		blockers: string[];
@@ -37,7 +37,7 @@
 		title="Blocked, no reason given"
 		aria-label="Blocked, no reason given"
 	>
-		<Info />
+		<TriangleAlert />
 	</span>
 {/if}
 
@@ -51,6 +51,7 @@
 		font-size: var(--text-xs);
 		font-variant-numeric: tabular-nums;
 		line-height: 1;
+		padding: var(--space-1);
 		cursor: help;
 		flex: none;
 	}
@@ -61,6 +62,9 @@
 	}
 
 	.blocker-empty {
-		color: var(--text-muted);
+		gap: 0;
+		color: var(--status-blocked);
+		background: color-mix(in oklch, var(--status-blocked) 40%, transparent);
+		border-radius: var(--radius-sm);
 	}
 </style>
