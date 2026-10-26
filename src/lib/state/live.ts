@@ -1,8 +1,6 @@
 import { fetchFresh } from "#lib/remote/fresh.ts";
 import { getProjects } from "#lib/remote/projects.remote.ts";
 import { getScopedProjectIds, getScopes } from "#lib/remote/scopes.remote.ts";
-import { getTasks } from "#lib/remote/tasks.remote.ts";
-import { TASK_SNAPSHOT_LIMIT } from "#lib/tasks/snapshot.ts";
 import type { CommentsStore } from "./comments.svelte.ts";
 import type { ProjectStore } from "./projects.svelte.ts";
 import type { ScopeStore } from "./scopes.svelte.ts";
@@ -44,13 +42,7 @@ export function startLiveSync(stores: LiveStores): () => void {
 			.then(async () => {
 				if (entities.has("tasks")) {
 					try {
-						const { items, total } = await fetchFresh(
-							getTasks({
-								limit: TASK_SNAPSHOT_LIMIT,
-								include_description: true,
-							}),
-						);
-						stores.tasks.replaceAll(items, total);
+						await stores.tasks.refresh();
 					} catch (error) {
 						console.warn("[live] tasks reload failed", error);
 					}

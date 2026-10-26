@@ -13,11 +13,10 @@ import { createTagStore, type TagEntry } from "#lib/state/tags.svelte.ts";
 import { createTaskStore } from "#lib/state/tasks.svelte.ts";
 import { createTheme, type ThemeName } from "#lib/state/theme.svelte.ts";
 import { createUiStore } from "#lib/state/ui.svelte.ts";
-import type { Project, ProjectFilter, Scope, Task } from "#lib/types.ts";
+import { buildTaskQuery } from "#lib/tasks/query.ts";
+import type { Project, ProjectFilter, Scope } from "#lib/types.ts";
 
 export interface BoardInput {
-	tasks: Task[];
-	tasksTotal?: number;
 	projects: Project[];
 	scopes: Scope[];
 	tags: TagEntry[];
@@ -26,7 +25,7 @@ export interface BoardInput {
 }
 
 export function createBoard(input: BoardInput) {
-	const tasks = createTaskStore(input.tasks, input.tasksTotal);
+	const tasks = createTaskStore();
 	const projects = createProjectStore(input.projects);
 	const scopes = createScopeStore(input.scopes);
 	const tags = createTagStore(input.tags);
@@ -36,6 +35,18 @@ export function createBoard(input: BoardInput) {
 	const draft = createDraftStore();
 	const ui = createUiStore();
 	const selection = createSelection(tasks);
+
+	$effect.root(() => {
+		$effect(() => {
+			void tasks.load(buildTaskQuery(filters));
+		});
+
+		$effect(() => {
+			const last = tasks.pages;
+			if (tasks.loading || last === 0 || filters.page <= last) return;
+			filters.setPage(last);
+		});
+	});
 
 	function setActiveProject(projectId: ProjectFilter) {
 		filters.activeProject = projectId;

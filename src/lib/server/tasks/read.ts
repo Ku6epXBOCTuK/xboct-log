@@ -3,6 +3,7 @@ import {
 	PRIORITIES,
 	PRIORITY_RANK,
 	STATUSES,
+	STATUS_RANK,
 	type Status,
 	type Task,
 } from "../../types";
@@ -120,23 +121,34 @@ export function listTasks(db: DatabaseSync, query: TaskQuery = {}): Task[] {
 
 	const sort = query.sort ?? "updated_at";
 	const ascending =
-		sort === "priority" || sort === "number" || sort === "title"
+		sort === "priority" ||
+		sort === "status" ||
+		sort === "project" ||
+		sort === "number" ||
+		sort === "title"
 			? "asc"
 			: "desc";
-	const order = query.order ?? ascending;
+	const order = (query.order ?? ascending).toUpperCase();
 	if (sort === "priority") {
 		const rank = PRIORITIES.map(
 			(p) => `WHEN '${p}' THEN ${PRIORITY_RANK[p]}`,
 		).join(" ");
-		sql += ` ORDER BY CASE tasks.priority ${rank} ELSE 99 END ${order.toUpperCase()}, tasks.updated_at DESC`;
+		sql += ` ORDER BY CASE tasks.priority ${rank} ELSE 99 END ${order}, tasks.updated_at DESC, tasks.id ASC`;
+	} else if (sort === "status") {
+		const rank = STATUSES.map(
+			(status) => `WHEN '${status}' THEN ${STATUS_RANK[status]}`,
+		).join(" ");
+		sql += ` ORDER BY CASE tasks.status ${rank} ELSE 99 END ${order}, tasks.id ASC`;
+	} else if (sort === "project") {
+		sql += ` ORDER BY (SELECT name FROM projects WHERE id = tasks.project_id) ${order}, tasks.number ASC, tasks.id ASC`;
 	} else if (sort === "number") {
-		sql += ` ORDER BY tasks.number ${order.toUpperCase()}, tasks.project_id ASC`;
+		sql += ` ORDER BY tasks.number ${order}, tasks.project_id ASC, tasks.id ASC`;
 	} else if (sort === "title") {
-		sql += ` ORDER BY ULOWER(tasks.title) ${order.toUpperCase()}, tasks.id ASC`;
+		sql += ` ORDER BY ULOWER(tasks.title) ${order}, tasks.id ASC`;
 	} else if (sort === "closed_at") {
-		sql += ` ORDER BY (tasks.closed_at IS NULL) ASC, tasks.closed_at ${order.toUpperCase()}, tasks.id ASC`;
+		sql += ` ORDER BY (tasks.closed_at IS NULL) ASC, tasks.closed_at ${order}, tasks.id ASC`;
 	} else {
-		sql += ` ORDER BY tasks.${sort} ${order.toUpperCase()}`;
+		sql += ` ORDER BY tasks.${sort} ${order}, tasks.id ASC`;
 	}
 
 	if (query.limit !== undefined) {

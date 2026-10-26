@@ -6,15 +6,14 @@
 	import type { Filters } from "#lib/state/filters.svelte.ts";
 	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
+	import type { TagStore } from "#lib/state/tags.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
 	import type { Theme } from "#lib/state/theme.svelte.ts";
 	import { epicsForProject } from "#lib/tasks/fields.ts";
 	import {
-		collectTags,
 		countActiveTasksInEpic,
 		countActiveTasksInScope,
 		countTasksInEpic,
-		countTasksInProject,
 		countTasksInScope,
 	} from "#lib/tasks/filter.ts";
 
@@ -23,8 +22,8 @@
 		filters: Filters;
 		projects: ProjectStore;
 		scopes: ScopeStore;
+		tagStore: TagStore;
 		theme: Theme;
-		visibleCount: number;
 		onnew: () => void;
 		onreload: () => void;
 	}
@@ -34,8 +33,8 @@
 		filters,
 		projects,
 		scopes,
+		tagStore,
 		theme,
-		visibleCount,
 		onnew,
 		onreload,
 	}: Props = $props();
@@ -43,14 +42,8 @@
 	const epics = $derived(
 		epicsForProject(tasks.epics, filters.activeProject, filters.epic),
 	);
-	const tags = $derived(
-		collectTags(tasks.tasks, filters.activeProject, filters.selectedTags),
-	);
+	const tags = $derived(tagStore.all);
 	const scopeOptions = $derived(scopes.listFor(filters.activeProject));
-
-	const total = $derived(
-		countTasksInProject(tasks.tasks, filters.activeProject),
-	);
 
 	const activeProjectName = $derived(
 		projects.all.find((project) => project.id === filters.activeProject)?.name,
@@ -88,10 +81,8 @@
 		{epics}
 		scopes={scopeOptions}
 		{tags}
-		{visibleCount}
-		{total}
-		loadedCount={tasks.tasks.length}
-		snapshotTotal={tasks.total}
+		visibleCount={tasks.tasks.length}
+		total={tasks.total}
 		countEpic={(epicId) => countTasksInEpic(tasks.tasks, epicId)}
 		countScope={(scopeId) => countTasksInScope(tasks.tasks, scopeId)}
 		countActiveEpic={(epicId) => countActiveTasksInEpic(tasks.tasks, epicId)}

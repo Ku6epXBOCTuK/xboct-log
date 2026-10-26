@@ -136,18 +136,20 @@ const taskFilterShape = {
 			"created_at",
 			"closed_at",
 			"priority",
+			"status",
+			"project",
 			"number",
 			"title",
 		])
 		.optional()
 		.describe(
-			"Sort key. 'number' orders by the per-project task number (ascending by default), 'title' orders by title case-insensitively (ascending by default); 'updated_at' and 'created_at' default to descending, 'priority' to ascending. 'closed_at' orders by the closing date and keeps the tasks that are not closed at the end.",
+			"Sort key. 'number' orders by the per-project task number (ascending by default), 'title' orders by title case-insensitively (ascending by default), 'status' by the workflow order open, in-progress, blocked, done, cancelled and 'project' by project name; 'updated_at' and 'created_at' default to descending, 'priority' to ascending. 'closed_at' orders by the closing date and keeps the tasks that are not closed at the end.",
 		),
 	order: z
 		.enum(["asc", "desc"])
 		.optional()
 		.describe(
-			"Sort direction. Defaults to asc for priority, number and title, desc for the date keys.",
+			"Sort direction. Defaults to asc for priority, status, project, number and title, desc for the date keys.",
 		),
 	include_deleted: z
 		.boolean()

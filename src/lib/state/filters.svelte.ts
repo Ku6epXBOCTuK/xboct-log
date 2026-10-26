@@ -1,11 +1,7 @@
-import { filterTasks } from "#lib/tasks/filter.ts";
-import { exactFirst, parseSearchQuery } from "#lib/tasks/search.ts";
 import {
 	DEFAULT_SORT_KEY,
 	DEFAULT_SORT_ORDER,
 	defaultOrderFor,
-	sortTasks,
-	type SortContext,
 	type SortOrder,
 	type TaskSortKey,
 } from "#lib/tasks/sort.ts";
@@ -14,7 +10,6 @@ import {
 	type Priority,
 	type ProjectFilter,
 	type Status,
-	type Task,
 } from "#lib/types.ts";
 
 export function createFilters(initialProject: ProjectFilter) {
@@ -28,6 +23,11 @@ export function createFilters(initialProject: ProjectFilter) {
 	let selectedTags = $state<string[]>([]);
 	let sortKey = $state<TaskSortKey>(DEFAULT_SORT_KEY);
 	let sortOrder = $state<SortOrder>(DEFAULT_SORT_ORDER);
+	let page = $state(1);
+
+	function firstPage() {
+		page = 1;
+	}
 
 	return {
 		get activeProject() {
@@ -35,6 +35,7 @@ export function createFilters(initialProject: ProjectFilter) {
 		},
 		set activeProject(value: ProjectFilter) {
 			activeProject = value;
+			firstPage();
 		},
 		get status() {
 			return status;
@@ -44,12 +45,14 @@ export function createFilters(initialProject: ProjectFilter) {
 			if (value !== "all" && CLOSED_STATUSES.includes(value)) {
 				hideClosed = false;
 			}
+			firstPage();
 		},
 		get hideClosed() {
 			return hideClosed;
 		},
 		toggleClosed() {
 			hideClosed = !hideClosed;
+			firstPage();
 		},
 		get statusChanged() {
 			return status !== "all" || !hideClosed;
@@ -57,54 +60,63 @@ export function createFilters(initialProject: ProjectFilter) {
 		resetStatus() {
 			status = "all";
 			hideClosed = true;
+			firstPage();
 		},
 		get priority() {
 			return priority;
 		},
 		set priority(value: Priority | "all") {
 			priority = value;
+			firstPage();
 		},
 		get priorityChanged() {
 			return priority !== "all";
 		},
 		resetPriority() {
 			priority = "all";
+			firstPage();
 		},
 		get epic() {
 			return epic;
 		},
 		set epic(value: string) {
 			epic = value;
+			firstPage();
 		},
 		get epicChanged() {
 			return epic !== "any";
 		},
 		resetEpic() {
 			epic = "any";
+			firstPage();
 		},
 		get scope() {
 			return scope;
 		},
 		set scope(value: "any" | "none" | number) {
 			scope = value;
+			firstPage();
 		},
 		get scopeChanged() {
 			return scope !== "any";
 		},
 		resetScope() {
 			scope = "any";
+			firstPage();
 		},
 		get query() {
 			return query;
 		},
 		set query(value: string) {
 			query = value;
+			firstPage();
 		},
 		get queryChanged() {
 			return query !== "";
 		},
 		resetQuery() {
 			query = "";
+			firstPage();
 		},
 		get selectedTags() {
 			return selectedTags;
@@ -113,9 +125,11 @@ export function createFilters(initialProject: ProjectFilter) {
 			selectedTags = selectedTags.includes(tag)
 				? selectedTags.filter((item) => item !== tag)
 				: [...selectedTags, tag];
+			firstPage();
 		},
 		clearTags() {
 			selectedTags = [];
+			firstPage();
 		},
 		get tagsChanged() {
 			return selectedTags.length > 0;
@@ -129,10 +143,17 @@ export function createFilters(initialProject: ProjectFilter) {
 		setSort(key: TaskSortKey) {
 			if (key === sortKey) {
 				sortOrder = sortOrder === "asc" ? "desc" : "asc";
-				return;
+			} else {
+				sortKey = key;
+				sortOrder = defaultOrderFor(key);
 			}
-			sortKey = key;
-			sortOrder = defaultOrderFor(key);
+			firstPage();
+		},
+		get page() {
+			return page;
+		},
+		setPage(value: number) {
+			page = Math.max(1, value);
 		},
 		clear() {
 			status = "all";
@@ -142,25 +163,7 @@ export function createFilters(initialProject: ProjectFilter) {
 			scope = "any";
 			query = "";
 			selectedTags = [];
-		},
-		visible(tasks: Task[], context: SortContext = {}) {
-			const sorted = sortTasks(
-				filterTasks(tasks, {
-					activeProject,
-					status,
-					priority,
-					hideClosed,
-					epic,
-					scope,
-					selectedTags,
-					query,
-				}),
-				sortKey,
-				sortOrder,
-				context,
-			);
-
-			return exactFirst(sorted, parseSearchQuery(query));
+			firstPage();
 		},
 	};
 }

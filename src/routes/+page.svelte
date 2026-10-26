@@ -6,7 +6,6 @@
 	import { reloadApp } from "#lib/reload.ts";
 	import { useBoard } from "#lib/state/board.svelte.ts";
 	import { isTypingTarget, matchesHotkey } from "#lib/hotkeys/hotkeys.ts";
-	import { getActiveTotal } from "#lib/tasks/filter.ts";
 	import type { Task } from "#lib/types.ts";
 
 	const {
@@ -27,13 +26,9 @@
 
 	const selected = $derived(selection.task);
 
-	const projectNames = $derived(
-		new Map(projects.all.map((project) => [project.id, project.name])),
-	);
+	const visibleTasks = $derived(tasks.tasks);
 
-	const visibleTasks = $derived(filters.visible(tasks.tasks, { projectNames }));
-
-	const total = $derived(getActiveTotal(tasks.tasks, filters));
+	const total = $derived(tasks.total);
 
 	const createDefaults = $derived({
 		projectId: childEpic?.project_id ?? filters.activeProject ?? undefined,
@@ -71,11 +66,14 @@
 		{filters}
 		{scopes}
 		{projects}
+		tagStore={tags}
 		{theme}
-		visibleCount={visibleTasks.length}
 		onnew={openNew}
 		onreload={reloadApp}
 	/>
+	{#if tasks.error !== null}
+		<p class="load-error" role="alert">Could not load tasks: {tasks.error}</p>
+	{/if}
 	<TaskTable
 		tasks={visibleTasks}
 		allTasks={tasks.tasks}
@@ -132,5 +130,12 @@
 		min-width: 0;
 		flex: 1 1 auto;
 		height: 100%;
+	}
+
+	.load-error {
+		margin: 0;
+		padding: var(--space-2) var(--edge-pad);
+		color: var(--danger, #c0392b);
+		font-size: var(--text-xs);
 	}
 </style>

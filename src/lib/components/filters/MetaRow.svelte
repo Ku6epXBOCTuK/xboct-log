@@ -14,8 +14,6 @@
 		tags: TagCount[];
 		visibleCount: number;
 		total: number;
-		loadedCount: number;
-		snapshotTotal: number;
 		countEpic: (epicId: string) => number;
 		countScope: (scopeId: number) => number;
 		countActiveEpic: (epicId: string) => number;
@@ -29,8 +27,6 @@
 		tags,
 		visibleCount,
 		total,
-		loadedCount,
-		snapshotTotal,
 		countEpic,
 		countScope,
 		countActiveEpic,
@@ -80,16 +76,8 @@
 		/>
 	</FilterBlock>
 	<span class="result-count">
-		{visibleCount} visible / {total} total
+		{visibleCount} of {total}
 	</span>
-	{#if snapshotTotal > loadedCount}
-		<span
-			class="snapshot-note"
-			title="Only the {loadedCount} most recently updated tasks are loaded, older ones are missing from every view"
-		>
-			{loadedCount} of {snapshotTotal} loaded
-		</span>
-	{/if}
 </div>
 
 <style>
@@ -105,16 +93,6 @@
 		color: var(--text-muted);
 		font-size: var(--text-xs);
 		font-variant-numeric: tabular-nums;
-	}
-
-	.snapshot-note {
-		color: var(--text-muted);
-		font-size: var(--text-xs);
-		font-variant-numeric: tabular-nums;
-		border: 1px dashed var(--border);
-		border-radius: 999px;
-		padding: 0 var(--space-2);
-		cursor: help;
 	}
 
 	@media (max-width: 560px) {

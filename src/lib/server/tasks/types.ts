@@ -102,7 +102,14 @@ export interface TaskQuery {
 	include_scope?: boolean;
 	project_archived?: boolean;
 	sort?:
-		"updated_at" | "created_at" | "closed_at" | "priority" | "number" | "title";
+		| "updated_at"
+		| "created_at"
+		| "closed_at"
+		| "priority"
+		| "status"
+		| "project"
+		| "number"
+		| "title";
 	order?: "asc" | "desc";
 	limit?: number;
 	offset?: number;

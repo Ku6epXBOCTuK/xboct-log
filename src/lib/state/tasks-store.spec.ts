@@ -1,19 +1,25 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { TaskQueryArgs } from "#lib/tasks/query.ts";
 import type { Task } from "#lib/types.ts";
 
+const getTasks = vi.fn();
 const getTasksByIds = vi.fn();
 const updateTask = vi.fn();
 const deleteTask = vi.fn();
 const createTask = vi.fn();
 
 vi.mock("#lib/remote/tasks.remote.ts", () => ({
+	getTasks: (input: unknown) => getTasks(input),
 	getTasksByIds: (input: { ids: string[] }) => getTasksByIds(input),
-	updateTask: (input: { id: string; patch: { title?: string } }) =>
-		updateTask(input),
+	updateTask: (input: unknown) => updateTask(input),
 	deleteTask: (input: { id: string }) => deleteTask(input),
 	createTask: (input: unknown) => createTask(input),
 	moveTask: vi.fn(),
 	closeTask: vi.fn(),
+}));
+
+vi.mock("#lib/remote/fresh.ts", () => ({
+	fetchFresh: (query: unknown) => query,
 }));
 
 vi.mock("#lib/remote/blockers.remote.ts", () => ({
@@ -57,60 +63,113 @@ function task(id: string, extra: Partial<Task> = {}): Task {
 	};
 }
 
-const snapshot = [task("SPA-1")];
+function page(offset = 0): TaskQueryArgs {
+	return {
+		sort: "updated_at",
+		order: "desc",
+		limit: 20,
+		offset,
+		include_description: true,
+	};
+}
+
+const first = [task("SPA-1")];
 
 describe("task store", () => {
 	beforeEach(() => {
+		getTasks.mockReset();
 		getTasksByIds.mockReset();
 		updateTask.mockReset();
 		deleteTask.mockReset();
 		createTask.mockReset();
 	});
 
-	it("resolves snapshot tasks by id", () => {
-		const store = createTaskStore(snapshot);
+	it("loads a page and reports the server total", async () => {
+		const store = createTaskStore();
+		getTasks.mockResolvedValue({ items: first, total: 120 });
 
-		expect(store.byId("SPA-1")?.title).toBe("SPA-1");
-		expect(store.byId("SPA-9")).toBeUndefined();
-		expect(store.isAbsent("SPA-9")).toBe(false);
+		await store.load(page());
+
+		expect(getTasks).toHaveBeenCalledWith(page());
+		expect(store.tasks.map((item) => item.id)).toEqual(["SPA-1"]);
+		expect(store.total).toBe(120);
+		expect(store.pages).toBe(6);
+		expect(store.loading).toBe(false);
+		expect(store.error).toBeNull();
 	});
 
-	it("reports a truncated snapshot when the server total is larger", () => {
-		const store = createTaskStore(snapshot, 40);
+	it("ignores a response overtaken by a newer request", async () => {
+		const store = createTaskStore();
+		let resolveSlow: (value: unknown) => void = () => {};
+		getTasks.mockImplementationOnce(
+			() => new Promise((resolve) => (resolveSlow = resolve)),
+		);
+		getTasks.mockResolvedValueOnce({ items: [task("SPA-2")], total: 2 });
 
-		expect(store.total).toBe(40);
-		expect(store.truncated).toBe(true);
+		const slow = store.load(page(0));
+		await store.load(page(20));
+		resolveSlow({ items: [task("SPA-9")], total: 999 });
+		await slow;
 
-		store.replaceAll(snapshot);
-
-		expect(store.total).toBe(1);
-		expect(store.truncated).toBe(false);
+		expect(store.tasks.map((item) => item.id)).toEqual(["SPA-2"]);
+		expect(store.total).toBe(2);
 	});
 
-	it("follows the server total through a live reload", () => {
-		const store = createTaskStore(snapshot, 1);
+	it("keeps the page and reports the error when a load fails", async () => {
+		const store = createTaskStore(first, 1);
+		getTasks.mockRejectedValueOnce(new Error("offline"));
 
-		store.replaceAll([task("SPA-1"), task("SPA-2")], 1200);
+		await store.load(page());
+
+		expect(store.error).toBe("offline");
+		expect(store.loading).toBe(false);
+		expect(store.tasks.map((item) => item.id)).toEqual(["SPA-1"]);
+	});
+
+	it("repeats the last query on refresh", async () => {
+		const store = createTaskStore();
+		getTasks.mockResolvedValue({ items: first, total: 1 });
+
+		await store.load(page(20));
+		await store.refresh();
+
+		expect(getTasks).toHaveBeenCalledTimes(2);
+		expect(getTasks).toHaveBeenNthCalledWith(2, page(20));
+	});
+
+	it("follows the server total through a live refresh", async () => {
+		const store = createTaskStore();
+		getTasks.mockResolvedValueOnce({ items: first, total: 1 });
+		await store.load(page());
+
+		getTasks.mockResolvedValueOnce({ items: first, total: 1200 });
+		await store.refresh();
 
 		expect(store.total).toBe(1200);
-		expect(store.truncated).toBe(true);
+		expect(store.pages).toBe(60);
 	});
 
 	it("keeps total in step with create and delete", async () => {
-		const store = createTaskStore(snapshot, 1);
+		const store = createTaskStore();
+		getTasks.mockResolvedValueOnce({ items: first, total: 1 });
+		await store.load(page());
+
 		const created = task("SPA-2");
-		vi.mocked(createTask).mockResolvedValue(created);
+		createTask.mockResolvedValue(created);
+		getTasks.mockResolvedValueOnce({ items: [...first, created], total: 2 });
 
 		await store.create({ project_id: "spa", title: "SPA-2" });
 		expect(store.total).toBe(2);
+		expect(store.byId("SPA-2")?.title).toBe("SPA-2");
 
 		deleteTask.mockResolvedValue({ id: "SPA-2" });
 		await store.destroy("SPA-2");
 		expect(store.total).toBe(1);
+		expect(store.byId("SPA-2")).toBeUndefined();
 	});
 
-	it("pins a task that is outside the snapshot", async () => {
-		const store = createTaskStore(snapshot);
+	it("pins a task that is outside the page", async () => {
+		const store = createTaskStore(first, 1);
 		getTasksByIds.mockResolvedValue({
 			items: [task("SPA-9", { title: "outside" })],
 			missing: [],
@@ -124,7 +183,7 @@ describe("task store", () => {
 	});
 
 	it("does not request a pinned task twice", async () => {
-		const store = createTaskStore(snapshot);
+		const store = createTaskStore(first, 1);
 		getTasksByIds.mockResolvedValue({ items: [task("SPA-9")], missing: [] });
 
 		await store.pin(["SPA-9"]);
@@ -134,7 +193,7 @@ describe("task store", () => {
 	});
 
 	it("remembers ids the server reports as missing", async () => {
-		const store = createTaskStore(snapshot);
+		const store = createTaskStore(first, 1);
 		getTasksByIds.mockResolvedValue({ items: [], missing: ["SPA-9"] });
 
 		await store.pin(["SPA-9"]);
@@ -147,7 +206,7 @@ describe("task store", () => {
 	});
 
 	it("marks a failed request as failed, not as missing", async () => {
-		const store = createTaskStore(snapshot);
+		const store = createTaskStore(first, 1);
 		getTasksByIds.mockRejectedValue(new Error("offline"));
 
 		await store.pin(["SPA-9"]);
@@ -160,25 +219,33 @@ describe("task store", () => {
 		expect(getTasksByIds).toHaveBeenCalledTimes(1);
 
 		getTasksByIds.mockResolvedValue({ items: [task("SPA-9")], missing: [] });
-		store.replaceAll(snapshot);
+		getTasks.mockResolvedValue({ items: first, total: 1 });
+		await store.load(page());
 
 		expect(store.isFailed("SPA-9")).toBe(false);
+
+		await store.pin(["SPA-9"]);
+
+		expect(getTasksByIds).toHaveBeenCalledTimes(2);
 	});
 
-	it("keeps pinned tasks that are still outside a new snapshot", () => {
-		const store = createTaskStore(snapshot);
+	it("keeps pinned tasks that are outside a freshly loaded page", async () => {
+		const store = createTaskStore(first, 1);
 		getTasksByIds.mockResolvedValue({ items: [task("SPA-9")], missing: [] });
+		await store.pin(["SPA-9"]);
 
-		return store.pin(["SPA-9"]).then(() => {
-			store.replaceAll([task("SPA-1", { title: "renamed" })]);
-
-			expect(store.byId("SPA-9")?.id).toBe("SPA-9");
-			expect(store.byId("SPA-1")?.title).toBe("renamed");
+		getTasks.mockResolvedValue({
+			items: [task("SPA-1", { title: "renamed" })],
+			total: 1,
 		});
+		await store.load(page());
+
+		expect(store.byId("SPA-9")?.id).toBe("SPA-9");
+		expect(store.byId("SPA-1")?.title).toBe("renamed");
 	});
 
 	it("saves a pinned task in place instead of dropping it", async () => {
-		const store = createTaskStore(snapshot);
+		const store = createTaskStore(first, 1);
 		getTasksByIds.mockResolvedValue({ items: [task("SPA-9")], missing: [] });
 		await store.pin(["SPA-9"]);
 		updateTask.mockResolvedValue(task("SPA-9", { title: "edited" }));
