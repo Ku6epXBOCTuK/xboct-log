@@ -898,7 +898,7 @@ describe("task moves", () => {
 		expect(moved.epic_id).toBeNull();
 	});
 
-	it("moves an epic with its subtree and rewires the links", async () => {
+	it("moves an epic with its tasks and rewires the links", async () => {
 		const db = await setup();
 		unwrap(createProject(db, { id: "bil", name: "Billing", prefix: "BIL" }));
 		const epic = unwrap(
@@ -908,22 +908,18 @@ describe("task moves", () => {
 			createTask(db, {
 				project_id: "spa",
 				title: "Child",
-				is_epic: true,
 				epic_id: epic.id,
 			}),
 		);
-		const leaf = unwrap(
-			createTask(db, { project_id: "spa", title: "Leaf", epic_id: child.id }),
-		);
+		const leaf = unwrap(createTask(db, { project_id: "spa", title: "Leaf" }));
 
 		const moved = unwrap(moveTask(db, epic.id, "bil"));
 
 		expect(moved.id).toBe("BIL-1");
 		expect(getTask(db, "BIL-1")?.id).toBe("BIL-1");
 		expect(getTask(db, "BIL-2")?.epic_id).toBe("BIL-1");
-		expect(getTask(db, "BIL-3")?.epic_id).toBe("BIL-2");
 		expect(getTask(db, child.id)).toBeUndefined();
-		expect(getTask(db, leaf.id)).toBeUndefined();
+		expect(getTask(db, leaf.id)?.id).toBe(leaf.id);
 	});
 
 	it("returns the task unchanged when the project matches", async () => {
@@ -1081,24 +1077,47 @@ describe("task moves with links", () => {
 });
 
 describe("epic guards", () => {
-	it("rejects an epic cycle through an ancestor", async () => {
+	it("rejects an epic with an epic", async () => {
 		const db = await setup();
-		const epic = unwrap(
+		const parent = unwrap(
 			createTask(db, { project_id: "spa", title: "Root", is_epic: true }),
 		);
-		const child = unwrap(
+
+		const error = failure(
 			createTask(db, {
 				project_id: "spa",
-				title: "Branch",
+				title: "Nested",
 				is_epic: true,
-				epic_id: epic.id,
+				epic_id: parent.id,
 			}),
 		);
 
-		const error = failure(updateTask(db, epic.id, { epic_id: child.id }));
-
 		expect(error.kind).toBe("validation");
-		expect(error.message).toContain("cycle");
+		expect(error.message).toContain("epics are flat");
+		expect(listTasks(db, { is_epic: true })).toHaveLength(1);
+	});
+
+	it("rejects promoting a task that belongs to an epic", async () => {
+		const db = await setup();
+		const first = unwrap(
+			createTask(db, { project_id: "spa", title: "Root", is_epic: true }),
+		);
+		const second = unwrap(
+			createTask(db, { project_id: "spa", title: "Other", is_epic: true }),
+		);
+		const child = unwrap(
+			createTask(db, { project_id: "spa", title: "Child", epic_id: first.id }),
+		);
+
+		const promote = failure(updateTask(db, child.id, { is_epic: true }));
+		const attach = failure(updateTask(db, second.id, { epic_id: first.id }));
+
+		expect(promote.kind).toBe("validation");
+		expect(promote.message).toContain("epics are flat");
+		expect(attach.kind).toBe("validation");
+		expect(attach.message).toContain("epics are flat");
+		expect(getTask(db, child.id)?.is_epic).toBe(false);
+		expect(getTask(db, second.id)?.epic_id).toBeNull();
 	});
 
 	it("rejects demoting an epic with subtasks", async () => {

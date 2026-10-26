@@ -82,6 +82,13 @@ export function createTask(
 		}
 		resolvedEpicId = resolved.value;
 	}
+	if (resolvedEpicId !== null && input.is_epic) {
+		return err(
+			invalid(
+				"epics are flat: an epic cannot belong to another epic, leave epic_id unset",
+			),
+		);
+	}
 
 	const scopeId = input.scope_id ?? null;
 	if (scopeId !== null) {

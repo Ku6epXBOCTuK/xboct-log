@@ -42,7 +42,7 @@ import { strictObject } from "./strict";
 import { boardFilters, taskFilters } from "./tasks.filters";
 
 const EPIC_ID_DESCRIPTION =
-	"Epic id in the full 'PREFIX-NUMBER' form (e.g. 'LOG-5'). A bare epic number (e.g. '5') is rejected: the epic must belong to the same project as the task.";
+	"Epic id in the full 'PREFIX-NUMBER' form (e.g. 'LOG-5'). A bare epic number (e.g. '5') is rejected: the epic must belong to the same project as the task. Epics are flat: only a non-epic task carries epic_id, and an epic with epic_id is rejected, so nested epics do not exist.";
 
 const BLOCKED_REASON_DESCRIPTION =
 	"Why the task is blocked, one line of free text. Use it when the blocker is outside the tracker (waiting for a release, an answer, an access). Only allowed on a task with status 'blocked'; null clears it.";

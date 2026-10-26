@@ -297,6 +297,17 @@ export function updateTaskDetailed(
 		}
 	}
 
+	const nextIsEpic = patch.is_epic ?? current.is_epic;
+	const nextEpicId =
+		patch.epic_id !== undefined ? patch.epic_id || null : current.epic_id;
+	if (nextIsEpic && nextEpicId !== null) {
+		return err(
+			invalid(
+				"epics are flat: an epic cannot belong to another epic, leave epic_id unset",
+			),
+		);
+	}
+
 	if (patch.scope_id !== undefined) {
 		const scopeId = patch.scope_id;
 		if (scopeId !== null) {
