@@ -14,6 +14,7 @@
 	interface Props {
 		tasks: Task[];
 		allTasks: Task[];
+		epics?: Task[];
 		scopes: ScopeStore;
 		projects: Project[];
 		showProject: boolean;
@@ -34,6 +35,7 @@
 	let {
 		tasks,
 		allTasks,
+		epics = [],
 		scopes,
 		projects,
 		showProject,
@@ -51,7 +53,7 @@
 		empty,
 	}: Props = $props();
 
-	const epicProgress = $derived(collectEpicProgress(allTasks));
+	const epicProgress = $derived(collectEpicProgress(allTasks, epics));
 	const blockers = $derived(
 		new Map(allTasks.map((task) => [task.id, openBlockers(allTasks, task)])),
 	);

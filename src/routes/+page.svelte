@@ -84,6 +84,7 @@
 	<TaskTable
 		tasks={visibleTasks}
 		allTasks={tasks.tasks}
+		{epics}
 		{scopes}
 		projects={projects.all}
 		showProject={filters.activeProject === null}

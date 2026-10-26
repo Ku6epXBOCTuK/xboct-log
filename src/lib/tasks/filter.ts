@@ -11,7 +11,10 @@ export interface EpicProgress {
 	total: number;
 }
 
-export function collectEpicProgress(tasks: Task[]): Map<string, EpicProgress> {
+export function collectEpicProgress(
+	tasks: Task[],
+	epics: Task[] = [],
+): Map<string, EpicProgress> {
 	const progress = new Map<string, EpicProgress>();
 
 	for (const task of tasks) {
@@ -29,6 +32,19 @@ export function collectEpicProgress(tasks: Task[]): Map<string, EpicProgress> {
 
 		entry.total += 1;
 		if (CLOSED_STATUSES.includes(task.status)) entry.closed += 1;
+	}
+
+	for (const epic of epics) {
+		const counts = epic.children_counts;
+		if (counts === undefined) continue;
+
+		progress.set(epic.id, {
+			closed: CLOSED_STATUSES.reduce(
+				(sum, status) => sum + (counts[status] ?? 0),
+				0,
+			),
+			total: counts.total ?? 0,
+		});
 	}
 
 	return progress;

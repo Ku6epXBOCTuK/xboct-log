@@ -56,4 +56,50 @@ describe("collectEpicProgress", () => {
 
 		expect(progress.size).toBe(0);
 	});
+
+	it("takes server counts for an epic whose children are not loaded", () => {
+		const progress = collectEpicProgress(
+			[task({ id: "E-1", is_epic: true })],
+			[
+				task({
+					id: "E-1",
+					is_epic: true,
+					children_counts: {
+						open: 9,
+						"in-progress": 1,
+						blocked: 0,
+						done: 11,
+						cancelled: 0,
+						total: 21,
+					},
+				}),
+			],
+		);
+
+		expect(progress.get("E-1")).toEqual({ closed: 11, total: 21 });
+	});
+
+	it("prefers server counts over the loaded page", () => {
+		const progress = collectEpicProgress(
+			[task({ id: "A-1", epic_id: "E-1" })],
+			[
+				task({
+					id: "E-1",
+					is_epic: true,
+					children_counts: { open: 0, done: 4, total: 4 },
+				}),
+			],
+		);
+
+		expect(progress.get("E-1")).toEqual({ closed: 4, total: 4 });
+	});
+
+	it("falls back to the page when an epic has no server counts", () => {
+		const progress = collectEpicProgress(
+			[task({ id: "E-1", is_epic: true }), task({ id: "A-1", epic_id: "E-1" })],
+			[task({ id: "E-1", is_epic: true })],
+		);
+
+		expect(progress.get("E-1")).toEqual({ closed: 0, total: 1 });
+	});
 });
