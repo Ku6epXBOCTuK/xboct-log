@@ -4,6 +4,7 @@
 	import type { EpicProgress } from "#lib/tasks/filter.ts";
 	import { CLOSED_STATUSES, type Scope, type Task } from "#lib/types.ts";
 	import type { Snippet } from "svelte";
+	import BlockedBadge from "#lib/components/table/BlockedBadge.svelte";
 	import Paperclip from "~icons/lucide/paperclip";
 
 	interface Props {
@@ -42,14 +43,6 @@
 		task.due_at !== null &&
 			task.due_at < today &&
 			!CLOSED_STATUSES.includes(task.status),
-	);
-
-	const waitingFor = $derived(task.blocked_reason ?? "");
-	const waitingShort = $derived(
-		waitingFor.length > 40 ? `${waitingFor.slice(0, 39)}…` : waitingFor,
-	);
-	const externalBlock = $derived(
-		task.status === "blocked" && blockers.length === 0,
 	);
 
 	function filterEpic(event: MouseEvent, epicId: string | null) {
@@ -101,24 +94,8 @@
 					{task.epic_id}
 				</button>
 			{/if}
-			{#if blockers.length > 0}
-				<span class="blocker-badge" title={`Blocked by ${blockers.join(", ")}`}>
-					blocked by {blockers.join(", ")}
-				</span>
-			{/if}
-			{#if externalBlock}
-				{#if waitingFor !== ""}
-					<span class="blocker-badge" title={`Waiting for ${waitingFor}`}>
-						waiting: {waitingShort}
-					</span>
-				{:else}
-					<span
-						class="blocker-badge blocker-empty"
-						title="Blocked with no blocker task and no reason"
-					>
-						blocked, no reason
-					</span>
-				{/if}
+			{#if task.status === "blocked"}
+				<BlockedBadge {blockers} reason={task.blocked_reason ?? null} />
 			{/if}
 		</div>
 	</td>
@@ -280,23 +257,6 @@
 	.scope-missing {
 		border-color: color-mix(in oklch, var(--accent) 55%, transparent);
 		color: var(--accent-ink);
-	}
-
-	.blocker-badge {
-		border: 1px solid color-mix(in oklch, var(--accent) 55%, transparent);
-		color: var(--accent-ink);
-		border-radius: var(--radius-sm);
-		padding: 0 var(--space-2);
-		font-family: var(--font-mono);
-		font-size: var(--text-xs);
-		line-height: 1.5;
-		white-space: nowrap;
-		flex: none;
-	}
-
-	.blocker-empty {
-		border-color: var(--border);
-		color: var(--text-muted);
 	}
 
 	.scope-cell {
