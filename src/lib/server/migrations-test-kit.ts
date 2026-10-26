@@ -9,6 +9,7 @@ const MIGRATIONS_DIR = join(process.cwd(), "migrations");
 const INTERNAL_TABLES = ["schema_migrations", "schema_migrations_lock"];
 
 const tempDirs = new Set<string>();
+const migrationDirs = new Map<string, string>();
 
 interface SchemaColumn {
 	name: string;
@@ -58,11 +59,15 @@ export function migrationNames(): string[] {
 }
 
 function copyMigrations(names: string[]): string {
+	const key = names.join("|");
+	const cached = migrationDirs.get(key);
+	if (cached !== undefined) return cached;
 	const dir = mkdtempSync(join(tmpdir(), "xboct-log-migrations-"));
 	tempDirs.add(dir);
 	for (const name of names) {
 		copyFileSync(join(MIGRATIONS_DIR, name), join(dir, name));
 	}
+	migrationDirs.set(key, dir);
 	return dir;
 }
 
@@ -110,6 +115,7 @@ export function cleanupMigrationDirs(): void {
 		rmSync(dir, { recursive: true, force: true });
 	}
 	tempDirs.clear();
+	migrationDirs.clear();
 }
 
 function quoteIdentifier(name: string): string {
