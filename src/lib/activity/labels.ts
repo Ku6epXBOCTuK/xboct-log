@@ -25,6 +25,7 @@ const FIELD_LABELS: Record<string, string> = {
 	comments: "Comments",
 	name: "Name",
 	prefix: "Prefix",
+	repo: "Repository",
 	archived: "Archived",
 };
 

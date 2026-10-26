@@ -7,8 +7,9 @@ Built with SvelteKit and Svelte 5.
 
 - **Tasks** with a `PREFIX-NUMBER` id, title, description, status, priority,
   estimate, assignee, due date, tags, epics, blockers, and closed reasons.
-- **Projects** with an id, name, and task prefix. Rename, archive, and restore
-  them from the sidebar.
+- **Projects** with an id, name, and task prefix, plus an optional repository in
+  `host/owner/name` form that the CLI matches against the git origin. Rename,
+  archive, and restore them from the sidebar.
 - **Scopes** — optional per-project grouping that turns on once a project has at
   least one scope.
 - **Tasks view** with search and status, priority, tag, epic, scope, blocker,

@@ -15,7 +15,12 @@ beforeAll(async () => {
 	dbDir = mkdtempSync(join(tmpdir(), "xboct-log-projects-"));
 	const db = getDb(join(dbDir, "projects.db"));
 	await migrateDatabase(db);
-	const shop = createProject(db, { id: "spa", name: "Shop", prefix: "SPA" });
+	const shop = createProject(db, {
+		id: "spa",
+		name: "Shop",
+		prefix: "SPA",
+		repo: "https://github.com/acme/shop.git",
+	});
 	expect(shop.isOk()).toBe(true);
 	const billing = createProject(db, {
 		id: "bil",
@@ -53,6 +58,7 @@ function op(name: string) {
 interface ListedProject {
 	id: string;
 	name: string;
+	repo: string | null;
 	task_counts: Record<string, number>;
 	epic_counts: Record<string, number>;
 }
@@ -79,6 +85,7 @@ describe("projects_list", () => {
 			done: 0,
 			cancelled: 0,
 		});
+		expect(spa?.repo).toBe("github.com/acme/shop");
 	});
 
 	it("finds projects by name, id and prefix case-insensitively", async () => {
@@ -95,5 +102,83 @@ describe("projects_list", () => {
 	it("returns nothing for an unknown query", async () => {
 		const items = await listProjects({ q: "ghost" });
 		expect(items).toEqual([]);
+	});
+
+	it("finds a project by repository, normalizing the input", async () => {
+		for (const repo of [
+			"github.com/acme/shop",
+			"https://github.com/acme/shop.git",
+			"git@github.com:acme/shop.git",
+			"GITHUB.COM/acme/shop",
+		]) {
+			const items = await listProjects({ repo });
+			expect(items.map((project) => project.id)).toEqual(["spa"]);
+		}
+	});
+
+	it("returns nothing for an unknown repository", async () => {
+		const items = await listProjects({ repo: "github.com/acme/ghost" });
+		expect(items).toEqual([]);
+	});
+
+	it("matches the repository through q", async () => {
+		const items = await listProjects({ q: "acme/shop" });
+		expect(items.map((project) => project.id)).toEqual(["spa"]);
+	});
+
+	it("sets and clears the repository, sharing one between projects", async () => {
+		const shared = "github.com/acme/shop";
+		const patched = (await runOp(
+			op("projects_update"),
+			{ id: "bil", patch: { repo: "git@github.com:acme/billing.git" } },
+			"mcp",
+		)) as ListedProject;
+		expect(patched.repo).toBe("github.com/acme/billing");
+
+		await runOp(
+			op("projects_update"),
+			{ id: "bil", patch: { repo: shared } },
+			"mcp",
+		);
+		const both = await listProjects({ repo: shared });
+		expect(both.map((project) => project.id).sort()).toEqual(["bil", "spa"]);
+
+		const cleared = (await runOp(
+			op("projects_update"),
+			{ id: "bil", patch: { repo: null } },
+			"mcp",
+		)) as ListedProject;
+		expect(cleared.repo).toBeNull();
+		expect((await listProjects({ repo: shared })).map((p) => p.id)).toEqual([
+			"spa",
+		]);
+	});
+
+	it("creates a project with a repository", async () => {
+		const created = (await runOp(
+			op("projects_create"),
+			{
+				id: "aux",
+				name: "Aux",
+				prefix: "AUX",
+				repo: "git@github.com:acme/aux.git",
+			},
+			"mcp",
+		)) as ListedProject;
+		expect(created.repo).toBe("github.com/acme/aux");
+		expect(
+			(await listProjects({ repo: "github.com/acme/aux" })).map((p) => p.id),
+		).toEqual(["aux"]);
+	});
+
+	it("rejects a broken repository", async () => {
+		await expect(listProjects({ repo: "shop" })).rejects.toThrow();
+		await expect(
+			runOp(
+				op("projects_update"),
+				{ id: "bil", patch: { repo: "nope" } },
+				"mcp",
+			),
+		).rejects.toThrow();
 	});
 });

@@ -24,6 +24,7 @@
 	let { open, project, projects, scopes, tasks, onclose }: Props = $props();
 
 	let name = $state("");
+	let repo = $state("");
 	let creatingScope = $state(false);
 	let failure = $state<string | null>(null);
 	let saving = $state(false);
@@ -39,6 +40,7 @@
 		if (id === lastProjectId) return;
 		lastProjectId = id;
 		name = project?.name ?? "";
+		repo = project?.repo ?? "";
 		creatingScope = false;
 		failure = null;
 		confirmingId = null;
@@ -62,6 +64,13 @@
 		const clean = name.trim();
 		if (clean === "" || clean === current.name) return;
 		void run(() => projects.rename(current.id, clean));
+	}
+
+	function saveRepo() {
+		const current = project;
+		if (current === null) return;
+		const clean = repo.trim();
+		void run(() => projects.setRepo(current.id, clean === "" ? null : clean));
 	}
 
 	function toggleArchived() {
@@ -119,6 +128,27 @@
 				</div>
 			</label>
 			{#if project.id !== INBOX_PROJECT_ID}
+				<label class="field">
+					Repository
+					<div class="inline">
+						<input
+							bind:value={repo}
+							aria-label="Project repository"
+							placeholder="github.com/owner/repo"
+						/>
+						<button
+							class="icon-button"
+							type="button"
+							onclick={saveRepo}
+							disabled={saving || repo.trim() === (project.repo ?? "")}
+						>
+							Save
+						</button>
+					</div>
+					<span class="field-hint">
+						Lets the CLI match this project by the git origin. Optional.
+					</span>
+				</label>
 				<button
 					class="icon-button archive-toggle"
 					type="button"
@@ -226,6 +256,11 @@
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
+	}
+
+	.field-hint {
+		font-weight: 400;
+		line-height: 1.5;
 	}
 
 	.scope-add {

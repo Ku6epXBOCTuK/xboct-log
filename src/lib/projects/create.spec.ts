@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
 	normalizeProjectPrefix,
+	normalizeRepo,
 	projectIdError,
 	projectPrefixError,
+	repoError,
 	slugifyProjectId,
 	uniqueProjectId,
 } from "./create";
@@ -52,6 +54,68 @@ describe("projectPrefixError", () => {
 describe("normalizeProjectPrefix", () => {
 	it("trims and uppercases", () => {
 		expect(normalizeProjectPrefix(" log ")).toBe("LOG");
+	});
+});
+
+describe("normalizeRepo", () => {
+	it("reduces a URL to host/owner/name", () => {
+		expect(normalizeRepo("https://github.com/Ku6epXBOCTuK/xboct-log.git")).toBe(
+			"github.com/Ku6epXBOCTuK/xboct-log",
+		);
+		expect(normalizeRepo("http://github.com/owner/repo/")).toBe(
+			"github.com/owner/repo",
+		);
+	});
+
+	it("accepts the scp and ssh forms", () => {
+		expect(normalizeRepo("git@github.com:owner/repo.git")).toBe(
+			"github.com/owner/repo",
+		);
+		expect(normalizeRepo("ssh://git@host:3000/owner/repo.git")).toBe(
+			"host:3000/owner/repo",
+		);
+	});
+
+	it("lowercases the host and keeps the path", () => {
+		expect(normalizeRepo("GitHub.com/Owner/Repo")).toBe(
+			"github.com/Owner/Repo",
+		);
+	});
+
+	it("keeps subgroups", () => {
+		expect(normalizeRepo("gitea.local/group/sub/repo")).toBe(
+			"gitea.local/group/sub/repo",
+		);
+	});
+
+	it("returns null for an empty value", () => {
+		expect(normalizeRepo("")).toBeNull();
+		expect(normalizeRepo("   ")).toBeNull();
+	});
+});
+
+describe("repoError", () => {
+	it("accepts a URL, a scp form and a plain host/owner/name", () => {
+		expect(repoError("")).toBeNull();
+		expect(repoError("https://github.com/owner/repo.git")).toBeNull();
+		expect(repoError("git@github.com:owner/repo.git")).toBeNull();
+		expect(repoError("github.com/owner/repo")).toBeNull();
+	});
+
+	it("rejects a missing host or name", () => {
+		expect(repoError("owner/repo")).not.toBeNull();
+		expect(repoError("https://github.com/owner")).not.toBeNull();
+		expect(repoError("github.com")).not.toBeNull();
+	});
+
+	it("rejects traversal and stray characters", () => {
+		expect(repoError("github.com/../repo")).not.toBeNull();
+		expect(repoError("github.com/owner/re po")).not.toBeNull();
+		expect(repoError("https://github.com/owner/repo?tab=1")).not.toBeNull();
+	});
+
+	it("rejects an overlong value", () => {
+		expect(repoError(`github.com/owner/${"a".repeat(200)}`)).not.toBeNull();
 	});
 });
 

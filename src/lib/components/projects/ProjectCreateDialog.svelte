@@ -4,6 +4,7 @@
 	import {
 		projectIdError,
 		projectPrefixError,
+		repoError,
 		slugifyProjectId,
 		uniqueProjectId,
 	} from "#lib/projects/create.ts";
@@ -21,6 +22,7 @@
 	let name = $state("");
 	let id = $state("");
 	let prefix = $state("");
+	let repo = $state("");
 	let idTouched = $state(false);
 	let creating = $state(false);
 	let failure = $state<string | null>(null);
@@ -42,6 +44,7 @@
 			name = "";
 			id = "";
 			prefix = "";
+			repo = "";
 			idTouched = false;
 			failure = null;
 			return;
@@ -78,6 +81,7 @@
 		const cleanName = name.trim();
 		const cleanId = id.trim();
 		const cleanPrefix = prefix.trim().toUpperCase();
+		const cleanRepo = repo.trim();
 
 		if (cleanName === "") {
 			failure = "Project name is required";
@@ -101,6 +105,11 @@
 			failure = `Prefix "${cleanPrefix}" is already taken`;
 			return;
 		}
+		const repositoryError = repoError(cleanRepo);
+		if (repositoryError !== null) {
+			failure = repositoryError;
+			return;
+		}
 
 		creating = true;
 		try {
@@ -108,6 +117,7 @@
 				id: cleanId,
 				name: cleanName,
 				prefix: cleanPrefix,
+				repo: cleanRepo === "" ? null : cleanRepo,
 			});
 			onclose();
 		} catch (error) {
@@ -161,6 +171,21 @@
 				1-6 uppercase letters or digits. It starts every task id, like
 				{prefix.trim() === "" ? "MCPG-42" : `${prefix.trim()}-42`}. Cannot be
 				changed later.
+			</span>
+		</label>
+
+		<label class="field">
+			Repository
+			<input
+				class="field-control"
+				value={repo}
+				placeholder="github.com/owner/repo"
+				aria-label="Project repository"
+				oninput={(event) => (repo = event.currentTarget.value)}
+			/>
+			<span class="hint">
+				Optional. Lets the CLI match this project by the git origin and tells an
+				issue import where to look.
 			</span>
 		</label>
 

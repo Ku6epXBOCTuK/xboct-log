@@ -6,6 +6,7 @@ export interface NewProjectInput {
 	id: string;
 	name: string;
 	prefix: string;
+	repo?: string | null;
 }
 
 export function createProjectStore(initial: Project[]) {
@@ -50,6 +51,11 @@ export function createProjectStore(initial: Project[]) {
 		},
 		async setArchived(id: string, archived: boolean) {
 			const updated = await updateProject({ id, patch: { archived } });
+			replace(updated);
+			return updated;
+		},
+		async setRepo(id: string, repo: string | null) {
+			const updated = await updateProject({ id, patch: { repo } });
 			replace(updated);
 			return updated;
 		},

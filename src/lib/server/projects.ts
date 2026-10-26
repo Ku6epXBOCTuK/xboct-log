@@ -2,8 +2,10 @@ import { err, ok, type Result } from "neverthrow";
 import type { DatabaseSync } from "node:sqlite";
 import {
 	normalizeProjectPrefix,
+	normalizeRepo,
 	projectIdError,
 	projectPrefixError,
+	repoError,
 } from "../projects/create";
 import { INBOX_PROJECT_ID, INBOX_PROJECT_PREFIX, type Project } from "../types";
 import { AppError, conflict, guard, invalid, notFound } from "./errors";
@@ -12,6 +14,7 @@ interface ProjectRow {
 	id: string;
 	name: string;
 	prefix: string;
+	repo: string | null;
 	created_at: string;
 	archived_at: string | null;
 }
@@ -20,10 +23,12 @@ export interface NewProject {
 	id: string;
 	name: string;
 	prefix: string;
+	repo?: string | null;
 }
 
 export interface ProjectPatch {
 	name?: string;
+	repo?: string | null;
 	archived?: boolean;
 }
 
@@ -36,6 +41,7 @@ function mapProject(row: ProjectRow): Project {
 		id: row.id,
 		name: row.name,
 		prefix: row.prefix,
+		repo: row.repo,
 		created_at: row.created_at,
 		archived_at: row.archived_at,
 	};
@@ -67,6 +73,11 @@ export function createProject(
 	if (prefixError !== null) {
 		return err(invalid(prefixError));
 	}
+	const repositoryError = repoError(input.repo ?? "");
+	if (repositoryError !== null) {
+		return err(invalid(repositoryError));
+	}
+	const repo = normalizeRepo(input.repo ?? "");
 
 	const clash = db
 		.prepare(
@@ -80,8 +91,8 @@ export function createProject(
 	const createdAt = new Date().toISOString();
 	return guard(() => {
 		db.prepare(
-			"INSERT INTO projects (id, name, prefix, created_at) VALUES (?, ?, ?, ?)",
-		).run(id, name, prefix, createdAt);
+			"INSERT INTO projects (id, name, prefix, repo, created_at) VALUES (?, ?, ?, ?, ?)",
+		).run(id, name, prefix, repo, createdAt);
 		return projectById(db, id)!;
 	});
 }
@@ -176,6 +187,15 @@ export function updateProject(
 		}
 		sets.push("name = ?");
 		params.push(name);
+	}
+	if (patch.repo !== undefined) {
+		const raw = patch.repo ?? "";
+		const repositoryError = repoError(raw);
+		if (repositoryError !== null) {
+			return err(invalid(repositoryError));
+		}
+		sets.push("repo = ?");
+		params.push(normalizeRepo(raw));
 	}
 	if (patch.archived !== undefined) {
 		sets.push("archived_at = ?");

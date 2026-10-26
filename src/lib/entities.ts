@@ -5,6 +5,7 @@ export const projectSchema = z.object({
 	id: z.string(),
 	name: z.string(),
 	prefix: z.string(),
+	repo: z.string().nullable(),
 	created_at: z.string(),
 	archived_at: z.string().nullable(),
 });
