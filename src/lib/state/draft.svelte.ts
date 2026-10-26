@@ -8,6 +8,7 @@ export interface CreatedTask {
 export interface SavedDraft {
 	values: TaskFieldValues;
 	title: string;
+	files?: File[];
 }
 
 export function createDraftStore() {

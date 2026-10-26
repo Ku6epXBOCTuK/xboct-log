@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { advancedFilledCount, epicsForProject, siblingEpics } from "./fields";
-import type { Task } from "#lib/types.ts";
+import {
+	advancedFilledCount,
+	draftHasContent,
+	epicsForProject,
+	fitDraftToProjects,
+	siblingEpics,
+	type TaskFieldValues,
+} from "./fields";
+import type { Project, Scope, Task } from "#lib/types.ts";
 
 function task(overrides: Partial<Task>): Task {
 	return {
@@ -138,5 +145,117 @@ describe("siblingEpics", () => {
 
 	it("returns nothing when no task is selected", () => {
 		expect(siblingEpics([task({ id: "E-1" })], null)).toEqual([]);
+	});
+});
+
+function values(overrides: Partial<Task>): TaskFieldValues {
+	return {
+		project_id: "inbox",
+		priority: "medium",
+		is_epic: false,
+		epic_id: null,
+		scope_id: null,
+		source_file: null,
+		tags: [],
+		estimate: null,
+		assignee: null,
+		due_at: null,
+		description: "",
+		...overrides,
+	};
+}
+
+function project(id: string): Project {
+	return {
+		id,
+		name: id,
+		prefix: id.toUpperCase(),
+		repo: null,
+		created_at: "2026-01-01T00:00:00.000Z",
+		archived_at: null,
+	};
+}
+
+function scope(id: number, projectId: string): Scope {
+	return {
+		id,
+		project_id: projectId,
+		name: `scope ${id}`,
+		created_at: "2026-01-01T00:00:00.000Z",
+	};
+}
+
+describe("draftHasContent", () => {
+	it("is empty without a title, description and tags", () => {
+		expect(draftHasContent(values({}), "  ")).toBe(false);
+	});
+
+	it("is filled by any of the tracked fields", () => {
+		expect(draftHasContent(values({}), "title")).toBe(true);
+		expect(draftHasContent(values({ description: "text" }), "")).toBe(true);
+		expect(draftHasContent(values({ tags: ["ui"] }), "")).toBe(true);
+		expect(draftHasContent(values({ estimate: "M" }), "")).toBe(true);
+	});
+});
+
+describe("fitDraftToProjects", () => {
+	const projects = [project("inbox"), project("other")];
+	const epics = [
+		task({ id: "E-1", project_id: "inbox" }),
+		task({ id: "E-2", project_id: "other" }),
+	];
+	const scopes = [scope(1, "inbox"), scope(2, "other")];
+
+	it("keeps a draft that still matches the data", () => {
+		const fitted = fitDraftToProjects(
+			values({ project_id: "inbox", epic_id: "E-1", scope_id: 1 }),
+			projects,
+			epics,
+			scopes,
+			"other",
+		);
+
+		expect(fitted.project_id).toBe("inbox");
+		expect(fitted.epic_id).toBe("E-1");
+		expect(fitted.scope_id).toBe(1);
+	});
+
+	it("falls back when the project is gone", () => {
+		const fitted = fitDraftToProjects(
+			values({ project_id: "deleted", epic_id: "E-1", scope_id: 1 }),
+			projects,
+			epics,
+			scopes,
+			"inbox",
+		);
+
+		expect(fitted.project_id).toBe("inbox");
+		expect(fitted.epic_id).toBeNull();
+		expect(fitted.scope_id).toBeNull();
+	});
+
+	it("drops an epic or scope of another project", () => {
+		const fitted = fitDraftToProjects(
+			values({ project_id: "inbox", epic_id: "E-2", scope_id: 2 }),
+			projects,
+			epics,
+			scopes,
+			"inbox",
+		);
+
+		expect(fitted.epic_id).toBeNull();
+		expect(fitted.scope_id).toBeNull();
+	});
+
+	it("drops the epic of an epic draft", () => {
+		const fitted = fitDraftToProjects(
+			values({ project_id: "inbox", is_epic: true, epic_id: "E-1" }),
+			projects,
+			epics,
+			scopes,
+			"inbox",
+		);
+
+		expect(fitted.epic_id).toBeNull();
 	});
 });

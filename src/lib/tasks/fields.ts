@@ -1,4 +1,10 @@
-import { CLOSED_STATUSES, type ProjectFilter, type Task } from "#lib/types.ts";
+import {
+	CLOSED_STATUSES,
+	type Project,
+	type ProjectFilter,
+	type Scope,
+	type Task,
+} from "#lib/types.ts";
 
 export type TaskPatch = Partial<
 	Pick<
@@ -49,6 +55,55 @@ export function validateTaskDraft(draft: {
 	}
 
 	return null;
+}
+
+export function draftHasContent(
+	values: TaskFieldValues,
+	title: string,
+): boolean {
+	return (
+		title.trim() !== "" ||
+		values.description.trim() !== "" ||
+		values.tags.some((tag) => tag.trim() !== "") ||
+		advancedFilledCount(values) > 0
+	);
+}
+
+export function fitDraftToProjects(
+	values: TaskFieldValues,
+	projects: Project[],
+	epics: Task[],
+	scopes: Scope[],
+	fallbackProject: string,
+): TaskFieldValues {
+	const projectId = projects.some((project) => project.id === values.project_id)
+		? values.project_id
+		: fallbackProject;
+	const kept = projectId === values.project_id;
+	const epicId =
+		kept &&
+		!values.is_epic &&
+		values.epic_id !== null &&
+		epics.some(
+			(epic) => epic.id === values.epic_id && epic.project_id === projectId,
+		)
+			? values.epic_id
+			: null;
+	const scopeId =
+		kept &&
+		values.scope_id !== null &&
+		scopes.some(
+			(scope) => scope.id === values.scope_id && scope.project_id === projectId,
+		)
+			? values.scope_id
+			: null;
+
+	return {
+		...values,
+		project_id: projectId,
+		epic_id: epicId,
+		scope_id: scopeId,
+	};
 }
 
 export function advancedFilledCount(values: TaskFieldValues): number {

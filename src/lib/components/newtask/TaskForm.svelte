@@ -16,7 +16,11 @@
 	import { collectTags } from "#lib/tasks/filter.ts";
 	import { matchesHotkey } from "#lib/hotkeys/hotkeys.ts";
 	import { fieldNavigation } from "#lib/hotkeys/fields.ts";
-	import { advancedFilledCount } from "#lib/tasks/fields.ts";
+	import {
+		advancedFilledCount,
+		draftHasContent,
+		fitDraftToProjects,
+	} from "#lib/tasks/fields.ts";
 	import {
 		epicsForProject,
 		validateTaskDraft,
@@ -105,12 +109,21 @@
 	let fileInput = $state<HTMLInputElement | null>(null);
 	let files = $state<File[]>([]);
 	let dragging = $state(false);
+	let committed = $state(false);
 
-	const restored = untrack(() => draftStore.saved);
-	if (restored) {
-		draft = restored.values;
+	untrack(() => {
+		const restored = draftStore.saved;
+		if (!restored) return;
+		draft = fitDraftToProjects(
+			{ ...restored.values, tags: [...restored.values.tags] },
+			projects,
+			tasks.epics,
+			scopes.all,
+			defaultProject(),
+		);
 		title = restored.title;
-	}
+		files = restored.files ? [...restored.files] : [];
+	});
 
 	const epicOptions = $derived(
 		epicsForProject(tasks.epics, draft.project_id, draft.epic_id),
@@ -119,6 +132,12 @@
 
 	$effect(() => {
 		titleInput?.focus();
+	});
+
+	$effect(() => {
+		const values = { ...draft, tags: [...draft.tags] };
+		if (committed || !draftHasContent(values, title)) return;
+		draftStore.save({ values, title, files: [...files] });
 	});
 
 	function reset() {
@@ -131,6 +150,7 @@
 		files = [];
 		failure = null;
 		invalidField = false;
+		committed = false;
 	}
 
 	function pickFiles(event: Event) {
@@ -196,6 +216,7 @@
 	}
 
 	function cancel() {
+		committed = true;
 		draftStore.clearDraft();
 		onclose();
 	}
@@ -203,10 +224,6 @@
 	function backToLast() {
 		const last = draftStore.last;
 		if (!last) return;
-		draftStore.save({
-			values: { ...draft, tags: [...draft.tags] },
-			title,
-		});
 		onopen?.(last.id);
 	}
 
@@ -273,6 +290,7 @@
 			return;
 		}
 
+		committed = true;
 		saving = true;
 
 		try {
@@ -310,6 +328,7 @@
 			}
 		} catch (error) {
 			failure = messageOf(error);
+			committed = false;
 		} finally {
 			saving = false;
 		}
