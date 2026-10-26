@@ -54,24 +54,20 @@ export type Estimate = (typeof ESTIMATES)[number];
 export const INBOX_PROJECT_ID = "inbox";
 export const INBOX_PROJECT_PREFIX = "INB";
 
-export interface Project {
-	id: string;
-	name: string;
-	prefix: string;
-	created_at: string;
-	archived_at: string | null;
-}
+import type { z } from "zod";
+import type {
+	attachmentSchema,
+	commentSchema,
+	projectSchema,
+	scopeSchema,
+	taskSchema,
+} from "./entities.ts";
+
+export type Project = z.infer<typeof projectSchema>;
 
 export type ProjectFilter = string | null;
 
-export interface Scope {
-	id: number;
-	project_id: string;
-	name: string;
-	created_at: string;
-	task_count?: number;
-	epics_count?: number;
-}
+export type Scope = z.infer<typeof scopeSchema>;
 
 export const ACTIVITY_ENTITIES = ["task", "project", "scope"] as const;
 
@@ -110,14 +106,7 @@ export interface TaskRevision {
 	created_at: string;
 }
 
-export interface Comment {
-	id: string;
-	task_id: string;
-	body: string;
-	created_at: string;
-	edited_at: string | null;
-	deleted_at: string | null;
-}
+export type Comment = z.infer<typeof commentSchema>;
 
 export interface TaskWithChanges extends Task {
 	changes: ActivityChange[];
@@ -131,44 +120,6 @@ export interface ChangedTaskWithWarnings extends TaskWithChanges {
 	warnings: string[];
 }
 
-export interface Task {
-	id: string;
-	project_id: string;
-	number: number;
-	title: string;
-	description: string;
-	status: Status;
-	priority: Priority;
-	is_epic: boolean;
-	epic_id: string | null;
-	scope_id: number | null;
-	source_file: string | null;
-	tags: string[];
-	estimate: Estimate | null;
-	assignee: string | null;
-	due_at: string | null;
-	attachments_count?: number;
-	created_at: string;
-	updated_at: string;
-	closed_at: string | null;
-	closed_reason: ClosedReason | null;
-	deleted_at: string | null;
-	project_name?: string;
-	scope_name?: string;
-	short_description?: string;
-	blocked_by?: string[];
-	blocks?: string[];
-	relates_to?: string[];
-	duplicates?: string[];
-	duplicated_by?: string[];
-}
+export type Task = z.infer<typeof taskSchema>;
 
-export interface TaskAttachment {
-	id: string;
-	task_id: string;
-	file_name: string;
-	mime_type: string | null;
-	size: number;
-	created_at: string;
-	missing: boolean;
-}
+export type TaskAttachment = z.infer<typeof attachmentSchema>;

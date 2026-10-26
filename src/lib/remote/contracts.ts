@@ -1,39 +1,39 @@
 import { z } from "zod";
-import { PRIORITIES, STATUSES } from "../types";
+import {
+	attachmentSchema,
+	commentSchema,
+	projectSchema,
+	scopeSchema,
+	taskSchema,
+} from "../entities";
+import { STATUSES } from "../types";
 
-export const taskRef = z.looseObject({
-	id: z.string(),
-	title: z.string(),
-	number: z.number().int(),
-	project_id: z.string(),
-	status: z.enum(STATUSES),
-	priority: z.enum(PRIORITIES),
-});
+export const taskRef = taskSchema
+	.pick({
+		id: true,
+		title: true,
+		number: true,
+		project_id: true,
+		status: true,
+		priority: true,
+	})
+	.loose();
 
-export const projectRef = z.looseObject({
-	id: z.string(),
-	name: z.string(),
-	prefix: z.string(),
-});
+export const projectRef = projectSchema
+	.pick({ id: true, name: true, prefix: true })
+	.loose();
 
-export const scopeRef = z.looseObject({
-	id: z.number().int(),
-	project_id: z.string(),
-	name: z.string(),
-});
+export const scopeRef = scopeSchema
+	.pick({ id: true, project_id: true, name: true })
+	.loose();
 
-export const commentRef = z.looseObject({
-	id: z.string(),
-	task_id: z.string(),
-	body: z.string(),
-});
+export const commentRef = commentSchema
+	.pick({ id: true, task_id: true, body: true })
+	.loose();
 
-export const attachmentRef = z.looseObject({
-	id: z.string(),
-	task_id: z.string(),
-	file_name: z.string(),
-	size: z.number().int(),
-});
+export const attachmentRef = attachmentSchema
+	.pick({ id: true, task_id: true, file_name: true, size: true })
+	.loose();
 
 export const revisionRef = z.looseObject({
 	id: z.number().int(),

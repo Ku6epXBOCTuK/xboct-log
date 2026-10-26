@@ -1,13 +1,21 @@
-export const TASK_FIELDS =
-	"{id, project_id, number, title, description, status, priority, is_epic, epic_id, scope_id, source_file, tags, estimate, assignee, due_at, attachments_count, created_at, updated_at, closed_at, closed_reason, deleted_at, blocked_by, blocks, relates_to, duplicates, duplicated_by}";
+import {
+	attachmentSchema,
+	commentSchema,
+	projectSchema,
+	scopeSchema,
+	taskSchema,
+} from "#lib/entities.ts";
 
-export const COMMENT_FIELDS =
-	"{id, task_id, body, created_at, edited_at, deleted_at}";
+function objectFields(schema: { shape: Record<string, unknown> }): string {
+	return `{${Object.keys(schema.shape).join(", ")}}`;
+}
 
-export const PROJECT_FIELDS = "{id, name, prefix, created_at, archived_at}";
+export const TASK_FIELDS = objectFields(taskSchema);
 
-export const SCOPE_FIELDS =
-	"{id, project_id, name, created_at, task_count, epics_count}";
+export const COMMENT_FIELDS = objectFields(commentSchema);
 
-export const ATTACHMENT_FIELDS =
-	"{id, task_id, file_name, mime_type, size, created_at, missing}";
+export const PROJECT_FIELDS = objectFields(projectSchema);
+
+export const SCOPE_FIELDS = objectFields(scopeSchema);
+
+export const ATTACHMENT_FIELDS = objectFields(attachmentSchema);

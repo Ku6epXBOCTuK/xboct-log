@@ -3,6 +3,7 @@ import { mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { taskSchema } from "#lib/entities.ts";
 import { getOps } from "#lib/remote/index.ts";
 import { resetAutoBackupState } from "#lib/server/auto-backup.ts";
 import { backupConfig } from "#lib/server/backup.ts";
@@ -534,6 +535,15 @@ describe("output contracts", () => {
 				parsed.success,
 				`${name}: ${parsed.success ? "" : parsed.error.message}`,
 			).toBe(true);
+			if (name === "tasks_get") {
+				const unknown = Object.keys(structured).filter(
+					(key) => !(key in taskSchema.shape),
+				);
+				expect(
+					unknown,
+					`tasks_get returns fields missing from taskSchema`,
+				).toEqual([]);
+			}
 		}
 	});
 });
