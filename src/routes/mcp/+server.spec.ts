@@ -1,10 +1,16 @@
 import type { RequestEvent } from "@sveltejs/kit";
+import {
+	CLIENT_CAPABILITIES_META_KEY,
+	CLIENT_INFO_META_KEY,
+	PROTOCOL_VERSION_META_KEY,
+} from "@modelcontextprotocol/server";
 import { mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { taskSchema } from "#lib/entities.ts";
 import { getOps } from "#lib/remote/index.ts";
+import { searchActivity } from "#lib/server/activity.ts";
 import { resetAutoBackupState } from "#lib/server/auto-backup.ts";
 import { backupConfig } from "#lib/server/backup.ts";
 import { closeDb, getDb } from "#lib/server/db.ts";
@@ -27,12 +33,17 @@ afterAll(() => {
 	rmSync(dbDir, { recursive: true, force: true });
 });
 
-function request(method: string, body: unknown): Request {
+function request(
+	method: string,
+	body: unknown,
+	extra: Record<string, string> = {},
+): Request {
 	return new Request("http://localhost/mcp", {
 		method,
 		headers: {
 			"content-type": "application/json",
 			accept: "application/json, text/event-stream",
+			...extra,
 		},
 		body: JSON.stringify(body),
 	});
@@ -41,6 +52,7 @@ function request(method: string, body: unknown): Request {
 async function rpc(
 	method: string,
 	params: unknown,
+	headers: Record<string, string> = {},
 ): Promise<{
 	result?: {
 		tools?: {
@@ -58,21 +70,26 @@ async function rpc(
 	error?: unknown;
 }> {
 	const response = await POST({
-		request: request("POST", {
-			jsonrpc: "2.0",
-			id: 1,
-			method,
-			params,
-		}),
+		request: request(
+			"POST",
+			{
+				jsonrpc: "2.0",
+				id: 1,
+				method,
+				params,
+			},
+			headers,
+		),
 	} as unknown as RequestEvent);
 	expect(response.status).toBe(200);
 	const text = await response.text();
-	const data = text
-		.split("\n")
-		.find((line) => line.startsWith("data: "))
-		?.slice("data: ".length);
-	expect(data).toBeDefined();
-	return JSON.parse(data ?? "{}");
+	const data =
+		text
+			.split("\n")
+			.find((line) => line.startsWith("data: "))
+			?.slice("data: ".length) ?? text;
+	expect(data).not.toBe("");
+	return JSON.parse(data);
 }
 
 describe("/mcp endpoint", () => {
@@ -133,6 +150,42 @@ describe("/mcp endpoint", () => {
 		expect(result.structuredContent?.id).toMatch(/^OUT-\d+$/);
 		expect(result.structuredContent?.status).toBe("open");
 		expect(Array.isArray(result.structuredContent?.warnings)).toBe(true);
+	});
+
+	it("records the client name from the request envelope", async () => {
+		const project = createProject(getDb(), {
+			id: "clt",
+			name: "Client",
+			prefix: "CLT",
+		});
+		expect(project.isOk()).toBe(true);
+
+		const body = await rpc(
+			"tools/call",
+			{
+				name: "tasks_create",
+				arguments: { project_id: "clt", title: "From a client" },
+				_meta: {
+					[PROTOCOL_VERSION_META_KEY]: "2026-07-28",
+					[CLIENT_CAPABILITIES_META_KEY]: {},
+					[CLIENT_INFO_META_KEY]: { name: "vitest", version: "0.0.0" },
+				},
+			},
+			{
+				"mcp-protocol-version": "2026-07-28",
+				"mcp-method": "tools/call",
+				"mcp-name": "tasks_create",
+			},
+		);
+		expect(body.error).toBeUndefined();
+		const created = body.result?.structuredContent as { id?: string };
+		expect(created.id).toMatch(/^CLT-\d+$/);
+
+		const log = searchActivity(getDb(), { op: "tasks_create", limit: 1 });
+		expect(log.items[0]).toMatchObject({
+			source: "mcp",
+			client: "vitest/0.0.0",
+		});
 	});
 
 	it("answers GET without crashing", async () => {

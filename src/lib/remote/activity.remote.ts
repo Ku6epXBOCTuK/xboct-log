@@ -11,7 +11,7 @@ export const getTaskHistory = defineQuery({
 	name: "tasks_history",
 	output: activityList,
 	description:
-		"Show the change log of one task: when it was changed, from which surface (source: 'ui' or 'mcp') and which fields were touched. Returns: {items, total}, newest first; each item is { ts, source, op, fields, old_id }. A changed field keeps the old and the new value, a creation lists only the fields set beyond the defaults. Reads are not logged themselves. The history of a task follows it after a move to another project.",
+		"Show the change log of one task: when it was changed, from which surface (source: 'ui' or 'mcp'), which MCP client did it (client: the name/version the client declared, null when it declared none) and which fields were touched. Returns: {items, total}, newest first; each item is { ts, source, client, op, fields, old_id }. A changed field keeps the old and the new value, a creation lists only the fields set beyond the defaults. Reads are not logged themselves. The history of a task follows it after a move to another project.",
 	kind: "query",
 	input: strictObject({
 		id: taskIdSchema(ID_DESCRIPTION),
@@ -37,7 +37,7 @@ export const listActivityLog = defineQuery({
 	name: "activity_list",
 	output: activityLog,
 	description:
-		"Read the interaction log of the whole backlog: every recorded change with its time, source ('ui', 'mcp' or 'cli'), operation, entity type and id and the list of touched fields. A changed field keeps the old and the new value, a creation lists only the fields set beyond the defaults. Supports filters (source, op, entity, from, to) and pagination via limit and offset. Returns: {items, total, ops}, where ops is the list of known operation names.",
+		"Read the interaction log of the whole backlog: every recorded change with its time, source ('ui', 'mcp' or 'cli'), client, operation, entity type and id and the list of touched fields. client is the self-declared name/version of the MCP client that made the change, null when the client declared none or the change came from the UI. A changed field keeps the old and the new value, a creation lists only the fields set beyond the defaults. Supports filters (source, op, entity, from, to) and pagination via limit and offset. Returns: {items, total, ops}, where ops is the list of known operation names.",
 	kind: "query",
 	input: strictObject({
 		source: z

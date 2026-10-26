@@ -65,6 +65,9 @@
 								<span class="source" data-source={item.source}
 									>{item.source}</span
 								>
+								{#if item.client !== null}
+									<span class="client">{item.client}</span>
+								{/if}
 							</td>
 							<td class="op">
 								{activityOpLabel(item.op)}
@@ -186,6 +189,13 @@
 
 	.source[data-source="ui"] {
 		color: var(--text-muted);
+	}
+
+	.client {
+		display: block;
+		margin-top: var(--space-1);
+		color: var(--text-muted);
+		font-size: var(--text-xs);
 	}
 
 	.op {

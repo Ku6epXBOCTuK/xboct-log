@@ -70,6 +70,7 @@ describe("activity", () => {
 		expect(result.items[0]).toEqual({
 			ts: "2026-10-20T12:00:00.000Z",
 			source: "ui",
+			client: null,
 			op: "tasks_close",
 			fields: ["status", "closed_reason"],
 			changes: [],

@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/server";
 import { isHttpError, type RequestEvent } from "@sveltejs/kit";
 import { createMcpHandler } from "mcp-handler";
 import { prettifyError, ZodError } from "zod";
+import { clientLabel } from "#lib/mcp/client-label.ts";
 import { runOp } from "#lib/remote/define.ts";
 import { getOps } from "#lib/remote/index.ts";
 import { kindForStatus, type ErrorKind } from "#lib/server/errors.ts";
@@ -37,9 +38,14 @@ function registerTools(server: McpServer): void {
 				inputSchema: op.input,
 				outputSchema: op.output,
 			},
-			async (args) => {
+			async (args, ctx) => {
 				try {
-					const value = await runOp(op, args, "mcp");
+					const value = await runOp(
+						op,
+						args,
+						"mcp",
+						clientLabel(ctx.mcpReq.envelope),
+					);
 					const payload = Array.isArray(value)
 						? { items: value }
 						: (value ?? null);

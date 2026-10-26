@@ -40,6 +40,7 @@ export async function runOp(
 	op: OpDefinition,
 	input: unknown,
 	source: ActivitySource = "ui",
+	client: string | null = null,
 ): Promise<unknown> {
 	const parsed = op.input.parse(input);
 	if (source === "mcp" && op.kind === "command") {
@@ -59,6 +60,7 @@ export async function runOp(
 				source,
 				op.name,
 				Array.isArray(entries) ? entries : [entries],
+				{ client },
 			);
 		}
 	}

@@ -285,6 +285,33 @@ describe("activity log", () => {
 		]);
 	});
 
+	it("keeps the client name of an mcp call and leaves it empty for ui", async () => {
+		const db = getDb();
+		const task = unwrap(createTask(db, { project_id: "spa", title: "Client" }));
+		clear();
+
+		await runOp(
+			op("tasks_update"),
+			{ id: task.id, patch: { status: "done" } },
+			"mcp",
+			"vitest/1.2.3",
+		);
+		await call("tasks_update", { id: task.id, patch: { status: "open" } });
+
+		const history = (await call("tasks_history", { id: task.id })) as {
+			items: ActivityItem[];
+		};
+		expect(history.items.map((item) => item.client)).toEqual([
+			null,
+			"vitest/1.2.3",
+		]);
+
+		const log = (await call("activity_list", { source: "mcp" })) as {
+			items: ActivityItem[];
+		};
+		expect(log.items[0].client).toBe("vitest/1.2.3");
+	});
+
 	it("reads the history of a task without logging the read", async () => {
 		const db = getDb();
 		const task = unwrap(

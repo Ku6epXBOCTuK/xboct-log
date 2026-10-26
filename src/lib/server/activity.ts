@@ -100,25 +100,32 @@ export function creationFields(input: object | undefined): string[] {
 	return fields;
 }
 
+export interface ActivityOptions {
+	now?: Date;
+	client?: string | null;
+}
+
 export function recordActivity(
 	db: DatabaseSync,
 	source: ActivitySource,
 	op: string,
 	entries: ActivityEntry[],
-	now: Date = new Date(),
+	options: ActivityOptions = {},
 ): number {
 	if (entries.length === 0 || !activityTableExists(db)) {
 		return 0;
 	}
 	const insert = db.prepare(
-		`INSERT INTO activity (created_at, source, op, entity, entity_id, old_id, fields, changes)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO activity (created_at, source, client, op, entity, entity_id, old_id, fields, changes)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 	);
-	const createdAt = now.toISOString();
+	const createdAt = (options.now ?? new Date()).toISOString();
+	const client = options.client ?? null;
 	for (const entry of entries) {
 		insert.run(
 			createdAt,
 			source,
+			client,
 			op,
 			entry.entity,
 			entry.entity_id,
@@ -220,13 +227,14 @@ export function searchActivity(
 
 	const rows = db
 		.prepare(
-			`SELECT created_at, source, op, entity, entity_id, old_id, fields, changes
+			`SELECT created_at, source, client, op, entity, entity_id, old_id, fields, changes
 			 FROM activity ${where}
 			 ORDER BY id DESC LIMIT ? OFFSET ?`,
 		)
 		.all(...params, limit, offset) as unknown as {
 		created_at: string;
 		source: string;
+		client: string | null;
 		op: string;
 		entity: string;
 		entity_id: string;
@@ -243,6 +251,7 @@ export function searchActivity(
 		items: rows.map((row) => ({
 			ts: row.created_at,
 			source: row.source,
+			client: row.client,
 			op: row.op,
 			entity: row.entity,
 			entity_id: row.entity_id,
@@ -318,13 +327,14 @@ export function listActivity(
 
 	const rows = db
 		.prepare(
-			`SELECT created_at, source, op, fields, old_id, changes
+			`SELECT created_at, source, client, op, fields, old_id, changes
 			 FROM activity WHERE ${where}
 			 ORDER BY id DESC LIMIT ? OFFSET ?`,
 		)
 		.all(...params, limit, offset) as unknown as {
 		created_at: string;
 		source: string;
+		client: string | null;
 		op: string;
 		fields: string;
 		old_id: string | null;
@@ -335,6 +345,7 @@ export function listActivity(
 		items: rows.map((row) => ({
 			ts: row.created_at,
 			source: row.source,
+			client: row.client,
 			op: row.op,
 			fields: parseFields(row.fields),
 			changes: parseChanges(row.changes),

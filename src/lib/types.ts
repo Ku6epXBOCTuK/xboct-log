@@ -88,6 +88,7 @@ export interface ActivityChange {
 export interface ActivityItem {
 	ts: string;
 	source: string;
+	client: string | null;
 	op: string;
 	fields: string[];
 	changes: ActivityChange[];

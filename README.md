@@ -17,7 +17,8 @@ Built with SvelteKit and Svelte 5.
 - **Kanban** board grouped by status.
 - **Task detail** with comments, revisions, and attachments, without leaving the
   list.
-- **Activity** log and **Deleted** tasks with restore.
+- **Activity** log, with the MCP client that made each change, and **Deleted**
+  tasks with restore.
 - **Light and dark** themes.
 
 ## Requirements

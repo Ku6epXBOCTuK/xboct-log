@@ -47,6 +47,7 @@ export const revisionRef = z.looseObject({
 export const activityRef = z.looseObject({
 	ts: z.string(),
 	source: z.string(),
+	client: z.string().nullable(),
 	op: z.string(),
 	fields: z.array(z.string()),
 });
