@@ -51,8 +51,8 @@ export const getProjects = defineQuery({
 			if (repositoryError !== null) {
 				error(400, repositoryError);
 			}
-			const normalized = normalizeRepo(options.repo);
-			if (normalized === null) {
+			const normalized = normalizeRepo(options.repo)?.toLowerCase();
+			if (normalized === undefined || normalized === null) {
 				error(400, "Repository must look like host/owner/name");
 			}
 			repo = normalized;

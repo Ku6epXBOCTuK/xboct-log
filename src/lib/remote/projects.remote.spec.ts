@@ -110,6 +110,7 @@ describe("projects_list", () => {
 			"https://github.com/acme/shop.git",
 			"git@github.com:acme/shop.git",
 			"GITHUB.COM/acme/shop",
+			"https://GitHub.com/Acme/Shop.git",
 		]) {
 			const items = await listProjects({ repo });
 			expect(items.map((project) => project.id)).toEqual(["spa"]);
