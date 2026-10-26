@@ -1,4 +1,6 @@
 <script lang="ts">
+	import InfoPopover from "#lib/components/ui/InfoPopover.svelte";
+
 	interface Props {
 		count: number;
 		checked: boolean;
@@ -16,9 +18,12 @@
 	/>
 	<span>Advanced</span>
 	{#if count > 0}
-		<span class="advanced-count" title={`${count} filled fields are hidden`}>
+		<InfoPopover
+			text={`${count} filled fields are hidden`}
+			class="advanced-count"
+		>
 			{count}
-		</span>
+		</InfoPopover>
 	{/if}
 </label>
 
@@ -37,9 +42,9 @@
 		color: var(--foreground);
 	}
 
-	.advanced-count {
+	.advanced-toggle :global(.info-popover-trigger.advanced-count) {
 		color: var(--priority-high);
+		font-family: inherit;
 		font-weight: 600;
-		font-variant-numeric: tabular-nums;
 	}
 </style>

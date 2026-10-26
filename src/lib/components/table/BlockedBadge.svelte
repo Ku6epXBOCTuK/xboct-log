@@ -1,4 +1,5 @@
 <script lang="ts">
+	import InfoPopover from "#lib/components/ui/InfoPopover.svelte";
 	import Ban from "~icons/lucide/ban";
 	import Clock from "~icons/lucide/clock";
 	import TriangleAlert from "~icons/lucide/triangle-alert";
@@ -12,59 +13,50 @@
 
 	const waitingFor = $derived(reason ?? "");
 	const externalBlock = $derived(blockers.length === 0 && waitingFor !== "");
+	const blockedText = $derived(`Blocked by ${blockers.join(", ")}`);
+	const waitingText = $derived(`Waiting for: ${waitingFor}`);
 </script>
 
-{#if blockers.length > 0}
-	<span
-		class="blocker-icon"
-		title={`Blocked by ${blockers.join(", ")}`}
-		aria-label={`Blocked by ${blockers.join(", ")}`}
-	>
-		<Ban />
-		{blockers.length}
-	</span>
-{:else if externalBlock}
-	<span
-		class="blocker-icon"
-		title={`Waiting for: ${waitingFor}`}
-		aria-label={`Waiting for: ${waitingFor}`}
-	>
-		<Clock />
-	</span>
-{:else}
-	<span
-		class="blocker-icon blocker-empty"
-		title="Blocked, no reason given"
-		aria-label="Blocked, no reason given"
-	>
-		<TriangleAlert />
-	</span>
-{/if}
+<span class="blocked-badge">
+	{#if blockers.length > 0}
+		<InfoPopover text={blockedText} class="blocker-icon">
+			{#snippet icon()}
+				<Ban />
+			{/snippet}
+			{blockers.length}
+		</InfoPopover>
+	{:else if externalBlock}
+		<InfoPopover text={waitingText} class="blocker-icon">
+			{#snippet icon()}
+				<Clock />
+			{/snippet}
+		</InfoPopover>
+	{:else}
+		<InfoPopover
+			text="Blocked, no reason given"
+			class="blocker-icon blocker-empty"
+		>
+			{#snippet icon()}
+				<TriangleAlert />
+			{/snippet}
+		</InfoPopover>
+	{/if}
+</span>
 
 <style>
-	.blocker-icon {
+	.blocked-badge {
 		display: inline-flex;
-		align-items: center;
-		gap: var(--space-1);
-		color: var(--accent-ink);
-		font-family: var(--font-mono);
-		font-size: var(--text-xs);
-		font-variant-numeric: tabular-nums;
-		line-height: 1;
-		padding: var(--space-1);
-		cursor: help;
 		flex: none;
 	}
 
-	.blocker-icon :global(svg) {
-		width: 0.875rem;
-		height: 0.875rem;
+	.blocked-badge :global(.info-popover-trigger.blocker-icon) {
+		padding: var(--space-1);
+		color: var(--accent-ink);
 	}
 
-	.blocker-empty {
+	.blocked-badge :global(.info-popover-trigger.blocker-empty) {
 		gap: 0;
 		color: var(--status-blocked);
 		background: color-mix(in oklch, var(--status-blocked) 40%, transparent);
-		border-radius: var(--radius-sm);
 	}
 </style>

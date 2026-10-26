@@ -6,6 +6,7 @@
 	import type { Snippet } from "svelte";
 	import BlockedBadge from "#lib/components/table/BlockedBadge.svelte";
 	import EpicBadge from "#lib/components/table/EpicBadge.svelte";
+	import InfoPopover from "#lib/components/ui/InfoPopover.svelte";
 	import Paperclip from "~icons/lucide/paperclip";
 
 	interface Props {
@@ -44,8 +45,7 @@
 			!CLOSED_STATUSES.includes(task.status),
 	);
 
-	function filterEpic(event: MouseEvent, epicId: string | null) {
-		event.stopPropagation();
+	function filterEpic(epicId: string | null) {
 		if (epicId !== null) {
 			onepic?.(epicId);
 		}
@@ -78,13 +78,13 @@
 					onfilter={(target) => onepic?.(target)}
 				/>
 			{:else if task.epic_id !== null}
-				<button
+				<InfoPopover
+					text="Show tasks of this epic"
 					class="epic-badge epic-filter"
-					title="Show tasks of this epic"
-					onclick={(event) => filterEpic(event, task.epic_id)}
+					onclick={() => filterEpic(task.epic_id)}
 				>
 					{task.epic_id}
-				</button>
+				</InfoPopover>
 			{/if}
 			{#if task.status === "blocked"}
 				<BlockedBadge {blockers} reason={task.blocked_reason ?? null} />
@@ -93,10 +93,12 @@
 	</td>
 	<td class="attach-cell optional-column">
 		{#if (task.attachments_count ?? 0) > 0}
-			<span class="attach-icon" title="Attached files">
-				<Paperclip />
-				{task.attachments_count}
-			</span>
+			<InfoPopover text="Attached files" class="attach-icon">
+				{#snippet icon()}
+					<Paperclip />
+				{/snippet}
+				{task.attachments_count ?? 0}
+			</InfoPopover>
 		{/if}
 	</td>
 	<td
@@ -190,16 +192,17 @@
 		white-space: nowrap;
 	}
 
-	.epic-filter {
+	.title-row :global(.info-popover-trigger.epic-filter) {
+		padding: var(--space-1) var(--space-2);
+		margin-left: var(--space-2);
 		border: 0;
 		background: var(--green-surface);
 		color: var(--green-ink);
 		cursor: pointer;
-		font-family: var(--font-mono);
-		flex: none;
+		line-height: 1.25;
 	}
 
-	.epic-filter:hover {
+	.title-row :global(.info-popover-trigger.epic-filter:hover) {
 		background: color-mix(in oklch, var(--green) 28%, var(--green-surface));
 	}
 
@@ -228,20 +231,6 @@
 
 	.attach-cell {
 		text-align: center;
-	}
-
-	.attach-icon {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--space-1);
-		color: var(--text-muted);
-		font-size: var(--text-xs);
-		font-variant-numeric: tabular-nums;
-	}
-
-	.attach-icon :global(svg) {
-		width: 0.875rem;
-		height: 0.875rem;
 	}
 
 	.tag-list {
