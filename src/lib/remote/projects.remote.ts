@@ -21,7 +21,6 @@ export const getProjects = defineQuery({
 		"repo matches the repository exactly after normalization to host/owner/name. " +
 		"Every item carries task_counts and epic_counts: the number of its " +
 		"non-epic tasks and epics per status. Returns: {items} - every item is " +
-		"every item is " +
 		PROJECT_FIELDS +
 		" with task_counts and epic_counts.",
 	kind: "query",
