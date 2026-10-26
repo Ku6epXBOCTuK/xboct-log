@@ -8,7 +8,7 @@ import {
 	type Task,
 } from "../../types";
 import { blockingInfoFor } from "../links";
-import { buildTaskFilter } from "./filter";
+import { buildTaskFilter, exactMatchClauses } from "./filter";
 import {
 	mapTask,
 	parseFields,
@@ -129,26 +129,35 @@ export function listTasks(db: DatabaseSync, query: TaskQuery = {}): Task[] {
 			? "asc"
 			: "desc";
 	const order = (query.order ?? ascending).toUpperCase();
+	let orderBy: string;
 	if (sort === "priority") {
 		const rank = PRIORITIES.map(
 			(p) => `WHEN '${p}' THEN ${PRIORITY_RANK[p]}`,
 		).join(" ");
-		sql += ` ORDER BY CASE tasks.priority ${rank} ELSE 99 END ${order}, tasks.updated_at DESC, tasks.id ASC`;
+		orderBy = `CASE tasks.priority ${rank} ELSE 99 END ${order}, tasks.updated_at DESC, tasks.id ASC`;
 	} else if (sort === "status") {
 		const rank = STATUSES.map(
 			(status) => `WHEN '${status}' THEN ${STATUS_RANK[status]}`,
 		).join(" ");
-		sql += ` ORDER BY CASE tasks.status ${rank} ELSE 99 END ${order}, tasks.id ASC`;
+		orderBy = `CASE tasks.status ${rank} ELSE 99 END ${order}, tasks.id ASC`;
 	} else if (sort === "project") {
-		sql += ` ORDER BY (SELECT name FROM projects WHERE id = tasks.project_id) ${order}, tasks.number ASC, tasks.id ASC`;
+		orderBy = `(SELECT name FROM projects WHERE id = tasks.project_id) ${order}, tasks.number ASC, tasks.id ASC`;
 	} else if (sort === "number") {
-		sql += ` ORDER BY tasks.number ${order}, tasks.project_id ASC, tasks.id ASC`;
+		orderBy = `tasks.number ${order}, tasks.project_id ASC, tasks.id ASC`;
 	} else if (sort === "title") {
-		sql += ` ORDER BY ULOWER(tasks.title) ${order}, tasks.id ASC`;
+		orderBy = `ULOWER(tasks.title) ${order}, tasks.id ASC`;
 	} else if (sort === "closed_at") {
-		sql += ` ORDER BY (tasks.closed_at IS NULL) ASC, tasks.closed_at ${order}, tasks.id ASC`;
+		orderBy = `(tasks.closed_at IS NULL) ASC, tasks.closed_at ${order}, tasks.id ASC`;
 	} else {
-		sql += ` ORDER BY tasks.${sort} ${order}, tasks.id ASC`;
+		orderBy = `tasks.${sort} ${order}, tasks.id ASC`;
+	}
+
+	const exact = exactMatchClauses(query);
+	if (exact.clauses.length > 0) {
+		sql += ` ORDER BY CASE WHEN (${exact.clauses.join(" OR ")}) THEN 0 ELSE 1 END, ${orderBy}`;
+		params.push(...exact.params);
+	} else {
+		sql += ` ORDER BY ${orderBy}`;
 	}
 
 	if (query.limit !== undefined) {

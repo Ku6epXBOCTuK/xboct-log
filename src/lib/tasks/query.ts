@@ -37,7 +37,9 @@ export interface TaskQueryArgs {
 	epic_id?: string;
 	scope_id?: number | null;
 	has_epic?: boolean;
-	q?: string;
+	q_any?: string[];
+	number_exact?: number[];
+	id_exact?: string[];
 	sort: ServerSort;
 	order: "asc" | "desc";
 	limit: number;
@@ -51,15 +53,19 @@ function statuses(filters: Filters): Status[] | undefined {
 	return STATUSES.filter((status) => !CLOSED_STATUSES.includes(status));
 }
 
-function searchText(input: string): string | undefined {
-	const terms = parseSearchQuery(input).map((term) =>
-		term.kind === "text"
-			? term.text
-			: term.kind === "id"
-				? term.id
-				: String(term.number),
+function addSearch(args: TaskQueryArgs, input: string): void {
+	const terms = parseSearchQuery(input);
+	const text = terms.flatMap((term) =>
+		term.kind === "text" ? [term.text] : [],
 	);
-	return terms.length > 0 ? terms.join(" ") : undefined;
+	const numbers = terms.flatMap((term) =>
+		term.kind === "number" ? [term.number] : [],
+	);
+	const ids = terms.flatMap((term) => (term.kind === "id" ? [term.id] : []));
+
+	if (text.length > 0) args.q_any = text;
+	if (numbers.length > 0) args.number_exact = numbers;
+	if (ids.length > 0) args.id_exact = ids;
 }
 
 export function buildTaskQuery(
@@ -108,10 +114,7 @@ export function buildTaskQuery(
 		args.tag = [...filters.selectedTags];
 	}
 
-	const q = searchText(filters.query);
-	if (q !== undefined) {
-		args.q = q;
-	}
+	addSearch(args, filters.query);
 
 	return args;
 }

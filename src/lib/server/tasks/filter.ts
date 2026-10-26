@@ -26,6 +26,35 @@ function toNumberList(value: number | number[]): number[] {
 	return Array.isArray(value) ? value : [value];
 }
 
+const SEARCH_COLUMNS = [
+	"ULOWER(tasks.title) LIKE ?",
+	"ULOWER(tasks.description) LIKE ?",
+	"ULOWER(tasks.id) LIKE ?",
+	"ULOWER(tasks.epic_id) LIKE ?",
+	"EXISTS (SELECT 1 FROM json_each(tasks.tags) WHERE ULOWER(json_each.value) LIKE ?)",
+];
+
+export function exactMatchClauses(query: TaskQuery): {
+	clauses: string[];
+	params: (string | number)[];
+} {
+	const clauses: string[] = [];
+	const params: (string | number)[] = [];
+	const numbers = query.number_exact ?? [];
+	if (numbers.length > 0) {
+		clauses.push(`tasks.number IN (${numbers.map(() => "?").join(", ")})`);
+		params.push(...numbers);
+	}
+	const ids = (query.id_exact ?? [])
+		.map((id) => normalizeTaskIdInput(id.trim()).toLowerCase())
+		.filter((id) => id !== "");
+	if (ids.length > 0) {
+		clauses.push(`ULOWER(tasks.id) IN (${ids.map(() => "?").join(", ")})`);
+		params.push(...ids);
+	}
+	return { clauses, params };
+}
+
 export function buildTaskFilter(query: TaskQuery): TaskFilterSql {
 	const where: string[] = [];
 	const params: (string | number)[] = [];
@@ -155,12 +184,23 @@ export function buildTaskFilter(query: TaskQuery): TaskFilterSql {
 	}
 	if (query.q) {
 		const like = `%${query.q.toLowerCase()}%`;
-		where.push(
-			`(ULOWER(tasks.title) LIKE ? OR ULOWER(tasks.description) LIKE ? OR ULOWER(tasks.id) LIKE ?
-			  OR ULOWER(tasks.epic_id) LIKE ?
-			  OR EXISTS (SELECT 1 FROM json_each(tasks.tags) WHERE ULOWER(json_each.value) LIKE ?))`,
-		);
+		where.push(`(${SEARCH_COLUMNS.join(" OR ")})`);
 		params.push(like, like, like, like, like);
+	}
+	const searchTerms = (query.q_any ?? []).filter((term) => term.trim() !== "");
+	const exact = exactMatchClauses(query);
+	if (searchTerms.length > 0 || exact.clauses.length > 0) {
+		const clauses: string[] = [];
+		const searchParams: (string | number)[] = [];
+		for (const term of searchTerms) {
+			const like = `%${term.toLowerCase()}%`;
+			clauses.push(`(${SEARCH_COLUMNS.join(" OR ")})`);
+			searchParams.push(like, like, like, like, like);
+		}
+		clauses.push(...exact.clauses);
+		searchParams.push(...exact.params);
+		where.push(`(${clauses.join(" OR ")})`);
+		params.push(...searchParams);
 	}
 	if (query.title) {
 		const like = `%${query.title.toLowerCase()}%`;

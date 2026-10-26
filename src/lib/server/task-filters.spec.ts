@@ -124,6 +124,52 @@ describe("task filters", () => {
 		expect(untagged.map((task) => task.title)).toEqual(["Untagged"]);
 	});
 
+	it("matches any of the search terms", async () => {
+		unwrap(createTask(db, { project_id: "spa", title: "Login form" }));
+		unwrap(createTask(db, { project_id: "spa", title: "Password reset" }));
+		unwrap(createTask(db, { project_id: "spa", title: "Billing" }));
+
+		const found = listTasks(db, { q_any: ["login", "reset"] });
+
+		expect(found.map((task) => task.title).sort()).toEqual([
+			"Login form",
+			"Password reset",
+		]);
+		expect(countTasks(db, { q_any: ["login", "reset"] })).toBe(2);
+	});
+
+	it("matches exact numbers and ids", async () => {
+		unwrap(createTask(db, { project_id: "spa", title: "First" }));
+		const second = unwrap(
+			createTask(db, { project_id: "spa", title: "Second" }),
+		);
+		unwrap(createTask(db, { project_id: "bil", title: "Third" }));
+
+		expect(listTasks(db, { number_exact: [2] }).map((task) => task.id)).toEqual(
+			[second.id],
+		);
+		expect(
+			listTasks(db, { id_exact: [second.id.toLowerCase()] }).map(
+				(task) => task.id,
+			),
+		).toEqual([second.id]);
+	});
+
+	it("puts the exact hits first and ORs them with the text terms", async () => {
+		unwrap(createTask(db, { project_id: "spa", title: "Login" }));
+		unwrap(createTask(db, { project_id: "spa", title: "Other" }));
+		const hit = unwrap(createTask(db, { project_id: "spa", title: "Target" }));
+
+		const found = listTasks(db, {
+			q_any: ["login"],
+			number_exact: [hit.number],
+			sort: "number",
+			order: "asc",
+		});
+
+		expect(found.map((task) => task.title)).toEqual(["Target", "Login"]);
+	});
+
 	it("filters by several scopes at once", async () => {
 		const frontend = unwrap(
 			createScope(db, { project_id: "spa", name: "frontend" }),

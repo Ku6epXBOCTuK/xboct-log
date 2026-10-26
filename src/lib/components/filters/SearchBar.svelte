@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { isTypingTarget, matchesHotkey } from "#lib/hotkeys/hotkeys.ts";
+	import { createDebouncedValue } from "#lib/state/debounce.svelte.ts";
 	import Search from "~icons/lucide/search";
 	import X from "~icons/lucide/x";
 
@@ -12,6 +13,31 @@
 	let { value, oninput, onclear }: Props = $props();
 
 	let input = $state<HTMLInputElement | undefined>();
+	const search = createDebouncedValue("");
+	let lastEmitted = "";
+	let lastValue = "";
+
+	$effect(() => {
+		if (value === lastValue) return;
+		lastValue = value;
+		lastEmitted = value;
+		search.apply(value);
+	});
+
+	$effect(() => {
+		const next = search.applied;
+		if (next === lastEmitted) return;
+		lastEmitted = next;
+		oninput(next);
+	});
+
+	$effect(() => () => search.cancel());
+
+	function clear() {
+		search.apply("");
+		lastEmitted = "";
+		onclear?.();
+	}
 
 	function onkeydown(event: KeyboardEvent) {
 		if (!matchesHotkey(event, "/")) return;
@@ -28,13 +54,13 @@
 	<Search />
 	<input
 		bind:this={input}
-		{value}
-		oninput={(event) => oninput(event.currentTarget.value)}
+		value={search.value}
+		oninput={(event) => search.set(event.currentTarget.value)}
 		placeholder="Search by title, description, and ID"
 		aria-label="Search tasks"
 	/>
-	{#if value !== "" && onclear}
-		<button class="clear-button" onclick={onclear} aria-label="Clear search">
+	{#if search.value !== "" && onclear}
+		<button class="clear-button" onclick={clear} aria-label="Clear search">
 			<X />
 		</button>
 	{:else}

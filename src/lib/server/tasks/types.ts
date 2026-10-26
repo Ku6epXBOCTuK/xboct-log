@@ -94,6 +94,9 @@ export interface TaskQuery {
 	blocked_by?: string;
 	blocks?: string;
 	q?: string;
+	q_any?: string[];
+	number_exact?: number[];
+	id_exact?: string[];
 	title?: string;
 	title_exact?: string;
 	source_file?: string;

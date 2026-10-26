@@ -26,6 +26,14 @@ export function createDebouncedValue<T>(initial: T, delay = 200) {
 				timer = undefined;
 			}
 		},
+		apply(next: T) {
+			if (timer) {
+				clearTimeout(timer);
+				timer = undefined;
+			}
+			value = next;
+			applied = next;
+		},
 	};
 }
 

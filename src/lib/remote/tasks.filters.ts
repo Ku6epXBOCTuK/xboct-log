@@ -93,6 +93,27 @@ const taskFilterShape = {
 		.describe(
 			"Case-insensitive substring search across title, description, id, the id of the epic and tags. Tags match by substring: q='est:' finds tasks with a tag like 'est:L'. Use tag for a whole-tag match.",
 		),
+	q_any: z
+		.array(z.string().min(1))
+		.min(1)
+		.optional()
+		.describe(
+			"Search terms combined with OR: a task matches when any term matches its title, description, id, epic id or tags as a substring. Combined with the other filters by AND. Use it instead of q for multi-word input.",
+		),
+	number_exact: z
+		.array(z.number().int())
+		.min(1)
+		.optional()
+		.describe(
+			"Exact task numbers (the part after the prefix, e.g. 29 for LOG-29). A task matches any of them. Exact hits are returned first and are OR-ed with q_any and id_exact.",
+		),
+	id_exact: z
+		.array(z.string().min(1))
+		.min(1)
+		.optional()
+		.describe(
+			"Exact full task ids (e.g. 'LOG-29'), matched case-insensitively. A task matches any of them. Exact hits are returned first and are OR-ed with q_any and number_exact.",
+		),
 	title: z
 		.string()
 		.optional()
