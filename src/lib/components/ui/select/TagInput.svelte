@@ -61,12 +61,15 @@
 	}
 
 	function onkeydown(event: KeyboardEvent): boolean {
-		if (event.key === " " || event.key === ",") {
+		if (event.key === ",") {
 			commit();
 			return true;
 		}
-		if (event.key === "Enter" && text.trim() !== "") {
-			commit();
+		if (event.key === " " || event.key === "Enter") {
+			if (text.trim() === "") return event.key === " ";
+			const active = select.active;
+			if (active !== null) select.pickActive();
+			else commit();
 			return true;
 		}
 		if (event.key === "Backspace" && text === "" && value.length > 0) {

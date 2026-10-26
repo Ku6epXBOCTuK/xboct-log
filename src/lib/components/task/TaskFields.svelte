@@ -2,6 +2,7 @@
 	import SingleSelect from "#lib/components/ui/select/SingleSelect.svelte";
 	import TagInput from "#lib/components/ui/select/TagInput.svelte";
 	import CopyButton from "#lib/components/ui/CopyButton.svelte";
+	import InfoPopover from "#lib/components/ui/InfoPopover.svelte";
 	import {
 		CLOSED_REASON_LABELS,
 		formatDate,
@@ -16,6 +17,7 @@
 	import type { Task } from "#lib/types.ts";
 	import { ESTIMATES, PRIORITIES, type Estimate } from "#lib/types.ts";
 	import Plus from "~icons/lucide/plus";
+	import CircleHelp from "~icons/lucide/circle-help";
 
 	interface EpicChoice {
 		key: string;
@@ -201,7 +203,24 @@
 {/if}
 
 <div class="field detail-field">
-	Tags
+	<span class="field-label">
+		Tags
+		<InfoPopover label="Tag input shortcuts">
+			{#snippet icon()}
+				<CircleHelp />
+			{/snippet}
+			{#snippet content()}
+				<dl>
+					<dt><code>Enter</code> <code>Space</code></dt>
+					<dd>add the highlighted tag</dd>
+					<dt><code>,</code></dt>
+					<dd>create a tag from the typed text</dd>
+					<dt><code>Backspace</code></dt>
+					<dd>remove the last tag</dd>
+				</dl>
+			{/snippet}
+		</InfoPopover>
+	</span>
 	<TagInput
 		value={value.tags}
 		suggestions={tagSuggestions}
@@ -299,5 +318,32 @@
 		display: flex;
 		align-items: flex-end;
 		min-width: 0;
+	}
+
+	.field-label {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-1);
+	}
+
+	dl {
+		display: grid;
+		grid-template-columns: auto 1fr;
+		gap: var(--space-2) var(--space-3);
+		margin: 0;
+	}
+
+	dt {
+		color: var(--foreground);
+		white-space: nowrap;
+	}
+
+	dd {
+		margin: 0;
+	}
+
+	code {
+		font-family: var(--font-mono);
+		font-size: var(--text-xs);
 	}
 </style>
