@@ -12,6 +12,7 @@
 	interface Props {
 		status: Status;
 		blockedBy: string[];
+		blocks: string[];
 		blockedReason: string;
 		candidates: Task[];
 		busy?: boolean;
@@ -19,11 +20,13 @@
 		onadd: (id: string) => void;
 		onremove: (id: string) => void;
 		onreason: (reason: string | null) => void;
+		onopen?: (id: string) => void;
 	}
 
 	let {
 		status,
 		blockedBy,
+		blocks,
 		blockedReason,
 		candidates,
 		busy = false,
@@ -31,6 +34,7 @@
 		onadd,
 		onremove,
 		onreason,
+		onopen,
 	}: Props = $props();
 
 	function changeReason(event: Event) {
@@ -81,8 +85,26 @@
 				{onremove}
 				placeholder="Add blocker"
 				ariaLabel="Blocked by"
+				{onopen}
 			/>
 		</div>
+		{#if blocks.length > 0}
+			<div class="field field-wide">
+				Blocks
+				<div class="block-list">
+					{#each blocks as id (id)}
+						<button
+							type="button"
+							class="block-chip"
+							aria-label={`Open ${id}`}
+							onclick={() => onopen?.(id)}
+						>
+							{id}
+						</button>
+					{/each}
+				</div>
+			</div>
+		{/if}
 		{#if status === "blocked"}
 			<div class="field">
 				Waiting for
@@ -122,6 +144,34 @@
 		font-weight: 600;
 		letter-spacing: 0.06em;
 		text-transform: uppercase;
+	}
+
+	.field-wide {
+		grid-column: 1 / -1;
+	}
+
+	.block-list {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-1);
+	}
+
+	.block-chip {
+		border: 1px solid var(--border-strong);
+		border-radius: var(--radius-sm);
+		padding: 0 var(--space-2);
+		background: var(--panel);
+		color: var(--text-secondary);
+		font-family: var(--font-mono);
+		font-size: var(--text-xs);
+		font-weight: 400;
+		line-height: 1.75;
+		cursor: pointer;
+	}
+
+	.block-chip:hover {
+		color: var(--foreground);
+		border-color: var(--accent);
 	}
 
 	.blocking-hint {

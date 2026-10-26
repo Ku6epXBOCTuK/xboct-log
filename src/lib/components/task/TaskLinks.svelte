@@ -11,6 +11,7 @@
 		candidates: Task[];
 		onadd: (field: LinkField, id: string) => void;
 		onremove: (field: LinkField, id: string) => void;
+		onopen?: (id: string) => void;
 	}
 
 	let {
@@ -20,6 +21,7 @@
 		candidates,
 		onadd,
 		onremove,
+		onopen,
 	}: Props = $props();
 </script>
 
@@ -33,6 +35,7 @@
 				value={relatesTo}
 				onadd={(id) => onadd("relates_to", id)}
 				onremove={(id) => onremove("relates_to", id)}
+				{onopen}
 				placeholder="Add related task"
 				ariaLabel="Relates to"
 			/>
@@ -44,6 +47,7 @@
 				value={duplicates}
 				onadd={(id) => onadd("duplicates", id)}
 				onremove={(id) => onremove("duplicates", id)}
+				{onopen}
 				placeholder="Add duplicate of"
 				ariaLabel="Duplicates"
 			/>
@@ -55,6 +59,7 @@
 				value={duplicatedBy}
 				onadd={(id) => onadd("duplicated_by", id)}
 				onremove={(id) => onremove("duplicated_by", id)}
+				{onopen}
 				placeholder="Add duplicate source"
 				ariaLabel="Duplicated by"
 			/>

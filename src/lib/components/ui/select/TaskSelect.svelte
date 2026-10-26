@@ -10,6 +10,7 @@
 		value: string[];
 		onadd: (id: string) => void;
 		onremove: (id: string) => void;
+		onopen?: (id: string) => void;
 		placeholder?: string;
 		ariaLabel?: string;
 		variant?: "filter" | "field";
@@ -21,6 +22,7 @@
 		value,
 		onadd,
 		onremove,
+		onopen,
 		placeholder = "Add task",
 		ariaLabel = "Tasks",
 		variant = "field",
@@ -52,7 +54,18 @@
 	<div class="select-trigger task-trigger" role="presentation">
 		{#each value as id (id)}
 			<span class="task-chip">
-				{id}
+				{#if onopen}
+					<button
+						type="button"
+						class="task-chip-open"
+						aria-label={`Open ${id}`}
+						onclick={() => onopen(id)}
+					>
+						{id}
+					</button>
+				{:else}
+					{id}
+				{/if}
 				<button
 					type="button"
 					class="task-chip-remove"
@@ -114,6 +127,20 @@
 		font-family: var(--font-mono);
 		font-size: var(--text-xs);
 		line-height: 1.75;
+	}
+
+	.task-chip-open {
+		border: 0;
+		padding: 0;
+		background: transparent;
+		color: inherit;
+		font: inherit;
+		cursor: pointer;
+	}
+
+	.task-chip-open:hover {
+		color: var(--foreground);
+		text-decoration: underline;
 	}
 
 	.task-chip-remove {

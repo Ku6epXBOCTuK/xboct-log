@@ -98,6 +98,7 @@
 	onclear={() => (selectedId = null)}
 	ondelete={forgetEpic}
 	oncreatechild={openChild}
+	onopen={(id) => (selectedId = id)}
 />
 
 <NewTaskModal

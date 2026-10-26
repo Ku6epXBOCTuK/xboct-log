@@ -22,7 +22,7 @@
 	import type { UiStore } from "#lib/state/ui.svelte.ts";
 	import AdvancedToggle from "#lib/components/task/AdvancedToggle.svelte";
 	import { STATUS_LABELS, formatDate, messageOf } from "#lib/tasks/display.ts";
-	import { blockingCandidates } from "#lib/tasks/blocking.ts";
+	import { blockingCandidates, blockingIds } from "#lib/tasks/blocking.ts";
 	import { taskText } from "#lib/tasks/clipboard.ts";
 	import { advancedFilledCount } from "#lib/tasks/fields.ts";
 	import { collectTags } from "#lib/tasks/filter.ts";
@@ -51,6 +51,7 @@
 		onclear: () => void;
 		ondelete?: (id: string) => void;
 		oncreatechild?: (task: Task) => void;
+		onopen?: (id: string) => void;
 	}
 
 	let {
@@ -64,6 +65,7 @@
 		onclear,
 		ondelete,
 		oncreatechild,
+		onopen,
 	}: Props = $props();
 
 	let saving = $state(false);
@@ -381,6 +383,7 @@
 			<BlockingFields
 				status={selected.status}
 				blockedBy={selected.blocked_by ?? []}
+				blocks={blockingIds(selected)}
 				blockedReason={selected.blocked_reason ?? ""}
 				candidates={blockerCandidates}
 				busy={saving}
@@ -388,6 +391,7 @@
 				onadd={addBlocker}
 				onremove={removeBlocker}
 				onreason={(reason) => save({ blocked_reason: reason })}
+				{onopen}
 			/>
 			<TaskLinks
 				relatesTo={selected.relates_to ?? []}
@@ -396,6 +400,7 @@
 				candidates={linkCandidates}
 				onadd={addLinkField}
 				onremove={removeLinkField}
+				{onopen}
 			/>
 			<TaskFields
 				value={selected}
