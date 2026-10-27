@@ -236,8 +236,7 @@
 	}
 
 	.scope-missing {
-		border-color: color-mix(in oklch, var(--accent) 55%, transparent);
-		color: var(--accent-ink);
+		border-style: dashed;
 	}
 
 	.scope-cell {
