@@ -66,6 +66,7 @@ describe("blocked_reason", () => {
 			title: "Wait for the release",
 			status: "blocked",
 			blocked_reason: "release 2.4 is not out yet",
+			tags: ["feature"],
 		})) as Updated;
 
 		expect(created.blocked_reason).toBe("release 2.4 is not out yet");
@@ -77,6 +78,7 @@ describe("blocked_reason", () => {
 			project_id: "spa",
 			title: "Blocked with nothing",
 			status: "blocked",
+			tags: ["feature"],
 		})) as Updated;
 
 		expect(created.blocked_reason ?? null).toBeNull();

@@ -25,6 +25,7 @@ beforeAll(async () => {
 	await migrateDatabase(db);
 	unwrap(createProject(db, { id: "scoped", name: "Scoped", prefix: "SCP" }));
 	unwrap(createProject(db, { id: "plain", name: "Plain", prefix: "PLN" }));
+	unwrap(createProject(db, { id: "bare", name: "Bare", prefix: "BAR" }));
 	unwrap(createScope(db, { project_id: "scoped", name: "mcp" }));
 	unwrap(createScope(db, { project_id: "scoped", name: "ui" }));
 });
@@ -57,6 +58,7 @@ describe("scope warnings", () => {
 		const created = (await call("tasks_create", {
 			project_id: "scoped",
 			title: "No scope",
+			tags: ["feature"],
 		})) as Created;
 
 		expect(created.warnings).toHaveLength(1);
@@ -76,6 +78,7 @@ describe("scope warnings", () => {
 			project_id: "scoped",
 			title: "With scope",
 			scope_id: scopeId,
+			tags: ["feature"],
 		})) as Created;
 
 		expect(created.scope_id).toBe(scopeId);
@@ -86,6 +89,7 @@ describe("scope warnings", () => {
 		const created = (await call("tasks_create", {
 			project_id: "plain",
 			title: "No scopes here",
+			tags: ["feature"],
 		})) as Created;
 
 		expect(created.warnings).toEqual([]);
@@ -101,6 +105,7 @@ describe("scope warnings", () => {
 				project_id: "scoped",
 				title: "Scoped task",
 				scope_id: scope.id,
+				tags: ["feature"],
 			}),
 		);
 
@@ -117,8 +122,8 @@ describe("scope warnings", () => {
 	it("reports warnings per item in tasks_create_many", async () => {
 		const result = (await call("tasks_create_many", {
 			items: [
-				{ project_id: "scoped", title: "Batch one" },
-				{ project_id: "plain", title: "Batch two" },
+				{ project_id: "scoped", title: "Batch one", tags: ["feature"] },
+				{ project_id: "plain", title: "Batch two", tags: ["feature"] },
 			],
 		})) as {
 			items: { ok: boolean; warnings?: string[] }[];
@@ -144,5 +149,47 @@ describe("scope warnings", () => {
 				scope_id: foreign.id,
 			}),
 		).rejects.toThrow();
+	});
+});
+
+describe("tag warnings", () => {
+	it("warns when a task is created without tags", async () => {
+		const created = (await call("tasks_create", {
+			project_id: "bare",
+			title: "No tags at all",
+		})) as Created;
+
+		expect(created.warnings).toHaveLength(1);
+		expect(created.warnings[0]).toContain("no tags set");
+		expect(created.warnings[0]).toContain("tasks_update");
+	});
+
+	it("does not warn when the task has a tag", async () => {
+		const created = (await call("tasks_create", {
+			project_id: "bare",
+			title: "Tagged from the start",
+			tags: ["bug"],
+		})) as Created;
+
+		expect(created.warnings).toEqual([]);
+	});
+
+	it("warns when the tags are cleared on update", async () => {
+		const db = getDb();
+		const task = unwrap(
+			createTask(db, {
+				project_id: "bare",
+				title: "Tags cleared later",
+				tags: ["bug"],
+			}),
+		);
+
+		const updated = (await call("tasks_update", {
+			id: task.id,
+			patch: { tags: [] },
+		})) as Created;
+
+		expect(updated.warnings).toHaveLength(1);
+		expect(updated.warnings[0]).toContain("no tags set");
 	});
 });
