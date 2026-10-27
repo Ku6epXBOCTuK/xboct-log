@@ -55,11 +55,13 @@ describe("tags migration", () => {
 			{ task_id: "INB-2", tag: "mcp" },
 		]);
 		expect(
-			db
-				.prepare(
-					"SELECT COUNT(*) AS count FROM task_tags tt LEFT JOIN tags t ON t.name = tt.tag WHERE t.name IS NULL",
-				)
-				.get().count,
+			(
+				db
+					.prepare(
+						"SELECT COUNT(*) AS count FROM task_tags tt LEFT JOIN tags t ON t.name = tt.tag WHERE t.name IS NULL",
+					)
+					.get() as unknown as { count: number }
+			).count,
 		).toBe(0);
 		expect(
 			db

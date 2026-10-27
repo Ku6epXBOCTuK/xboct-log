@@ -23,7 +23,7 @@ Built with SvelteKit and Svelte 5.
 
 ## Requirements
 
-- Node.js 22.5 or newer, for the built-in `node:sqlite` module.
+- Node.js 26 or newer, for the built-in `node:sqlite` module.
 - pnpm.
 
 ## Getting started

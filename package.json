@@ -5,6 +5,9 @@
 	"type": "module",
 	"description": "A local-first task backlog with projects, a kanban board, and SQLite storage.",
 	"license": "MIT",
+	"engines": {
+		"node": ">=26"
+	},
 	"scripts": {
 		"deploy": "powershell -ExecutionPolicy Bypass -File scripts/deploy.ps1",
 		"dev": "node scripts/dev.mjs",
@@ -32,7 +35,7 @@
 		"@sveltejs/adapter-node": "^6.0.0",
 		"@sveltejs/kit": "^3.0.0",
 		"@sveltejs/vite-plugin-svelte": "^7.2.0",
-		"@types/node": "^24",
+		"@types/node": "^26",
 		"eslint": "^10.4.1",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-svelte": "^3.19.0",
