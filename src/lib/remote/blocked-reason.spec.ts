@@ -8,7 +8,7 @@ import { closeDb, getDb } from "../server/db";
 import { type AppError } from "../server/errors";
 import { migrateDatabase } from "../server/migrations";
 import { createProject } from "../server/projects";
-import { createTask, getTask } from "../server/tasks";
+import { createTask, ensureTag, getTask } from "../server/tasks";
 import { BLOCKED_REASON_MAX_LENGTH, type Task } from "../types";
 import { runOp } from "./define";
 import { getOps } from "./index.js";
@@ -25,6 +25,7 @@ beforeAll(async () => {
 	const db = getDb(join(dbDir, "blocked.db"));
 	await migrateDatabase(db);
 	unwrap(createProject(db, { id: "spa", name: "Shop", prefix: "SPA" }));
+	unwrap(ensureTag(db, "feature"));
 });
 
 afterAll(() => {

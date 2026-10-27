@@ -50,7 +50,7 @@ export const listActivityLog = defineQuery({
 			.optional()
 			.describe("Operation name, for example tasks_update."),
 		entity: z
-			.enum(["task", "project", "scope"])
+			.enum(["task", "project", "scope", "tag"])
 			.optional()
 			.describe("Entity type of the changed object."),
 		project_id: z

@@ -79,7 +79,7 @@ export type ProjectFilter = string | null;
 
 export type Scope = z.infer<typeof scopeSchema>;
 
-export const ACTIVITY_ENTITIES = ["task", "project", "scope"] as const;
+export const ACTIVITY_ENTITIES = ["task", "project", "scope", "tag"] as const;
 
 export type ActivityEntity = (typeof ACTIVITY_ENTITIES)[number];
 

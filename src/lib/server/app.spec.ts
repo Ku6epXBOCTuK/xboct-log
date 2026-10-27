@@ -19,6 +19,7 @@ import {
 	createTask,
 	createTasksMany,
 	deleteTask,
+	ensureTag,
 	getTask,
 	getTasksByIds,
 	listTasks,
@@ -43,6 +44,9 @@ function failure(result: Result<unknown, AppError>): AppError {
 async function setup(): Promise<DatabaseSync> {
 	const db = await openMigratedDatabase(":memory:");
 	unwrap(createProject(db, { id: "spa", name: "Shop", prefix: "SPA" }));
+	for (const tag of ["perf", "checkout", "x", "a11y"]) {
+		unwrap(ensureTag(db, tag));
+	}
 	return db;
 }
 

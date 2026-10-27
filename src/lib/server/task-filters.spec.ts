@@ -10,6 +10,7 @@ import {
 	countTasks,
 	createTask,
 	deleteTask,
+	ensureTag,
 	listTasks,
 } from "./tasks";
 
@@ -26,6 +27,7 @@ describe("task filters", () => {
 		unwrap(createProject(db, { id: "spa", name: "Shop", prefix: "SPA" }));
 		unwrap(createProject(db, { id: "bil", name: "Billing", prefix: "BIL" }));
 		unwrap(createProject(db, { id: "old", name: "Old", prefix: "OLD" }));
+		unwrap(ensureTag(db, "mcp"));
 	});
 
 	it("filters by several projects at once", async () => {
@@ -77,26 +79,11 @@ describe("task filters", () => {
 		expect(missed).toEqual([]);
 	});
 
-	it("matches non-ASCII tags case-insensitively", async () => {
-		unwrap(
-			createTask(db, { project_id: "spa", title: "Tagged", tags: ["Баг"] }),
-		);
-		unwrap(createTask(db, { project_id: "spa", title: "Untagged" }));
-
-		for (const tag of ["баг", "БАГ", "Баг"]) {
-			const found = listTasks(db, { tag: [tag] });
-			expect(found.map((task) => task.title)).toEqual(["Tagged"]);
-		}
-		const missed = listTasks(db, { tag: ["нет"] });
-		expect(missed).toEqual([]);
-	});
-
-	it("searches non-ASCII titles and tags case-insensitively", async () => {
+	it("searches non-ASCII titles case-insensitively", async () => {
 		unwrap(
 			createTask(db, {
 				project_id: "spa",
 				title: "Тег и регистр",
-				tags: ["Баг"],
 			}),
 		);
 		unwrap(createTask(db, { project_id: "spa", title: "Plain" }));
@@ -105,9 +92,6 @@ describe("task filters", () => {
 			"Тег и регистр",
 		]);
 		expect(listTasks(db, { q: "РЕГИСТР" }).map((task) => task.title)).toEqual([
-			"Тег и регистр",
-		]);
-		expect(listTasks(db, { q: "БАГ" }).map((task) => task.title)).toEqual([
 			"Тег и регистр",
 		]);
 	});

@@ -1,5 +1,5 @@
 import { fetchFresh } from "#lib/remote/fresh.ts";
-import { getTags } from "#lib/remote/tags.remote.ts";
+import { createTag, getTags } from "#lib/remote/tags.remote.ts";
 
 export interface TagEntry {
 	tag: string;
@@ -18,6 +18,11 @@ export function createTagStore(initial: TagEntry[]) {
 			entries = next;
 		},
 		async refresh() {
+			const { items } = await fetchFresh(getTags({}));
+			entries = items;
+		},
+		async create(name: string) {
+			await createTag({ name });
 			const { items } = await fetchFresh(getTags({}));
 			entries = items;
 		},

@@ -20,8 +20,17 @@ export {
 	withBlockingInfo,
 } from "./read";
 export { resolveEpicId, resolveTaskId, resolveTaskIdInternal } from "./resolve";
-export { listTags } from "./tags";
-export type { TagCount, TagQuery } from "./tags";
+export {
+	ensureTag,
+	getTag,
+	listDictionary,
+	listTags,
+	normalizeTagName,
+	renameTag,
+	setTagArchived,
+	validateTags,
+} from "./tags";
+export type { TagCount, TagQuery, TagRecord } from "./tags";
 export type {
 	BatchError,
 	BatchItem,

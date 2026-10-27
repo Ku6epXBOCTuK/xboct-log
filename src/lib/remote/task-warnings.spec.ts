@@ -58,7 +58,6 @@ describe("scope handling", () => {
 		const created = (await call("tasks_create", {
 			project_id: "scoped",
 			title: "No scope",
-			tags: ["feature"],
 		})) as Created;
 
 		expect(created.scope_id).toBeNull();
@@ -75,7 +74,6 @@ describe("scope handling", () => {
 				project_id: "scoped",
 				title: "Scoped task",
 				scope_id: scopes[0].id,
-				tags: ["feature"],
 			}),
 		);
 
@@ -104,35 +102,22 @@ describe("scope handling", () => {
 	});
 });
 
-describe("tag warnings", () => {
-	it("warns when a task is created without tags", async () => {
+describe("tag handling", () => {
+	it("does not warn about missing tags", async () => {
 		const created = (await call("tasks_create", {
 			project_id: "bare",
 			title: "No tags at all",
 		})) as Created;
 
-		expect(created.warnings).toHaveLength(1);
-		expect(created.warnings[0]).toContain("no tags set");
-		expect(created.warnings[0]).toContain("tasks_update");
-	});
-
-	it("does not warn when the task has a tag", async () => {
-		const created = (await call("tasks_create", {
-			project_id: "bare",
-			title: "Tagged from the start",
-			tags: ["bug"],
-		})) as Created;
-
 		expect(created.warnings).toEqual([]);
 	});
 
-	it("warns when the tags are cleared on update", async () => {
+	it("does not warn when the tags are cleared on update", async () => {
 		const db = getDb();
 		const task = unwrap(
 			createTask(db, {
 				project_id: "bare",
 				title: "Tags cleared later",
-				tags: ["bug"],
 			}),
 		);
 
@@ -141,15 +126,24 @@ describe("tag warnings", () => {
 			patch: { tags: [] },
 		})) as Created;
 
-		expect(updated.warnings).toHaveLength(1);
-		expect(updated.warnings[0]).toContain("no tags set");
+		expect(updated.warnings).toEqual([]);
+	});
+
+	it("rejects a tag outside the dictionary", async () => {
+		await expect(
+			call("tasks_create", {
+				project_id: "bare",
+				title: "Invented tag",
+				tags: ["ghost"],
+			}),
+		).rejects.toThrow();
 	});
 
 	it("reports warnings per item in tasks_create_many", async () => {
 		const result = (await call("tasks_create_many", {
 			items: [
-				{ project_id: "bare", title: "Batch without tags" },
-				{ project_id: "bare", title: "Batch with tags", tags: ["feature"] },
+				{ project_id: "bare", title: "Batch one" },
+				{ project_id: "bare", title: "Batch two" },
 			],
 		})) as {
 			items: { ok: boolean; warnings?: string[] }[];
@@ -158,7 +152,7 @@ describe("tag warnings", () => {
 		};
 
 		expect(result.succeeded).toBe(2);
-		expect(result.items[0].warnings).toHaveLength(1);
+		expect(result.items[0].warnings ?? []).toEqual([]);
 		expect(result.items[1].warnings ?? []).toEqual([]);
 	});
 });

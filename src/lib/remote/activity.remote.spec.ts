@@ -7,7 +7,7 @@ import { closeDb, getDb } from "../server/db";
 import type { AppError } from "../server/errors";
 import { migrateDatabase } from "../server/migrations";
 import { createProject } from "../server/projects";
-import { createTask } from "../server/tasks";
+import { createTask, ensureTag } from "../server/tasks";
 import type { ActivitySource } from "../server/activity";
 import type { ActivityItem } from "../types";
 import { runOp } from "./define";
@@ -35,6 +35,7 @@ beforeAll(async () => {
 	await migrateDatabase(db);
 	unwrap(createProject(db, { id: "spa", name: "Shop", prefix: "SPA" }));
 	unwrap(createProject(db, { id: "bil", name: "Billing", prefix: "BIL" }));
+	unwrap(ensureTag(db, "x"));
 });
 
 afterAll(() => {

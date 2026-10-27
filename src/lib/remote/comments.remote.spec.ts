@@ -7,7 +7,7 @@ import { closeDb, getDb } from "../server/db";
 import { type AppError } from "../server/errors";
 import { migrateDatabase } from "../server/migrations";
 import { createProject } from "../server/projects";
-import { createTask } from "../server/tasks";
+import { createTask, ensureTag } from "../server/tasks";
 import type { ActivityChange, ActivitySource } from "../types";
 import { runOp } from "./define";
 import { getOps } from "./index.js";
@@ -24,6 +24,9 @@ beforeAll(async () => {
 	const db = getDb(join(dbDir, "comments.db"));
 	await migrateDatabase(db);
 	unwrap(createProject(db, { id: "spa", name: "Shop", prefix: "SPA" }));
+	for (const tag of ["a", "b"]) {
+		unwrap(ensureTag(db, tag));
+	}
 });
 
 afterAll(() => {

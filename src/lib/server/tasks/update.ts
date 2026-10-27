@@ -23,6 +23,7 @@ import {
 	taskById,
 } from "./rows";
 import { resolveEpicId, resolveTaskId, validateScope } from "./resolve";
+import { validateTags } from "./tags";
 import type {
 	ReleasedLink,
 	TaskChange,
@@ -257,6 +258,10 @@ export function updateTaskDetailed(
 	}
 	if (patch.tags !== undefined) {
 		const tags = normalizeTags(patch.tags);
+		const tagsError = validateTags(db, tags);
+		if (tagsError) {
+			return err(tagsError);
+		}
 		sets.push("tags = ?");
 		params.push(JSON.stringify(tags));
 		if (

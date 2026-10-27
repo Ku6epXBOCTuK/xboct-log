@@ -252,6 +252,10 @@
 		return scope.id;
 	}
 
+	async function onunknowntag(name: string) {
+		await tags.create(name);
+	}
+
 	function onkeydown(event: KeyboardEvent) {
 		if (matchesHotkey(event, "ctrl+alt+c")) {
 			event.preventDefault();
@@ -390,6 +394,7 @@
 			{tagCounts}
 			advanced={ui.advanced}
 			{onfield}
+			{onunknowntag}
 			onerror={(message) => {
 				failure = message;
 				invalidField = true;

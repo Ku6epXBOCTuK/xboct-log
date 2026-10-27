@@ -567,6 +567,12 @@ describe("output contracts", () => {
 				dry_run: true,
 			}),
 			tags_list: () => ({}),
+			tags_create: () => ({ name: "sweep-tag" }),
+			tags_update: () => ({ name: "sweep-tag", patch: { archived: true } }),
+			tags_rename: async () => {
+				await call("tags_create", { name: "sweep-rename" });
+				return { name: "sweep-rename", new_name: "sweep-renamed" };
+			},
 			tasks_list: () => ({}),
 			tasks_deleted_list: () => ({}),
 			tasks_get_many: () => ({ ids: [base] }),

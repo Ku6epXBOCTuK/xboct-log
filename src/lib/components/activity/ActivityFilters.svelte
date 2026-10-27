@@ -51,6 +51,7 @@
 		{ key: "task", label: "task", value: "task" },
 		{ key: "project", label: "project", value: "project" },
 		{ key: "scope", label: "scope", value: "scope" },
+		{ key: "tag", label: "tag", value: "tag" },
 	];
 
 	const ANY_OP: Choice = { key: "any", label: "Any operation", value: "" };

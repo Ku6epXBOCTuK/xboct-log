@@ -8,6 +8,7 @@
 		suggestions?: string[];
 		counts?: Record<string, number>;
 		onchange: (tags: string[]) => void;
+		onunknown?: (tag: string) => Promise<unknown>;
 		placeholder?: string;
 		ariaLabel?: string;
 		variant?: "filter" | "field";
@@ -19,6 +20,7 @@
 		suggestions = [],
 		counts = {},
 		onchange,
+		onunknown,
 		placeholder = "Add tags",
 		ariaLabel = "Tags",
 		variant = "field",
@@ -47,8 +49,21 @@
 		select.setQuery("");
 	}
 
-	function commit() {
-		add(text.split(/[\s,]+/));
+	async function commit() {
+		const candidates = text
+			.split(/[\s,]+/)
+			.map((tag) => tag.trim().toLowerCase())
+			.filter((tag) => tag !== "");
+		text = "";
+		select.setQuery("");
+		if (onunknown) {
+			for (const tag of candidates) {
+				if (!suggestions.includes(tag)) {
+					await onunknown(tag);
+				}
+			}
+		}
+		add(candidates);
 	}
 
 	function remove(tag: string) {
@@ -62,14 +77,14 @@
 
 	function onkeydown(event: KeyboardEvent): boolean {
 		if (event.key === ",") {
-			commit();
+			void commit();
 			return true;
 		}
 		if (event.key === " " || event.key === "Enter") {
 			if (text.trim() === "") return event.key === " ";
 			const active = select.active;
 			if (active !== null) select.pickActive();
-			else commit();
+			else void commit();
 			return true;
 		}
 		if (event.key === "Backspace" && text === "" && value.length > 0) {

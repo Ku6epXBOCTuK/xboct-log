@@ -87,6 +87,10 @@
 	let tagCounts = $derived(
 		Object.fromEntries(tagEntries.map((entry) => [entry.tag, entry.count])),
 	);
+	async function onunknowntag(name: string) {
+		await tags.create(name);
+	}
+
 	const search = createDebouncedValue("");
 	let found = $state<Task[]>([]);
 	let searchRequest = 0;
@@ -489,6 +493,7 @@
 				epics={siblingEpics(tasks.epics, selected)}
 				{tagSuggestions}
 				{tagCounts}
+				{onunknowntag}
 				editing
 				advanced={ui.advanced}
 				onfield={save}

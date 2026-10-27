@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "../server/db";
 import { migrateDatabase } from "../server/migrations";
 import { createProject } from "../server/projects";
-import { createTask } from "../server/tasks";
+import { createTask, ensureTag } from "../server/tasks";
 import { runOp } from "./define";
 import { getOps } from "./index.js";
 
@@ -17,6 +17,9 @@ beforeAll(async () => {
 	await migrateDatabase(db);
 	const project = createProject(db, { id: "spa", name: "Shop", prefix: "SPA" });
 	expect(project.isOk()).toBe(true);
+	for (const tag of ["mcp", "ui", "db"]) {
+		expect(ensureTag(db, tag).isOk()).toBe(true);
+	}
 	const task = createTask(db, {
 		project_id: "spa",
 		title: "Alpha",

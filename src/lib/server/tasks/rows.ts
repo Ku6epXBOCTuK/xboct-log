@@ -133,7 +133,7 @@ export function normalizeTags(tags: string[] | undefined): string[] {
 	}
 	const seen = new Set<string>();
 	for (const raw of tags) {
-		const tag = raw.trim();
+		const tag = raw.trim().toLowerCase();
 		if (tag) {
 			seen.add(tag);
 		}

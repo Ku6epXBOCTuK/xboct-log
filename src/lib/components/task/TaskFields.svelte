@@ -37,6 +37,7 @@
 		oncreatechild?: () => void;
 		commentsCount?: number;
 		oncomments?: () => void;
+		onunknowntag?: (tag: string) => Promise<unknown>;
 	}
 
 	let {
@@ -51,6 +52,7 @@
 		oncreatechild,
 		commentsCount,
 		oncomments,
+		onunknowntag,
 	}: Props = $props();
 
 	const TASK_TYPES: ("task" | "epic")[] = ["task", "epic"];
@@ -226,6 +228,7 @@
 		suggestions={tagSuggestions}
 		counts={tagCounts}
 		onchange={(tags) => onfield({ tags })}
+		onunknown={onunknowntag}
 		ariaLabel="Tags"
 	/>
 </div>

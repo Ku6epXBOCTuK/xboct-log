@@ -57,6 +57,12 @@ export const tagRef = z.looseObject({
 	active: z.number().int(),
 });
 
+export const tagRecord = z.looseObject({
+	name: z.string(),
+	archived: z.boolean(),
+	created_at: z.string(),
+});
+
 export const backupRef = z.looseObject({
 	kind: z.string(),
 	name: z.string(),

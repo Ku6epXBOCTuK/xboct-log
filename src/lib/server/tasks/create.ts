@@ -19,6 +19,7 @@ import {
 	taskById,
 } from "./rows";
 import { resolveEpicId, validateScope } from "./resolve";
+import { validateTags } from "./tags";
 import type { NewTask } from "./types";
 
 export function allocateNumber(db: DatabaseSync, projectId: string): number {
@@ -62,6 +63,10 @@ export function createTask(
 	}
 
 	const tags = normalizeTags(input.tags);
+	const tagsError = validateTags(db, tags);
+	if (tagsError) {
+		return err(tagsError);
+	}
 	const sourceFile = emptyToNull(input.source_file);
 	const estimate = input.estimate ?? null;
 	if (estimate !== null && !isEstimate(estimate)) {
