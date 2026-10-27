@@ -50,22 +50,6 @@ export function listScopes(db: DatabaseSync, projectId?: string): Scope[] {
 	return rows.map(mapScope);
 }
 
-export function missingScopeWarning(
-	db: DatabaseSync,
-	projectId: string,
-	scopeId: number | null,
-): string | null {
-	if (scopeId !== null) {
-		return null;
-	}
-	const scopes = listScopes(db, projectId);
-	if (scopes.length === 0) {
-		return null;
-	}
-	const options = scopes.map((scope) => `${scope.id}=${scope.name}`).join(", ");
-	return `no scope set; project "${projectId}" has scopes: ${options} - set scope_id via tasks_update {id, patch:{scope_id:${scopes[0].id}}}`;
-}
-
 export function scopedProjectIds(db: DatabaseSync): string[] {
 	const rows = db
 		.prepare("SELECT DISTINCT project_id FROM scopes")

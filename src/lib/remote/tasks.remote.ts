@@ -1,6 +1,5 @@
 import { ID_DESCRIPTION, taskIdSchema } from "#lib/tasks/ids.ts";
 import { err, ok } from "neverthrow";
-import type { DatabaseSync } from "node:sqlite";
 import { z } from "zod";
 import {
 	activityEntry,
@@ -9,7 +8,6 @@ import {
 	type ActivityEntry,
 } from "../server/activity";
 import { getDb } from "../server/db";
-import { missingScopeWarning } from "../server/scopes";
 import type {
 	BatchItem,
 	CreateBatchItem,
@@ -256,7 +254,7 @@ export const createTask = defineCommand({
 	name: "tasks_create",
 	output: taskCreated,
 	description:
-		"Create a task. Requires project_id and title; status, priority, estimate, assignee, due_at, blocked_reason, epic, scope, tags are optional. status defaults to 'backlog'; move the task to 'open' when it is committed to be done. estimate is the size of the task: 'S', 'M' or 'L'. assignee is the person responsible for the task, due_at is its due date (YYYY-MM-DD). blocked_reason is one line of free text explaining a block outside the tracker and is only allowed when status is 'blocked'. epic_id accepts a full epic id (e.g. 'LOG-5') of the same project. Projects that define scopes expect every task to carry one: the result carries a warnings array, and a warning naming the available scopes appears when the task is created without a scope. A project without scopes can get one with scopes_create {project_id, name}. Tags are not required, but the warnings array also names the task when it carries no tag at all. source_file names the document or file the task came from; it is provenance only, it is never verified and several tasks may share it. Returns: the created task - " +
+		"Create a task. Requires project_id and title; status, priority, estimate, assignee, due_at, blocked_reason, epic, scope, tags are optional. status defaults to 'backlog'; move the task to 'open' when it is committed to be done. estimate is the size of the task: 'S', 'M' or 'L'. assignee is the person responsible for the task, due_at is its due date (YYYY-MM-DD). blocked_reason is one line of free text explaining a block outside the tracker and is only allowed when status is 'blocked'. epic_id accepts a full epic id (e.g. 'LOG-5') of the same project. scope_id is optional: a task without it sits outside the project's scopes, and scopes_create {project_id, name} adds a scope. Tags are optional too, but the result carries a warnings array, and a warning names the task when it has no tag at all. source_file names the document or file the task came from; it is provenance only, it is never verified and several tasks may share it. Returns: the created task - " +
 		TASK_FIELDS +
 		" with a warnings array.",
 	kind: "command",
@@ -269,7 +267,7 @@ export const createTask = defineCommand({
 		}
 		return ok({
 			...result.value,
-			warnings: warningsFor(db, result.value),
+			warnings: warningsFor(result.value),
 		});
 	},
 	activity: (input, task: Task) =>
@@ -280,7 +278,7 @@ export const createTasks = defineCommand({
 	name: "tasks_create_many",
 	output: taskBatch,
 	description:
-		"Create several tasks in one call. Each item is created independently and the response reports ok/error per item; a failing item does not cancel the others. Items are created in the given order, so task numbers are allocated sequentially. Each item needs its own project_id and title and accepts the same fields as tasks_create, including epic_id as a full epic id of the item's project. Returns: {items, succeeded, failed} - every item is {index, id, ok, task, changes, released, warnings} when it worked and {index, id, ok:false, error:{kind, message}} when it failed, where index is the position in the request list and id is the id of the created task (null for a failed item). changes is empty for a created task, released is empty when nothing was released. Every item carries its own warnings array, which is not empty when the item was created without a scope in a project that defines scopes, or without any tag.",
+		"Create several tasks in one call. Each item is created independently and the response reports ok/error per item; a failing item does not cancel the others. Items are created in the given order, so task numbers are allocated sequentially. Each item needs its own project_id and title and accepts the same fields as tasks_create, including epic_id as a full epic id of the item's project. Returns: {items, succeeded, failed} - every item is {index, id, ok, task, changes, released, warnings} when it worked and {index, id, ok:false, error:{kind, message}} when it failed, where index is the position in the request list and id is the id of the created task (null for a failed item). changes is empty for a created task, released is empty when nothing was released. Every item carries its own warnings array, which is not empty when the item was created without any tag.",
 	kind: "command",
 	input: strictObject({
 		items: z.array(newTask).min(1).max(100),
@@ -291,7 +289,7 @@ export const createTasks = defineCommand({
 		return {
 			...summarize(items),
 			items: items.map((item) =>
-				item.ok ? { ...item, warnings: warningsFor(db, item.task) } : item,
+				item.ok ? { ...item, warnings: warningsFor(item.task) } : item,
 			),
 		};
 	},
@@ -315,7 +313,7 @@ export const updateTask = defineCommand({
 	description:
 		"Update fields of an existing task by id. Every field to change goes inside the patch object (e.g. {id: 'LOG-87', patch: {status: 'in-progress'}}); top-level fields other than id and patch are rejected. The id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). In patch, epic_id accepts a full epic id (e.g. 'LOG-5') of the task's current project, estimate takes the size of the task ('S', 'M' or 'L') or null to clear it, assignee takes the name of the responsible person or null to clear it, due_at takes the due date (YYYY-MM-DD) or null to clear it, and blocked_reason is one line of free text explaining a block outside the tracker, allowed only on a blocked task; leaving status 'blocked' clears it. The patch must name at least one field with a value: an empty patch, a field set to undefined, an unknown field or an epic id that does not exist is an error, the task is left untouched. Returns: the updated task - " +
 		TASK_FIELDS +
-		" with a changes array and a warnings array, which is not empty when the task has no scope while its project defines scopes, when the task has no tag at all, or when the task is blocked with neither a blocker task nor a blocked_reason.",
+		" with a changes array and a warnings array, which is not empty when the task has no tag at all or when the task is blocked with neither a blocker task nor a blocked_reason.",
 	kind: "command",
 	input: strictObject({
 		id: taskIdSchema(ID_DESCRIPTION),
@@ -330,7 +328,7 @@ export const updateTask = defineCommand({
 		return ok({
 			...result.value.task,
 			changes: result.value.changes,
-			warnings: warningsFor(db, result.value.task),
+			warnings: warningsFor(result.value.task),
 		});
 	},
 	activity: (input, task: TaskWithChanges) =>
@@ -342,12 +340,8 @@ function summarize<T extends { ok: boolean }>(items: T[]) {
 	return { items, succeeded, failed: items.length - succeeded };
 }
 
-function warningsFor(db: DatabaseSync, task: Task): string[] {
+function warningsFor(task: Task): string[] {
 	const warnings: string[] = [];
-	const scopeWarning = missingScopeWarning(db, task.project_id, task.scope_id);
-	if (scopeWarning) {
-		warnings.push(scopeWarning);
-	}
 	if (task.tags.length === 0) {
 		warnings.push(
 			'no tags set; add at least one tag via tasks_update {id, patch:{tags:["bug"]}} - tags group similar work across projects',
@@ -381,7 +375,7 @@ export const updateTasks = defineCommand({
 	name: "tasks_update_many",
 	output: taskBatch,
 	description:
-		"Update several tasks in one call. Each item is applied independently and the response reports ok/error per item; a failing item does not cancel the others. Every id must use the full 'PREFIX-NUMBER' form. Every patch must name at least one field with a value: an empty patch, a field set to undefined, an unknown field or an epic id that does not exist is an error for that item, the task is left untouched and the item reports ok:false. Returns: {items, succeeded, failed} - every item is {index, id, ok, task, changes, released, warnings} when it worked and {index, id, ok:false, error:{kind, message}} when it failed, where index is the position in the request list and id is the id of the task. released is empty when nothing was released. Every successful item carries its own warnings array, which is not empty when the task has no scope while its project defines scopes, or no tag at all.",
+		"Update several tasks in one call. Each item is applied independently and the response reports ok/error per item; a failing item does not cancel the others. Every id must use the full 'PREFIX-NUMBER' form. Every patch must name at least one field with a value: an empty patch, a field set to undefined, an unknown field or an epic id that does not exist is an error for that item, the task is left untouched and the item reports ok:false. Returns: {items, succeeded, failed} - every item is {index, id, ok, task, changes, released, warnings} when it worked and {index, id, ok:false, error:{kind, message}} when it failed, where index is the position in the request list and id is the id of the task. released is empty when nothing was released. Every successful item carries its own warnings array, which is not empty when the task has no tag at all.",
 	kind: "command",
 	input: strictObject({
 		items: z
@@ -400,7 +394,7 @@ export const updateTasks = defineCommand({
 		return {
 			...summarize(result),
 			items: result.map((item) =>
-				item.ok ? { ...item, warnings: warningsFor(db, item.task) } : item,
+				item.ok ? { ...item, warnings: warningsFor(item.task) } : item,
 			),
 		};
 	},
@@ -478,7 +472,7 @@ export const closeTasks = defineCommand({
 		return {
 			...summarize(result),
 			items: result.map((item) =>
-				item.ok ? { ...item, warnings: warningsFor(db, item.task) } : item,
+				item.ok ? { ...item, warnings: warningsFor(item.task) } : item,
 			),
 		};
 	},
