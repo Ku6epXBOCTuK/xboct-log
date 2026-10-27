@@ -129,9 +129,9 @@ export function createTask(
 			db.prepare(
 				`INSERT INTO tasks (
 					id, project_id, number, title, description, status, priority, is_epic,
-					epic_id, scope_id, source_file, tags, estimate, assignee, due_at,
+					epic_id, scope_id, source_file, estimate, assignee, due_at,
 					blocked_reason, created_at, updated_at, closed_at
-				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			).run(
 				id,
 				project.id,
@@ -144,7 +144,6 @@ export function createTask(
 				resolvedEpicId,
 				scopeId,
 				sourceFile,
-				JSON.stringify(tags),
 				estimate,
 				assignee,
 				dueAt,
@@ -153,6 +152,12 @@ export function createTask(
 				now,
 				closedAt,
 			);
+			const insertTag = db.prepare(
+				"INSERT INTO task_tags (task_id, tag) VALUES (?, ?)",
+			);
+			for (const tag of tags) {
+				insertTag.run(id, tag);
+			}
 			return withBlockingInfo(db, [taskById(db, id)!])[0];
 		}),
 	);

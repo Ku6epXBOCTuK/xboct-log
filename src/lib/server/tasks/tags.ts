@@ -18,7 +18,7 @@ export interface TagQuery {
 export function listTags(db: DatabaseSync, query: TagQuery = {}): TagCount[] {
 	const where = [
 		"tasks.deleted_at IS NULL",
-		"je.value NOT IN (SELECT name FROM tags WHERE archived = 1)",
+		"tt.tag NOT IN (SELECT name FROM tags WHERE archived = 1)",
 	];
 	const params: (string | number)[] = [];
 
@@ -37,12 +37,13 @@ export function listTags(db: DatabaseSync, query: TagQuery = {}): TagCount[] {
 	}
 
 	const activeSlots = ACTIVE_STATUSES.map(() => "?").join(", ");
-	const sql = `SELECT je.value AS tag, COUNT(*) AS count,
+	const sql = `SELECT tt.tag AS tag, COUNT(*) AS count,
 			SUM(CASE WHEN tasks.status IN (${activeSlots}) THEN 1 ELSE 0 END)
 				AS active
-		FROM tasks, json_each(tasks.tags) AS je
+		FROM task_tags tt
+		JOIN tasks ON tasks.id = tt.task_id
 		WHERE ${where.join(" AND ")}
-		GROUP BY je.value
+		GROUP BY tt.tag
 		ORDER BY count DESC, tag ASC`;
 
 	const rows = db.prepare(sql).all(...ACTIVE_STATUSES, ...params) as {
@@ -185,19 +186,6 @@ export function renameTag(
 	return ok(
 		withTransaction(db, () => {
 			db.prepare("UPDATE tags SET name = ? WHERE name = ?").run(next, name);
-			const rows = db
-				.prepare(
-					"SELECT id, tags FROM tasks WHERE EXISTS (SELECT 1 FROM json_each(tasks.tags) WHERE value = ?)",
-				)
-				.all(name) as unknown as { id: string; tags: string }[];
-			const update = db.prepare("UPDATE tasks SET tags = ? WHERE id = ?");
-			for (const row of rows) {
-				const tags: string[] = JSON.parse(row.tags);
-				const renamed = [
-					...new Set(tags.map((tag) => (tag === name ? next : tag))),
-				];
-				update.run(JSON.stringify(renamed), row.id);
-			}
 			return { ...existing, name: next };
 		}),
 	);

@@ -25,7 +25,7 @@ export function mapTask(row: TaskRow): Task {
 		epic_id: row.epic_id,
 		scope_id: row.scope_id,
 		source_file: row.source_file,
-		tags: JSON.parse(row.tags) as string[],
+		tags: [],
 		estimate: (row.estimate as Estimate | null) ?? null,
 		assignee: row.assignee,
 		due_at: row.due_at,
@@ -41,9 +41,42 @@ export function mapTask(row: TaskRow): Task {
 	};
 }
 
-export const TASK_BASE_FIELDS: string[] = Object.keys(
-	mapTask({ tags: "[]" } as TaskRow),
-);
+export function tagsForTasks(
+	db: DatabaseSync,
+	ids: string[],
+): Map<string, string[]> {
+	const tags = new Map<string, string[]>();
+	if (ids.length === 0) {
+		return tags;
+	}
+	const rows = db
+		.prepare(
+			`SELECT task_id, tag FROM task_tags WHERE task_id IN (${ids.map(() => "?").join(", ")}) ORDER BY tag`,
+		)
+		.all(...ids) as unknown as { task_id: string; tag: string }[];
+	for (const row of rows) {
+		const list = tags.get(row.task_id);
+		if (list) {
+			list.push(row.tag);
+		} else {
+			tags.set(row.task_id, [row.tag]);
+		}
+	}
+	return tags;
+}
+
+export function attachTags(db: DatabaseSync, tasks: Task[]): Task[] {
+	if (tasks.length === 0) {
+		return tasks;
+	}
+	const tags = tagsForTasks(
+		db,
+		tasks.map((task) => task.id),
+	);
+	return tasks.map((task) => ({ ...task, tags: tags.get(task.id) ?? [] }));
+}
+
+export const TASK_BASE_FIELDS: string[] = Object.keys(mapTask({} as TaskRow));
 
 export function parseFields(fields: string | undefined): string[] | null {
 	if (!fields) {
@@ -147,5 +180,5 @@ export function taskById(db: DatabaseSync, id: string): Task | undefined {
 			"SELECT tasks.*, (SELECT COUNT(*) FROM task_attachments a WHERE a.task_id = tasks.id) AS attachments_count FROM tasks WHERE tasks.id = ?",
 		)
 		.get(id) as unknown as TaskRow | undefined;
-	return row ? mapTask(row) : undefined;
+	return row ? attachTags(db, [mapTask(row)])[0] : undefined;
 }

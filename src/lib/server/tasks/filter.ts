@@ -31,7 +31,7 @@ const SEARCH_COLUMNS = [
 	"ULOWER(tasks.description) LIKE ?",
 	"ULOWER(tasks.id) LIKE ?",
 	"ULOWER(tasks.epic_id) LIKE ?",
-	"EXISTS (SELECT 1 FROM json_each(tasks.tags) WHERE ULOWER(json_each.value) LIKE ?)",
+	"EXISTS (SELECT 1 FROM task_tags tt WHERE tt.task_id = tasks.id AND ULOWER(tt.tag) LIKE ?)",
 ];
 
 export function exactMatchClauses(query: TaskQuery): {
@@ -156,8 +156,8 @@ export function buildTaskFilter(query: TaskQuery): TaskFilterSql {
 	if (query.has_tags !== undefined) {
 		where.push(
 			query.has_tags
-				? "json_array_length(tasks.tags) > 0"
-				: "json_array_length(tasks.tags) = 0",
+				? "EXISTS (SELECT 1 FROM task_tags tt WHERE tt.task_id = tasks.id)"
+				: "NOT EXISTS (SELECT 1 FROM task_tags tt WHERE tt.task_id = tasks.id)",
 		);
 	}
 	if (query.blocked_by !== undefined) {
@@ -176,7 +176,7 @@ export function buildTaskFilter(query: TaskQuery): TaskFilterSql {
 	}
 	if (query.tag?.length) {
 		where.push(
-			`EXISTS (SELECT 1 FROM json_each(tasks.tags) WHERE ULOWER(json_each.value) IN (${query.tag
+			`EXISTS (SELECT 1 FROM task_tags tt WHERE tt.task_id = tasks.id AND ULOWER(tt.tag) IN (${query.tag
 				.map(() => "?")
 				.join(", ")}))`,
 		);

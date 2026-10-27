@@ -13,6 +13,7 @@ import {
 	listTags,
 	renameTag,
 	setTagArchived,
+	updateTask,
 	validateTags,
 } from "./index";
 
@@ -192,9 +193,46 @@ describe("tag dictionary", () => {
 				.map((entry) => entry.tag)
 				.sort(),
 		).toEqual(["design", "mcp"]);
-		expect(getTask(db, task.id)?.tags).toEqual(["mcp", "design"]);
+		expect(getTask(db, task.id)?.tags).toEqual(["design", "mcp"]);
 		expect(validateTags(db, ["design"])).toBeNull();
 		expect(validateTags(db, ["ui"])).not.toBeNull();
+	});
+
+	it("reads the tags sorted and drops the links with the task", async () => {
+		const db = await setup();
+		const task = unwrap(
+			createTask(db, {
+				project_id: "spa",
+				title: "Sorted",
+				tags: ["ui", "mcp"],
+			}),
+		);
+
+		expect(getTask(db, task.id)?.tags).toEqual(["mcp", "ui"]);
+
+		db.prepare("DELETE FROM tasks WHERE id = ?").run(task.id);
+		const left = db
+			.prepare("SELECT COUNT(*) AS count FROM task_tags WHERE task_id = ?")
+			.get(task.id) as { count: number };
+		expect(left.count).toBe(0);
+	});
+
+	it("replaces the links on update", async () => {
+		const db = await setup();
+		const task = unwrap(
+			createTask(db, {
+				project_id: "spa",
+				title: "Replace",
+				tags: ["mcp", "ui"],
+			}),
+		);
+
+		unwrap(updateTask(db, task.id, { tags: ["ui"] }));
+
+		expect(getTask(db, task.id)?.tags).toEqual(["ui"]);
+		const counts = listTags(db).map((entry) => `${entry.tag}:${entry.count}`);
+		expect(counts).toContain("ui:1");
+		expect(counts.some((entry) => entry.startsWith("mcp:"))).toBe(false);
 	});
 
 	it("accepts only ascii names with dashes and underscores", async () => {

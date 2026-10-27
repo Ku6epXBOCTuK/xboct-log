@@ -192,7 +192,7 @@ describe("tasks", () => {
 
 		expect(task.status).toBe("backlog");
 		expect(task.priority).toBe("medium");
-		expect(task.tags).toEqual(["perf", "checkout"]);
+		expect(task.tags).toEqual(["checkout", "perf"]);
 		expect(task.source_file).toBe("src/cart.ts");
 		expect(task.closed_at).toBeNull();
 		expect(getTask(db, task.id)).toEqual(task);

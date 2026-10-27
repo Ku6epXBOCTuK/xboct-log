@@ -256,19 +256,19 @@ export function updateTaskDetailed(
 			});
 		}
 	}
+	let nextTags: string[] | null = null;
 	if (patch.tags !== undefined) {
 		const tags = normalizeTags(patch.tags);
 		const tagsError = validateTags(db, tags);
 		if (tagsError) {
 			return err(tagsError);
 		}
-		sets.push("tags = ?");
-		params.push(JSON.stringify(tags));
-		if (
-			tags.length !== current.tags.length ||
-			tags.some((tag, index) => tag !== current.tags[index])
-		) {
-			changes.push({ field: "tags", from: current.tags, to: tags });
+		nextTags = tags;
+		const unchanged =
+			tags.length === current.tags.length &&
+			tags.every((tag) => current.tags.includes(tag));
+		if (!unchanged) {
+			changes.push({ field: "tags", from: current.tags, to: [...tags].sort() });
 		}
 	}
 
@@ -352,6 +352,15 @@ export function updateTaskDetailed(
 				...params,
 				targetId,
 			);
+			if (nextTags !== null) {
+				db.prepare("DELETE FROM task_tags WHERE task_id = ?").run(targetId);
+				const insertTag = db.prepare(
+					"INSERT INTO task_tags (task_id, tag) VALUES (?, ?)",
+				);
+				for (const tag of nextTags) {
+					insertTag.run(targetId, tag);
+				}
+			}
 			return {
 				task: withBlockingInfo(db, [taskById(db, targetId)!])[0],
 				changes,

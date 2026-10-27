@@ -10,6 +10,7 @@ import {
 import { blockingInfoFor } from "../links";
 import { buildTaskFilter, exactMatchClauses } from "./filter";
 import {
+	attachTags,
 	mapTask,
 	parseFields,
 	pickFields,
@@ -83,7 +84,12 @@ export function getTasksByIds(db: DatabaseSync, ids: string[]): TasksByIds {
 					)
 					.all(...resolvedIds) as unknown as TaskRow[])
 			: [];
-	const byId = new Map(found.map((row) => [row.id, mapTask(row)]));
+	const byId = new Map(
+		attachTags(
+			db,
+			found.map((row) => mapTask(row)),
+		).map((task) => [task.id, task]),
+	);
 
 	const items: Task[] = [];
 	const missing: string[] = [];
@@ -169,8 +175,9 @@ export function listTasks(db: DatabaseSync, query: TaskQuery = {}): Task[] {
 		params.push(query.offset);
 	}
 
-	const tasks = (db.prepare(sql).all(...params) as unknown as TaskRow[]).map(
-		mapTask,
+	const tasks = attachTags(
+		db,
+		(db.prepare(sql).all(...params) as unknown as TaskRow[]).map(mapTask),
 	);
 	const selectedFields = parseFields(query.fields);
 	const includeDescription =
