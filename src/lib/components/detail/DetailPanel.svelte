@@ -1,5 +1,6 @@
 <script lang="ts">
 	import BlockingFields from "#lib/components/task/BlockingFields.svelte";
+	import AdvancedFields from "#lib/components/task/AdvancedFields.svelte";
 	import TaskLinks from "#lib/components/task/TaskLinks.svelte";
 	import DetailActions from "#lib/components/detail/DetailActions.svelte";
 	import ProjectScopeFields from "#lib/components/task/ProjectScopeFields.svelte";
@@ -462,6 +463,18 @@
 				onproject={moveTo}
 				{onnewscope}
 			/>
+			<TaskFields
+				value={selected}
+				epics={siblingEpics(tasks.epics, selected)}
+				{tagSuggestions}
+				{tagCounts}
+				{onunknowntag}
+				editing
+				onfield={save}
+				oncreatechild={createChild}
+				commentsCount={comments.count(selected.id)}
+				oncomments={() => (commentsOpen = true)}
+			/>
 			<BlockingFields
 				status={selected.status}
 				blockedBy={selected.blocked_by ?? []}
@@ -488,20 +501,13 @@
 				onsearch={searchTasks}
 				{unavailable}
 			/>
-			<TaskFields
-				value={selected}
-				epics={siblingEpics(tasks.epics, selected)}
-				{tagSuggestions}
-				{tagCounts}
-				{onunknowntag}
-				editing
-				advanced={ui.advanced}
-				onfield={save}
-				onerror={(message) => (failure = message)}
-				oncreatechild={createChild}
-				commentsCount={comments.count(selected.id)}
-				oncomments={() => (commentsOpen = true)}
-			/>
+			{#if ui.advanced}
+				<AdvancedFields
+					value={selected}
+					onfield={save}
+					onerror={(message) => (failure = message)}
+				/>
+			{/if}
 			<div class="advanced-row">
 				<AdvancedToggle
 					count={advancedFilledCount(selected)}
@@ -509,7 +515,9 @@
 					onchange={(value) => ui.set(value)}
 				/>
 			</div>
-			<TaskAttachments bind:this={attachments} task={selected} {tasks} />
+			<div class="block-divider">
+				<TaskAttachments bind:this={attachments} task={selected} {tasks} />
+			</div>
 		</div>
 		<DetailActions
 			closed={selected.closed_at !== null}

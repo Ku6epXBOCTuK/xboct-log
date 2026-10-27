@@ -271,6 +271,12 @@ textarea:focus-visible {
 	margin-bottom: var(--space-4);
 }
 
+.block-divider {
+	margin-top: var(--space-4);
+	padding-top: var(--space-4);
+	border-top: 1px solid var(--border);
+}
+
 .panel-body {
 	flex: 1 1 auto;
 	min-height: 0;

@@ -3,6 +3,7 @@
 	import AttachmentList from "#lib/components/attachments/AttachmentList.svelte";
 	import ProjectScopeFields from "#lib/components/task/ProjectScopeFields.svelte";
 	import TaskFields from "#lib/components/task/TaskFields.svelte";
+	import AdvancedFields from "#lib/components/task/AdvancedFields.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import type { DraftStore } from "#lib/state/draft.svelte.ts";
 	import type { ProjectDataStore } from "#lib/state/project-data.svelte.ts";
@@ -392,16 +393,22 @@
 			epics={epicOptions}
 			{tagSuggestions}
 			{tagCounts}
-			advanced={ui.advanced}
 			{onfield}
 			{onunknowntag}
-			onerror={(message) => {
-				failure = message;
-				invalidField = true;
-			}}
 		/>
 
-		<div class="attachments">
+		{#if ui.advanced}
+			<AdvancedFields
+				value={draft}
+				{onfield}
+				onerror={(message) => {
+					failure = message;
+					invalidField = true;
+				}}
+			/>
+		{/if}
+
+		<div class="attachments block-divider">
 			<div class="attachments-head">
 				<span class="attachments-title">Attachments</span>
 				<IconButton
