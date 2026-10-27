@@ -94,13 +94,16 @@ describe("comments", () => {
 		expect(failure(editComment(db, comment.id, "z")).kind).toBe("not_found");
 	});
 
-	it("gives the comments time-sortable ids", async () => {
+	it("gives the comments UUIDv7 ids", async () => {
 		const db = await setup();
 
 		const first = unwrap(addComment(db, { task_id: "SPA-1", body: "one" }));
 		const second = unwrap(addComment(db, { task_id: "SPA-1", body: "two" }));
 
-		expect(second.id > first.id).toBe(true);
+		expect(first.id).toMatch(
+			/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+		);
+		expect(second.id).not.toBe(first.id);
 	});
 
 	it("lists the comments of a task oldest first", async () => {
