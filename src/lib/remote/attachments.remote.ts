@@ -27,7 +27,7 @@ export const getTaskAttachments = defineQuery({
 	description:
 		"List the files attached to one task. Read-only. Returns: {items} - every item is " +
 		ATTACHMENT_FIELDS +
-		". A file that is gone from the media folder is still listed, with missing set to true.",
+		". The uri of an item is an MCP resource holding the bytes of the file: read it with resources/read instead of looking for the file on disk. A file that is gone from the media folder is still listed, with missing set to true.",
 	kind: "query",
 	input: strictObject({
 		id: taskIdSchema(ID_DESCRIPTION),

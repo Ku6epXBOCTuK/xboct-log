@@ -33,7 +33,7 @@ export const commentRef = commentSchema
 	.loose();
 
 export const attachmentRef = attachmentSchema
-	.pick({ id: true, task_id: true, file_name: true, size: true })
+	.pick({ id: true, task_id: true, file_name: true, size: true, uri: true })
 	.loose();
 
 export const revisionRef = z.looseObject({

@@ -9,8 +9,10 @@ import {
 	addAttachmentFromPath,
 	deleteAttachment,
 	listAttachments,
+	MAX_RESOURCE_SIZE,
 	mediaDir,
 	readAttachmentFile,
+	readAttachmentResource,
 	verifyAttachments,
 } from "./attachments";
 import { openMigratedDatabase } from "./migrations";
@@ -68,6 +70,40 @@ describe("attachments", () => {
 		const read = readAttachmentFile(db, item.id)._unsafeUnwrap();
 		expect(read.data.toString()).toBe("hello");
 		expect(read.attachment.file_name).toBe("note.txt");
+	});
+
+	it("points every attachment at its resource", async () => {
+		const { db, taskId } = await setup();
+		const item = addAttachment(
+			db,
+			taskId,
+			"note.txt",
+			Buffer.from("hello"),
+		)._unsafeUnwrap();
+		expect(item.uri).toBe(`xboct-log://attachment/${item.id}`);
+		expect(listAttachments(db, taskId)[0].uri).toBe(item.uri);
+	});
+
+	it("serves the file as a bounded resource", async () => {
+		const { db, taskId } = await setup();
+		const item = addAttachment(
+			db,
+			taskId,
+			"note.txt",
+			Buffer.from("hello"),
+		)._unsafeUnwrap();
+		const resource = readAttachmentResource(db, item.id)._unsafeUnwrap();
+		expect(resource.data.toString()).toBe("hello");
+
+		const big = addAttachment(
+			db,
+			taskId,
+			"big.bin",
+			Buffer.alloc(MAX_RESOURCE_SIZE + 1),
+		)._unsafeUnwrap();
+		const refused = readAttachmentResource(db, big.id);
+		expect(refused.isErr()).toBe(true);
+		expect(refused._unsafeUnwrapErr().message).toContain("/media/");
 	});
 
 	it("rejects an empty file", async () => {

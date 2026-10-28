@@ -20,10 +20,15 @@ export interface Attachment {
 	mime_type: string | null;
 	size: number;
 	created_at: string;
+	uri: string;
 	missing: boolean;
 }
 
 export const MAX_ATTACHMENT_SIZE = 20 * 1024 * 1024;
+
+// NOTE: a resource travels base64 inside JSON-RPC, so the upper bound is
+// lower than MAX_ATTACHMENT_SIZE to keep a single response readable
+export const MAX_RESOURCE_SIZE = 8 * 1024 * 1024;
 
 const MIME_BY_EXTENSION: Record<string, string> = {
 	png: "image/png",
@@ -75,6 +80,10 @@ function extensionOf(name: string): string {
 	return /^[a-z0-9]{1,10}$/.test(ext) ? ext : "";
 }
 
+export function attachmentUri(id: string): string {
+	return `xboct-log://attachment/${id}`;
+}
+
 function toAttachment(row: AttachmentRow): Attachment {
 	return {
 		id: row.id,
@@ -83,6 +92,7 @@ function toAttachment(row: AttachmentRow): Attachment {
 		mime_type: row.mime_type,
 		size: row.size,
 		created_at: row.created_at,
+		uri: attachmentUri(row.id),
 		missing: false,
 	};
 }
@@ -113,6 +123,13 @@ export function listAttachments(
 	taskId: string,
 ): Attachment[] {
 	return rowsOf(db, taskId).map((row) => ({
+		...toAttachment(row),
+		missing: !existsSync(storedPath(row)),
+	}));
+}
+
+export function listAllAttachments(db: DatabaseSync): Attachment[] {
+	return rowsOf(db).map((row) => ({
 		...toAttachment(row),
 		missing: !existsSync(storedPath(row)),
 	}));
@@ -188,6 +205,7 @@ export function addAttachment(
 		mime_type: mime,
 		size: data.byteLength,
 		created_at: createdAt,
+		uri: attachmentUri(id),
 		missing: false,
 	});
 }
@@ -267,6 +285,25 @@ export function readAttachmentFile(
 	} catch (error) {
 		return err(unexpected(error));
 	}
+}
+
+export function readAttachmentResource(
+	db: DatabaseSync,
+	id: string,
+): Result<{ attachment: Attachment; data: Buffer }, AppError> {
+	const result = readAttachmentFile(db, id);
+	if (result.isErr()) {
+		return err(result.error);
+	}
+	const { attachment, data } = result.value;
+	if (data.byteLength > MAX_RESOURCE_SIZE) {
+		return err(
+			invalid(
+				`the file ${attachment.file_name} is ${Math.round(data.byteLength / 1024 / 1024)} MB, an MCP resource is limited to ${MAX_RESOURCE_SIZE / 1024 / 1024} MB; fetch it from /media/${id} instead`,
+			),
+		);
+	}
+	return ok(result.value);
 }
 
 export function removeTaskAttachments(db: DatabaseSync, taskId: string): void {

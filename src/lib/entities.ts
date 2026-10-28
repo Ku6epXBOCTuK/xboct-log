@@ -38,6 +38,7 @@ export const attachmentSchema = z.object({
 	mime_type: z.string().nullable(),
 	size: z.number(),
 	created_at: z.string(),
+	uri: z.string(),
 	missing: z.boolean(),
 });
 

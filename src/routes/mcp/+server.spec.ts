@@ -189,6 +189,72 @@ describe("/mcp endpoint", () => {
 		});
 	});
 
+	it("serves an attachment as a resource", async () => {
+		const db = getDb();
+		const project = createProject(db, {
+			id: "res",
+			name: "Resources",
+			prefix: "RES",
+		});
+		expect(project.isOk()).toBe(true);
+		const task = createTask(db, { project_id: "res", title: "With a file" });
+		expect(task.isOk()).toBe(true);
+
+		const added = await rpc("tools/call", {
+			name: "attachments_add",
+			arguments: {
+				id: task._unsafeUnwrap().id,
+				filename: "note.txt",
+				content_base64: Buffer.from("hello").toString("base64"),
+			},
+		});
+		const uri = (added.result?.structuredContent as { item?: { uri?: string } })
+			.item?.uri;
+		expect(uri).toBeDefined();
+
+		const templates = await rpc("resources/templates/list", {});
+		expect(JSON.stringify(templates.result)).toContain(
+			"xboct-log://attachment/{id}",
+		);
+
+		const list = await rpc("resources/list", {});
+		expect(JSON.stringify(list.result)).toContain(uri);
+
+		const read = await rpc("resources/read", { uri });
+		expect(read.error).toBeUndefined();
+		const contents = (
+			read.result as unknown as {
+				contents?: { uri?: string; mimeType?: string; blob?: string }[];
+			}
+		).contents;
+		expect(contents?.[0]?.uri).toBe(uri);
+		expect(contents?.[0]?.mimeType).toBe("text/plain");
+		expect(Buffer.from(contents?.[0]?.blob ?? "", "base64").toString()).toBe(
+			"hello",
+		);
+	});
+
+	it("always exposes the attachment index as a resource", async () => {
+		const list = await rpc("resources/list", {});
+		expect(JSON.stringify(list.result)).toContain("xboct-log://attachments");
+
+		const read = await rpc("resources/read", {
+			uri: "xboct-log://attachments",
+		});
+		expect(read.error).toBeUndefined();
+		const text =
+			(
+				read.result as unknown as {
+					contents?: { mimeType?: string; text?: string }[];
+				}
+			).contents?.[0]?.text ?? "";
+		const items = JSON.parse(text) as { uri?: string; task_id?: string }[];
+		expect(Array.isArray(items)).toBe(true);
+		for (const item of items) {
+			expect(item.uri).toMatch(/^xboct-log:\/\/attachment\//);
+		}
+	});
+
 	it("answers GET without crashing", async () => {
 		const response = await GET({
 			request: request("GET", undefined),
