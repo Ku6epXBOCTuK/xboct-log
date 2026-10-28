@@ -11,6 +11,9 @@ importers:
       '@ku6epxboctuk/sqlite-up':
         specifier: ^0.6.1
         version: 0.6.1
+      '@ku6epxboctuk/ui':
+        specifier: link:../../ui-kit
+        version: link:../../ui-kit
       '@modelcontextprotocol/server':
         specifier: ^2.3.1
         version: 2.3.1

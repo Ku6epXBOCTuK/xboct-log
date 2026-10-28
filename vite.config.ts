@@ -54,6 +54,16 @@ export default defineConfig(({ mode }) => {
 			}),
 			Icons({ compiler: "svelte" }),
 		],
+		resolve: {
+			// NOTE: the ui kit is a pnpm link outside the project; without this the
+			// kit would pull its own copy of svelte and break runes at runtime.
+			dedupe: ["svelte"],
+		},
+		server: {
+			fs: {
+				allow: [".", join(process.cwd(), "..", "..", "ui-kit")],
+			},
+		},
 		test: {
 			expect: { requireAssertions: true },
 			projects: [
