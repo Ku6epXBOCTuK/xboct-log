@@ -9,10 +9,9 @@ import {
 	addAttachmentFromPath,
 	deleteAttachment,
 	listAttachments,
-	MAX_RESOURCE_SIZE,
+	MAX_ATTACHMENT_SIZE,
 	mediaDir,
 	readAttachmentFile,
-	readAttachmentResource,
 	verifyAttachments,
 } from "./attachments";
 import { openMigratedDatabase } from "./migrations";
@@ -84,7 +83,7 @@ describe("attachments", () => {
 		expect(listAttachments(db, taskId)[0].uri).toBe(item.uri);
 	});
 
-	it("serves the file as a bounded resource", async () => {
+	it("reads the file back", async () => {
 		const { db, taskId } = await setup();
 		const item = addAttachment(
 			db,
@@ -92,18 +91,20 @@ describe("attachments", () => {
 			"note.txt",
 			Buffer.from("hello"),
 		)._unsafeUnwrap();
-		const resource = readAttachmentResource(db, item.id)._unsafeUnwrap();
-		expect(resource.data.toString()).toBe("hello");
+		const file = readAttachmentFile(db, item.id)._unsafeUnwrap();
+		expect(file.data.toString()).toBe("hello");
+	});
 
-		const big = addAttachment(
+	it("applies one size limit to every attachment", async () => {
+		const { db, taskId } = await setup();
+		const tooBig = addAttachment(
 			db,
 			taskId,
 			"big.bin",
-			Buffer.alloc(MAX_RESOURCE_SIZE + 1),
-		)._unsafeUnwrap();
-		const refused = readAttachmentResource(db, big.id);
-		expect(refused.isErr()).toBe(true);
-		expect(refused._unsafeUnwrapErr().message).toContain("/media/");
+			Buffer.alloc(MAX_ATTACHMENT_SIZE + 1),
+		);
+		expect(tooBig.isErr()).toBe(true);
+		expect(tooBig._unsafeUnwrapErr().message).toContain("20 MB");
 	});
 
 	it("rejects an empty file", async () => {

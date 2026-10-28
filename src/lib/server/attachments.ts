@@ -26,10 +26,6 @@ export interface Attachment {
 
 export const MAX_ATTACHMENT_SIZE = 20 * 1024 * 1024;
 
-// NOTE: a resource travels base64 inside JSON-RPC, so the upper bound is
-// lower than MAX_ATTACHMENT_SIZE to keep a single response readable
-export const MAX_RESOURCE_SIZE = 8 * 1024 * 1024;
-
 const MIME_BY_EXTENSION: Record<string, string> = {
 	png: "image/png",
 	jpg: "image/jpeg",
@@ -285,25 +281,6 @@ export function readAttachmentFile(
 	} catch (error) {
 		return err(unexpected(error));
 	}
-}
-
-export function readAttachmentResource(
-	db: DatabaseSync,
-	id: string,
-): Result<{ attachment: Attachment; data: Buffer }, AppError> {
-	const result = readAttachmentFile(db, id);
-	if (result.isErr()) {
-		return err(result.error);
-	}
-	const { attachment, data } = result.value;
-	if (data.byteLength > MAX_RESOURCE_SIZE) {
-		return err(
-			invalid(
-				`the file ${attachment.file_name} is ${Math.round(data.byteLength / 1024 / 1024)} MB, an MCP resource is limited to ${MAX_RESOURCE_SIZE / 1024 / 1024} MB; fetch it from /media/${id} instead`,
-			),
-		);
-	}
-	return ok(result.value);
 }
 
 export function removeTaskAttachments(db: DatabaseSync, taskId: string): void {

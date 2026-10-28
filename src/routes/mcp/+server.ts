@@ -9,7 +9,7 @@ import { runOp } from "#lib/remote/define.ts";
 import { getOps } from "#lib/remote/index.ts";
 import {
 	listAllAttachments,
-	readAttachmentResource,
+	readAttachmentFile,
 } from "#lib/server/attachments.ts";
 import { getDb } from "#lib/server/db.ts";
 import { kindForStatus, type ErrorKind } from "#lib/server/errors.ts";
@@ -83,7 +83,7 @@ function registerAttachmentRead(server: McpServer): void {
 		"attachments_read",
 		{
 			description:
-				"Read the file of one attachment, not only its metadata. An image comes back as an image block, text as text, anything else as base64 in a data URL. Use it to look at a screenshot attached to a task instead of searching the disk for the file. Files over 8 MB are not returned here: fetch them from /media/{id}.",
+				"Read the file of one attachment, not only its metadata. An image comes back as an image block, text as text, anything else as base64 in a data URL. Use it to look at a screenshot attached to a task instead of searching the disk for the file. An attachment is at most 20 MB and a big one costs a lot of context, so check size in attachments_list first. A file too big to read can be downloaded from /media/{id} of this server instead.",
 			inputSchema: z.object({
 				id: z
 					.string()
@@ -93,7 +93,7 @@ function registerAttachmentRead(server: McpServer): void {
 			outputSchema: z.object({ item: attachmentRef }),
 		},
 		({ id }) => {
-			const result = readAttachmentResource(getDb(), id);
+			const result = readAttachmentFile(getDb(), id);
 			if (result.isErr()) {
 				const failure = {
 					kind: result.error.kind,
@@ -178,13 +178,13 @@ function registerAttachmentResource(server: McpServer): void {
 		{
 			title: "Task attachment",
 			description:
-				"The file of one task attachment, base64-encoded. Take the uri from attachments_list. Files over 8 MB are not served as a resource: fetch them from /media/{id}.",
+				"The file of one task attachment, base64-encoded. Take the uri from attachments_list. An attachment is at most 20 MB.",
 			mimeType: "application/octet-stream",
 		},
 		(uri, variables) => {
 			const raw = variables.id;
 			const id = Array.isArray(raw) ? (raw[0] ?? "") : (raw ?? "");
-			const result = readAttachmentResource(getDb(), id);
+			const result = readAttachmentFile(getDb(), id);
 			if (result.isErr()) {
 				throw new Error(result.error.message);
 			}
