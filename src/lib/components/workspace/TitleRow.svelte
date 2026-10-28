@@ -1,5 +1,5 @@
 <script lang="ts">
-	import IconButton from "#lib/components/ui/IconButton.svelte";
+	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
 	import SearchHelp from "#lib/components/workspace/SearchHelp.svelte";
 	import Moon from "~icons/lucide/moon";
 	import Plus from "~icons/lucide/plus";
@@ -74,11 +74,11 @@
 		gap: var(--space-2);
 	}
 
-	.header-actions :global(.icon-btn.reload) {
+	.header-actions :global(.ui-icon-button.reload) {
 		color: var(--accent-ink);
 	}
 
-	.header-actions :global(.icon-btn.reload:hover:not(:disabled)) {
+	.header-actions :global(.ui-icon-button.reload:hover:not(:disabled)) {
 		color: var(--accent-ink);
 		background: var(--danger-surface);
 	}
@@ -88,7 +88,7 @@
 			font-size: var(--text-xl);
 		}
 
-		.header-actions :global(.icon-btn) {
+		.header-actions :global(.ui-icon-button) {
 			display: none;
 		}
 	}

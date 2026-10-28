@@ -1,6 +1,6 @@
 <script lang="ts">
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
-	import IconButton from "#lib/components/ui/IconButton.svelte";
+	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
 	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { StatsStore } from "#lib/state/stats.svelte.ts";

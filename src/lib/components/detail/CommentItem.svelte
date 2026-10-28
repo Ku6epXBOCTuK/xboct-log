@@ -90,7 +90,7 @@
 		font-size: var(--text-xs);
 	}
 
-	.comment-meta :global(.icon-btn) {
+	.comment-meta :global(.ui-icon-button) {
 		margin-left: auto;
 	}
 

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import ProjectSection from "#lib/components/projects/ProjectSection.svelte";
-	import IconButton from "#lib/components/ui/IconButton.svelte";
+	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
 	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { StatsStore } from "#lib/state/stats.svelte.ts";
@@ -166,7 +166,7 @@
 			margin-bottom: var(--space-1);
 		}
 
-		.sidebar-expand > :global(.icon-btn) {
+		.sidebar-expand > :global(.ui-icon-button) {
 			width: 100%;
 			height: auto;
 			aspect-ratio: 1;

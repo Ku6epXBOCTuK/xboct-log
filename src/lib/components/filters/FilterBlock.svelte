@@ -1,5 +1,5 @@
 <script lang="ts">
-	import IconButton from "#lib/components/ui/IconButton.svelte";
+	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
 	import type { Snippet } from "svelte";
 	import X from "~icons/lucide/x";
 

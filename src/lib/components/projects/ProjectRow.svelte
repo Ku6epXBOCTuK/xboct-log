@@ -1,5 +1,5 @@
 <script lang="ts">
-	import IconButton from "#lib/components/ui/IconButton.svelte";
+	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
 	import { INBOX_PROJECT_ID, type Project } from "#lib/types.ts";
 	import Settings from "~icons/lucide/settings";
 	import Trash from "~icons/lucide/trash";

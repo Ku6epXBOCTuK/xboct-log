@@ -1,6 +1,6 @@
 <script lang="ts" generics="T">
-	import Select from "@ku6epxboctuk/ui/ui/Select";
-	import { createSelect } from "@ku6epxboctuk/ui/headless/select";
+	import Select from "@ku6epxboctuk/ui-kit/components/Select";
+	import { createSelect } from "@ku6epxboctuk/ui-kit/headless/select";
 	import type { Snippet } from "svelte";
 	import ChevronDown from "~icons/lucide/chevron-down";
 

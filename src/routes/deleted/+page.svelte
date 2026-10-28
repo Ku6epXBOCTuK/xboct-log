@@ -3,7 +3,7 @@
 	import Pager from "#lib/components/ui/Pager.svelte";
 	import TaskTable from "#lib/components/table/TaskTable.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
-	import IconButton from "#lib/components/ui/IconButton.svelte";
+	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
 	import { fetchFresh } from "#lib/remote/fresh.ts";
 	import { listDeletedTasks, restoreTask } from "#lib/remote/tasks.remote.ts";
 	import { reloadApp } from "#lib/reload.ts";

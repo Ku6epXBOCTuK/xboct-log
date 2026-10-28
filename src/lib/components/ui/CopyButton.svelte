@@ -3,7 +3,7 @@
 	import CircleCheck from "~icons/lucide/circle-check";
 	import CircleX from "~icons/lucide/circle-x";
 	import Copy from "~icons/lucide/copy";
-	import IconButton from "./IconButton.svelte";
+	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
 
 	interface Props {
 		text: string;

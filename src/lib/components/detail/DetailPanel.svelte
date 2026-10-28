@@ -13,7 +13,7 @@
 	import { fieldNavigation } from "#lib/hotkeys/fields.ts";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import CopyButton from "#lib/components/ui/CopyButton.svelte";
-	import IconButton from "#lib/components/ui/IconButton.svelte";
+	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
 	import StatusDot from "#lib/components/ui/StatusDot.svelte";
 	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
 	import type { ProjectDataStore } from "#lib/state/project-data.svelte.ts";
@@ -715,7 +715,7 @@
 		gap: var(--space-2);
 	}
 
-	.title-row :global(.icon-btn) {
+	.title-row :global(.ui-icon-button) {
 		margin-top: var(--space-3);
 	}
 

@@ -13,7 +13,7 @@
 	import AttachmentItem from "#lib/components/attachments/AttachmentItem.svelte";
 	import AttachmentList from "#lib/components/attachments/AttachmentList.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
-	import IconButton from "#lib/components/ui/IconButton.svelte";
+	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
 	import Upload from "~icons/lucide/upload";
 
 	interface Props {

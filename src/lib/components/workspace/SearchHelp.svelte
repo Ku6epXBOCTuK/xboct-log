@@ -1,6 +1,6 @@
 <script lang="ts">
 	import InfoPopover from "#lib/components/ui/InfoPopover.svelte";
-	import IconButton from "#lib/components/ui/IconButton.svelte";
+	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
 	import CircleHelp from "~icons/lucide/circle-help";
 </script>
 

@@ -1,6 +1,6 @@
 <script lang="ts">
-	import IconButton from "#lib/components/ui/IconButton.svelte";
-	import Modal from "#lib/components/ui/Modal.svelte";
+	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
+	import Modal from "@ku6epxboctuk/ui-kit/components/Modal";
 	import { formatSize } from "#lib/tasks/attachments.ts";
 	import Paperclip from "~icons/lucide/paperclip";
 	import Trash2 from "~icons/lucide/trash-2";

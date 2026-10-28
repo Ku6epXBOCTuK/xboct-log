@@ -1,7 +1,7 @@
 <script lang="ts">
 	import NewProjectForm from "#lib/components/newtask/NewProjectForm.svelte";
 	import TaskForm from "#lib/components/newtask/TaskForm.svelte";
-	import Modal from "#lib/components/ui/Modal.svelte";
+	import Modal from "@ku6epxboctuk/ui-kit/components/Modal";
 	import type { DraftStore } from "#lib/state/draft.svelte.ts";
 	import type { ProjectDataStore } from "#lib/state/project-data.svelte.ts";
 	import type { ProjectStore } from "#lib/state/projects.svelte.ts";

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
-	import Modal from "#lib/components/ui/Modal.svelte";
+	import Modal from "@ku6epxboctuk/ui-kit/components/Modal";
 	import { messageOf } from "#lib/tasks/display.ts";
 	import { scopeNameError } from "#lib/tasks/scopes.ts";
 

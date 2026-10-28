@@ -55,7 +55,7 @@
 	},
 	"dependencies": {
 		"@ku6epxboctuk/sqlite-up": "^0.6.1",
-		"@ku6epxboctuk/ui": "link:../../ui-kit",
+		"@ku6epxboctuk/ui-kit": "link:../../ui-kit",
 		"@modelcontextprotocol/server": "^2.3.1",
 		"mcp-handler": "^2.3.0",
 		"neverthrow": "^8.2.0",

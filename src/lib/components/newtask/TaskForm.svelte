@@ -31,7 +31,7 @@
 	import { INBOX_PROJECT_ID, type Project, type Task } from "#lib/types.ts";
 	import { untrack } from "svelte";
 	import ArrowLeft from "~icons/lucide/arrow-left";
-	import IconButton from "#lib/components/ui/IconButton.svelte";
+	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
 	import Paperclip from "~icons/lucide/paperclip";
 	import Upload from "~icons/lucide/upload";
 
