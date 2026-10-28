@@ -65,6 +65,7 @@
 		font-size: var(--text-md);
 		font-weight: 500;
 		width: 100%;
+		text-decoration: none;
 	}
 
 	.nav-item:hover {
@@ -92,6 +93,11 @@
 		color: var(--text-muted);
 		font-size: var(--text-xs);
 		font-variant-numeric: tabular-nums;
+	}
+
+	.nav-item:hover .nav-count,
+	.nav-item.active .nav-count {
+		color: var(--foreground);
 	}
 
 	@container sidebar (max-width: 6rem) {
