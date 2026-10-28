@@ -32,6 +32,7 @@
 	import { untrack } from "svelte";
 	import ArrowLeft from "~icons/lucide/arrow-left";
 	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
+	import Button from "@ku6epxboctuk/ui-kit/components/Button";
 	import Paperclip from "~icons/lucide/paperclip";
 	import Upload from "~icons/lucide/upload";
 
@@ -467,12 +468,10 @@
 					{draftStore.last.id}
 				</button>
 			{/if}
-			<button class="icon-button" type="button" onclick={cancel}>
-				Cancel
-			</button>
-			<button class="new-task" type="submit" disabled={saving}>
+			<Button type="button" onclick={cancel}>Cancel</Button>
+			<Button variant="primary" type="submit" disabled={saving}>
 				{saving ? "creating…" : "Create task"}
-			</button>
+			</Button>
 		</div>
 	</div>
 

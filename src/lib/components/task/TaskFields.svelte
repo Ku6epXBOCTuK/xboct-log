@@ -1,5 +1,6 @@
 <script lang="ts">
 	import SingleSelect from "#lib/components/ui/select/SingleSelect.svelte";
+	import Button from "@ku6epxboctuk/ui-kit/components/Button";
 	import TagInput from "@ku6epxboctuk/ui-kit/components/TagInput";
 	import CopyButton from "#lib/components/ui/CopyButton.svelte";
 	import InfoPopover from "#lib/components/ui/InfoPopover.svelte";
@@ -87,9 +88,10 @@
 	</div>
 	{#if editing && value.is_epic && oncreatechild}
 		<div class="field-action">
-			<button class="icon-button" onclick={oncreatechild}>
-				<Plus data-icon="inline-start" /> Create child task
-			</button>
+			<Button onclick={oncreatechild}>
+				{#snippet icon()}<Plus />{/snippet}
+				Create child task
+			</Button>
 		</div>
 	{/if}
 	{#if editing && value.closed_at != null}

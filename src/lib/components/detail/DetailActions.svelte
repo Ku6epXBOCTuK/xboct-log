@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Button from "@ku6epxboctuk/ui-kit/components/Button";
 	import SingleSelect from "#lib/components/ui/select/SingleSelect.svelte";
 	import {
 		CLOSED_REASONS,
@@ -37,31 +38,31 @@
 					ariaLabel="Close reason"
 				/>
 			</div>
-			<button
-				class="new-task"
+			<Button
+				variant="primary"
 				onclick={() => onclose(reason)}
 				disabled={saving}
 			>
 				Close task
-			</button>
+			</Button>
 		{:else}
-			<button class="icon-button" onclick={onreopen} disabled={saving}>
-				Reopen
-			</button>
+			<Button onclick={onreopen} disabled={saving}>Reopen</Button>
 		{/if}
 	</div>
 	<div class="action-group">
 		{#if confirming}
-			<button class="icon-button" onclick={() => (confirming = false)}>
-				Cancel
-			</button>
-			<button class="danger armed" onclick={ondelete} disabled={saving}>
+			<Button onclick={() => (confirming = false)}>Cancel</Button>
+			<Button variant="danger" onclick={ondelete} disabled={saving}>
 				Confirm delete
-			</button>
+			</Button>
 		{:else}
-			<button class="danger" onclick={() => (confirming = true)}>
+			<Button
+				variant="ghost"
+				class="danger"
+				onclick={() => (confirming = true)}
+			>
 				Delete
-			</button>
+			</Button>
 		{/if}
 	</div>
 </div>
@@ -97,28 +98,11 @@
 		min-width: 0;
 	}
 
-	.danger {
-		border: 1px solid color-mix(in oklch, var(--accent) 45%, transparent);
-		background: transparent;
+	:global(.ui-button.danger) {
 		color: var(--accent-ink);
-		border-radius: var(--radius);
-		padding: 0 var(--space-3);
-		min-height: var(--control-h);
-		font-size: var(--text-sm);
 	}
 
-	.danger:hover {
+	:global(.ui-button.danger:hover:not(:disabled)) {
 		background: var(--danger-surface);
-	}
-
-	.danger.armed {
-		background: var(--accent);
-		border-color: var(--accent);
-		color: var(--on-accent);
-		font-weight: 600;
-	}
-
-	.danger.armed:hover {
-		background: var(--accent);
 	}
 </style>

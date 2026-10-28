@@ -1,5 +1,6 @@
 <script lang="ts">
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
+	import Button from "@ku6epxboctuk/ui-kit/components/Button";
 	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
 	import Modal from "@ku6epxboctuk/ui-kit/components/Modal";
 	import ScopeCreateDialog from "#lib/components/task/ScopeCreateDialog.svelte";
@@ -115,8 +116,7 @@
 				Name
 				<div class="inline">
 					<input bind:value={name} aria-label="Project name" />
-					<button
-						class="icon-button"
+					<Button
 						type="button"
 						onclick={renameProject}
 						disabled={saving ||
@@ -124,7 +124,7 @@
 							name.trim() === ""}
 					>
 						Save
-					</button>
+					</Button>
 				</div>
 			</label>
 			{#if project.id !== INBOX_PROJECT_ID}
@@ -136,27 +136,26 @@
 							aria-label="Project repository"
 							placeholder="github.com/owner/repo"
 						/>
-						<button
-							class="icon-button"
+						<Button
 							type="button"
 							onclick={saveRepo}
 							disabled={saving || repo.trim() === (project.repo ?? "")}
 						>
 							Save
-						</button>
+						</Button>
 					</div>
 					<span class="field-hint">
 						Lets the CLI match this project by the git origin. Optional.
 					</span>
 				</label>
-				<button
-					class="icon-button archive-toggle"
+				<Button
+					class="archive-toggle"
 					type="button"
 					onclick={toggleArchived}
 					disabled={saving}
 				>
 					{project.archived_at === null ? "Archive project" : "Restore project"}
-				</button>
+				</Button>
 			{/if}
 		</section>
 
@@ -182,21 +181,17 @@
 							<span class="scope-warning">
 								{scopeTotal(scope)} tasks will become unassigned
 							</span>
-							<button
-								class="danger armed"
+							<Button
+								variant="danger"
 								type="button"
 								onclick={() => removeScope(scope.id)}
 								disabled={saving}
 							>
 								Confirm
-							</button>
-							<button
-								class="icon-button"
-								type="button"
-								onclick={() => (confirmingId = null)}
-							>
+							</Button>
+							<Button type="button" onclick={() => (confirmingId = null)}>
 								Cancel
-							</button>
+							</Button>
 						{:else}
 							<IconButton
 								label={`Delete ${scope.name}`}
@@ -208,14 +203,15 @@
 					</li>
 				{/each}
 			</ul>
-			<button
-				class="icon-button scope-add"
+			<Button
+				class="scope-add"
 				type="button"
 				onclick={() => (creatingScope = true)}
 				aria-label="Add scope"
 			>
-				<Plus /> Add scope
-			</button>
+				{#snippet icon()}<Plus />{/snippet}
+				Add scope
+			</Button>
 		</section>
 
 		<ErrorNote message={failure} />
@@ -263,7 +259,7 @@
 		line-height: 1.5;
 	}
 
-	.scope-add {
+	:global(.ui-button.scope-add) {
 		width: 100%;
 		justify-content: center;
 	}
@@ -288,7 +284,7 @@
 		box-shadow: inset 0 0 0 1px var(--accent);
 	}
 
-	.archive-toggle {
+	:global(.ui-button.archive-toggle) {
 		width: 100%;
 		justify-content: center;
 	}
@@ -320,26 +316,5 @@
 	.scope-warning {
 		color: var(--accent-ink);
 		font-size: var(--text-xs);
-	}
-
-	.danger {
-		border: 1px solid color-mix(in oklch, var(--accent) 45%, transparent);
-		background: transparent;
-		color: var(--accent-ink);
-		border-radius: var(--radius);
-		padding: 0 var(--space-3);
-		min-height: var(--control-h);
-		font-size: var(--text-sm);
-	}
-
-	.danger:hover {
-		background: var(--danger-surface);
-	}
-
-	.danger.armed {
-		background: var(--accent);
-		border-color: var(--accent);
-		color: var(--on-accent);
-		font-weight: 600;
 	}
 </style>

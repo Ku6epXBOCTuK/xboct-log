@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Button from "@ku6epxboctuk/ui-kit/components/Button";
 	import CopyButton from "#lib/components/ui/CopyButton.svelte";
 	import { formatDateTime } from "#lib/tasks/display.ts";
 	import type { Comment } from "#lib/types.ts";
@@ -51,22 +52,19 @@
 			rows="3"
 			aria-label="Comment text"></textarea>
 		<div class="comment-actions">
-			<button class="icon-button" onclick={oncancel}>Cancel</button>
-			<button
-				class="icon-button"
+			<Button onclick={oncancel}>Cancel</Button>
+			<Button
 				onclick={() => onsave(draft.trim())}
 				disabled={busy || draft.trim() === ""}
 			>
 				Save
-			</button>
+			</Button>
 		</div>
 	{:else}
 		<p class="comment-body">{comment.body}</p>
 		<div class="comment-actions">
-			<button class="icon-button" onclick={onstartedit}>Edit</button>
-			<button class="icon-button" onclick={onremove} disabled={busy}>
-				Delete
-			</button>
+			<Button onclick={onstartedit}>Edit</Button>
+			<Button onclick={onremove} disabled={busy}>Delete</Button>
 		</div>
 	{/if}
 </li>

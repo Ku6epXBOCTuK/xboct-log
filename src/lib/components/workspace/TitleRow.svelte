@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Button from "@ku6epxboctuk/ui-kit/components/Button";
 	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
 	import SearchHelp from "#lib/components/workspace/SearchHelp.svelte";
 	import Moon from "~icons/lucide/moon";
@@ -39,9 +40,10 @@
 		<IconButton label="Reload" size="md" class="reload" onclick={onreload}>
 			<RefreshCw />
 		</IconButton>
-		<button class="new-task" onclick={onnew}>
-			<Plus data-icon="inline-start" /> New task
-		</button>
+		<Button variant="primary" onclick={onnew}>
+			{#snippet icon()}<Plus />{/snippet}
+			New task
+		</Button>
 	</div>
 </div>
 

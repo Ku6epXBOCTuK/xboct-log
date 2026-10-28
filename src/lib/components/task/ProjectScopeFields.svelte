@@ -1,4 +1,5 @@
 <script lang="ts">
+	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
 	import SingleSelect from "#lib/components/ui/select/SingleSelect.svelte";
 	import type { TaskFieldValues, TaskPatch } from "#lib/tasks/fields.ts";
 	import {
@@ -83,15 +84,14 @@
 				variant="field"
 				ariaLabel="Scope"
 			/>
-			<button
-				class="icon-button"
-				type="button"
-				onclick={() => (creatingScope = true)}
-				aria-label="Add scope"
+			<IconButton
+				label="Add scope"
 				title="Add scope"
+				variant="secondary"
+				onclick={() => (creatingScope = true)}
 			>
 				<Plus />
-			</button>
+			</IconButton>
 		</div>
 	</div>
 </div>

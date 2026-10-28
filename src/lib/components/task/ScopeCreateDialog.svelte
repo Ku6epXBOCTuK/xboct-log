@@ -1,5 +1,6 @@
 <script lang="ts">
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
+	import Button from "@ku6epxboctuk/ui-kit/components/Button";
 	import Modal from "@ku6epxboctuk/ui-kit/components/Modal";
 	import { messageOf } from "#lib/tasks/display.ts";
 	import { scopeNameError } from "#lib/tasks/scopes.ts";
@@ -72,12 +73,10 @@
 		<ErrorNote message={failure} />
 
 		<div class="actions">
-			<button class="new-task" type="submit" disabled={saving}>
+			<Button variant="primary" type="submit" disabled={saving}>
 				{saving ? "creating…" : "Create"}
-			</button>
-			<button class="icon-button" type="button" onclick={onclose}>
-				Cancel
-			</button>
+			</Button>
+			<Button type="button" onclick={onclose}>Cancel</Button>
 		</div>
 	</form>
 </Modal>
@@ -102,7 +101,7 @@
 		margin-top: var(--space-2);
 	}
 
-	.actions button {
+	:global(.actions .ui-button) {
 		flex: 1;
 		justify-content: center;
 	}

@@ -176,53 +176,8 @@ textarea:focus-visible {
 	outline: none;
 }
 
-.icon-button,
-.new-task,
-.clear-filters {
-	border: 1px solid var(--border-strong);
-	background: transparent;
-	color: var(--text-secondary);
-	border-radius: var(--radius);
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	gap: var(--space-2);
-	padding: 0 var(--space-3);
-	min-height: var(--control-h);
-	font-size: var(--text-sm);
-}
-
-.icon-button:hover,
-.clear-filters:hover {
-	color: var(--foreground);
-	background: var(--hover);
-}
-
-.icon-button svg,
-.new-task svg,
-.clear-filters svg {
-	width: 1rem;
-	height: 1rem;
-	flex: none;
-}
-
-.new-task {
-	background: var(--accent);
-	color: var(--on-accent);
-	border-color: var(--accent);
-	font-weight: 600;
-	padding: 0 var(--space-4);
-}
-
-.new-task:hover:not(:disabled) {
-	background: color-mix(in oklch, var(--accent) 88%, var(--on-accent));
-}
-
 .clear-filters {
 	margin-left: auto;
-	border-color: transparent;
-	color: var(--text-muted);
-	padding: 0 var(--space-2);
 }
 
 .filter-group {

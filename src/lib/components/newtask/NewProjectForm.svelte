@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Button from "@ku6epxboctuk/ui-kit/components/Button";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
 	import { messageOf } from "#lib/tasks/display.ts";
@@ -62,9 +63,9 @@
 	<input bind:value={name} placeholder="Shop web" />
 </label>
 <ErrorNote message={failure} />
-<button class="icon-button" type="button" onclick={submit} disabled={creating}>
+<Button type="button" onclick={submit} disabled={creating}>
 	{creating ? "creating…" : "Create project"}
-</button>
+</Button>
 
 <style>
 	label {

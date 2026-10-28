@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Button from "@ku6epxboctuk/ui-kit/components/Button";
 	import FilterBlock from "#lib/components/filters/FilterBlock.svelte";
 	import PriorityFilter from "#lib/components/filters/PriorityFilter.svelte";
 	import StatusFilter from "#lib/components/filters/StatusFilter.svelte";
@@ -50,9 +51,10 @@
 	>
 		<PriorityFilter value={priority} onselect={onpriority} />
 	</FilterBlock>
-	<button class="clear-filters" onclick={onclear}>
-		<X /> Clear
-	</button>
+	<Button variant="ghost" class="clear-filters" onclick={onclear}>
+		{#snippet icon()}<X />{/snippet}
+		Clear
+	</Button>
 </div>
 
 <style>

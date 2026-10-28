@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Button from "@ku6epxboctuk/ui-kit/components/Button";
+
 	interface Props {
 		value: string;
 		busy: boolean;
@@ -16,13 +18,13 @@
 		placeholder="Add a comment…"
 		aria-label="New comment"></textarea>
 	<div class="comment-actions">
-		<button
-			class="new-task"
+		<Button
+			variant="primary"
 			onclick={onsubmit}
 			disabled={busy || value.trim() === ""}
 		>
 			Add comment
-		</button>
+		</Button>
 	</div>
 </div>
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Button from "@ku6epxboctuk/ui-kit/components/Button";
 	import FilterBlock from "#lib/components/filters/FilterBlock.svelte";
 	import SingleSelect from "#lib/components/ui/select/SingleSelect.svelte";
 	import type { Project } from "#lib/types.ts";
@@ -164,9 +165,10 @@
 			<input class="date-input" type="date" bind:value={to} />
 		</label>
 	</FilterBlock>
-	<button class="clear-filters" onclick={clear}>
-		<X /> Clear
-	</button>
+	<Button variant="ghost" class="clear-filters" onclick={clear}>
+		{#snippet icon()}<X />{/snippet}
+		Clear
+	</Button>
 </div>
 
 <style>
@@ -208,25 +210,7 @@
 		outline: none;
 	}
 
-	.clear-filters {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--space-1);
-		border: 1px solid var(--border-strong);
-		border-radius: var(--radius);
-		padding: 0 var(--space-3);
-		min-height: var(--control-h);
-		color: var(--text-secondary);
-		font-size: var(--text-sm);
-	}
-
-	.clear-filters:hover {
-		background: var(--hover);
-		color: var(--foreground);
-	}
-
-	.clear-filters :global(svg) {
-		width: 0.875rem;
-		height: 0.875rem;
+	:global(.ui-button.clear-filters) {
+		margin-left: auto;
 	}
 </style>
