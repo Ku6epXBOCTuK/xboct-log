@@ -108,7 +108,7 @@ describe("/mcp endpoint", () => {
 		const body = await rpc("tools/list", {});
 		expect(body.error).toBeUndefined();
 		expect(body.result?.tools?.map((tool) => tool.name).sort()).toEqual(
-			[...getOps().keys()].sort(),
+			[...getOps().keys(), "attachments_read"].sort(),
 		);
 		for (const tool of body.result?.tools ?? []) {
 			expect(
@@ -208,9 +208,50 @@ describe("/mcp endpoint", () => {
 				content_base64: Buffer.from("hello").toString("base64"),
 			},
 		});
-		const uri = (added.result?.structuredContent as { item?: { uri?: string } })
-			.item?.uri;
+		const created = (
+			added.result?.structuredContent as {
+				item?: { id?: string; uri?: string };
+			}
+		).item;
+		const uri = created?.uri;
 		expect(uri).toBeDefined();
+
+		const readResult = await rpc("tools/call", {
+			name: "attachments_read",
+			arguments: { id: created?.id },
+		});
+		expect(readResult.error).toBeUndefined();
+		const blocks = (
+			readResult.result as unknown as {
+				content?: { type?: string; text?: string }[];
+			}
+		).content;
+		expect(blocks?.[0]?.type).toBe("text");
+		expect(blocks?.[0]?.text).toBe("hello");
+
+		const png = await rpc("tools/call", {
+			name: "attachments_add",
+			arguments: {
+				id: task._unsafeUnwrap().id,
+				filename: "dot.png",
+				content_base64:
+					"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+			},
+		});
+		const pngId = (png.result?.structuredContent as { item?: { id?: string } })
+			.item?.id;
+		const picture = await rpc("tools/call", {
+			name: "attachments_read",
+			arguments: { id: pngId },
+		});
+		const imageBlocks = (
+			picture.result as unknown as {
+				content?: { type?: string; mimeType?: string; data?: string }[];
+			}
+		).content;
+		expect(imageBlocks?.[0]?.type).toBe("image");
+		expect(imageBlocks?.[0]?.mimeType).toBe("image/png");
+		expect(Buffer.from(imageBlocks?.[0]?.data ?? "", "base64")[0]).toBe(0x89);
 
 		const templates = await rpc("resources/templates/list", {});
 		expect(JSON.stringify(templates.result)).toContain(

@@ -2,8 +2,9 @@ import type { McpServer } from "@modelcontextprotocol/server";
 import { ResourceTemplate } from "@modelcontextprotocol/server";
 import { isHttpError, type RequestEvent } from "@sveltejs/kit";
 import { createMcpHandler } from "mcp-handler";
-import { prettifyError, ZodError } from "zod";
+import { prettifyError, z, ZodError } from "zod";
 import { clientLabel } from "#lib/mcp/client-label.ts";
+import { attachmentRef } from "#lib/remote/contracts.ts";
 import { runOp } from "#lib/remote/define.ts";
 import { getOps } from "#lib/remote/index.ts";
 import {
@@ -74,6 +75,59 @@ function registerTools(server: McpServer): void {
 		);
 	}
 	registerAttachmentResource(server);
+	registerAttachmentRead(server);
+}
+
+function registerAttachmentRead(server: McpServer): void {
+	server.registerTool(
+		"attachments_read",
+		{
+			description:
+				"Read the file of one attachment, not only its metadata. An image comes back as an image block, text as text, anything else as base64 in a data URL. Use it to look at a screenshot attached to a task instead of searching the disk for the file. Files over 8 MB are not returned here: fetch them from /media/{id}.",
+			inputSchema: z.object({
+				id: z
+					.string()
+					.uuid()
+					.describe("The id of the attachment, taken from attachments_list."),
+			}),
+			outputSchema: z.object({ item: attachmentRef }),
+		},
+		({ id }) => {
+			const result = readAttachmentResource(getDb(), id);
+			if (result.isErr()) {
+				const failure = {
+					kind: result.error.kind,
+					message: result.error.message,
+				};
+				return {
+					content: [{ type: "text" as const, text: failure.message }],
+					structuredContent: { error: failure },
+					isError: true,
+				};
+			}
+			const { attachment, data } = result.value;
+			const mime = attachment.mime_type ?? "application/octet-stream";
+			const body = mime.startsWith("image/")
+				? {
+						type: "image" as const,
+						data: data.toString("base64"),
+						mimeType: mime,
+					}
+				: mime.startsWith("text/") || mime === "application/json"
+					? { type: "text" as const, text: data.toString("utf8") }
+					: {
+							type: "text" as const,
+							text: `data:${mime};base64,${data.toString("base64")}`,
+						};
+			return {
+				content: [
+					body,
+					{ type: "text" as const, text: JSON.stringify({ item: attachment }) },
+				],
+				structuredContent: { item: attachment },
+			};
+		},
+	);
 }
 
 const ATTACHMENT_INDEX_URI = "xboct-log://attachments";
@@ -161,7 +215,8 @@ const handler = createMcpHandler(registerTools, {
 		"attachments_list, attachments_add, attachments_delete and " +
 		"attachments_verify work with the files of a task: they are kept in " +
 		"the media folder, and attachments_verify reports the files that are " +
-		"gone from it. " +
+		"gone from it. attachments_read returns the file itself, an image as " +
+		"an image block. " +
 		"Every attachment is also a resource: read xboct-log://attachment/{id} " +
 		"with resources/read to get its bytes, take the uri from " +
 		"attachments_list. The resource xboct-log://attachments lists them " +
