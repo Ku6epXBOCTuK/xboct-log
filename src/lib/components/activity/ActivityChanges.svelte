@@ -4,6 +4,7 @@
 		activityValueLabel,
 	} from "#lib/activity/labels.ts";
 	import type { ActivityChange } from "#lib/types.ts";
+	import Badge from "@ku6epxboctuk/ui-kit/components/Badge";
 
 	interface Props {
 		changes: ActivityChange[];
@@ -15,7 +16,9 @@
 <ul class="changes">
 	{#each changes as change (change.field)}
 		<li>
-			<span class="field-chip">{activityFieldLabel(change.field)}</span>
+			<Badge variant="outline" size="xs"
+				>{activityFieldLabel(change.field)}</Badge
+			>
 			<span class="value">{activityValueLabel(change.from)}</span>
 			<span class="arrow">→</span>
 			<span class="value">{activityValueLabel(change.to)}</span>
@@ -48,15 +51,5 @@
 
 	.arrow {
 		color: var(--text-muted);
-	}
-
-	.field-chip {
-		border: 1px solid var(--border);
-		border-radius: var(--radius-sm);
-		background: var(--field);
-		padding: 0 var(--space-2);
-		font-size: var(--text-xs);
-		color: var(--text-secondary);
-		white-space: nowrap;
 	}
 </style>

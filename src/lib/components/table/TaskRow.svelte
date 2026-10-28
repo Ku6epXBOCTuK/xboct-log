@@ -8,6 +8,7 @@
 	import BlockingBadge from "#lib/components/table/BlockingBadge.svelte";
 	import EpicBadge from "#lib/components/table/EpicBadge.svelte";
 	import InfoPopover from "#lib/components/ui/InfoPopover.svelte";
+	import Badge from "@ku6epxboctuk/ui-kit/components/Badge";
 	import Paperclip from "~icons/lucide/paperclip";
 
 	interface Props {
@@ -68,9 +69,9 @@
 	{/if}
 	<td class="scope-cell optional-column">
 		{#if scope !== null}
-			<span class="scope-badge">{scope.name}</span>
+			<Badge variant="outline" size="xs">{scope.name}</Badge>
 		{:else if scoped}
-			<span class="scope-badge scope-missing">no scope</span>
+			<Badge variant="outline" size="xs" class="scope-missing">no scope</Badge>
 		{/if}
 	</td>
 	<td class="task-title">
@@ -225,17 +226,7 @@
 		background: color-mix(in oklch, var(--green) 28%, var(--green-surface));
 	}
 
-	.scope-badge {
-		border: 1px solid var(--border);
-		color: var(--text-muted);
-		border-radius: var(--radius-sm);
-		padding: 0 var(--space-2);
-		font-size: var(--text-sm);
-		line-height: 1.6;
-		white-space: nowrap;
-	}
-
-	.scope-missing {
+	:global(.ui-badge.scope-missing) {
 		border-style: dashed;
 	}
 

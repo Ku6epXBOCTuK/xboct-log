@@ -2,6 +2,7 @@
 	import ActivityChanges from "#lib/components/activity/ActivityChanges.svelte";
 	import { activityFieldLabel } from "#lib/activity/labels.ts";
 	import type { ActivityChange } from "#lib/types.ts";
+	import Badge from "@ku6epxboctuk/ui-kit/components/Badge";
 
 	interface Props {
 		changes: ActivityChange[];
@@ -14,22 +15,10 @@
 {#if changes.length > 0}
 	<ActivityChanges {changes} />
 {:else if fields.length > 0}
-	<span class="field-chip">{activityFieldLabel(fields[0])}</span>
+	<Badge variant="outline" size="xs">{activityFieldLabel(fields[0])}</Badge>
 	{#each fields.slice(1) as field (field)}
-		<span class="field-chip">{activityFieldLabel(field)}</span>
+		<Badge variant="outline" size="xs">{activityFieldLabel(field)}</Badge>
 	{/each}
 {:else}
 	—
 {/if}
-
-<style>
-	.field-chip {
-		border: 1px solid var(--border);
-		border-radius: var(--radius-sm);
-		background: var(--field);
-		padding: 0 var(--space-2);
-		font-size: var(--text-xs);
-		color: var(--text-secondary);
-		white-space: nowrap;
-	}
-</style>
