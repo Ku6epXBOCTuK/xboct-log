@@ -26,10 +26,26 @@ if (-not $ready) {
 	git -C $Repo worktree add --detach $BuildWt origin/main
 }
 
+# NOTE: the build links the live ui-kit folder instead of a checkout, so
+# uncommitted kit changes would ship to production unnoticed.
+$KitSpec = (Get-Content (Join-Path $BuildWt "package.json") -Raw | ConvertFrom-Json).devDependencies.'@ku6epxboctuk/ui-kit'
+if (-not $KitSpec -or -not $KitSpec.StartsWith("link:")) { throw "ui-kit must be a link: dependency, got '$KitSpec'" }
+$KitDir = $KitSpec.Substring(5)
+if (-not [System.IO.Path]::IsPathRooted($KitDir)) { $KitDir = Join-Path $BuildWt $KitDir }
+if (-not (Test-Path (Join-Path $KitDir "package.json"))) { throw "ui-kit not found: $KitDir" }
+$KitDirty = @(git -C $KitDir status --porcelain)
+if ($LASTEXITCODE -ne 0) { throw "ui-kit is not a git checkout: $KitDir" }
+if ($KitDirty.Count -gt 0) { throw "ui-kit has uncommitted changes:`n$($KitDirty -join "`n")" }
+
 try {
 	Push-Location $BuildWt
-	pnpm install --frozen-lockfile
+	# NOTE: the lockfile keeps link: targets relative to its own directory, so
+	# the committed copy cannot validate inside the build worktree.
+	pnpm install --no-frozen-lockfile
+	if ($LASTEXITCODE -ne 0) { throw "pnpm install failed (exit $LASTEXITCODE)" }
+	Remove-Item (Join-Path $BuildWt "build") -Recurse -Force -ErrorAction SilentlyContinue
 	pnpm build
+	if ($LASTEXITCODE -ne 0) { throw "pnpm build failed (exit $LASTEXITCODE)" }
 	Pop-Location
 
 	$builtIndex = Join-Path $BuildWt "build\index.js"
@@ -43,7 +59,8 @@ try {
 	Copy-Item $EnvFile (Join-Path $AppDir ".env") -Force
 
 	Push-Location $AppDir
-	pnpm install --prod --frozen-lockfile
+	pnpm install --prod --no-frozen-lockfile
+	if ($LASTEXITCODE -ne 0) { throw "pnpm install --prod failed (exit $LASTEXITCODE)" }
 	Pop-Location
 
 	$null = robocopy (Join-Path $BuildWt "migrations") (Join-Path $AppDir "migrations") /MIR /NFL /NDL /NJH /NJS

@@ -17,9 +17,6 @@ importers:
       '@ku6epxboctuk/sqlite-up':
         specifier: ^0.6.1
         version: 0.6.1
-      '@ku6epxboctuk/ui-kit':
-        specifier: link:../../ui-kit
-        version: link:../../ui-kit
       '@modelcontextprotocol/server':
         specifier: ^2.3.1
         version: 2.3.1
@@ -39,6 +36,9 @@ importers:
       '@iconify-json/lucide':
         specifier: ^1.2.143
         version: 1.2.143
+      '@ku6epxboctuk/ui-kit':
+        specifier: link:C:/+XBOCTuK/+life_projects/ui-kit
+        version: link:../../ui-kit
       '@sveltejs/adapter-node':
         specifier: ^6.0.0
         version: 6.0.0(@sveltejs/kit@3.0.1(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.2(@typescript-eslint/types@8.71.2))(vite@8.3.4(@types/node@26.6.5)))(svelte@5.57.2(@typescript-eslint/types@8.71.2))(typescript@6.0.3)(vite@8.3.4(@types/node@26.6.5)))
