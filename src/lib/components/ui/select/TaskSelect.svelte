@@ -1,6 +1,6 @@
 <script lang="ts">
-	import Select from "#lib/components/ui/select/Select.svelte";
-	import { createSelect } from "#lib/components/ui/select/select.svelte.ts";
+	import Select from "@ku6epxboctuk/ui/ui/Select";
+	import { createSelect } from "@ku6epxboctuk/ui/headless/select";
 	import {
 		isExactTerm,
 		matchesSearch,
@@ -68,7 +68,7 @@
 </script>
 
 {#snippet trigger()}
-	<div class="select-trigger task-trigger" role="presentation">
+	<div class="ui-select-trigger task-trigger" role="presentation">
 		{#each value as id (id)}
 			{@const hint = unavailable?.(id) ?? null}
 			<span class="task-chip" class:is-unavailable={hint !== null}>
@@ -108,7 +108,7 @@
 {/snippet}
 
 {#snippet option(task: Task)}
-	<span class="select-option-label">{label(task)}</span>
+	<span class="ui-select-option-label">{label(task)}</span>
 {/snippet}
 
 <Select

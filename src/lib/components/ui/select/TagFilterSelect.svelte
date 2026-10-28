@@ -1,6 +1,6 @@
 <script lang="ts">
-	import Select from "#lib/components/ui/select/Select.svelte";
-	import { createSelect } from "#lib/components/ui/select/select.svelte.ts";
+	import Select from "@ku6epxboctuk/ui/ui/Select";
+	import { createSelect } from "@ku6epxboctuk/ui/headless/select";
 	import type { TagCount } from "#lib/tasks/filter.ts";
 	import Check from "~icons/lucide/check";
 	import ChevronDown from "~icons/lucide/chevron-down";
@@ -35,7 +35,7 @@
 {#snippet trigger()}
 	<button
 		type="button"
-		class="select-trigger"
+		class="ui-select-trigger"
 		class:active={selected.length > 0}
 		aria-haspopup="listbox"
 		aria-expanded={select.open}
@@ -43,26 +43,26 @@
 		onclick={() => select.toggle()}
 	>
 		<Tag />
-		<span class="select-trigger-label">Tags</span>
+		<span class="ui-select-trigger-label">Tags</span>
 		<strong class="tag-filter-count">
 			({selected.length > 0
 				? `${selected.length}/${tags.length}`
 				: tags.length})
 		</strong>
-		<span class="select-trigger-caret">
+		<span class="ui-select-trigger-caret">
 			<ChevronDown />
 		</span>
 	</button>
 {/snippet}
 
 {#snippet option(item: TagCount)}
-	<span class="select-option-mark">
+	<span class="ui-select-option-mark">
 		{#if isSelected(item)}
 			<Check />
 		{/if}
 	</span>
-	<span class="select-option-label">#{item.tag}</span>
-	<span class="select-option-count">{item.active}/{item.count}</span>
+	<span class="ui-select-option-label">#{item.tag}</span>
+	<span class="ui-select-option-count">{item.active}/{item.count}</span>
 {/snippet}
 
 {#snippet footer()}
@@ -85,7 +85,7 @@
 />
 
 <style>
-	.select-trigger.active {
+	.ui-select-trigger.active {
 		border-color: var(--accent);
 	}
 

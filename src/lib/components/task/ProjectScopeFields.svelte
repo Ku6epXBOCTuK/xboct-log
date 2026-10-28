@@ -109,12 +109,12 @@
 		gap: var(--space-2);
 	}
 
-	.scope-row :global(.select) {
+	.scope-row :global(.ui-select) {
 		flex: 1;
 		min-width: 0;
 	}
 
-	.scope-missing :global(.select-trigger) {
+	.scope-missing :global(.ui-select-trigger) {
 		border-color: color-mix(in oklch, var(--accent) 55%, transparent);
 		color: var(--accent-ink);
 	}

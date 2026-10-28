@@ -1,6 +1,6 @@
 <script lang="ts" generics="T">
-	import Select from "#lib/components/ui/select/Select.svelte";
-	import { createSelect } from "#lib/components/ui/select/select.svelte.ts";
+	import Select from "@ku6epxboctuk/ui/ui/Select";
+	import { createSelect } from "@ku6epxboctuk/ui/headless/select";
 	import type { Snippet } from "svelte";
 	import ChevronDown from "~icons/lucide/chevron-down";
 
@@ -56,7 +56,7 @@
 {#snippet trigger()}
 	<button
 		type="button"
-		class="select-trigger"
+		class="ui-select-trigger"
 		aria-haspopup="listbox"
 		aria-expanded={select.open}
 		aria-label={ariaLabel}
@@ -65,22 +65,22 @@
 		{#if icon}
 			{@render icon()}
 		{/if}
-		<span class="select-trigger-label">
+		<span class="ui-select-trigger-label">
 			{value === null ? placeholder : getLabel(value)}
 		</span>
 		{#if metaOf(value) !== ""}
-			<span class="select-trigger-meta">{metaOf(value)}</span>
+			<span class="ui-select-trigger-meta">{metaOf(value)}</span>
 		{/if}
-		<span class="select-trigger-caret">
+		<span class="ui-select-trigger-caret">
 			<ChevronDown />
 		</span>
 	</button>
 {/snippet}
 
 {#snippet option(item: T)}
-	<span class="select-option-label">{getLabel(item)}</span>
+	<span class="ui-select-option-label">{getLabel(item)}</span>
 	{#if metaOf(item) !== ""}
-		<span class="select-option-count">{metaOf(item)}</span>
+		<span class="ui-select-option-count">{metaOf(item)}</span>
 	{/if}
 {/snippet}
 

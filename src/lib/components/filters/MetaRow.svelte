@@ -118,7 +118,7 @@
 			row-gap: var(--space-2);
 		}
 
-		.meta-row :global(.select) {
+		.meta-row :global(.ui-select) {
 			max-width: 100%;
 			min-width: 0;
 		}

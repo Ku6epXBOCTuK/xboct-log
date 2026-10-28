@@ -1,6 +1,6 @@
 <script lang="ts">
 	import SingleSelect from "#lib/components/ui/select/SingleSelect.svelte";
-	import TagInput from "#lib/components/ui/select/TagInput.svelte";
+	import TagInput from "@ku6epxboctuk/ui/ui/TagInput";
 	import CopyButton from "#lib/components/ui/CopyButton.svelte";
 	import InfoPopover from "#lib/components/ui/InfoPopover.svelte";
 	import { CLOSED_REASON_LABELS, formatDate } from "#lib/tasks/display.ts";
