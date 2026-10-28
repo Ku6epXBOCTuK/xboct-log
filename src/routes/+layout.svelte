@@ -7,6 +7,7 @@
 	import { startLiveSync } from "#lib/state/live.ts";
 	import { onMount, untrack } from "svelte";
 	import "../app.css";
+	import "../ui-compat.css";
 	import "../kanban.css";
 	import type { LayoutProps } from "./$types";
 
