@@ -1,18 +1,16 @@
 :root {
 	color-scheme: light dark;
 
-	--font-ui:
-		Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-		"Segoe UI", sans-serif;
-	--font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+	--font-ui: var(--ui-font);
+	--font-mono: var(--ui-font-mono);
 
-	--text-xs: 0.75rem;
-	--text-sm: 0.875rem;
-	--text-md: 1rem;
-	--text-lg: 1.125rem;
-	--text-xl: 1.375rem;
-	--text-2xl: 1.75rem;
-	--text-brand: 1.5rem;
+	--text-xs: var(--ui-fs-xs);
+	--text-sm: var(--ui-fs-sm);
+	--text-md: var(--ui-fs-md);
+	--text-lg: var(--ui-fs-lg);
+	--text-xl: var(--ui-fs-xl);
+	--text-2xl: var(--ui-fs-xl);
+	--text-brand: var(--ui-fs-xl);
 
 	--space-1: 0.25rem;
 	--space-2: 0.5rem;
@@ -26,37 +24,37 @@
 
 	--edge-pad: var(--space-4);
 
-	--radius-sm: 0.25rem;
-	--radius: 0.375rem;
-	--radius-lg: 0.625rem;
+	--radius-sm: var(--ui-r-chip);
+	--radius: var(--ui-r-control);
+	--radius-lg: var(--ui-r-panel);
 
-	--control-h-sm: 1.75rem;
-	--control-h: 2.25rem;
-	--control-h-lg: 2.5rem;
+	--control-h-sm: var(--ui-control-h-sm);
+	--control-h: var(--ui-control-h-md);
+	--control-h-lg: var(--ui-control-h-lg);
 
 	--sidebar-w: 20rem;
 	--detail-w: 48rem;
 
-	--background: light-dark(#f6f7f8, #111315);
-	--surface: light-dark(#eff1f3, #101214);
-	--panel: light-dark(#ffffff, #15181b);
-	--panel-strong: light-dark(#ffffff, #1b1f23);
-	--field: light-dark(#ffffff, #1a1e21);
-	--hover: light-dark(#e7eaee, #1d2125);
-	--selected: light-dark(#e2e6ea, #262b30);
-	--sidebar-note: light-dark(#5f686f, #9aa2a9);
+	--background: var(--ui-bg);
+	--surface: var(--ui-bg-muted);
+	--panel: var(--ui-surface);
+	--panel-strong: var(--ui-panel);
+	--field: var(--ui-field);
+	--hover: var(--ui-hover);
+	--selected: var(--ui-selected);
+	--sidebar-note: var(--ui-fg-muted);
 
-	--foreground: light-dark(#16191c, #e6e8ea);
-	--text-secondary: light-dark(#40474e, #b7bdc3);
-	--text-muted: light-dark(#5f686f, #9aa2a9);
+	--foreground: var(--ui-fg);
+	--text-secondary: var(--ui-fg-secondary);
+	--text-muted: var(--ui-fg-muted);
 
-	--border: light-dark(#dcdfe3, #2d3237);
-	--border-strong: light-dark(#bcc2c8, #454c53);
+	--border: var(--ui-line);
+	--border-strong: var(--ui-line-strong);
 
-	--accent: light-dark(#ff7868, #ff7868);
-	--accent-ink: light-dark(#c03a22, #ff9083);
-	--on-accent: light-dark(#2a1310, #1b1716);
-	--danger-surface: color-mix(in oklch, var(--accent) 14%, transparent);
+	--accent: var(--ui-accent);
+	--accent-ink: var(--ui-accent-ink);
+	--on-accent: var(--ui-on-accent);
+	--danger-surface: var(--ui-danger-surface);
 
 	--violet: light-dark(#7c4ddb, #b38aff);
 	--violet-ink: light-dark(#6b3fc9, #cbb0ff);
@@ -77,7 +75,25 @@
 
 	--priority-high: light-dark(#a06a00, #f5c44d);
 	--priority-critical: light-dark(#cc2418, #ff7a68);
-	--focus: light-dark(#c03a22, #ff9788);
+	--focus: var(--ui-focus);
+}
+
+/*
+	NOTE: xboct-log keeps its coral brand on top of the tool theme; delete this
+	block to fall back to the kit's green accent.
+*/
+:root {
+	--ui-accent: #ff7868;
+	--ui-accent-hover: color-mix(in oklch, #ff7868 88%, #2a1310);
+	--ui-accent-ink: #c03a22;
+	--ui-accent-surface: color-mix(in oklch, #ff7868 14%, var(--ui-panel));
+	--ui-on-accent: #2a1310;
+}
+
+:root[data-ui-mode="dark"] {
+	--ui-accent-hover: color-mix(in oklch, #ff7868 88%, #ffffff);
+	--ui-accent-ink: #ff9083;
+	--ui-on-accent: #1b1716;
 }
 
 .theme-light {

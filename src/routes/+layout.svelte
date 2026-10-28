@@ -6,8 +6,12 @@
 	import { createBoard, provideBoard } from "#lib/state/board.svelte.ts";
 	import { startLiveSync } from "#lib/state/live.ts";
 	import { onMount, untrack } from "svelte";
+	import "@fontsource/ibm-plex-sans/400.css";
+	import "@fontsource/ibm-plex-sans/500.css";
+	import "@fontsource/ibm-plex-sans/600.css";
+	import "@fontsource/ibm-plex-mono/400.css";
+	import "@ku6epxboctuk/ui-kit/tokens.css";
 	import "../app.css";
-	import "../ui-compat.css";
 	import "../kanban.css";
 	import type { LayoutProps } from "./$types";
 
@@ -28,6 +32,10 @@
 	);
 
 	provideBoard(board);
+
+	$effect(() => {
+		document.documentElement.dataset.uiMode = board.theme.appearance;
+	});
 
 	$effect(() => {
 		const stop = startLiveSync(board);
