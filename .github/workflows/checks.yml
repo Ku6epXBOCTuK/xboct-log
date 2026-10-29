@@ -20,11 +20,14 @@ jobs:
           node-version: 26
           cache: pnpm
 
-      - name: Use published ui-kit
-        run: node scripts/use-published-kit.mjs $env:KIT_VERSION
+      - name: Use ui-kit from GitHub
+        run: node scripts/use-kit-from-github.mjs
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
+
+      - name: Refresh ui-kit
+        run: pnpm update @ku6epxboctuk/ui-kit
 
       - name: Lint
         run: pnpm lint
@@ -34,6 +37,3 @@ jobs:
 
       - name: Test
         run: pnpm test
-
-env:
-  KIT_VERSION: "0.1.0"

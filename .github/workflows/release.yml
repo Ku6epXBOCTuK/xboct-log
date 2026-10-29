@@ -17,9 +17,6 @@ on:
 permissions:
   contents: write
 
-env:
-  KIT_VERSION: "0.1.0"
-
 jobs:
   release:
     runs-on: windows-latest
@@ -28,6 +25,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref:
+            ${{ inputs.version && format('v{0}', inputs.version) || github.ref
+            }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -51,11 +51,14 @@ jobs:
           if ($ext -ne $version) { throw "vscode-extension/package.json has $ext, expected $version" }
           "version=$version" >> $env:GITHUB_OUTPUT
 
-      - name: Use published ui-kit
-        run: node scripts/use-published-kit.mjs $env:KIT_VERSION
+      - name: Use ui-kit from GitHub
+        run: node scripts/use-kit-from-github.mjs
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
+
+      - name: Refresh ui-kit
+        run: pnpm update @ku6epxboctuk/ui-kit
 
       - name: Lint
         run: pnpm lint
