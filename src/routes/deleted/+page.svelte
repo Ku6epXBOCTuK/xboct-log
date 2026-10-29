@@ -25,7 +25,7 @@
 
 	const LIMIT = 50;
 
-	const { projects, scopes, filters, theme } = useBoard();
+	const { projects, scopes, filters, theme, fresh } = useBoard();
 
 	let error = $state("");
 	let busy = $state("");
@@ -60,6 +60,8 @@
 	$effect(() => {
 		void paged.load(0);
 	});
+
+	$effect(() => fresh.register("tasks", () => paged.load(paged.offset)));
 
 	$effect(() => {
 		return () => search.cancel();

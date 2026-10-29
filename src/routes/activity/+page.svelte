@@ -11,10 +11,11 @@
 		ActivityLogItem,
 		ActivitySource,
 	} from "#lib/types.ts";
+	import { ENTITIES } from "#lib/types.ts";
 
 	const LIMIT = 50;
 
-	const { projects, filters, setActiveProject } = useBoard();
+	const { projects, filters, setActiveProject, fresh } = useBoard();
 
 	let source = $state("");
 	let op = $state("");
@@ -42,6 +43,17 @@
 
 	$effect(() => {
 		void paged.load(0);
+	});
+
+	$effect(() => {
+		const offs = ENTITIES.map((entity) =>
+			fresh.register(entity, () => paged.load(paged.offset)),
+		);
+		return () => {
+			for (const off of offs) {
+				off();
+			}
+		};
 	});
 
 	const hasFilters = $derived(
