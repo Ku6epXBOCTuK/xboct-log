@@ -1,106 +1,75 @@
 import { ENTITIES, type Entity } from "#lib/types.ts";
-import { fetchFresh } from "#lib/remote/fresh.ts";
-import { getProjects } from "#lib/remote/projects.remote.ts";
-import { getScopedProjectIds, getScopes } from "#lib/remote/scopes.remote.ts";
-import type { CommentsStore } from "./comments.svelte.ts";
-import type { ProjectDataStore } from "./project-data.svelte.ts";
-import type { ProjectStore } from "./projects.svelte.ts";
-import type { ScopeStore } from "./scopes.svelte.ts";
-import type { TagStore } from "./tags.svelte.ts";
-import type { StatsStore } from "./stats.svelte.ts";
-import type { TaskStore } from "./tasks.svelte.ts";
 
 const COALESCE_MS = 300;
 
-interface LiveStores {
-	tasks: TaskStore;
-	projects: ProjectStore;
-	scopes: ScopeStore;
-	tags: TagStore;
-	comments: CommentsStore;
-	stats: StatsStore;
-	data: ProjectDataStore;
+const COUNTERS = "counters" as const;
+
+type Target = Entity | typeof COUNTERS;
+
+const DEPENDENCIES: Record<Entity, readonly Target[]> = {
+	tasks: ["projects", "scopes", "tags", COUNTERS],
+	projects: ["tasks", COUNTERS],
+	scopes: ["tasks"],
+	tags: ["tasks"],
+	comments: [],
+};
+
+type Reload = () => void | Promise<void>;
+
+export interface Freshness {
+	register(target: Target, reload: Reload): () => void;
+	invalidate(targets: Iterable<Target>): void;
+	start(): () => void;
 }
 
-async function loadScopes() {
-	const ids = await fetchFresh(getScopedProjectIds({}));
-	return (
-		await Promise.all(
-			ids.map((id) => fetchFresh(getScopes({ project_id: id }))),
-		)
-	).flat();
-}
-
-export function startLiveSync(stores: LiveStores): () => void {
-	const source = new EventSource("/api/events");
-	const pending = new Set<Entity>();
+export function createFreshness(): Freshness {
+	const reloads = new Map<Target, Set<Reload>>();
+	const pending = new Set<Target>();
 	let timer: ReturnType<typeof setTimeout> | undefined;
 	let queue: Promise<void> = Promise.resolve();
 
-	function flush(): void {
-		const entities = new Set(pending);
-		pending.clear();
-		queue = queue
-			.then(async () => {
-				if (entities.has("tasks")) {
-					try {
-						await stores.tasks.refresh();
-					} catch (error) {
-						console.warn("[live] tasks reload failed", error);
-					}
-					try {
-						await stores.stats.refresh();
-					} catch (error) {
-						console.warn("[live] stats reload failed", error);
-					}
-					try {
-						await stores.tags.refresh();
-					} catch (error) {
-						console.warn("[live] tags reload failed", error);
-					}
-					try {
-						await stores.comments.refresh();
-					} catch (error) {
-						console.warn("[live] comments reload failed", error);
-					}
-					try {
-						await stores.data.refresh();
-					} catch (error) {
-						console.warn("[live] picker data reload failed", error);
-					}
-					entities.add("projects");
-					entities.add("scopes");
-				}
-				if (entities.has("tags")) {
-					try {
-						await stores.tags.refresh();
-					} catch (error) {
-						console.warn("[live] tags reload failed", error);
-					}
-				}
-				if (entities.has("comments")) {
-					try {
-						await stores.comments.refresh();
-					} catch (error) {
-						console.warn("[live] comments reload failed", error);
-					}
-				}
-				if (entities.has("projects")) {
-					const next = await fetchFresh(getProjects({ includeArchived: true }));
-					stores.projects.replaceAll(next);
-				}
-				if (entities.has("scopes")) {
-					const next = await loadScopes();
-					stores.scopes.replaceAll(next);
-				}
-			})
-			.catch((error) => {
-				console.warn("[live] reload failed", error);
-			});
+	function expand(targets: Iterable<Target>): Set<Target> {
+		const seen = new Set<Target>();
+		const stack = [...targets];
+		while (stack.length > 0) {
+			const target = stack.pop()!;
+			if (seen.has(target)) {
+				continue;
+			}
+			seen.add(target);
+			for (const dependency of DEPENDENCIES[target as Entity] ?? []) {
+				stack.push(dependency);
+			}
+		}
+		return seen;
 	}
 
-	function schedule(entity: Entity): void {
-		pending.add(entity);
+	function reload(target: Target): Promise<void> {
+		const handlers = [...(reloads.get(target) ?? [])];
+		return Promise.all(
+			handlers.map(async (handler) => {
+				try {
+					await handler();
+				} catch (error) {
+					console.warn(`[live] ${target} reload failed`, error);
+				}
+			}),
+		).then(() => {});
+	}
+
+	function flush(): void {
+		if (pending.size === 0) {
+			return;
+		}
+		const targets = [...pending];
+		pending.clear();
+		queue = queue.then(() => Promise.all(targets.map(reload))).then(() => {});
+	}
+
+	function invalidate(targets: Iterable<Target>): void {
+		for (const target of targets) {
+			pending.add(target);
+		}
 		if (timer !== undefined) {
 			clearTimeout(timer);
 		}
@@ -110,38 +79,49 @@ export function startLiveSync(stores: LiveStores): () => void {
 		}, COALESCE_MS);
 	}
 
-	function scheduleAll(): void {
-		for (const entity of ENTITIES) {
-			schedule(entity);
+	function start(): () => void {
+		const source = new EventSource("/api/events");
+
+		source.addEventListener("change", (event) => {
+			const raw = (event as MessageEvent<string>).data;
+			let entity: unknown;
+			try {
+				entity = (JSON.parse(raw) as { entity?: unknown }).entity;
+			} catch {
+				return;
+			}
+			if (typeof entity === "string" && ENTITIES.includes(entity as Entity)) {
+				invalidate(expand([entity as Entity]));
+			}
+		});
+		source.addEventListener("sync", () => invalidate(expand(ENTITIES)));
+
+		function handleVisibility(): void {
+			if (document.visibilityState === "visible") {
+				invalidate(expand(ENTITIES));
+			}
 		}
+		document.addEventListener("visibilitychange", handleVisibility);
+
+		return () => {
+			source.close();
+			document.removeEventListener("visibilitychange", handleVisibility);
+			if (timer !== undefined) {
+				clearTimeout(timer);
+				timer = undefined;
+			}
+			pending.clear();
+		};
 	}
 
-	source.addEventListener("change", (event) => {
-		const raw = (event as MessageEvent<string>).data;
-		let entity: string | undefined;
-		try {
-			entity = (JSON.parse(raw) as { entity?: string }).entity;
-		} catch {
-			entity = undefined;
-		}
-		if (entity && (ENTITIES as readonly string[]).includes(entity)) {
-			schedule(entity as Entity);
-		}
-	});
-	source.addEventListener("sync", scheduleAll);
-
-	function handleVisibility(): void {
-		if (document.visibilityState === "visible") {
-			scheduleAll();
-		}
+	function register(target: Target, handler: Reload): () => void {
+		const handlers = reloads.get(target) ?? new Set<Reload>();
+		handlers.add(handler);
+		reloads.set(target, handlers);
+		return () => {
+			handlers.delete(handler);
+		};
 	}
-	document.addEventListener("visibilitychange", handleVisibility);
 
-	return () => {
-		source.close();
-		document.removeEventListener("visibilitychange", handleVisibility);
-		if (timer !== undefined) {
-			clearTimeout(timer);
-		}
-	};
+	return { register, invalidate, start };
 }

@@ -3,9 +3,12 @@ import { resolve } from "$app/paths";
 import { page } from "$app/state";
 import { SvelteURL } from "svelte/reactivity";
 import { getContext, setContext } from "svelte";
+import { fetchFresh } from "#lib/remote/fresh.ts";
+import { getScopedProjectIds, getScopes } from "#lib/remote/scopes.remote.ts";
 import { createCommentsStore } from "#lib/state/comments.svelte.ts";
 import { createDraftStore } from "#lib/state/draft.svelte.ts";
 import { createFilters } from "#lib/state/filters.svelte.ts";
+import { createFreshness } from "#lib/state/live.ts";
 import { createProjectData } from "#lib/state/project-data.svelte.ts";
 import { createProjectStore } from "#lib/state/projects.svelte.ts";
 import { createScopeStore } from "#lib/state/scopes.svelte.ts";
@@ -28,9 +31,12 @@ export interface BoardInput {
 }
 
 export function createBoard(input: BoardInput) {
+	const fresh = createFreshness();
 	const projects = createProjectStore(input.projects);
 	const stats = createStatsStore();
-	const tasks = createTaskStore([], 0, syncCounts);
+	const tasks = createTaskStore([], 0, () =>
+		fresh.invalidate(["projects", "counters"]),
+	);
 	const scopes = createScopeStore(input.scopes);
 	const data = createProjectData();
 	const tags = createTagStore(input.tags);
@@ -41,12 +47,19 @@ export function createBoard(input: BoardInput) {
 	const ui = createUiStore();
 	const selection = createSelection(tasks);
 
-	function syncCounts(): void {
-		void stats.refresh();
-		void projects.refresh().catch((error: unknown) => {
-			console.warn("[board] project counts reload failed", error);
-		});
-	}
+	fresh.register("tasks", () => tasks.refresh());
+	fresh.register("tasks", () => data.refresh());
+	fresh.register("counters", () => stats.refresh());
+	fresh.register("projects", () => projects.refresh());
+	fresh.register("tags", () => tags.refresh());
+	fresh.register("comments", () => comments.refresh());
+	fresh.register("scopes", async () => {
+		const ids = await fetchFresh(getScopedProjectIds({}));
+		const lists = await Promise.all(
+			ids.map((id) => fetchFresh(getScopes({ project_id: id }))),
+		);
+		scopes.replaceAll(lists.flat());
+	});
 
 	$effect.root(() => {
 		$effect(() => {
@@ -88,6 +101,7 @@ export function createBoard(input: BoardInput) {
 	}
 
 	return {
+		fresh,
 		tasks,
 		projects,
 		scopes,

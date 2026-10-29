@@ -4,7 +4,6 @@
 	import UpdateBanner from "#lib/components/ui/UpdateBanner.svelte";
 	import { matchesHotkey } from "#lib/hotkeys/hotkeys.ts";
 	import { createBoard, provideBoard } from "#lib/state/board.svelte.ts";
-	import { startLiveSync } from "#lib/state/live.ts";
 	import { onMount, untrack } from "svelte";
 	import "@fontsource/ibm-plex-sans/400.css";
 	import "@fontsource/ibm-plex-sans/500.css";
@@ -38,7 +37,7 @@
 	});
 
 	$effect(() => {
-		const stop = startLiveSync(board);
+		const stop = board.fresh.start();
 		return stop;
 	});
 

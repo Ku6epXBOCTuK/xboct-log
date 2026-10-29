@@ -1,26 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { CommentsStore } from "./comments.svelte.ts";
-import type { ProjectDataStore } from "./project-data.svelte.ts";
-import type { ProjectStore } from "./projects.svelte.ts";
-import type { ScopeStore } from "./scopes.svelte.ts";
-import type { StatsStore } from "./stats.svelte.ts";
-import type { TagStore } from "./tags.svelte.ts";
-import type { TaskStore } from "./tasks.svelte.ts";
-
-vi.mock("#lib/remote/fresh.ts", () => ({
-	fetchFresh: (value: unknown) => value,
-}));
-
-vi.mock("#lib/remote/projects.remote.ts", () => ({
-	getProjects: vi.fn(async () => [{ id: "alpha" }]),
-}));
-
-vi.mock("#lib/remote/scopes.remote.ts", () => ({
-	getScopedProjectIds: vi.fn(async () => ["alpha"]),
-	getScopes: vi.fn(async () => [{ id: 1 }]),
-}));
-
-const { startLiveSync } = await import("./live.ts");
+import { createFreshness, type Freshness } from "./live.ts";
 
 class FakeEventSource {
 	static instances: FakeEventSource[] = [];
@@ -69,23 +48,31 @@ function deferred() {
 	return { promise, resolve };
 }
 
-function stores() {
+type Reloads = ReturnType<typeof reloads>;
+
+function reloads() {
 	return {
-		tasks: { refresh: vi.fn(async () => {}) } as unknown as TaskStore,
-		projects: { replaceAll: vi.fn() } as unknown as ProjectStore,
-		scopes: { replaceAll: vi.fn() } as unknown as ScopeStore,
-		tags: { refresh: vi.fn(async () => {}) } as unknown as TagStore,
-		comments: { refresh: vi.fn(async () => {}) } as unknown as CommentsStore,
-		stats: { refresh: vi.fn(async () => {}) } as unknown as StatsStore,
-		data: { refresh: vi.fn(async () => {}) } as unknown as ProjectDataStore,
+		tasks: vi.fn(async () => {}),
+		projects: vi.fn(async () => {}),
+		scopes: vi.fn(async () => {}),
+		tags: vi.fn(async () => {}),
+		comments: vi.fn(async () => {}),
+		counters: vi.fn(async () => {}),
 	};
+}
+
+function wire(fresh: Freshness, handlers: Reloads = reloads()) {
+	for (const [target, handler] of Object.entries(handlers)) {
+		fresh.register(target as keyof Reloads, handler);
+	}
+	return handlers;
 }
 
 function connected() {
 	return FakeEventSource.instances.at(-1)!;
 }
 
-describe("startLiveSync", () => {
+describe("createFreshness", () => {
 	beforeEach(() => {
 		vi.useFakeTimers();
 		FakeEventSource.instances = [];
@@ -110,159 +97,161 @@ describe("startLiveSync", () => {
 		vi.unstubAllGlobals();
 	});
 
-	it("opens one stream and closes it on stop", () => {
-		const stop = startLiveSync(stores());
+	it("reloads the registered handlers after the coalesce window", async () => {
+		const fresh = createFreshness();
+		const handlers = wire(fresh);
 
-		expect(FakeEventSource.instances).toHaveLength(1);
-		expect(connected().url).toBe("/api/events");
+		fresh.invalidate(["tasks"]);
+		await vi.advanceTimersByTimeAsync(299);
+		expect(handlers.tasks).not.toHaveBeenCalled();
 
-		stop();
-
-		expect(connected().closed).toBe(true);
+		await vi.advanceTimersByTimeAsync(1);
+		expect(handlers.tasks).toHaveBeenCalledTimes(1);
 	});
 
 	it("coalesces a burst into one reload", async () => {
-		const s = stores();
-		startLiveSync(s);
+		const fresh = createFreshness();
+		const handlers = wire(fresh);
 
 		for (let i = 0; i < 10; i++) {
-			connected().emit("change", { entity: "tasks" });
+			fresh.invalidate(["tasks"]);
+			await vi.advanceTimersByTimeAsync(20);
 		}
+		await vi.advanceTimersByTimeAsync(300);
 
-		await vi.advanceTimersByTimeAsync(299);
-		expect(s.tasks.refresh).not.toHaveBeenCalled();
-
-		await vi.advanceTimersByTimeAsync(1);
-		expect(s.tasks.refresh).toHaveBeenCalledTimes(1);
+		expect(handlers.tasks).toHaveBeenCalledTimes(1);
 	});
 
-	it("reloads the stores that depend on tasks", async () => {
-		const s = stores();
-		startLiveSync(s);
+	it("expands the dependencies of a streamed entity", async () => {
+		const fresh = createFreshness();
+		const handlers = wire(fresh);
+		fresh.start();
 
 		connected().emit("change", { entity: "tasks" });
 		await vi.advanceTimersByTimeAsync(300);
 
-		expect(s.tasks.refresh).toHaveBeenCalledTimes(1);
-		expect(s.stats.refresh).toHaveBeenCalledTimes(1);
-		expect(s.tags.refresh).toHaveBeenCalledTimes(1);
-		expect(s.comments.refresh).toHaveBeenCalledTimes(1);
-		expect(s.data.refresh).toHaveBeenCalledTimes(1);
-		expect(s.projects.replaceAll).toHaveBeenCalledTimes(1);
-		expect(s.scopes.replaceAll).toHaveBeenCalledTimes(1);
+		expect(handlers.tasks).toHaveBeenCalledTimes(1);
+		expect(handlers.projects).toHaveBeenCalledTimes(1);
+		expect(handlers.scopes).toHaveBeenCalledTimes(1);
+		expect(handlers.tags).toHaveBeenCalledTimes(1);
+		expect(handlers.counters).toHaveBeenCalledTimes(1);
+		expect(handlers.comments).not.toHaveBeenCalled();
 	});
 
-	it("reloads only projects or scopes for their own events", async () => {
-		const s = stores();
-		startLiveSync(s);
+	it("does not expand a local invalidation", async () => {
+		const fresh = createFreshness();
+		const handlers = wire(fresh);
 
-		connected().emit("change", { entity: "projects" });
+		fresh.invalidate(["projects", "counters"]);
 		await vi.advanceTimersByTimeAsync(300);
 
-		expect(s.projects.replaceAll).toHaveBeenCalledTimes(1);
-		expect(s.scopes.replaceAll).not.toHaveBeenCalled();
-		expect(s.tasks.refresh).not.toHaveBeenCalled();
-
-		connected().emit("change", { entity: "scopes" });
-		await vi.advanceTimersByTimeAsync(300);
-
-		expect(s.scopes.replaceAll).toHaveBeenCalledTimes(1);
-		expect(s.tasks.refresh).not.toHaveBeenCalled();
+		expect(handlers.projects).toHaveBeenCalledTimes(1);
+		expect(handlers.counters).toHaveBeenCalledTimes(1);
+		expect(handlers.tasks).not.toHaveBeenCalled();
+		expect(handlers.scopes).not.toHaveBeenCalled();
 	});
 
-	it("reloads tags and comments for their own events", async () => {
-		const s = stores();
-		startLiveSync(s);
+	it("visits each target once when the dependencies form a cycle", async () => {
+		const fresh = createFreshness();
+		const handlers = wire(fresh);
+		fresh.start();
 
 		connected().emit("change", { entity: "tags" });
 		await vi.advanceTimersByTimeAsync(300);
 
-		expect(s.tags.refresh).toHaveBeenCalledTimes(1);
-		expect(s.tasks.refresh).not.toHaveBeenCalled();
-		expect(s.comments.refresh).not.toHaveBeenCalled();
-
-		connected().emit("change", { entity: "comments" });
-		await vi.advanceTimersByTimeAsync(300);
-
-		expect(s.comments.refresh).toHaveBeenCalledTimes(1);
-		expect(s.tasks.refresh).not.toHaveBeenCalled();
+		expect(handlers.tags).toHaveBeenCalledTimes(1);
+		expect(handlers.tasks).toHaveBeenCalledTimes(1);
 	});
 
 	it("ignores unknown entities and malformed payloads", async () => {
-		const s = stores();
-		startLiveSync(s);
+		const fresh = createFreshness();
+		const handlers = wire(fresh);
+		fresh.start();
 
 		for (const data of ["not json", {}, { entity: "backup" }, { entity: 7 }]) {
 			connected().emit("change", data);
 		}
 		await vi.advanceTimersByTimeAsync(300);
 
-		expect(s.tasks.refresh).not.toHaveBeenCalled();
-		expect(s.projects.replaceAll).not.toHaveBeenCalled();
-		expect(s.scopes.replaceAll).not.toHaveBeenCalled();
+		expect(handlers.tasks).not.toHaveBeenCalled();
+		expect(handlers.projects).not.toHaveBeenCalled();
 	});
 
-	it("keeps reloading the other stores when one of them fails", async () => {
-		const s = stores();
-		vi.mocked(s.tasks.refresh).mockRejectedValue(new Error("offline"));
-		startLiveSync(s);
+	it("keeps reloading the other handlers when one of them fails", async () => {
+		const fresh = createFreshness();
+		const handlers = wire(fresh);
+		handlers.tasks.mockRejectedValue(new Error("offline"));
+		fresh.start();
 
 		connected().emit("change", { entity: "tasks" });
 		await vi.advanceTimersByTimeAsync(300);
 
-		expect(s.tags.refresh).toHaveBeenCalledTimes(1);
-		expect(s.stats.refresh).toHaveBeenCalledTimes(1);
-		expect(s.projects.replaceAll).toHaveBeenCalledTimes(1);
+		expect(handlers.projects).toHaveBeenCalledTimes(1);
+		expect(handlers.counters).toHaveBeenCalledTimes(1);
 	});
 
-	it("does not drop an event that arrives during a reload", async () => {
-		const s = stores();
+	it("does not drop an invalidation that arrives during a reload", async () => {
+		const fresh = createFreshness();
+		const handlers = wire(fresh);
 		const slow = deferred();
-		vi.mocked(s.tasks.refresh).mockReturnValueOnce(slow.promise);
-		startLiveSync(s);
+		handlers.tasks.mockReturnValueOnce(slow.promise);
 
-		connected().emit("change", { entity: "tasks" });
+		fresh.invalidate(["tasks"]);
 		await vi.advanceTimersByTimeAsync(300);
-		expect(s.tasks.refresh).toHaveBeenCalledTimes(1);
+		expect(handlers.tasks).toHaveBeenCalledTimes(1);
 
-		connected().emit("change", { entity: "tasks" });
+		fresh.invalidate(["tasks"]);
 		slow.resolve();
 		await vi.advanceTimersByTimeAsync(300);
 
-		expect(s.tasks.refresh).toHaveBeenCalledTimes(2);
+		expect(handlers.tasks).toHaveBeenCalledTimes(2);
 	});
 
 	it("reloads everything on sync and on becoming visible", async () => {
-		const s = stores();
-		startLiveSync(s);
+		const fresh = createFreshness();
+		const handlers = wire(fresh);
+		fresh.start();
 
 		connected().emit("sync");
 		await vi.advanceTimersByTimeAsync(300);
 
-		expect(s.tasks.refresh).toHaveBeenCalledTimes(1);
-		expect(s.projects.replaceAll).toHaveBeenCalledTimes(1);
-		expect(s.scopes.replaceAll).toHaveBeenCalledTimes(1);
+		expect(handlers.tasks).toHaveBeenCalledTimes(1);
+		expect(handlers.projects).toHaveBeenCalledTimes(1);
 
 		visibility.state = "hidden";
 		triggerVisibility();
 		await vi.advanceTimersByTimeAsync(300);
-		expect(s.tasks.refresh).toHaveBeenCalledTimes(1);
+		expect(handlers.tasks).toHaveBeenCalledTimes(1);
 
 		visibility.state = "visible";
 		triggerVisibility();
 		await vi.advanceTimersByTimeAsync(300);
-		expect(s.tasks.refresh).toHaveBeenCalledTimes(2);
+		expect(handlers.tasks).toHaveBeenCalledTimes(2);
 	});
 
-	it("stops reloading after stop", async () => {
-		const s = stores();
-		const stop = startLiveSync(s);
+	it("closes the stream and drops the pending work on stop", async () => {
+		const fresh = createFreshness();
+		const handlers = wire(fresh);
+		const stop = fresh.start();
 
-		connected().emit("change", { entity: "tasks" });
+		fresh.invalidate(["tasks"]);
 		stop();
 		await vi.advanceTimersByTimeAsync(300);
 
-		expect(s.tasks.refresh).not.toHaveBeenCalled();
+		expect(connected().closed).toBe(true);
+		expect(handlers.tasks).not.toHaveBeenCalled();
 		expect(domListeners.has("visibilitychange")).toBe(false);
+	});
+
+	it("stops calling a handler after it is unregistered", async () => {
+		const fresh = createFreshness();
+		const handler = vi.fn(async () => {});
+
+		const off = fresh.register("tasks", handler);
+		off();
+		fresh.invalidate(["tasks"]);
+		await vi.advanceTimersByTimeAsync(300);
+
+		expect(handler).not.toHaveBeenCalled();
 	});
 });
