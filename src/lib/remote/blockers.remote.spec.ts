@@ -54,14 +54,14 @@ async function callList(
 describe("blocker tools", () => {
 	it("links a blocker and reports both sides", async () => {
 		const blocked = await callTask("tasks_add_blocker", {
-			id: "SPA-2",
+			task_id: "SPA-2",
 			blocked_by: "SPA-1",
 		});
 
 		expect(blocked.blocked_by).toEqual(["SPA-1"]);
 		expect(blocked.blocks).toEqual([]);
 
-		const blocker = await callTask("tasks_get", { id: "SPA-1" });
+		const blocker = await callTask("tasks_get", { task_id: "SPA-1" });
 		expect(blocker.blocks).toEqual(["SPA-2"]);
 		expect(blocker.blocked_by).toEqual([]);
 	});
@@ -79,7 +79,7 @@ describe("blocker tools", () => {
 	it("rejects bare numbers", async () => {
 		await expect(
 			callTask("tasks_add_blocker", {
-				id: "2",
+				task_id: "2",
 				blocked_by: "1",
 			}),
 		).rejects.toThrow(/PREFIX-NUMBER/);
@@ -87,12 +87,12 @@ describe("blocker tools", () => {
 
 	it("removes the link and releases the blocked status", async () => {
 		await call("tasks_update", {
-			id: "SPA-2",
+			task_id: "SPA-2",
 			patch: { status: "blocked" },
 		});
 
 		const released = await callTask("tasks_remove_blocker", {
-			id: "SPA-2",
+			task_id: "SPA-2",
 			blocked_by: "SPA-1",
 		});
 
@@ -102,7 +102,7 @@ describe("blocker tools", () => {
 
 	it("rejects a task blocking itself", async () => {
 		await expect(
-			call("tasks_add_blocker", { id: "SPA-1", blocked_by: "SPA-1" }),
+			call("tasks_add_blocker", { task_id: "SPA-1", blocked_by: "SPA-1" }),
 		).rejects.toMatchObject({
 			body: { message: expect.stringContaining("cannot block itself") },
 		});

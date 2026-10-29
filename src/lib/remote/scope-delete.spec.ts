@@ -74,7 +74,7 @@ describe("scopes_delete dry run", () => {
 		const { scope, task, epic } = await fixture("Dry run");
 
 		const preview = (await call("scopes_delete", {
-			id: scope.id,
+			scope_id: scope.id,
 			dry_run: true,
 		})) as {
 			scope: { id: number; name: string };
@@ -92,7 +92,7 @@ describe("scopes_delete dry run", () => {
 	it("writes no activity for a dry run", async () => {
 		const { scope, task } = await fixture("Dry run log");
 
-		await call("scopes_delete", { id: scope.id, dry_run: true });
+		await call("scopes_delete", { scope_id: scope.id, dry_run: true });
 
 		expect(history(task.id)).toEqual([]);
 	});
@@ -100,7 +100,7 @@ describe("scopes_delete dry run", () => {
 	it("reports the orphaned tasks when the scope is deleted", async () => {
 		const { scope, task, epic } = await fixture("Real delete");
 
-		const outcome = (await call("scopes_delete", { id: scope.id })) as {
+		const outcome = (await call("scopes_delete", { scope_id: scope.id })) as {
 			scope: { id: number };
 			task_ids: string[];
 			epic_ids: string[];
@@ -118,7 +118,7 @@ describe("scopes_delete dry run", () => {
 	it("records the lost scope in the activity log", async () => {
 		const { scope, task } = await fixture("Real delete log");
 
-		await call("scopes_delete", { id: scope.id });
+		await call("scopes_delete", { scope_id: scope.id });
 
 		const entry = history(task.id).find((item) => item.op === "scopes_delete");
 		expect(entry?.changes).toEqual([
@@ -128,12 +128,14 @@ describe("scopes_delete dry run", () => {
 
 	it("fails for an unknown scope", async () => {
 		await expect(
-			call("scopes_delete", { id: 999, dry_run: true }),
+			call("scopes_delete", { scope_id: 999, dry_run: true }),
 		).rejects.toMatchObject({
 			status: 404,
 			body: { message: "scope 999 not found" },
 		});
-		await expect(call("scopes_delete", { id: 999 })).rejects.toMatchObject({
+		await expect(
+			call("scopes_delete", { scope_id: 999 }),
+		).rejects.toMatchObject({
 			status: 404,
 			body: { message: "scope 999 not found" },
 		});

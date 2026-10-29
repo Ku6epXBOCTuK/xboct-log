@@ -210,7 +210,7 @@
 		for (const file of files) {
 			const content = await fileToBase64(file);
 			await addTaskAttachment({
-				id: taskId,
+				task_id: taskId,
 				filename: file.name,
 				content_base64: content,
 				mime_type: file.type || undefined,

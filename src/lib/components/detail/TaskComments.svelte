@@ -65,14 +65,14 @@
 		if (body === "") return;
 		editingId = null;
 		void run(async () => {
-			const updated = await editComment({ id, body });
+			const updated = await editComment({ comment_id: id, body });
 			comments.apply(updated);
 		});
 	}
 
 	function remove(comment: Comment) {
 		void run(async () => {
-			const deleted = await deleteComment({ id: comment.id });
+			const deleted = await deleteComment({ comment_id: comment.id });
 			comments.remove(taskId, deleted.id);
 		});
 	}

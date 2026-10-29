@@ -57,12 +57,15 @@ export function createScopeStore(initial: Scope[]) {
 			return scope;
 		},
 		async rename(id: number, name: string) {
-			const updated = await updateScopeRemote({ id, patch: { name } });
+			const updated = await updateScopeRemote({
+				scope_id: id,
+				patch: { name },
+			});
 			replace(updated);
 			return updated;
 		},
 		async destroy(id: number) {
-			await deleteScopeRemote({ id });
+			await deleteScopeRemote({ scope_id: id });
 			scopes = scopes.filter((scope) => scope.id !== id);
 		},
 	};

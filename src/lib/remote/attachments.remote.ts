@@ -30,11 +30,11 @@ export const getTaskAttachments = defineQuery({
 		". The uri of an item is an MCP resource holding the bytes of the file: read it with resources/read instead of looking for the file on disk. A file that is gone from the media folder is still listed, with missing set to true.",
 	kind: "query",
 	input: strictObject({
-		id: taskIdSchema(ID_DESCRIPTION),
+		task_id: taskIdSchema(ID_DESCRIPTION),
 	}),
-	handler: ({ id }) => {
+	handler: ({ task_id }) => {
 		const db = getDb();
-		return { items: listAttachments(db, resolveTaskOrThrow(db, id)) };
+		return { items: listAttachments(db, resolveTaskOrThrow(db, task_id)) };
 	},
 });
 
@@ -47,7 +47,7 @@ export const addTaskAttachment = defineCommand({
 		".",
 	kind: "command",
 	input: strictObject({
-		id: taskIdSchema(ID_DESCRIPTION),
+		task_id: taskIdSchema(ID_DESCRIPTION),
 		filename: z
 			.string()
 			.min(1)
@@ -72,9 +72,9 @@ export const addTaskAttachment = defineCommand({
 			.optional()
 			.describe("The content type of the file, for example image/png."),
 	}),
-	handler: ({ id, filename, path, content_base64, mime_type }) => {
+	handler: ({ task_id, filename, path, content_base64, mime_type }) => {
 		const db = getDb();
-		const taskId = resolveTaskOrThrow(db, id);
+		const taskId = resolveTaskOrThrow(db, task_id);
 		const result =
 			path !== undefined
 				? addAttachmentFromPath(db, taskId, path)
@@ -101,13 +101,16 @@ export const removeTaskAttachment = defineCommand({
 	name: "attachments_delete",
 	output: attachmentDeleted,
 	description:
-		"Delete one attachment of a task: the file in the media folder and the reference to it. The id is the one returned by attachments_list. Returns: {id} - the id of the deleted attachment.",
+		"Delete one attachment of a task: the file in the media folder and the reference to it. The attachment_id is the `id` field of an item from attachments_list. Returns: {id} - the id of the deleted attachment.",
 	kind: "command",
 	input: strictObject({
-		id: z.string().uuid().describe("The id of the attachment."),
+		attachment_id: z
+			.string()
+			.uuid()
+			.describe("The `id` of an attachment from attachments_list."),
 	}),
-	handler: ({ id }) => {
-		const result = deleteAttachment(getDb(), id);
+	handler: ({ attachment_id }) => {
+		const result = deleteAttachment(getDb(), attachment_id);
 		if (result.isErr()) {
 			return err(result.error);
 		}
@@ -119,14 +122,15 @@ export const checkTaskAttachments = defineQuery({
 	name: "attachments_verify",
 	output: attachmentVerify,
 	description:
-		"Check the files of the attachments: which ones are still in the media folder and which ones are gone. Read-only. Returns: {ok, missing} - ok is the list of attachments still in the media folder, missing the ones that are gone. Give id to check one task only, omit it to check everything.",
+		"Check the files of the attachments: which ones are still in the media folder and which ones are gone. Read-only. Returns: {ok, missing} - ok is the list of attachments still in the media folder, missing the ones that are gone. Give task_id to check one task only, omit it to check everything.",
 	kind: "query",
 	input: strictObject({
-		id: taskIdSchema(ID_DESCRIPTION).optional(),
+		task_id: taskIdSchema(ID_DESCRIPTION).optional(),
 	}),
-	handler: ({ id }) => {
+	handler: ({ task_id }) => {
 		const db = getDb();
-		const taskId = id === undefined ? undefined : resolveTaskOrThrow(db, id);
+		const taskId =
+			task_id === undefined ? undefined : resolveTaskOrThrow(db, task_id);
 		return verifyAttachments(db, taskId);
 	},
 });

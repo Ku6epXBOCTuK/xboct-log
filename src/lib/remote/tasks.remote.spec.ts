@@ -126,7 +126,11 @@ describe("tasks_list fields parameter", () => {
 		const closed = closeTask(db, third._unsafeUnwrap().id, "fixed");
 		expect(closed.isOk()).toBe(true);
 
-		const result = (await runOp(op("tasks_get"), { id: epicId }, "mcp")) as {
+		const result = (await runOp(
+			op("tasks_get"),
+			{ task_id: epicId },
+			"mcp",
+		)) as {
 			children_counts: Record<string, number>;
 		};
 		expect(result.children_counts).toEqual(
@@ -135,7 +139,7 @@ describe("tasks_list fields parameter", () => {
 
 		const plain = (await runOp(
 			op("tasks_get"),
-			{ id: first._unsafeUnwrap().id },
+			{ task_id: first._unsafeUnwrap().id },
 			"mcp",
 		)) as { children_counts?: unknown };
 		expect(plain.children_counts).toBeUndefined();
@@ -204,7 +208,7 @@ describe("tasks_deleted_list", () => {
 		expect(created.isOk()).toBe(true);
 		const task = created._unsafeUnwrap();
 
-		await runOp(op("tasks_delete"), { id: task.id }, "mcp");
+		await runOp(op("tasks_delete"), { task_id: task.id }, "mcp");
 
 		const listed = (await runOp(
 			op("tasks_deleted_list"),
@@ -215,7 +219,7 @@ describe("tasks_deleted_list", () => {
 		expect(listed.total).toBe(1);
 		expect(listed.items.map((item) => item.title)).toEqual(["Gone for good"]);
 
-		await runOp(op("tasks_restore"), { id: task.id }, "mcp");
+		await runOp(op("tasks_restore"), { task_id: task.id }, "mcp");
 
 		const after = (await runOp(
 			op("tasks_deleted_list"),

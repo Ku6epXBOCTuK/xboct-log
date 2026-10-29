@@ -39,7 +39,7 @@ import { strictObject } from "./strict";
 import { taskFilters } from "./tasks.filters";
 
 const EPIC_ID_DESCRIPTION =
-	"Epic id in the full 'PREFIX-NUMBER' form (e.g. 'LOG-5'). A bare epic number (e.g. '5') is rejected: the epic must belong to the same project as the task. Epics are flat: only a non-epic task carries epic_id, and an epic with epic_id is rejected, so nested epics do not exist.";
+	"Epic id in the full 'PREFIX-NUMBER' form (e.g. 'LOG-5'); a bare number such as '5' is unique only inside a project. The epic belongs to the same project as the task. Epics are flat: only a non-epic task carries epic_id, and an epic itself never has one.";
 
 const BLOCKED_REASON_DESCRIPTION =
 	"Why the task is blocked, one line of free text. Use it when the blocker is outside the tracker (waiting for a release, an answer, an access). Only allowed on a task with status 'blocked'; null clears it.";
@@ -227,29 +227,29 @@ export const getTasksByIds = defineQuery({
 		"Get multiple tasks by their IDs in a single call. Each id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'); a bare number is rejected because it is unique only inside a project. Returns: {items, missing} - items follow the requested order and carry the task fields, missing lists ids that do not exist, are soft-deleted or malformed. Use this instead of calling tasks_get in a loop.",
 	kind: "query",
 	input: strictObject({
-		ids: z
+		task_ids: z
 			.array(taskIdSchema("Full task id, e.g. 'LOG-82'."))
 			.min(1)
 			.max(100)
 			.describe("List of task IDs to fetch."),
 	}),
-	handler: ({ ids }) => repo.getTasksByIds(getDb(), ids),
+	handler: ({ task_ids }) => repo.getTasksByIds(getDb(), task_ids),
 });
 
 export const getTask = defineQuery({
 	name: "tasks_get",
 	output: taskRef,
 	description:
-		"Get a single task by id. The id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'); a bare number is rejected because it is unique only inside a project. Returns: the task itself - " +
+		"Get a single task by task_id. The task_id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'); a bare number is rejected because it is unique only inside a project. Returns: the task itself - " +
 		TASK_FIELDS +
 		". For a task with is_epic=true the result also carries children_counts: the number of its child tasks per status (backlog, open, in-progress, blocked, done, cancelled) plus their total.",
 	kind: "query",
 	input: strictObject({
-		id: taskIdSchema(ID_DESCRIPTION),
+		task_id: taskIdSchema(ID_DESCRIPTION),
 	}),
-	handler: ({ id }) => {
+	handler: ({ task_id }) => {
 		const db = getDb();
-		const task = repo.getTask(db, resolveTaskOrThrow(db, id))!;
+		const task = repo.getTask(db, resolveTaskOrThrow(db, task_id))!;
 		if (!task.is_epic) {
 			return task;
 		}
@@ -321,17 +321,17 @@ export const updateTask = defineCommand({
 	name: "tasks_update",
 	output: taskRef,
 	description:
-		"Update fields of an existing task by id. Every field to change goes inside the patch object (e.g. {id: 'LOG-87', patch: {status: 'in-progress'}}); top-level fields other than id and patch are rejected. The id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). In patch, epic_id accepts a full epic id (e.g. 'LOG-5') of the task's current project, estimate takes the size of the task ('S', 'M' or 'L') or null to clear it, assignee takes the name of the responsible person or null to clear it, due_at takes the due date (YYYY-MM-DD) or null to clear it, and blocked_reason is one line of free text explaining a block outside the tracker, allowed only on a blocked task; leaving status 'blocked' clears it. The patch must name at least one field with a value: an empty patch, a field set to undefined, an unknown field or an epic id that does not exist is an error, the task is left untouched. Returns: the updated task - " +
+		"Update fields of an existing task by task_id. Every field to change goes inside the patch object (e.g. {task_id: 'LOG-87', patch: {status: 'in-progress'}}); top-level fields other than task_id and patch are rejected. The task_id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). In patch, epic_id accepts a full epic id (e.g. 'LOG-5') of the task's current project, estimate takes the size of the task ('S', 'M' or 'L') or null to clear it, assignee takes the name of the responsible person or null to clear it, due_at takes the due date (YYYY-MM-DD) or null to clear it, and blocked_reason is one line of free text explaining a block outside the tracker, allowed only on a blocked task; leaving status 'blocked' clears it. The patch must name at least one field with a value: an empty patch, a field set to undefined, an unknown field or an epic id that does not exist is an error, the task is left untouched. Returns: the updated task - " +
 		TASK_FIELDS +
 		" with a changes array and a warnings array, which is not empty when the task is blocked with neither a blocker task nor a blocked_reason. An unknown tag in the patch is rejected: tags are a closed dictionary, see tags_list and tags_create.",
 	kind: "command",
 	input: strictObject({
-		id: taskIdSchema(ID_DESCRIPTION),
+		task_id: taskIdSchema(ID_DESCRIPTION),
 		patch: taskPatch,
 	}),
-	handler: ({ id, patch }) => {
+	handler: ({ task_id, patch }) => {
 		const db = getDb();
-		const result = repo.updateTaskDetailed(db, id, patch);
+		const result = repo.updateTaskDetailed(db, task_id, patch);
 		if (result.isErr()) {
 			return err(result.error);
 		}
@@ -380,13 +380,13 @@ export const updateTasks = defineCommand({
 	name: "tasks_update_many",
 	output: taskBatch,
 	description:
-		"Update several tasks in one call. Each item is applied independently and the response reports ok/error per item; a failing item does not cancel the others. Every id must use the full 'PREFIX-NUMBER' form. Every patch must name at least one field with a value: an empty patch, a field set to undefined, an unknown field or an epic id that does not exist is an error for that item, the task is left untouched and the item reports ok:false. Returns: {items, succeeded, failed} - every item is {index, id, ok, task, changes, released, warnings} when it worked and {index, id, ok:false, error:{kind, message}} when it failed, where index is the position in the request list and id is the id of the task. released is empty when nothing was released. Every successful item carries its own warnings array. An unknown tag fails that item only: tags are a closed dictionary, see tags_list and tags_create.",
+		"Update several tasks in one call. Each item is applied independently and the response reports ok/error per item; a failing item does not cancel the others. Every task_id must use the full 'PREFIX-NUMBER' form. Every patch must name at least one field with a value: an empty patch, a field set to undefined, an unknown field or an epic id that does not exist is an error for that item, the task is left untouched and the item reports ok:false. Returns: {items, succeeded, failed} - every item is {index, id, ok, task, changes, released, warnings} when it worked and {index, id, ok:false, error:{kind, message}} when it failed, where index is the position in the request list and id is the id of the task. released is empty when nothing was released. Every successful item carries its own warnings array. An unknown tag fails that item only: tags are a closed dictionary, see tags_list and tags_create.",
 	kind: "command",
 	input: strictObject({
 		items: z
 			.array(
 				strictObject({
-					id: taskIdSchema("Full task id, e.g. 'LOG-82'."),
+					task_id: taskIdSchema("Full task id, e.g. 'LOG-82'."),
 					patch: taskPatch,
 				}),
 			)
@@ -395,7 +395,10 @@ export const updateTasks = defineCommand({
 	}),
 	handler: ({ items }) => {
 		const db = getDb();
-		const result = repo.updateTasksMany(db, items);
+		const result = repo.updateTasksMany(
+			db,
+			items.map(({ task_id, patch }) => ({ id: task_id, patch })),
+		);
 		return {
 			...summarize(result),
 			items: result.map((item) =>
@@ -423,16 +426,16 @@ export const closeTask = defineCommand({
 	name: "tasks_close",
 	output: taskRef,
 	description:
-		"Close a task by id with a reason: 'fixed' → done, 'wontfix' | 'obsolete' | 'duplicate' | 'not-reproduced' → cancelled. 'not-reproduced' marks a report that could not be reproduced. The id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). Closing a task that blocks others releases them from status 'blocked' - every released task returns to the status it had before it was blocked ('open' when that status is unknown), and those tasks are listed in released. Returns: the closed task - " +
+		"Close a task by task_id with a reason: 'fixed' → done, 'wontfix' | 'obsolete' | 'duplicate' | 'not-reproduced' → cancelled. 'not-reproduced' marks a report that could not be reproduced. The task_id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). Closing a task that blocks others releases them from status 'blocked' - every released task returns to the status it had before it was blocked ('open' when that status is unknown), and those tasks are listed in released. Returns: the closed task - " +
 		TASK_FIELDS +
 		" with a changes array and a released array.",
 	kind: "command",
 	input: strictObject({
-		id: taskIdSchema(ID_DESCRIPTION),
+		task_id: taskIdSchema(ID_DESCRIPTION),
 		reason: z.enum(CLOSED_REASONS),
 	}),
-	handler: ({ id, reason }) => {
-		const result = repo.closeTaskDetailed(getDb(), id, reason);
+	handler: ({ task_id, reason }) => {
+		const result = repo.closeTaskDetailed(getDb(), task_id, reason);
 		if (result.isErr()) {
 			return err(result.error);
 		}
@@ -458,13 +461,13 @@ export const closeTasks = defineCommand({
 	name: "tasks_close_many",
 	output: taskBatch,
 	description:
-		"Close several tasks in one call. Each item is applied independently and the response reports ok/error per item; a failing item does not cancel the others. Every id must use the full 'PREFIX-NUMBER' form. Returns: {items, succeeded, failed} - every item is {index, id, ok, task, changes, released, warnings} when it worked and {index, id, ok:false, error:{kind, message}} when it failed, where index is the position in the request list and id is the id of the task.",
+		"Close several tasks in one call. Each item is applied independently and the response reports ok/error per item; a failing item does not cancel the others. Every task_id must use the full 'PREFIX-NUMBER' form. Returns: {items, succeeded, failed} - every item is {index, id, ok, task, changes, released, warnings} when it worked and {index, id, ok:false, error:{kind, message}} when it failed, where index is the position in the request list and id is the id of the task.",
 	kind: "command",
 	input: strictObject({
 		items: z
 			.array(
 				strictObject({
-					id: taskIdSchema("Full task id, e.g. 'LOG-82'."),
+					task_id: taskIdSchema("Full task id, e.g. 'LOG-82'."),
 					reason: z.enum(CLOSED_REASONS),
 				}),
 			)
@@ -473,7 +476,10 @@ export const closeTasks = defineCommand({
 	}),
 	handler: ({ items }) => {
 		const db = getDb();
-		const result = repo.closeTasksMany(db, items);
+		const result = repo.closeTasksMany(
+			db,
+			items.map(({ task_id, reason }) => ({ id: task_id, reason })),
+		);
 		return {
 			...summarize(result),
 			items: result.map((item) =>
@@ -502,13 +508,13 @@ export const deleteTask = defineCommand({
 	name: "tasks_delete",
 	output: taskDeleted,
 	description:
-		"Soft-delete a task by id. The id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). Deleting drops the blocker links of the task and detaches it from its epic, so the affected tasks change as well - they are listed in released. Returns: {id, deleted_at, changes, released}.",
+		"Soft-delete a task by task_id. The task_id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). Deleting drops the blocker links of the task and detaches it from its epic, so the affected tasks change as well - they are listed in released. Returns: {id, deleted_at, changes, released}.",
 	kind: "command",
 	input: strictObject({
-		id: taskIdSchema(ID_DESCRIPTION),
+		task_id: taskIdSchema(ID_DESCRIPTION),
 	}),
-	handler: ({ id }) => {
-		const result = repo.deleteTaskDetailed(getDb(), id);
+	handler: ({ task_id }) => {
+		const result = repo.deleteTaskDetailed(getDb(), task_id);
 		if (result.isErr()) {
 			return err(result.error);
 		}
@@ -524,13 +530,13 @@ export const restoreTask = defineCommand({
 	name: "tasks_restore",
 	output: taskRef,
 	description:
-		"Restore a soft-deleted task by id: clears deleted_at and the task is back on the board. Find deleted tasks with tasks_list(include_deleted: true). The task id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). Deleting detaches a task from its epic and drops its blocker links — restoring does not bring those back, set them again with tasks_update. Returns: the restored task - " +
+		"Restore a soft-deleted task by task_id: clears deleted_at and the task is back on the board. Find deleted tasks with tasks_list(include_deleted: true). The task id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). Deleting detaches a task from its epic and drops its blocker links — restoring does not bring those back, set them again with tasks_update. Returns: the restored task - " +
 		TASK_FIELDS,
 	kind: "command",
 	input: strictObject({
-		id: taskIdSchema(ID_DESCRIPTION),
+		task_id: taskIdSchema(ID_DESCRIPTION),
 	}),
-	handler: ({ id }) => repo.restoreTask(getDb(), id),
+	handler: ({ task_id }) => repo.restoreTask(getDb(), task_id),
 	activity: (_input, task: Task) =>
 		activityEntry("task", task.id, ["deleted_at"]),
 });
@@ -539,17 +545,18 @@ export const moveTask = defineCommand({
 	name: "tasks_move",
 	output: taskRef,
 	description:
-		"Move a task to another project: project_id is the destination project. The id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). Returns: the moved task - " +
+		"Move a task to another project: project_id is the destination project. The task_id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). Returns: the moved task - " +
 		TASK_FIELDS,
 	kind: "command",
 	input: strictObject({
-		id: taskIdSchema(ID_DESCRIPTION),
+		task_id: taskIdSchema(ID_DESCRIPTION),
 		project_id: z
 			.string()
 			.min(1)
 			.describe("Destination project id (e.g. 'eit')."),
 	}),
-	handler: ({ id, project_id }) => repo.moveTask(getDb(), id, project_id),
+	handler: ({ task_id, project_id }) =>
+		repo.moveTask(getDb(), task_id, project_id),
 	activity: (input, task: Task) =>
-		activityEntry("task", task.id, ["project_id"], input.id),
+		activityEntry("task", task.id, ["project_id"], input.task_id),
 });

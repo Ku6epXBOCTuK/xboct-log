@@ -61,15 +61,15 @@ function defineLinkOp(options: {
 		kind: "command",
 		output: options.output,
 		input: strictObject({
-			id: taskIdSchema(SOURCE_ID_DESCRIPTION),
+			task_id: taskIdSchema(SOURCE_ID_DESCRIPTION),
 			link_type: z
 				.enum(["relates_to", "duplicates"])
 				.describe(LINK_TYPE_DESCRIPTION),
 			target: taskIdSchema(TARGET_ID_DESCRIPTION),
 		}),
-		handler: ({ id, link_type, target }) => {
+		handler: ({ task_id, link_type, target }) => {
 			const db = getDb();
-			const sourceId = resolveTaskOrThrow(db, id);
+			const sourceId = resolveTaskOrThrow(db, task_id);
 			const targetId = resolveTaskOrThrow(db, target);
 			const before = repo.getTask(db, sourceId)!;
 			const result = options.run(db, sourceId, targetId, link_type);
@@ -88,7 +88,7 @@ export const addLink = defineLinkOp({
 	name: "tasks_add_link",
 	output: taskRef,
 	description:
-		"Add a typed link between two tasks. link_type 'relates_to' marks the tasks as related (symmetric: visible from both, one record is stored); 'duplicates' marks `id` as a duplicate of `target` (directed). Both ids must use the full 'PREFIX-NUMBER' form; the target may live in another project. A task cannot relate to or duplicate itself, duplicate cycles are rejected. Returns: the updated source task - " +
+		"Add a typed link between two tasks. link_type 'relates_to' marks the tasks as related (symmetric: visible from both, one record is stored); 'duplicates' marks `task_id` as a duplicate of `target` (directed). Both ids use the full task id form 'PREFIX-NUMBER'; the target may live in another project. A task cannot relate to or duplicate itself, duplicate cycles are rejected. Returns: the updated source task - " +
 		TASK_FIELDS +
 		" with a changes array describing the link.",
 	run: (db, sourceId, targetId, linkType) =>

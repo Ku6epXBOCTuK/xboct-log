@@ -14,7 +14,7 @@ export const getTaskHistory = defineQuery({
 		"Show the change log of one task: when it was changed, from which surface (source: 'ui' or 'mcp'), which MCP client did it (client: the name/version the client declared, null when it declared none) and which fields were touched. Returns: {items, total}, newest first; each item is { ts, source, client, op, fields, old_id }. A changed field keeps the old and the new value, a creation lists only the fields set beyond the defaults. Reads are not logged themselves. The history of a task follows it after a move to another project.",
 	kind: "query",
 	input: strictObject({
-		id: taskIdSchema(ID_DESCRIPTION),
+		task_id: taskIdSchema(ID_DESCRIPTION),
 		limit: z
 			.number()
 			.int()
@@ -23,11 +23,11 @@ export const getTaskHistory = defineQuery({
 			.optional()
 			.describe("Maximum number of events to return (default 50, max 200)."),
 	}),
-	handler: ({ id, limit }) => {
+	handler: ({ task_id, limit }) => {
 		const db = getDb();
 		return listActivity(db, {
 			entity: "task",
-			entity_id: resolveTaskOrThrow(db, id),
+			entity_id: resolveTaskOrThrow(db, task_id),
 			limit,
 		});
 	},

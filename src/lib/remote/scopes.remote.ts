@@ -41,16 +41,16 @@ export const getScope = defineQuery({
 	name: "scopes_get",
 	output: scopeRef,
 	description:
-		"Get a single scope by id, including its task_count (active non-epic tasks), tasks_total (all non-epic tasks) and epics_count. Returns: the scope - " +
+		"Get a single scope by scope_id, including its task_count (active non-epic tasks), tasks_total (all non-epic tasks) and epics_count. Returns: the scope - " +
 		SCOPE_FIELDS +
 		".",
 	kind: "query",
-	input: strictObject({ id: z.number().int() }),
-	handler: ({ id }) => {
+	input: strictObject({ scope_id: z.number().int() }),
+	handler: ({ scope_id }) => {
 		const db = getDb();
-		const scope = scopes.getScope(db, id);
+		const scope = scopes.getScope(db, scope_id);
 		if (!scope) {
-			error(404, `scope ${id} not found`);
+			error(404, `scope ${scope_id} not found`);
 		}
 		const count = scopes.countTasksByScope(db)[scope.id] ?? {
 			tasks: 0,
@@ -97,13 +97,16 @@ export const updateScope = defineCommand({
 	name: "scopes_update",
 	output: scopeRef,
 	description:
-		"Rename a scope by id. Returns: the updated scope - " + SCOPE_FIELDS + ".",
+		"Rename a scope by scope_id. Returns: the updated scope - " +
+		SCOPE_FIELDS +
+		".",
 	kind: "command",
 	input: strictObject({
-		id: z.number().int(),
+		scope_id: z.number().int(),
 		patch: strictObject({ name: z.string().min(1) }),
 	}),
-	handler: ({ id, patch }) => scopes.updateScope(getDb(), id, patch),
+	handler: ({ scope_id, patch }) =>
+		scopes.updateScope(getDb(), scope_id, patch),
 	activity: (input, scope: Scope) =>
 		activityEntry("scope", scope.id, fieldNames(input.patch)),
 });
@@ -112,10 +115,10 @@ export const deleteScope = defineCommand({
 	name: "scopes_delete",
 	output: scopeDeleteReport,
 	description:
-		"Delete a scope by id; its tasks lose the scope assignment. Pass dry_run: true to preview the deletion - it returns the scope and the ids of the tasks and epics that would lose it, and changes nothing. Returns: {scope, task_ids, epic_ids, dry_run} - the deleted scope and the ids of the tasks and epics that lost it; with dry_run the same report without changing anything.",
+		"Delete a scope by scope_id; its tasks lose the scope assignment. Pass dry_run: true to preview the deletion - it returns the scope and the ids of the tasks and epics that would lose it, and changes nothing. Returns: {scope, task_ids, epic_ids, dry_run} - the deleted scope and the ids of the tasks and epics that lost it; with dry_run the same report without changing anything.",
 	kind: "command",
 	input: strictObject({
-		id: z.number().int(),
+		scope_id: z.number().int(),
 		dry_run: z
 			.boolean()
 			.optional()
@@ -123,18 +126,18 @@ export const deleteScope = defineCommand({
 				"Preview the deletion instead of performing it: returns the scope and the ids of the tasks and epics that would lose the scope.",
 			),
 	}),
-	handler: ({ id, dry_run }) =>
+	handler: ({ scope_id, dry_run }) =>
 		dry_run
-			? scopes.previewScopeDelete(getDb(), id)
-			: scopes.deleteScopeDetailed(getDb(), id),
+			? scopes.previewScopeDelete(getDb(), scope_id)
+			: scopes.deleteScopeDetailed(getDb(), scope_id),
 	activity: (input, result: scopes.ScopeDeleteReport) =>
 		input.dry_run
 			? null
 			: [
-					activityEntry("scope", input.id, []),
+					activityEntry("scope", input.scope_id, []),
 					...[...result.task_ids, ...result.epic_ids].map((taskId) =>
 						activityEntry("task", taskId, ["scope_id"], null, [
-							{ field: "scope_id", from: input.id, to: null },
+							{ field: "scope_id", from: input.scope_id, to: null },
 						]),
 					),
 				],

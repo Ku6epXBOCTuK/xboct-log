@@ -36,7 +36,7 @@
 
 	async function load(id: string) {
 		try {
-			const result = await fetchFresh(getTaskAttachments({ id }));
+			const result = await fetchFresh(getTaskAttachments({ task_id: id }));
 			items = result.items;
 			failed = false;
 		} catch {
@@ -52,7 +52,7 @@
 			for (const file of files) {
 				const content = await fileToBase64(file);
 				const { item } = await addTaskAttachment({
-					id: task.id,
+					task_id: task.id,
 					filename: file.name,
 					content_base64: content,
 					mime_type: file.type || undefined,
@@ -88,7 +88,7 @@
 		busy = true;
 		failure = "";
 		try {
-			await removeTaskAttachment({ id });
+			await removeTaskAttachment({ attachment_id: id });
 			items = items.filter((item) => item.id !== id);
 			tasks.bumpAttachments(task.id, -1);
 		} catch (error) {

@@ -40,22 +40,32 @@ export function createProjectStore(initial: Project[]) {
 			projects = sortProjects(next);
 		},
 		async create(input: NewProjectInput) {
-			const project = await createProject(input);
+			const { id, ...rest } = input;
+			const project = await createProject({ project_id: id, ...rest });
 			projects = sortProjects([...projects, project]);
 			return project;
 		},
 		async rename(id: string, name: string) {
-			const updated = await updateProject({ id, patch: { name } });
+			const updated = await updateProject({
+				project_id: id,
+				patch: { name },
+			});
 			replace(updated);
 			return updated;
 		},
 		async setArchived(id: string, archived: boolean) {
-			const updated = await updateProject({ id, patch: { archived } });
+			const updated = await updateProject({
+				project_id: id,
+				patch: { archived },
+			});
 			replace(updated);
 			return updated;
 		},
 		async setRepo(id: string, repo: string | null) {
-			const updated = await updateProject({ id, patch: { repo } });
+			const updated = await updateProject({
+				project_id: id,
+				patch: { repo },
+			});
 			replace(updated);
 			return updated;
 		},

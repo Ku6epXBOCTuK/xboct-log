@@ -69,7 +69,7 @@
 		error = "";
 		busy = id;
 		try {
-			await restoreTask({ id });
+			await restoreTask({ task_id: id });
 			await paged.load(paged.offset);
 		} catch (cause) {
 			error = messageOf(cause);

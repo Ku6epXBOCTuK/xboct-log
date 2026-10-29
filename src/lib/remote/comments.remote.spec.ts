@@ -106,14 +106,14 @@ describe("comment operations", () => {
 		expect(listed.items[0].body).toBe("first");
 
 		const edited = (await call("tasks_comments_edit", {
-			id: added.id,
+			comment_id: added.id,
 			body: "second",
 		})) as { body: string; edited_at: string | null };
 		expect(edited.body).toBe("second");
 		expect(edited.edited_at).not.toBeNull();
 
 		const deleted = (await call("tasks_comments_delete", {
-			id: added.id,
+			comment_id: added.id,
 		})) as { deleted_at: string | null };
 		expect(deleted.deleted_at).not.toBeNull();
 
@@ -133,8 +133,8 @@ describe("comment operations", () => {
 			{ task_id: task.id, body: "note" },
 			"mcp",
 		)) as { id: string };
-		await call("tasks_comments_edit", { id: added.id, body: "edited" });
-		await call("tasks_comments_delete", { id: added.id });
+		await call("tasks_comments_edit", { comment_id: added.id, body: "edited" });
+		await call("tasks_comments_delete", { comment_id: added.id });
 
 		expect(rows().map((row) => [row.op, row.entity, row.entity_id])).toEqual([
 			["tasks_comments_add", "task", task.id],
@@ -170,7 +170,7 @@ describe("activity changes", () => {
 		clear();
 
 		await call("tasks_update", {
-			id: task.id,
+			task_id: task.id,
 			patch: {
 				title: "New",
 				status: "in-progress",
@@ -195,7 +195,7 @@ describe("activity changes", () => {
 		clear();
 
 		await call("tasks_update", {
-			id: task.id,
+			task_id: task.id,
 			patch: { title: "Same", priority: "low" },
 		});
 
@@ -213,7 +213,7 @@ describe("activity changes", () => {
 		);
 		clear();
 
-		await call("tasks_close", { id: task.id, reason: "wontfix" });
+		await call("tasks_close", { task_id: task.id, reason: "wontfix" });
 
 		expect(rows()[0].changes).toEqual([
 			{ field: "status", from: "open", to: "cancelled" },

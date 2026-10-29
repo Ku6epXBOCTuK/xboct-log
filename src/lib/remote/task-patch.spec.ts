@@ -61,7 +61,7 @@ describe("tasks_update patch validation", () => {
 		const { task } = fixture("Empty patch");
 
 		await expect(
-			call("tasks_update", { id: task.id, patch: {} }),
+			call("tasks_update", { task_id: task.id, patch: {} }),
 		).rejects.toMatchObject({
 			status: 400,
 			body: {
@@ -75,7 +75,7 @@ describe("tasks_update patch validation", () => {
 		const { task, epic } = fixture("Undefined field");
 
 		await expect(
-			call("tasks_update", { id: task.id, patch: { epic_id: undefined } }),
+			call("tasks_update", { task_id: task.id, patch: { epic_id: undefined } }),
 		).rejects.toMatchObject({
 			status: 400,
 			body: {
@@ -91,7 +91,7 @@ describe("tasks_update patch validation", () => {
 		const { task } = fixture("Unknown field");
 
 		await expect(
-			call("tasks_update", { id: task.id, patch: { epic: task.id } }),
+			call("tasks_update", { task_id: task.id, patch: { epic: task.id } }),
 		).rejects.toBeDefined();
 	});
 
@@ -99,7 +99,10 @@ describe("tasks_update patch validation", () => {
 		const { task } = fixture("Missing epic");
 
 		await expect(
-			call("tasks_update", { id: task.id, patch: { epic_id: "SPA-9999" } }),
+			call("tasks_update", {
+				task_id: task.id,
+				patch: { epic_id: "SPA-9999" },
+			}),
 		).rejects.toMatchObject({
 			status: 404,
 			body: { message: "epic SPA-9999 not found" },
@@ -117,7 +120,10 @@ describe("tasks_update patch validation", () => {
 		);
 
 		await expect(
-			call("tasks_update", { id: task.id, patch: { epic_id: foreign.id } }),
+			call("tasks_update", {
+				task_id: task.id,
+				patch: { epic_id: foreign.id },
+			}),
 		).rejects.toMatchObject({
 			status: 400,
 			body: { message: "epic must belong to the same project" },
@@ -128,7 +134,7 @@ describe("tasks_update patch validation", () => {
 		const { task, epic } = fixture("Valid patch");
 
 		const updated = (await call("tasks_update", {
-			id: task.id,
+			task_id: task.id,
 			patch: { epic_id: epic.id, priority: "high" },
 		})) as { epic_id: string; priority: string };
 
@@ -145,8 +151,8 @@ describe("tasks_update_many patch validation", () => {
 
 		const result = (await call("tasks_update_many", {
 			items: [
-				{ id: good.id, patch: { priority: "high" } },
-				{ id: bad.id, patch: {} },
+				{ task_id: good.id, patch: { priority: "high" } },
+				{ task_id: bad.id, patch: {} },
 			],
 		})) as {
 			items: {
@@ -181,7 +187,7 @@ describe("tasks_update_many patch validation", () => {
 		);
 
 		const result = (await call("tasks_update_many", {
-			items: [{ id: task.id, patch: { epic_id: undefined } }],
+			items: [{ task_id: task.id, patch: { epic_id: undefined } }],
 		})) as {
 			items: {
 				ok: boolean;

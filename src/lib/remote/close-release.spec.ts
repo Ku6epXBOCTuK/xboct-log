@@ -64,8 +64,14 @@ async function blockedPair(title: string) {
 			status: "open",
 		}),
 	);
-	await call("tasks_add_blocker", { id: blocked.id, blocked_by: blocker.id });
-	await call("tasks_update", { id: blocked.id, patch: { status: "blocked" } });
+	await call("tasks_add_blocker", {
+		task_id: blocked.id,
+		blocked_by: blocker.id,
+	});
+	await call("tasks_update", {
+		task_id: blocked.id,
+		patch: { status: "blocked" },
+	});
 	return { blocker, blocked };
 }
 
@@ -74,7 +80,7 @@ describe("closed task releases blocked tasks", () => {
 		const { blocker, blocked } = await blockedPair("Close one");
 
 		const result = (await call("tasks_close", {
-			id: blocker.id,
+			task_id: blocker.id,
 			reason: "fixed",
 		})) as { released: Released[] };
 
@@ -91,7 +97,7 @@ describe("closed task releases blocked tasks", () => {
 	it("records the released status in the activity log", async () => {
 		const { blocker, blocked } = await blockedPair("Close two");
 
-		await call("tasks_close", { id: blocker.id, reason: "fixed" });
+		await call("tasks_close", { task_id: blocker.id, reason: "fixed" });
 
 		const entry = history(blocked.id).find((item) => item.op === "tasks_close");
 		expect(entry?.changes).toEqual([
@@ -103,7 +109,7 @@ describe("closed task releases blocked tasks", () => {
 		const { blocker, blocked } = await blockedPair("Close three");
 
 		const result = (await call("tasks_close_many", {
-			items: [{ id: blocker.id, reason: "fixed" }],
+			items: [{ task_id: blocker.id, reason: "fixed" }],
 		})) as {
 			items: { id: string; ok: boolean; released?: Released[] }[];
 		};
@@ -129,7 +135,7 @@ describe("closed task releases blocked tasks", () => {
 		);
 
 		const result = (await call("tasks_close", {
-			id: lonely.id,
+			task_id: lonely.id,
 			reason: "fixed",
 		})) as { released: Released[] };
 

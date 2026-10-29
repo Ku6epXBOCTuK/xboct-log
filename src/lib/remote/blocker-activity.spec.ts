@@ -58,7 +58,7 @@ describe("blocker activity details", () => {
 		);
 
 		await call("tasks_add_blocker", {
-			id: blocked.id,
+			task_id: blocked.id,
 			blocked_by: blocker.id,
 		});
 
@@ -84,15 +84,15 @@ describe("blocker activity details", () => {
 		);
 
 		await call("tasks_add_blocker", {
-			id: blocked.id,
+			task_id: blocked.id,
 			blocked_by: blocker.id,
 		});
 		await call("tasks_update", {
-			id: blocked.id,
+			task_id: blocked.id,
 			patch: { status: "blocked" },
 		});
 		await call("tasks_remove_blocker", {
-			id: blocked.id,
+			task_id: blocked.id,
 			blocked_by: blocker.id,
 		});
 
@@ -118,15 +118,15 @@ describe("blocker activity details", () => {
 		);
 
 		await call("tasks_add_blocker", {
-			id: blocked.id,
+			task_id: blocked.id,
 			blocked_by: blocker.id,
 		});
 		await call("tasks_update", {
-			id: blocked.id,
+			task_id: blocked.id,
 			patch: { status: "blocked" },
 		});
 
-		const outcome = (await call("tasks_delete", { id: blocker.id })) as {
+		const outcome = (await call("tasks_delete", { task_id: blocker.id })) as {
 			id: string;
 			deleted_at: string;
 			changes: { field: string }[];
@@ -165,7 +165,7 @@ describe("blocker activity details", () => {
 			}),
 		);
 
-		await call("tasks_delete", { id: epic.id });
+		await call("tasks_delete", { task_id: epic.id });
 
 		const detached = history(child.id).find(
 			(item) => item.op === "tasks_delete",

@@ -60,10 +60,10 @@ describe("batch response shape", () => {
 			items: [{ project_id: "spa", title: "Created" }],
 		});
 		const updated = await call("tasks_update_many", {
-			items: [{ id: first.id, patch: { priority: "high" } }],
+			items: [{ task_id: first.id, patch: { priority: "high" } }],
 		});
 		const closed = await call("tasks_close_many", {
-			items: [{ id: second.id, reason: "fixed" }],
+			items: [{ task_id: second.id, reason: "fixed" }],
 		});
 
 		for (const result of [created, updated, closed]) {
@@ -99,7 +99,7 @@ describe("batch response shape", () => {
 			items: [{ project_id: "ghost", title: "Nope" }],
 		});
 		const updated = await call("tasks_update_many", {
-			items: [{ id: "SPA-9999", patch: { priority: "low" } }],
+			items: [{ task_id: "SPA-9999", patch: { priority: "low" } }],
 		});
 
 		expect(Object.keys(created.items[0]).sort()).toEqual([

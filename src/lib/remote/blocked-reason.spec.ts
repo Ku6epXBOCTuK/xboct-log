@@ -94,7 +94,7 @@ describe("blocked_reason", () => {
 
 		const message = await failure(
 			call("tasks_update", {
-				id: task.id,
+				task_id: task.id,
 				patch: { blocked_reason: "no" },
 			}),
 		);
@@ -124,7 +124,7 @@ describe("blocked_reason", () => {
 		);
 
 		const updated = (await call("tasks_update", {
-			id: task.id,
+			task_id: task.id,
 			patch: { status: "open" },
 		})) as Updated;
 
@@ -143,7 +143,7 @@ describe("blocked_reason", () => {
 		);
 
 		await call("tasks_update", {
-			id: task.id,
+			task_id: task.id,
 			patch: { status: "blocked", blocked_reason: "awaiting DBA" },
 		});
 
@@ -166,13 +166,16 @@ describe("blocked_reason", () => {
 		const blocked = unwrap(
 			createTask(db, { project_id: "spa", title: "Blocked", status: "open" }),
 		);
-		await call("tasks_add_blocker", { id: blocked.id, blocked_by: blocker.id });
+		await call("tasks_add_blocker", {
+			task_id: blocked.id,
+			blocked_by: blocker.id,
+		});
 		await call("tasks_update", {
-			id: blocked.id,
+			task_id: blocked.id,
 			patch: { status: "blocked", blocked_reason: "waiting for the blocker" },
 		});
 
-		await call("tasks_close", { id: blocker.id, reason: "fixed" });
+		await call("tasks_close", { task_id: blocker.id, reason: "fixed" });
 
 		const after = getTask(db, blocked.id);
 		expect(after?.status).toBe("open");

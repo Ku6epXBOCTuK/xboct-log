@@ -147,7 +147,7 @@ export function createTaskStore(initial: Task[] = [], initialTotal = 0) {
 			pending[id] = true;
 		}
 		try {
-			const { items, missing } = await getTasksByIds({ ids: wanted });
+			const { items, missing } = await getTasksByIds({ task_ids: wanted });
 			const loaded = items.filter((task) => !ids(tasks).has(task.id));
 			if (loaded.length > 0) {
 				pinned = {
@@ -212,22 +212,22 @@ export function createTaskStore(initial: Task[] = [], initialTotal = 0) {
 			return task;
 		},
 		async save(id: string, patch: TaskPatch) {
-			const updated = await updateTask({ id, patch });
+			const updated = await updateTask({ task_id: id, patch });
 			put(updated);
 			return updated;
 		},
 		async moveTo(id: string, projectId: string) {
-			const moved = await moveTask({ id, project_id: projectId });
+			const moved = await moveTask({ task_id: id, project_id: projectId });
 			put(moved);
 			return moved;
 		},
 		async close(id: string, reason: ClosedReason) {
-			const updated = await closeTask({ id, reason });
+			const updated = await closeTask({ task_id: id, reason });
 			put(updated);
 			return updated;
 		},
 		async destroy(id: string) {
-			await deleteTask({ id });
+			await deleteTask({ task_id: id });
 			tasks = tasks
 				.filter((task) => task.id !== id)
 				.map((task) =>
@@ -241,7 +241,10 @@ export function createTaskStore(initial: Task[] = [], initialTotal = 0) {
 			}
 		},
 		async addBlocker(id: string, blockerId: string) {
-			const updated = await addBlockerCommand({ id, blocked_by: blockerId });
+			const updated = await addBlockerCommand({
+				task_id: id,
+				blocked_by: blockerId,
+			});
 			put(updated);
 			change([blockerId], (task) => {
 				const blocks = task.blocks ?? [];
@@ -253,7 +256,7 @@ export function createTaskStore(initial: Task[] = [], initialTotal = 0) {
 		},
 		async removeBlocker(id: string, blockerId: string) {
 			const updated = await removeBlockerCommand({
-				id,
+				task_id: id,
 				blocked_by: blockerId,
 			});
 			put(updated);
@@ -269,7 +272,7 @@ export function createTaskStore(initial: Task[] = [], initialTotal = 0) {
 			targetId: string,
 		) {
 			const updated = await addLinkCommand({
-				id,
+				task_id: id,
 				link_type: linkType,
 				target: targetId,
 			});
@@ -294,7 +297,7 @@ export function createTaskStore(initial: Task[] = [], initialTotal = 0) {
 			targetId: string,
 		) {
 			const updated = await removeLinkCommand({
-				id,
+				task_id: id,
 				link_type: linkType,
 				target: targetId,
 			});

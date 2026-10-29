@@ -80,12 +80,12 @@ describe("activity log", () => {
 
 		await call(
 			"tasks_update",
-			{ id: task.id, patch: { status: "done" } },
+			{ task_id: task.id, patch: { status: "done" } },
 			"ui",
 		);
 		await call(
 			"tasks_update",
-			{ id: task.id, patch: { status: "open" } },
+			{ task_id: task.id, patch: { status: "open" } },
 			"mcp",
 		);
 
@@ -113,7 +113,7 @@ describe("activity log", () => {
 		clear();
 
 		await expect(
-			call("tasks_update", { id: "SPA-999", patch: { status: "done" } }),
+			call("tasks_update", { task_id: "SPA-999", patch: { status: "done" } }),
 		).rejects.toBeDefined();
 
 		expect(rows()).toEqual([]);
@@ -152,9 +152,9 @@ describe("activity log", () => {
 
 		await call("tasks_update_many", {
 			items: [
-				{ id: first.id, patch: { priority: "low" } },
-				{ id: "SPA-999", patch: { priority: "high" } },
-				{ id: second.id, patch: { tags: ["x"] } },
+				{ task_id: first.id, patch: { priority: "low" } },
+				{ task_id: "SPA-999", patch: { priority: "high" } },
+				{ task_id: second.id, patch: { tags: ["x"] } },
 			],
 		});
 
@@ -177,9 +177,9 @@ describe("activity log", () => {
 
 		await call("tasks_close_many", {
 			items: [
-				{ id: ids[0], reason: "fixed" },
-				{ id: "SPA-999", reason: "fixed" },
-				{ id: ids[1], reason: "wontfix" },
+				{ task_id: ids[0], reason: "fixed" },
+				{ task_id: "SPA-999", reason: "fixed" },
+				{ task_id: ids[1], reason: "wontfix" },
 			],
 		});
 
@@ -216,7 +216,7 @@ describe("activity log", () => {
 		);
 		clear();
 
-		await call("tasks_close", { id: task.id, reason: "fixed" });
+		await call("tasks_close", { task_id: task.id, reason: "fixed" });
 
 		expect(rows()[0]).toMatchObject({
 			entity: "task",
@@ -232,7 +232,7 @@ describe("activity log", () => {
 		);
 		clear();
 
-		await call("tasks_delete", { id: task.id });
+		await call("tasks_delete", { task_id: task.id });
 
 		expect(rows()[0]).toMatchObject({
 			entity: "task",
@@ -249,7 +249,7 @@ describe("activity log", () => {
 		clear();
 
 		const moved = (await call("tasks_move", {
-			id: task.id,
+			task_id: task.id,
 			project_id: "bil",
 		})) as { id: string };
 
@@ -272,11 +272,11 @@ describe("activity log", () => {
 		clear();
 
 		await call("tasks_add_blocker", {
-			id: blocked.id,
+			task_id: blocked.id,
 			blocked_by: blocker.id,
 		});
 		await call("tasks_remove_blocker", {
-			id: blocked.id,
+			task_id: blocked.id,
 			blocked_by: blocker.id,
 		});
 
@@ -293,13 +293,13 @@ describe("activity log", () => {
 
 		await runOp(
 			op("tasks_update"),
-			{ id: task.id, patch: { status: "done" } },
+			{ task_id: task.id, patch: { status: "done" } },
 			"mcp",
 			"vitest/1.2.3",
 		);
-		await call("tasks_update", { id: task.id, patch: { status: "open" } });
+		await call("tasks_update", { task_id: task.id, patch: { status: "open" } });
 
-		const history = (await call("tasks_history", { id: task.id })) as {
+		const history = (await call("tasks_history", { task_id: task.id })) as {
 			items: ActivityItem[];
 		};
 		expect(history.items.map((item) => item.client)).toEqual([
@@ -322,10 +322,10 @@ describe("activity log", () => {
 
 		await call(
 			"tasks_update",
-			{ id: task.id, patch: { status: "done" } },
+			{ task_id: task.id, patch: { status: "done" } },
 			"mcp",
 		);
-		const history = (await call("tasks_history", { id: task.id })) as {
+		const history = (await call("tasks_history", { task_id: task.id })) as {
 			items: ActivityItem[];
 			total: number;
 		};
@@ -346,11 +346,11 @@ describe("activity log", () => {
 		clear();
 
 		const moved = (await call("tasks_move", {
-			id: task.id,
+			task_id: task.id,
 			project_id: "bil",
 		})) as { id: string };
 		const history = (await call("tasks_history", {
-			id: moved.id,
+			task_id: moved.id,
 		})) as { items: ActivityItem[]; total: number };
 
 		expect(history.total).toBe(1);
@@ -365,22 +365,28 @@ describe("activity log", () => {
 		clear();
 
 		await call("projects_create", {
-			id: "new",
+			project_id: "new",
 			name: "New",
 			prefix: "NEW",
 		});
-		await call("projects_update", { id: "new", patch: { archived: true } });
+		await call("projects_update", {
+			project_id: "new",
+			patch: { archived: true },
+		});
 		const scope = (await call("scopes_create", {
 			project_id: "spa",
 			name: "ux",
 		})) as { id: number };
-		await call("scopes_update", { id: scope.id, patch: { name: "design" } });
-		await call("scopes_delete", { id: scope.id });
+		await call("scopes_update", {
+			scope_id: scope.id,
+			patch: { name: "design" },
+		});
+		await call("scopes_delete", { scope_id: scope.id });
 
 		expect(
 			rows().map((row) => [row.op, row.entity, row.entity_id, row.fields]),
 		).toEqual([
-			["projects_create", "project", "new", ["id", "name", "prefix"]],
+			["projects_create", "project", "new", ["project_id", "name", "prefix"]],
 			["projects_update", "project", "new", ["archived"]],
 			["scopes_create", "scope", String(scope.id), ["project_id", "name"]],
 			["scopes_update", "scope", String(scope.id), ["name"]],
@@ -395,15 +401,19 @@ describe("activity log", () => {
 
 		await call(
 			"tasks_update",
-			{ id: task.id, patch: { status: "done" } },
+			{ task_id: task.id, patch: { status: "done" } },
 			"ui",
 		);
 		await call(
 			"tasks_update",
-			{ id: task.id, patch: { title: "Renamed" } },
+			{ task_id: task.id, patch: { title: "Renamed" } },
 			"mcp",
 		);
-		await call("projects_update", { id: "spa", patch: { name: "Shop" } }, "ui");
+		await call(
+			"projects_update",
+			{ project_id: "spa", patch: { name: "Shop" } },
+			"ui",
+		);
 
 		const all = (await call("activity_list", {})) as {
 			items: { op: string; entity: string }[];

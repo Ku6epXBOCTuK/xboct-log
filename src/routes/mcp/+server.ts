@@ -7,6 +7,7 @@ import { clientLabel } from "#lib/mcp/client-label.ts";
 import { attachmentRef } from "#lib/remote/contracts.ts";
 import { runOp } from "#lib/remote/define.ts";
 import { getOps } from "#lib/remote/index.ts";
+import { strictObject } from "#lib/remote/strict.ts";
 import {
 	listAllAttachments,
 	readAttachmentFile,
@@ -84,16 +85,16 @@ function registerAttachmentRead(server: McpServer): void {
 		{
 			description:
 				"Read the file of one attachment, not only its metadata. An image comes back as an image block, text as text, anything else as base64 in a data URL. Use it to look at a screenshot attached to a task instead of searching the disk for the file. An attachment is at most 20 MB and a big one costs a lot of context, so check size in attachments_list first. A file too big to read can be downloaded from /media/{id} of this server instead.",
-			inputSchema: z.object({
-				id: z
+			inputSchema: strictObject({
+				attachment_id: z
 					.string()
 					.uuid()
-					.describe("The id of the attachment, taken from attachments_list."),
+					.describe("The `id` field of an item from attachments_list."),
 			}),
 			outputSchema: z.object({ item: attachmentRef }),
 		},
-		({ id }) => {
-			const result = readAttachmentFile(getDb(), id);
+		({ attachment_id }) => {
+			const result = readAttachmentFile(getDb(), attachment_id);
 			if (result.isErr()) {
 				const failure = {
 					kind: result.error.kind,
@@ -231,7 +232,10 @@ const handler = createMcpHandler(registerTools, {
 		"carry structuredContent.error = { kind, message }. " +
 		"Create tasks in batches with tasks_create_many: it answers with one " +
 		"result per item instead of one call per task. " +
-		"All tools accept a single JSON object argument.",
+		"All tools accept a single JSON object argument. " +
+		"Task tools address a task by task_id in the full 'PREFIX-NUMBER' form " +
+		"(e.g. 'LOG-42'); attachments address a file by attachment_id, the " +
+		"`id` field of an item from attachments_list.",
 });
 
 async function handle({ request }: RequestEvent): Promise<Response> {

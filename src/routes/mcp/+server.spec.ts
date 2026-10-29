@@ -203,7 +203,7 @@ describe("/mcp endpoint", () => {
 		const added = await rpc("tools/call", {
 			name: "attachments_add",
 			arguments: {
-				id: task._unsafeUnwrap().id,
+				task_id: task._unsafeUnwrap().id,
 				filename: "note.txt",
 				content_base64: Buffer.from("hello").toString("base64"),
 			},
@@ -218,7 +218,7 @@ describe("/mcp endpoint", () => {
 
 		const readResult = await rpc("tools/call", {
 			name: "attachments_read",
-			arguments: { id: created?.id },
+			arguments: { attachment_id: created?.id },
 		});
 		expect(readResult.error).toBeUndefined();
 		const blocks = (
@@ -232,7 +232,7 @@ describe("/mcp endpoint", () => {
 		const png = await rpc("tools/call", {
 			name: "attachments_add",
 			arguments: {
-				id: task._unsafeUnwrap().id,
+				task_id: task._unsafeUnwrap().id,
 				filename: "dot.png",
 				content_base64:
 					"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
@@ -242,7 +242,7 @@ describe("/mcp endpoint", () => {
 			.item?.id;
 		const picture = await rpc("tools/call", {
 			name: "attachments_read",
-			arguments: { id: pngId },
+			arguments: { attachment_id: pngId },
 		});
 		const imageBlocks = (
 			picture.result as unknown as {
@@ -474,7 +474,7 @@ describe("/mcp endpoint", () => {
 		const body = await rpc("tools/call", {
 			name: "tasks_update_many",
 			arguments: {
-				items: [{ id: task._unsafeUnwrap().id, patch: {} }],
+				items: [{ task_id: task._unsafeUnwrap().id, patch: {} }],
 			},
 		});
 		const structured = body.result?.structuredContent as {
@@ -507,7 +507,7 @@ describe("/mcp endpoint", () => {
 
 		const body = await rpc("tools/call", {
 			name: "tasks_restore",
-			arguments: { id: taskId },
+			arguments: { task_id: taskId },
 		});
 		expect(body.error).toBeUndefined();
 		const result = body.result as { isError?: boolean };
@@ -563,12 +563,12 @@ describe("output contracts", () => {
 
 	it("answers every tool with a payload matching its output schema", async () => {
 		const project = await call("projects_create", {
-			id: "sweep",
+			project_id: "sweep",
 			name: "Sweep",
 			prefix: "SWP",
 		});
 		await call("projects_create", {
-			id: "sweep-target",
+			project_id: "sweep-target",
 			name: "Sweep target",
 			prefix: "SWT",
 		});
@@ -591,33 +591,33 @@ describe("output contracts", () => {
 		expect(project.id).toBe("sweep");
 
 		const fixtures: Record<string, () => unknown | Promise<unknown>> = {
-			tasks_history: () => ({ id: base }),
+			tasks_history: () => ({ task_id: base }),
 			activity_list: () => ({}),
-			attachments_list: () => ({ id: base }),
+			attachments_list: () => ({ task_id: base }),
 			attachments_add: () => ({
-				id: base,
+				task_id: base,
 				filename: "sweep.txt",
 				content_base64: Buffer.from("hello").toString("base64"),
 			}),
 			attachments_delete: async () => {
 				const added = await call("attachments_add", {
-					id: base,
+					task_id: base,
 					filename: "gone.txt",
 					content_base64: Buffer.from("bye").toString("base64"),
 				});
-				return { id: (added.item as { id: string }).id };
+				return { attachment_id: (added.item as { id: string }).id };
 			},
 			attachments_verify: () => ({}),
 			backup_create: () => ({}),
 			backup_list: () => ({}),
 			tasks_add_blocker: async () => ({
-				id: await freshTask(),
+				task_id: await freshTask(),
 				blocked_by: base,
 			}),
 			tasks_remove_blocker: async () => {
 				const blocked = await freshTask();
-				await call("tasks_add_blocker", { id: blocked, blocked_by: base });
-				return { id: blocked, blocked_by: base };
+				await call("tasks_add_blocker", { task_id: blocked, blocked_by: base });
+				return { task_id: blocked, blocked_by: base };
 			},
 			tasks_comments_list: () => ({ task_id: base }),
 			tasks_comments_add: () => ({ task_id: base, body: "Sweep comment" }),
@@ -626,51 +626,54 @@ describe("output contracts", () => {
 					task_id: base,
 					body: "Original",
 				});
-				return { id: comment.id, body: "Edited" };
+				return { comment_id: comment.id, body: "Edited" };
 			},
 			tasks_comments_delete: async () => {
 				const comment = await call("tasks_comments_add", {
 					task_id: base,
 					body: "Doomed",
 				});
-				return { id: comment.id };
+				return { comment_id: comment.id };
 			},
 			tasks_add_link: async () => ({
-				id: await freshTask(),
+				task_id: await freshTask(),
 				link_type: "relates_to",
 				target: base,
 			}),
 			tasks_remove_link: async () => {
 				const linked = await freshTask();
 				await call("tasks_add_link", {
-					id: linked,
+					task_id: linked,
 					link_type: "relates_to",
 					target: base,
 				});
-				return { id: linked, link_type: "relates_to", target: base };
+				return { task_id: linked, link_type: "relates_to", target: base };
 			},
 			projects_list: () => ({}),
-			projects_get: () => ({ id: "sweep" }),
+			projects_get: () => ({ project_id: "sweep" }),
 			projects_create: () => {
 				counter += 1;
 				return {
-					id: `sweep-${counter}`,
+					project_id: `sweep-${counter}`,
 					name: `Sweep ${counter}`,
 					prefix: `SW${counter}`,
 				};
 			},
-			projects_update: () => ({ id: "sweep", patch: { name: "Sweep" } }),
-			tasks_revisions_list: () => ({ id: base }),
+			projects_update: () => ({
+				project_id: "sweep",
+				patch: { name: "Sweep" },
+			}),
+			tasks_revisions_list: () => ({ task_id: base }),
 			scopes_list: () => ({}),
-			scopes_get: () => ({ id: scope }),
+			scopes_get: () => ({ scope_id: scope }),
 			scopes_project_ids: () => ({}),
 			scopes_create: () => ({ project_id: "sweep", name: "Fresh scope" }),
 			scopes_update: async () => ({
-				id: await freshScope(),
+				scope_id: await freshScope(),
 				patch: { name: "Renamed scope" },
 			}),
 			scopes_delete: async () => ({
-				id: await freshScope(),
+				scope_id: await freshScope(),
 				dry_run: true,
 			}),
 			tags_list: () => ({}),
@@ -682,8 +685,8 @@ describe("output contracts", () => {
 			},
 			tasks_list: () => ({}),
 			tasks_deleted_list: () => ({}),
-			tasks_get_many: () => ({ ids: [base] }),
-			tasks_get: () => ({ id: base }),
+			tasks_get_many: () => ({ task_ids: [base] }),
+			tasks_get: () => ({ task_id: base }),
 			tasks_create: () => ({ project_id: "sweep", title: "Created" }),
 			tasks_create_many: () => ({
 				items: [
@@ -692,27 +695,27 @@ describe("output contracts", () => {
 				],
 			}),
 			tasks_update: async () => ({
-				id: await freshTask(),
+				task_id: await freshTask(),
 				patch: { priority: "high" },
 			}),
 			tasks_update_many: async () => ({
-				items: [{ id: await freshTask(), patch: { priority: "low" } }],
+				items: [{ task_id: await freshTask(), patch: { priority: "low" } }],
 			}),
 			tasks_close: async () => ({
-				id: await freshTask(),
+				task_id: await freshTask(),
 				reason: "fixed",
 			}),
 			tasks_close_many: async () => ({
-				items: [{ id: await freshTask(), reason: "wontfix" }],
+				items: [{ task_id: await freshTask(), reason: "wontfix" }],
 			}),
-			tasks_delete: async () => ({ id: await freshTask() }),
+			tasks_delete: async () => ({ task_id: await freshTask() }),
 			tasks_restore: async () => {
 				const doomed = await freshTask();
-				await call("tasks_delete", { id: doomed });
-				return { id: doomed };
+				await call("tasks_delete", { task_id: doomed });
+				return { task_id: doomed };
 			},
 			tasks_move: async () => ({
-				id: await freshTask(),
+				task_id: await freshTask(),
 				project_id: "sweep-target",
 			}),
 		};

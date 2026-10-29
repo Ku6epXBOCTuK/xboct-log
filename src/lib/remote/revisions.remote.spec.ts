@@ -51,7 +51,7 @@ describe("tasks_revisions_list", () => {
 		const updated = updateTask(db, "SPA-1", { description: "second" });
 		expect(updated.isOk()).toBe(true);
 
-		const result = await list({ id: "SPA-1" });
+		const result = await list({ task_id: "SPA-1" });
 
 		expect(result.total).toBe(1);
 		expect(result.items[0].field).toBe("description");
@@ -60,13 +60,13 @@ describe("tasks_revisions_list", () => {
 	});
 
 	it("keeps only the requested field", async () => {
-		const result = await list({ id: "SPA-1", field: "comment" });
+		const result = await list({ task_id: "SPA-1", field: "comment" });
 
 		expect(result.total).toBe(0);
 		expect(result.items).toEqual([]);
 	});
 
 	it("fails for an unknown task id", async () => {
-		await expect(list({ id: "SPA-99" })).rejects.toThrow();
+		await expect(list({ task_id: "SPA-99" })).rejects.toThrow();
 	});
 });

@@ -26,7 +26,7 @@
 	async function load(id: string, key: string) {
 		if (key === loadedKey) return;
 		try {
-			const result = await fetchFresh(getTaskHistory({ id, limit }));
+			const result = await fetchFresh(getTaskHistory({ task_id: id, limit }));
 			if (key !== requested) return;
 			items = result.items;
 			total = result.total;

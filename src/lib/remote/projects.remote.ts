@@ -81,23 +81,23 @@ export const getProject = defineQuery({
 	name: "projects_get",
 	output: projectRef,
 	description:
-		"Get a single project by id, including task counts by status: task_counts counts non-epic tasks, epic_counts counts epics. scope_counts lists the project's scopes with their task and epic totals. Returns: the project - " +
+		"Get a single project by project_id, including task counts by status: task_counts counts non-epic tasks, epic_counts counts epics. scope_counts lists the project's scopes with their task and epic totals. Returns: the project - " +
 		PROJECT_FIELDS +
 		" with task_counts, epic_counts and scope_counts.",
 	kind: "query",
-	input: strictObject({ id: z.string().min(1) }),
-	handler: ({ id }) => {
+	input: strictObject({ project_id: z.string().min(1) }),
+	handler: ({ project_id }) => {
 		const db = getDb();
-		const project = projects.getProject(db, id);
+		const project = projects.getProject(db, project_id);
 		if (!project) {
-			error(404, `project ${id} not found`);
+			error(404, `project ${project_id} not found`);
 		}
-		const scopeRows = scopes.listScopes(db, id);
-		const scopeCounts = scopes.countTasksByScope(db, id);
+		const scopeRows = scopes.listScopes(db, project_id);
+		const scopeCounts = scopes.countTasksByScope(db, project_id);
 		return {
 			...project,
-			task_counts: countTasksByStatus(db, id),
-			epic_counts: countEpicsByStatus(db, id),
+			task_counts: countTasksByStatus(db, project_id),
+			epic_counts: countEpicsByStatus(db, project_id),
 			scope_counts: scopeRows.map((scope) => ({
 				scope_id: scope.id,
 				name: scope.name,
@@ -112,12 +112,12 @@ export const createProject = defineCommand({
 	name: "projects_create",
 	output: projectRef,
 	description:
-		"Create a project. name, id and prefix are required. The id is a lowercase slug of latin letters, digits and dashes; it is the key of the project in links and in the project_id parameter, and it cannot be changed later. The prefix is 1-6 uppercase letters or digits, it is stored uppercase and starts every task id of the project, and it cannot be changed later either. repo is optional and accepts a git URL; it is stored as host/owner/name. Returns: the created project - " +
+		"Create a project. name, project_id and prefix are required. The project_id is a lowercase slug of latin letters, digits and dashes; it is the key of the project in links and in the project_id parameter, and it cannot be changed later. The prefix is 1-6 uppercase letters or digits, it is stored uppercase and starts every task id of the project, and it cannot be changed later either. repo is optional and accepts a git URL; it is stored as host/owner/name. Returns: the created project - " +
 		PROJECT_FIELDS +
 		".",
 	kind: "command",
 	input: strictObject({
-		id: z.string().min(1).max(40),
+		project_id: z.string().min(1).max(40),
 		name: z.string().min(1),
 		prefix: z.string().min(1).max(6),
 		repo: z
@@ -128,7 +128,8 @@ export const createProject = defineCommand({
 				"Git repository as host/owner/name; a full URL or SSH form is normalized. Optional.",
 			),
 	}),
-	handler: (input) => projects.createProject(getDb(), input),
+	handler: ({ project_id, ...input }) =>
+		projects.createProject(getDb(), { ...input, id: project_id }),
 	activity: (input, project: Project) =>
 		activityEntry("project", project.id, fieldNames(input)),
 });
@@ -142,7 +143,7 @@ export const updateProject = defineCommand({
 		".",
 	kind: "command",
 	input: strictObject({
-		id: z.string().min(1),
+		project_id: z.string().min(1),
 		patch: strictObject({
 			name: z.string().optional(),
 			archived: z.boolean().optional(),
@@ -155,7 +156,8 @@ export const updateProject = defineCommand({
 				),
 		}),
 	}),
-	handler: ({ id, patch }) => projects.updateProject(getDb(), id, patch),
+	handler: ({ project_id, patch }) =>
+		projects.updateProject(getDb(), project_id, patch),
 	activity: (input, project: Project) =>
 		activityEntry("project", project.id, fieldNames(input.patch)),
 });

@@ -78,7 +78,7 @@ describe("scope handling", () => {
 		);
 
 		const updated = (await call("tasks_update", {
-			id: task.id,
+			task_id: task.id,
 			patch: { scope_id: null },
 		})) as Created;
 
@@ -122,7 +122,7 @@ describe("tag handling", () => {
 		);
 
 		const updated = (await call("tasks_update", {
-			id: task.id,
+			task_id: task.id,
 			patch: { tags: [] },
 		})) as Created;
 

@@ -56,12 +56,15 @@ export const editComment = defineCommand({
 	name: "tasks_comments_edit",
 	output: commentRef,
 	description:
-		"Edit the text of a comment by its id. The previous text is kept as a revision, so nothing is lost. Returns: the updated comment - " +
+		"Edit the text of a comment by comment_id, the `id` field of an item from tasks_comments_list. The previous text is kept as a revision, so nothing is lost. Returns: the updated comment - " +
 		COMMENT_FIELDS +
 		" with edited_at set.",
 	kind: "command",
 	input: strictObject({
-		id: z.string().min(1).describe("Comment id."),
+		comment_id: z
+			.string()
+			.min(1)
+			.describe("The `id` of a comment from tasks_comments_list."),
 		body: z
 			.string()
 			.min(1)
@@ -69,7 +72,8 @@ export const editComment = defineCommand({
 				"New comment text for the human reader of the task: what changed and why, in a few sentences. No raw output, logs, file lists or details that go stale.",
 			),
 	}),
-	handler: ({ id, body }) => comments.editComment(getDb(), id, body),
+	handler: ({ comment_id, body }) =>
+		comments.editComment(getDb(), comment_id, body),
 	activity: (_input, comment: Comment) =>
 		activityEntry("task", comment.task_id, ["comments"]),
 });
@@ -78,14 +82,17 @@ export const deleteComment = defineCommand({
 	name: "tasks_comments_delete",
 	output: commentRef,
 	description:
-		"Soft-delete a comment by its id. The comment disappears from the task, but its id and history stay in the database. Returns: the deleted comment - " +
+		"Soft-delete a comment by comment_id, the `id` field of an item from tasks_comments_list. The comment disappears from the task, but its id and history stay in the database. Returns: the deleted comment - " +
 		COMMENT_FIELDS +
 		" with deleted_at set.",
 	kind: "command",
 	input: strictObject({
-		id: z.string().min(1).describe("Comment id."),
+		comment_id: z
+			.string()
+			.min(1)
+			.describe("The `id` of a comment from tasks_comments_list."),
 	}),
-	handler: ({ id }) => comments.deleteComment(getDb(), id),
+	handler: ({ comment_id }) => comments.deleteComment(getDb(), comment_id),
 	activity: (_input, comment: Comment) =>
 		activityEntry("task", comment.task_id, ["comments"]),
 });

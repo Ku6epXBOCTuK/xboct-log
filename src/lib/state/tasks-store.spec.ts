@@ -10,9 +10,9 @@ const createTask = vi.fn();
 
 vi.mock("#lib/remote/tasks.remote.ts", () => ({
 	getTasks: (input: unknown) => getTasks(input),
-	getTasksByIds: (input: { ids: string[] }) => getTasksByIds(input),
+	getTasksByIds: (input: { task_ids: string[] }) => getTasksByIds(input),
 	updateTask: (input: unknown) => updateTask(input),
-	deleteTask: (input: { id: string }) => deleteTask(input),
+	deleteTask: (input: { task_id: string }) => deleteTask(input),
 	createTask: (input: unknown) => createTask(input),
 	moveTask: vi.fn(),
 	closeTask: vi.fn(),
@@ -177,7 +177,7 @@ describe("task store", () => {
 
 		await store.pin(["SPA-9"]);
 
-		expect(getTasksByIds).toHaveBeenCalledWith({ ids: ["SPA-9"] });
+		expect(getTasksByIds).toHaveBeenCalledWith({ task_ids: ["SPA-9"] });
 		expect(store.byId("SPA-9")?.title).toBe("outside");
 		expect(store.tasks.map((item) => item.id)).toEqual(["SPA-1"]);
 	});

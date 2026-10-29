@@ -14,7 +14,7 @@ export const getTaskRevisions = defineQuery({
 		"Read the previous texts of one task: the description and the comment bodies that were replaced by an edit. Read-only. Returns: {items, total}, oldest first; each item is { id, task_id, field, ref_id, body, created_at }, where field is 'description' or 'comment' and ref_id is the id of the edited comment for a comment revision. The current text is not included. Use it to see how a description changed; the activity log only names the touched fields.",
 	kind: "query",
 	input: strictObject({
-		id: taskIdSchema(ID_DESCRIPTION),
+		task_id: taskIdSchema(ID_DESCRIPTION),
 		field: z
 			.enum(REVISION_FIELDS)
 			.optional()
@@ -29,9 +29,9 @@ export const getTaskRevisions = defineQuery({
 			.optional()
 			.describe("Maximum number of revisions to return (default 50, max 200)."),
 	}),
-	handler: ({ id, field, limit }) => {
+	handler: ({ task_id, field, limit }) => {
 		const db = getDb();
-		const taskId = resolveTaskOrThrow(db, id);
+		const taskId = resolveTaskOrThrow(db, task_id);
 		const revisions = listRevisions(db, taskId)
 			.filter((revision) => field === undefined || revision.field === field)
 			.slice(0, limit ?? 50);

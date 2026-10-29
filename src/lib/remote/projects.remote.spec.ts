@@ -125,14 +125,14 @@ describe("projects_list", () => {
 		const shared = "github.com/acme/shop";
 		const patched = (await runOp(
 			op("projects_update"),
-			{ id: "bil", patch: { repo: "git@github.com:acme/billing.git" } },
+			{ project_id: "bil", patch: { repo: "git@github.com:acme/billing.git" } },
 			"mcp",
 		)) as ListedProject;
 		expect(patched.repo).toBe("github.com/acme/billing");
 
 		await runOp(
 			op("projects_update"),
-			{ id: "bil", patch: { repo: shared } },
+			{ project_id: "bil", patch: { repo: shared } },
 			"mcp",
 		);
 		const both = await listProjects({ repo: shared });
@@ -140,7 +140,7 @@ describe("projects_list", () => {
 
 		const cleared = (await runOp(
 			op("projects_update"),
-			{ id: "bil", patch: { repo: null } },
+			{ project_id: "bil", patch: { repo: null } },
 			"mcp",
 		)) as ListedProject;
 		expect(cleared.repo).toBeNull();
@@ -153,7 +153,7 @@ describe("projects_list", () => {
 		const created = (await runOp(
 			op("projects_create"),
 			{
-				id: "aux",
+				project_id: "aux",
 				name: "Aux",
 				prefix: "AUX",
 				repo: "git@github.com:acme/aux.git",
@@ -171,7 +171,7 @@ describe("projects_list", () => {
 		await expect(
 			runOp(
 				op("projects_update"),
-				{ id: "bil", patch: { repo: "nope" } },
+				{ project_id: "bil", patch: { repo: "nope" } },
 				"mcp",
 			),
 		).rejects.toThrow();
