@@ -82,7 +82,8 @@
 	NOTE: xboct-log keeps its coral brand on top of the tool theme; delete this
 	block to fall back to the kit's green accent.
 */
-:root {
+:root,
+:root[data-ui-mode="light"] {
 	--ui-accent: #ff7868;
 	--ui-accent-hover: color-mix(in oklch, #ff7868 88%, #2a1310);
 	--ui-accent-ink: #c03a22;
@@ -91,8 +92,10 @@
 }
 
 :root[data-ui-mode="dark"] {
+	--ui-accent: #ff7868;
 	--ui-accent-hover: color-mix(in oklch, #ff7868 88%, #ffffff);
 	--ui-accent-ink: #ff9083;
+	--ui-accent-surface: color-mix(in oklch, #ff7868 14%, var(--ui-panel));
 	--ui-on-accent: #1b1716;
 }
 
@@ -270,14 +273,15 @@ textarea:focus-visible {
 	background: var(--field);
 	color: var(--foreground);
 	border-radius: var(--radius);
-	padding: var(--space-2) var(--space-3);
-	min-height: var(--control-h);
+	padding: 0 var(--space-3);
+	height: var(--control-h);
 	outline: none;
 	font-size: var(--text-md);
 	font-weight: 400;
 }
 
 textarea.field-control {
+	height: auto;
 	padding: var(--space-3);
 	resize: vertical;
 	min-height: 8rem;

@@ -33,6 +33,9 @@
 	import ArrowLeft from "~icons/lucide/arrow-left";
 	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
 	import Button from "@ku6epxboctuk/ui-kit/components/Button";
+	import ControlRow from "@ku6epxboctuk/ui-kit/components/ControlRow";
+	import ScrollArea from "@ku6epxboctuk/ui-kit/components/ScrollArea";
+	import TextInput from "@ku6epxboctuk/ui-kit/components/TextInput";
 	import Paperclip from "~icons/lucide/paperclip";
 	import Upload from "~icons/lucide/upload";
 
@@ -109,7 +112,6 @@
 	let saving = $state(false);
 	let failure = $state<string | null>(null);
 	let invalidField = $state(false);
-	let titleInput = $state<HTMLInputElement | null>(null);
 	let formElement = $state<HTMLFormElement | null>(null);
 	let fileInput = $state<HTMLInputElement | null>(null);
 	let files = $state<File[]>([]);
@@ -140,7 +142,7 @@
 	});
 
 	$effect(() => {
-		titleInput?.focus();
+		formElement?.querySelector<HTMLInputElement>("#new-task-title")?.focus();
 	});
 
 	$effect(() => {
@@ -358,7 +360,7 @@
 	ondragleave={dragLeave}
 	ondrop={drop}
 >
-	<div class="panel-body">
+	<ScrollArea class="panel-body">
 		<ProjectScopeFields
 			value={draft}
 			{projects}
@@ -370,14 +372,14 @@
 
 		<div class="field detail-field title-field">
 			<label for="new-task-title">Title</label>
-			<div class="title-row">
-				<input
-					id="new-task-title"
-					class="field-control"
-					bind:this={titleInput}
-					bind:value={title}
-					placeholder="What needs to be done"
-				/>
+			<ControlRow>
+				<div class="title-control">
+					<TextInput
+						id="new-task-title"
+						bind:value={title}
+						placeholder="What needs to be done"
+					/>
+				</div>
 				<IconButton
 					label="Attach a file"
 					title="Attach a file"
@@ -386,7 +388,7 @@
 				>
 					<Paperclip />
 				</IconButton>
-			</div>
+			</ControlRow>
 		</div>
 
 		<TaskFields
@@ -441,7 +443,7 @@
 				</AttachmentList>
 			{/if}
 		</div>
-	</div>
+	</ScrollArea>
 
 	<div class="modal-foot">
 		<ErrorNote message={failure} />
@@ -536,25 +538,13 @@
 		color: var(--accent);
 	}
 
-	.panel-body {
-		flex: 1 1 auto;
-		min-height: 0;
-		overflow-y: auto;
-	}
-
 	.modal-foot {
 		flex: none;
 		margin: 0 calc(var(--modal-pad) * -1) calc(var(--modal-pad) * -1);
 		padding: var(--space-3) var(--modal-pad) var(--modal-pad);
 	}
 
-	.title-row {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-	}
-
-	.title-row :global(.field-control) {
+	.title-control {
 		flex: 1 1 auto;
 		min-width: 0;
 	}

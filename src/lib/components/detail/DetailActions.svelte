@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Button from "@ku6epxboctuk/ui-kit/components/Button";
+	import ControlRow from "@ku6epxboctuk/ui-kit/components/ControlRow";
 	import SingleSelect from "#lib/components/ui/select/SingleSelect.svelte";
 	import {
 		CLOSED_REASONS,
@@ -23,7 +24,7 @@
 </script>
 
 <div class="detail-actions">
-	<div class="action-group">
+	<ControlRow>
 		{#if !closed}
 			<div class="field close-reason">
 				Close reason
@@ -48,49 +49,30 @@
 		{:else}
 			<Button onclick={onreopen} disabled={saving}>Reopen</Button>
 		{/if}
-	</div>
-	<div class="action-group">
-		{#if confirming}
-			<Button onclick={() => (confirming = false)}>Cancel</Button>
-			<Button variant="danger" onclick={ondelete} disabled={saving}>
-				Confirm delete
-			</Button>
-		{:else}
-			<Button
-				variant="ghost"
-				class="danger"
-				onclick={() => (confirming = true)}
-			>
-				Delete
-			</Button>
-		{/if}
-	</div>
+		{#snippet end()}
+			{#if confirming}
+				<Button onclick={() => (confirming = false)}>Cancel</Button>
+				<Button variant="danger" onclick={ondelete} disabled={saving}>
+					Confirm delete
+				</Button>
+			{:else}
+				<Button
+					variant="ghost"
+					class="danger"
+					onclick={() => (confirming = true)}
+				>
+					Delete
+				</Button>
+			{/if}
+		{/snippet}
+	</ControlRow>
 </div>
 
 <style>
 	.detail-actions {
-		display: flex;
-		align-items: flex-end;
-		gap: var(--space-3);
 		flex: none;
 		padding: var(--space-4) var(--edge-pad) var(--edge-pad);
 		border-top: 1px solid var(--border);
-	}
-
-	.action-group {
-		display: flex;
-		align-items: flex-end;
-		gap: var(--space-2);
-		min-width: 0;
-	}
-
-	.action-group:first-child {
-		flex: 1 1 auto;
-	}
-
-	.action-group:last-child {
-		flex: none;
-		justify-content: flex-end;
 	}
 
 	.close-reason {
