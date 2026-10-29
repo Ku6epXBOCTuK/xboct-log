@@ -48,7 +48,7 @@ const newTask = strictObject({
 	project_id: z.string().min(1),
 	title: z.string().min(1),
 	description: z.string().optional(),
-	status: z.enum(STATUSES).optional(),
+	status: z.enum(STATUSES).default("backlog"),
 	priority: z.enum(PRIORITIES).optional(),
 	is_epic: z.boolean().optional(),
 	epic_id: taskIdSchema(EPIC_ID_DESCRIPTION).nullable().optional(),
@@ -264,7 +264,7 @@ export const createTask = defineCommand({
 	name: "tasks_create",
 	output: taskCreated,
 	description:
-		"Create a task. Requires project_id and title; status, priority, estimate, assignee, due_at, blocked_reason, epic, scope, tags are optional. status defaults to 'backlog'; move the task to 'open' when it is committed to be done. estimate is the size of the task: 'S', 'M' or 'L'. assignee is the person responsible for the task, due_at is its due date (YYYY-MM-DD). blocked_reason is one line of free text explaining a block outside the tracker and is only allowed when status is 'blocked'. epic_id accepts a full epic id (e.g. 'LOG-5') of the same project. scope_id is optional: a task without it sits outside the project's scopes, and scopes_create {project_id, name} adds a scope. Tags are optional too, but they come from a closed dictionary: an unknown tag is rejected with the list of existing ones, and tags_create {name} adds a genuinely new tag. source_file names the document or file the task came from; it is provenance only, it is never verified and several tasks may share it. Returns: the created task - " +
+		"Create a task. Requires project_id and title; status, priority, estimate, assignee, due_at, blocked_reason, epic, scope, tags are optional. status defaults to 'backlog', where the task waits for a later session, even if the work looks small. Pass 'open' only when you start on it right away, in this same session; 'later' from the user always means backlog. estimate is the size of the task: 'S', 'M' or 'L'. assignee is the person responsible for the task, due_at is its due date (YYYY-MM-DD). blocked_reason is one line of free text explaining a block outside the tracker and is only allowed when status is 'blocked'. epic_id accepts a full epic id (e.g. 'LOG-5') of the same project. scope_id is optional: a task without it sits outside the project's scopes, and scopes_create {project_id, name} adds a scope. Tags are optional too, but they come from a closed dictionary: an unknown tag is rejected with the list of existing ones, and tags_create {name} adds a genuinely new tag. source_file names the document or file the task came from; it is provenance only, it is never verified and several tasks may share it. Returns: the created task - " +
 		TASK_FIELDS +
 		" with a warnings array.",
 	kind: "command",
