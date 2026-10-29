@@ -20,13 +20,13 @@ describe("events", () => {
 		expect(entityOf("activity_list")).toBeNull();
 	});
 
-	it.fails("maps tag commands to the tags entity", () => {
+	it("maps tag commands to the tags entity", () => {
 		for (const name of ["tags_create", "tags_update", "tags_rename"]) {
 			expect(entityOf(name), name).toBe("tags");
 		}
 	});
 
-	it.fails("maps comment commands to the comments entity", () => {
+	it("maps comment commands to the comments entity", () => {
 		for (const name of [
 			"tasks_comments_add",
 			"tasks_comments_edit",

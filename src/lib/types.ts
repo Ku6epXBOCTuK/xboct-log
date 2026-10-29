@@ -83,6 +83,16 @@ export const ACTIVITY_ENTITIES = ["task", "project", "scope", "tag"] as const;
 
 export type ActivityEntity = (typeof ACTIVITY_ENTITIES)[number];
 
+export const ENTITIES = [
+	"tasks",
+	"projects",
+	"scopes",
+	"tags",
+	"comments",
+] as const;
+
+export type Entity = (typeof ENTITIES)[number];
+
 export type ActivitySource = "ui" | "mcp" | "cli";
 
 export type ActivityValue = string | number | boolean | string[] | null;

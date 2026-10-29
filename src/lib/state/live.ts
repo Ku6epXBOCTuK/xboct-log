@@ -1,3 +1,4 @@
+import { ENTITIES, type Entity } from "#lib/types.ts";
 import { fetchFresh } from "#lib/remote/fresh.ts";
 import { getProjects } from "#lib/remote/projects.remote.ts";
 import { getScopedProjectIds, getScopes } from "#lib/remote/scopes.remote.ts";
@@ -10,9 +11,6 @@ import type { StatsStore } from "./stats.svelte.ts";
 import type { TaskStore } from "./tasks.svelte.ts";
 
 const COALESCE_MS = 300;
-const ENTITIES = ["tasks", "projects", "scopes"] as const;
-
-type Entity = (typeof ENTITIES)[number];
 
 interface LiveStores {
 	tasks: TaskStore;
@@ -72,6 +70,20 @@ export function startLiveSync(stores: LiveStores): () => void {
 					}
 					entities.add("projects");
 					entities.add("scopes");
+				}
+				if (entities.has("tags")) {
+					try {
+						await stores.tags.refresh();
+					} catch (error) {
+						console.warn("[live] tags reload failed", error);
+					}
+				}
+				if (entities.has("comments")) {
+					try {
+						await stores.comments.refresh();
+					} catch (error) {
+						console.warn("[live] comments reload failed", error);
+					}
 				}
 				if (entities.has("projects")) {
 					const next = await fetchFresh(getProjects({ includeArchived: true }));

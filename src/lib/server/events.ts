@@ -1,6 +1,4 @@
-export const ENTITIES = ["tasks", "projects", "scopes"] as const;
-
-export type Entity = (typeof ENTITIES)[number];
+import type { Entity } from "#lib/types.ts";
 
 export interface ChangeEvent {
 	seq: number;
@@ -34,9 +32,13 @@ const ENTITY_BY_PREFIX: Record<string, Entity> = {
 	tasks: "tasks",
 	projects: "projects",
 	scopes: "scopes",
+	tags: "tags",
 	attachments: "tasks",
 };
 
 export function entityOf(opName: string): Entity | null {
+	if (opName.startsWith("tasks_comments_")) {
+		return "comments";
+	}
 	return ENTITY_BY_PREFIX[opName.split("_")[0]] ?? null;
 }

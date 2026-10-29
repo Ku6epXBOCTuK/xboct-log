@@ -170,6 +170,24 @@ describe("startLiveSync", () => {
 		expect(s.tasks.refresh).not.toHaveBeenCalled();
 	});
 
+	it("reloads tags and comments for their own events", async () => {
+		const s = stores();
+		startLiveSync(s);
+
+		connected().emit("change", { entity: "tags" });
+		await vi.advanceTimersByTimeAsync(300);
+
+		expect(s.tags.refresh).toHaveBeenCalledTimes(1);
+		expect(s.tasks.refresh).not.toHaveBeenCalled();
+		expect(s.comments.refresh).not.toHaveBeenCalled();
+
+		connected().emit("change", { entity: "comments" });
+		await vi.advanceTimersByTimeAsync(300);
+
+		expect(s.comments.refresh).toHaveBeenCalledTimes(1);
+		expect(s.tasks.refresh).not.toHaveBeenCalled();
+	});
+
 	it("ignores unknown entities and malformed payloads", async () => {
 		const s = stores();
 		startLiveSync(s);

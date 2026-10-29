@@ -69,7 +69,7 @@ describe("publishChange wiring", () => {
 		}
 	});
 
-	it.fails("publishes a tag change for every tag command", async () => {
+	it("publishes a tag change for every tag command", async () => {
 		for (const name of commands("tags_")) {
 			publishChange.mockClear();
 			await runOp(command(name), {}, "ui");
@@ -77,7 +77,7 @@ describe("publishChange wiring", () => {
 		}
 	});
 
-	it.fails("publishes comments as their own entity", async () => {
+	it("publishes comments as their own entity", async () => {
 		for (const name of commands("tasks_comments_")) {
 			publishChange.mockClear();
 			await runOp(command(name), {}, "ui");
