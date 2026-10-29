@@ -1,3 +1,4 @@
+import { CLIENT_ID } from "#lib/client/id.ts";
 import { ENTITIES, type Entity } from "#lib/types.ts";
 
 const COALESCE_MS = 300;
@@ -84,15 +85,20 @@ export function createFreshness(): Freshness {
 
 		source.addEventListener("change", (event) => {
 			const raw = (event as MessageEvent<string>).data;
-			let entity: unknown;
+			let change: { entity?: unknown; client?: unknown };
 			try {
-				entity = (JSON.parse(raw) as { entity?: unknown }).entity;
+				change = JSON.parse(raw) as typeof change;
 			} catch {
 				return;
 			}
-			if (typeof entity === "string" && ENTITIES.includes(entity as Entity)) {
-				invalidate(expand([entity as Entity]));
+			if (
+				typeof change.entity !== "string" ||
+				!ENTITIES.includes(change.entity as Entity) ||
+				change.client === CLIENT_ID
+			) {
+				return;
 			}
+			invalidate(expand([change.entity as Entity]));
 		});
 		source.addEventListener("sync", () => invalidate(expand(ENTITIES)));
 

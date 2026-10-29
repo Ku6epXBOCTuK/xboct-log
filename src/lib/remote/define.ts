@@ -1,5 +1,6 @@
-import { command, query } from "$app/server";
+import { command, getRequestEvent, query } from "$app/server";
 import { entityOf, publishChange } from "#lib/server/events.ts";
+import { CLIENT_HEADER } from "#lib/types.ts";
 import { type z, type ZodType } from "zod";
 import { Err, Ok, type Result } from "neverthrow";
 import type { AppError } from "../server/errors";
@@ -36,6 +37,18 @@ function isAppResult(value: unknown): value is Result<unknown, AppError> {
 	return value instanceof Ok || value instanceof Err;
 }
 
+// NOTE: the header is set by the client fetch wrapper and only used to tell the
+// originating tab apart; it is not authentication, so anything unexpected is
+// treated as "no client".
+function requestClient(): string | null {
+	try {
+		const value = getRequestEvent().request.headers.get(CLIENT_HEADER);
+		return value !== null && /^[A-Za-z0-9_-]{1,64}$/.test(value) ? value : null;
+	} catch {
+		return null;
+	}
+}
+
 export async function runOp(
 	op: OpDefinition,
 	input: unknown,
@@ -51,7 +64,12 @@ export async function runOp(
 	if (op.kind === "command") {
 		const entity = entityOf(op.name);
 		if (entity) {
-			publishChange(entity, op.name);
+			publishChange(
+				entity,
+				op.name,
+				source,
+				source === "ui" ? requestClient() : client,
+			);
 		}
 		const entries = op.activity?.(parsed as never, result as never);
 		if (entries) {

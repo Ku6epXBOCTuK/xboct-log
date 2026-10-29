@@ -1,4 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { CLIENT_ID } from "./id.ts";
+import { CLIENT_HEADER } from "#lib/types.ts";
 import { createRemoteFetch, installRemoteFetch } from "./remote-fetch.ts";
 
 const TIMEOUT_MS = 20;
@@ -113,6 +115,16 @@ describe("createRemoteFetch", () => {
 			fetch("/_app/remote/getTasks", { signal: controller.signal }),
 		).rejects.toMatchObject({ name: "AbortError" });
 		expect(base).toHaveBeenCalledTimes(1);
+	});
+
+	it("marks remote requests with the client id", async () => {
+		const base = vi.fn<typeof fetch>().mockResolvedValue(ok());
+		const fetch = createRemoteFetch(options(base));
+
+		await fetch("/_app/remote/getTags");
+
+		const init = base.mock.calls[0]?.[1];
+		expect(new Headers(init?.headers).get(CLIENT_HEADER)).toBe(CLIENT_ID);
 	});
 
 	it("leaves requests outside /remote/ untouched", async () => {

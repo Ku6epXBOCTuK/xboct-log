@@ -1,9 +1,11 @@
-import type { Entity } from "#lib/types.ts";
+import type { ActivitySource, Entity } from "#lib/types.ts";
 
 export interface ChangeEvent {
 	seq: number;
 	entity: Entity;
 	op: string;
+	source: ActivitySource;
+	client: string | null;
 }
 
 type Listener = (event: ChangeEvent) => void;
@@ -20,9 +22,14 @@ export function currentSeq(): number {
 	return seq;
 }
 
-export function publishChange(entity: Entity, op: string): void {
+export function publishChange(
+	entity: Entity,
+	op: string,
+	source: ActivitySource = "ui",
+	client: string | null = null,
+): void {
 	seq += 1;
-	const event: ChangeEvent = { seq, entity, op };
+	const event: ChangeEvent = { seq, entity, op, source, client };
 	for (const listener of listeners) {
 		listener(event);
 	}

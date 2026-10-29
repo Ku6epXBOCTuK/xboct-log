@@ -1,3 +1,6 @@
+import { CLIENT_HEADER } from "#lib/types.ts";
+import { CLIENT_ID } from "./id.ts";
+
 // NOTE: SvelteKit's client remote request has no timeout and no retry, so a
 // single hung query blocks every later refresh. Wrapping globalThis.fetch is
 // the only client-side hook: commands keep one attempt, queries retry.
@@ -48,8 +51,13 @@ export function createRemoteFetch(
 				: timeout;
 			const request =
 				input instanceof Request ? new Request(input, { signal }) : input;
-			const requestInit: RequestInit | undefined =
-				input instanceof Request ? init : { ...init, signal };
+			const headers = new Headers(
+				input instanceof Request ? input.headers : init?.headers,
+			);
+			if (!headers.has(CLIENT_HEADER)) {
+				headers.set(CLIENT_HEADER, CLIENT_ID);
+			}
+			const requestInit: RequestInit = { ...init, headers, signal };
 
 			try {
 				const response = await base(request, requestInit);

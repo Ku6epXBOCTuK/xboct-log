@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { CLIENT_ID } from "#lib/client/id.ts";
 import { createFreshness, type Freshness } from "./live.ts";
 
 class FakeEventSource {
@@ -160,6 +161,29 @@ describe("createFreshness", () => {
 		await vi.advanceTimersByTimeAsync(300);
 
 		expect(handlers.tags).toHaveBeenCalledTimes(1);
+		expect(handlers.tasks).toHaveBeenCalledTimes(1);
+	});
+
+	it("skips the change published by this client", async () => {
+		const fresh = createFreshness();
+		const handlers = wire(fresh);
+		fresh.start();
+
+		connected().emit("change", { entity: "tasks", client: CLIENT_ID });
+		await vi.advanceTimersByTimeAsync(300);
+
+		expect(handlers.tasks).not.toHaveBeenCalled();
+		expect(handlers.counters).not.toHaveBeenCalled();
+	});
+
+	it("applies the change published by another client", async () => {
+		const fresh = createFreshness();
+		const handlers = wire(fresh);
+		fresh.start();
+
+		connected().emit("change", { entity: "tasks", client: "another-tab" });
+		await vi.advanceTimersByTimeAsync(300);
+
 		expect(handlers.tasks).toHaveBeenCalledTimes(1);
 	});
 

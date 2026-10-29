@@ -93,6 +93,8 @@ export const ENTITIES = [
 
 export type Entity = (typeof ENTITIES)[number];
 
+export const CLIENT_HEADER = "x-xboct-client";
+
 export type ActivitySource = "ui" | "mcp" | "cli";
 
 export type ActivityValue = string | number | boolean | string[] | null;

@@ -42,6 +42,8 @@ describe("events", () => {
 			seen.push(event.seq);
 			expect(event.entity).toBe("tasks");
 			expect(event.op).toBe("tasks_close");
+			expect(event.source).toBe("ui");
+			expect(event.client).toBeNull();
 		});
 
 		const before = currentSeq();
@@ -60,5 +62,20 @@ describe("events", () => {
 		unsubscribe();
 		publishChange("projects", "projects_create");
 		expect(listener).not.toHaveBeenCalled();
+	});
+
+	it("carries the origin of the change", () => {
+		const listener = vi.fn();
+		const unsubscribe = subscribe(listener);
+
+		publishChange("tasks", "tasks_update", "mcp", "claude");
+
+		expect(listener).toHaveBeenCalledWith(
+			expect.objectContaining({
+				source: "mcp",
+				client: "claude",
+			}),
+		);
+		unsubscribe();
 	});
 });

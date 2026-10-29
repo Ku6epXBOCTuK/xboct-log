@@ -36,7 +36,23 @@ describe("publishChange wiring", () => {
 	it("publishes the entity of the command it just ran", async () => {
 		await runOp(command("tasks_update"), {}, "ui");
 
-		expect(publishChange).toHaveBeenCalledWith("tasks", "tasks_update");
+		expect(publishChange).toHaveBeenCalledWith(
+			"tasks",
+			"tasks_update",
+			"ui",
+			null,
+		);
+	});
+
+	it("passes the mcp client label as the origin", async () => {
+		await runOp(command("tasks_update"), {}, "mcp", "claude");
+
+		expect(publishChange).toHaveBeenCalledWith(
+			"tasks",
+			"tasks_update",
+			"mcp",
+			"claude",
+		);
 	});
 
 	it("does not publish for queries", async () => {
@@ -73,7 +89,12 @@ describe("publishChange wiring", () => {
 		for (const name of commands("tags_")) {
 			publishChange.mockClear();
 			await runOp(command(name), {}, "ui");
-			expect(publishChange, name).toHaveBeenCalledWith("tags", name);
+			expect(publishChange, name).toHaveBeenCalledWith(
+				"tags",
+				name,
+				"ui",
+				null,
+			);
 		}
 	});
 
@@ -81,7 +102,12 @@ describe("publishChange wiring", () => {
 		for (const name of commands("tasks_comments_")) {
 			publishChange.mockClear();
 			await runOp(command(name), {}, "ui");
-			expect(publishChange, name).toHaveBeenCalledWith("comments", name);
+			expect(publishChange, name).toHaveBeenCalledWith(
+				"comments",
+				name,
+				"ui",
+				null,
+			);
 		}
 	});
 });
