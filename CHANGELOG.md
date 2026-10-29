@@ -2,6 +2,23 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.2.0](https://github.com/Ku6epXBOCTuK/xboct-log/compare/d97d2d7d78043479a468e8e916d72a38053e827c..v0.2.0) - 2026-10-29
+#### Features
+- add source\client id - ([a177f59](https://github.com/Ku6epXBOCTuK/xboct-log/commit/a177f5932b69fbe306c28f319029704de4803a09)) - Ku6epXBOCTuK
+- upgrade remote fetch - timeout and retry - ([a362af1](https://github.com/Ku6epXBOCTuK/xboct-log/commit/a362af1b2f6b42076953184d0a8041084c37bac0)) - Ku6epXBOCTuK
+- add freshness system - ([8d5b29f](https://github.com/Ku6epXBOCTuK/xboct-log/commit/8d5b29f4947b3faa0d0da4cceb55ad8d6cd9690b)) - Ku6epXBOCTuK
+- update project task counts - ([f3beed4](https://github.com/Ku6epXBOCTuK/xboct-log/commit/f3beed469e66f3763645ed8b17ed2d7305628c6e)) - Ku6epXBOCTuK
+- add copy image button - ([a15981e](https://github.com/Ku6epXBOCTuK/xboct-log/commit/a15981e141b6b684eb04bd03ae04f204f40278b3)) - Ku6epXBOCTuK
+- add copy button for task id - ([cdecaac](https://github.com/Ku6epXBOCTuK/xboct-log/commit/cdecaacc8b956150f2cc9472b05e738bc3b92dc6)) - Ku6epXBOCTuK
+#### Bug Fixes
+- update tasks_create description - ([24f6199](https://github.com/Ku6epXBOCTuK/xboct-log/commit/24f619938cae5d6cc04c53b7fe9e7c1c7d7fa56d)) - Ku6epXBOCTuK
+- update activity and deleted pages for use new flow - ([b6b42c0](https://github.com/Ku6epXBOCTuK/xboct-log/commit/b6b42c086925dbc936180460e4015833ef2209c2)) - Ku6epXBOCTuK
+- add tags and comments in events and live state - ([c3e7502](https://github.com/Ku6epXBOCTuK/xboct-log/commit/c3e75020e5ffeb7f604c98f0ddf03d33f8460bcd)) - Ku6epXBOCTuK
+- move to new ui-kit's chip component - ([6907129](https://github.com/Ku6epXBOCTuK/xboct-log/commit/6907129611363e7ca383cc364fed2f1439acafa8)) - Ku6epXBOCTuK
+- update new task and edit task forms - ([d97d2d7](https://github.com/Ku6epXBOCTuK/xboct-log/commit/d97d2d7d78043479a468e8e916d72a38053e827c)) - Ku6epXBOCTuK
+
+- - -
+
 ## [v0.1.0](https://github.com/Ku6epXBOCTuK/xboct-log/compare/0734232a3071d6fcc79ae1685b12252176d58f48..v0.1.0) - 2026-10-29
 #### Features
 - update to ci\release\deploy - ([3cec21a](https://github.com/Ku6epXBOCTuK/xboct-log/commit/3cec21a8e2f47d5af61d5b41f2c7868cbbc6223c)) - Ku6epXBOCTuK

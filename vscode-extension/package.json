@@ -2,7 +2,7 @@
 	"name": "xboct-log",
 	"displayName": "Xboct Log",
 	"description": "Открывает борд xboct-log во вкладке редактора.",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"type": "commonjs",
 	"publisher": "xboct-log",
 	"license": "MIT",
