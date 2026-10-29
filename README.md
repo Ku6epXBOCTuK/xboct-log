@@ -210,6 +210,11 @@ install the generated `.vsix`. Settings: `xboctLog.autoStart`,
 `xboctLog.serverPath`, `xboctLog.dataDir`, `xboctLog.serverUrl`. See
 `vscode-extension/README.md`.
 
+Copying an attachment image from the webview needs the OS clipboard: the page
+cannot write an image itself, so the extension host does it, and on Windows a
+warm `powershell.exe` helper starts with the extension. Details and fallbacks
+are in `vscode-extension/README.md`.
+
 ## Notes
 
 Architecture map, non-obvious invariants, and deployment details are in

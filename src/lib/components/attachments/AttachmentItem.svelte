@@ -1,6 +1,7 @@
 <script lang="ts">
 	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
 	import Modal from "@ku6epxboctuk/ui-kit/components/Modal";
+	import CopyImageButton from "#lib/components/ui/CopyImageButton.svelte";
 	import { formatSize } from "#lib/tasks/attachments.ts";
 	import Paperclip from "~icons/lucide/paperclip";
 	import Trash2 from "~icons/lucide/trash-2";
@@ -29,6 +30,8 @@
 
 	let preview = $state<string | undefined>();
 	let viewer = $state(false);
+	let previewImage = $state<HTMLImageElement>();
+	let viewerImage = $state<HTMLImageElement>();
 
 	$effect(() => {
 		if (file === undefined || !file.type.startsWith("image/")) return;
@@ -49,6 +52,17 @@
 			window.open(href, "_blank", "noopener");
 		}
 	}
+
+	function openInBrowser() {
+		if (src === undefined || window.parent === window) return;
+		window.parent.postMessage(
+			{
+				type: "xboct-log:open-media",
+				url: new URL(src, location.href).href,
+			},
+			"*",
+		);
+	}
 </script>
 
 <li class="attachment" class:missing>
@@ -66,7 +80,12 @@
 			onclick={openItem}
 		>
 			{#if image !== undefined}
-				<img class="attachment-image" src={image} alt={name} />
+				<img
+					bind:this={previewImage}
+					class="attachment-image"
+					src={image}
+					alt={name}
+				/>
 			{:else}
 				<span class="attachment-icon"><Paperclip /></span>
 			{/if}
@@ -77,6 +96,13 @@
 		<span class="attachment-name">{name}</span>
 	{/if}
 	<span class="attachment-size">{formatSize(size)}</span>
+	{#if image !== undefined && !missing}
+		<CopyImageButton
+			image={previewImage}
+			label="Copy the image"
+			onfail={openInBrowser}
+		/>
+	{/if}
 	<IconButton
 		label="Remove the attachment"
 		title="Remove the attachment"
@@ -96,7 +122,21 @@
 		dismissable
 		onclose={() => (viewer = false)}
 	>
-		<img class="lightbox-image" src={image} alt={name} />
+		<div class="lightbox">
+			<img
+				bind:this={viewerImage}
+				class="lightbox-image"
+				src={image}
+				alt={name}
+			/>
+			<div class="lightbox-copy">
+				<CopyImageButton
+					image={viewerImage}
+					label="Copy the image"
+					onfail={openInBrowser}
+				/>
+			</div>
+		</div>
 	</Modal>
 {/if}
 
@@ -177,6 +217,21 @@
 		font-size: var(--text-xs);
 		font-variant-numeric: tabular-nums;
 		white-space: nowrap;
+	}
+
+	.lightbox {
+		position: relative;
+		display: flex;
+		justify-content: center;
+	}
+
+	.lightbox-copy {
+		position: absolute;
+		top: var(--space-2);
+		right: var(--space-2);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-sm);
+		background: var(--surface);
 	}
 
 	.lightbox-image {
