@@ -1,14 +1,15 @@
 <script lang="ts">
-	import StatusDot from "#lib/components/ui/StatusDot.svelte";
-	import { STATUS_LABELS, formatDate } from "#lib/tasks/display.ts";
-	import type { EpicProgress } from "#lib/tasks/filter.ts";
-	import { CLOSED_STATUSES, type Scope, type Task } from "#lib/types.ts";
-	import type { Snippet } from "svelte";
 	import BlockedBadge from "#lib/components/table/BlockedBadge.svelte";
 	import BlockingBadge from "#lib/components/table/BlockingBadge.svelte";
 	import EpicBadge from "#lib/components/table/EpicBadge.svelte";
 	import InfoPopover from "#lib/components/ui/InfoPopover.svelte";
+	import StatusDot from "#lib/components/ui/StatusDot.svelte";
+	import { STATUS_LABELS, formatDate } from "#lib/tasks/display.ts";
+	import type { EpicProgress } from "#lib/tasks/filter.ts";
+	import { CLOSED_STATUSES, type Scope, type Task } from "#lib/types.ts";
 	import Badge from "@ku6epxboctuk/ui-kit/components/Badge";
+	import Chip from "@ku6epxboctuk/ui-kit/components/Chip";
+	import type { Snippet } from "svelte";
 	import Paperclip from "~icons/lucide/paperclip";
 
 	interface Props {
@@ -114,9 +115,7 @@
 	>
 		<div class="tag-list">
 			{#each task.tags as tag (tag)}
-				<span class="tag">
-					#{tag}
-				</span>
+				<Chip>#{tag}</Chip>
 			{/each}
 		</div>
 	</td>
@@ -248,17 +247,6 @@
 		flex-wrap: wrap;
 		row-gap: var(--space-1);
 		overflow: hidden;
-	}
-
-	.tag {
-		border: 1px solid var(--border);
-		color: var(--text-muted);
-		border-radius: var(--radius-sm);
-		padding: 0 var(--space-2);
-		font-size: var(--text-xs);
-		line-height: 1.5;
-		white-space: nowrap;
-		flex: none;
 	}
 
 	.status-label {

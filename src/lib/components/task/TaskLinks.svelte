@@ -3,6 +3,7 @@
 	import TaskSelect from "#lib/components/ui/select/TaskSelect.svelte";
 	import type { LinkField } from "#lib/tasks/links.ts";
 	import type { Task } from "#lib/types.ts";
+	import Chip from "@ku6epxboctuk/ui-kit/components/Chip";
 
 	interface Props {
 		blockedBy: string[];
@@ -79,24 +80,14 @@
 				{:else}
 					{#each blocks as id (id)}
 						{@const hint = unavailable?.(id) ?? null}
-						{#if hint === null}
-							<button
-								type="button"
-								class="block-chip"
-								aria-label={`Open ${id}`}
-								onclick={() => onopen?.(id)}
-							>
-								{id}
-							</button>
-						{:else}
-							<span
-								class="block-chip is-unavailable"
-								title={hint}
-								aria-disabled="true"
-							>
-								{id}
-							</span>
-						{/if}
+						<Chip
+							unavailable={hint !== null}
+							hint={hint ?? undefined}
+							onopen={hint === null ? () => onopen?.(id) : undefined}
+							openLabel={`Open ${id}`}
+						>
+							{id}
+						</Chip>
 					{/each}
 				{/if}
 			</div>
@@ -186,31 +177,5 @@
 		color: var(--text-muted);
 		font-size: var(--text-md);
 		font-weight: 400;
-	}
-
-	.block-chip {
-		border: 1px solid var(--border-strong);
-		border-radius: var(--radius-sm);
-		padding: 0 var(--space-2);
-		background: var(--panel);
-		color: var(--text-secondary);
-		font-family: var(--font-mono);
-		font-size: var(--text-xs);
-		font-weight: 400;
-		line-height: 1.75;
-		cursor: pointer;
-	}
-
-	.block-chip:hover {
-		color: var(--foreground);
-		border-color: var(--accent);
-	}
-
-	.block-chip.is-unavailable,
-	.block-chip.is-unavailable:hover {
-		border-style: dashed;
-		border-color: var(--border-strong);
-		color: var(--text-muted);
-		cursor: not-allowed;
 	}
 </style>

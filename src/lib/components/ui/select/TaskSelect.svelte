@@ -1,14 +1,14 @@
 <script lang="ts">
-	import Select from "@ku6epxboctuk/ui-kit/components/Select";
-	import { createSelect } from "@ku6epxboctuk/ui-kit/headless/select";
 	import {
 		isExactTerm,
 		matchesSearch,
 		parseSearchQuery,
 	} from "#lib/tasks/search.ts";
 	import type { Task } from "#lib/types.ts";
+	import Chip from "@ku6epxboctuk/ui-kit/components/Chip";
+	import Select from "@ku6epxboctuk/ui-kit/components/Select";
+	import { createSelect } from "@ku6epxboctuk/ui-kit/headless/select";
 	import Plus from "~icons/lucide/plus";
-	import X from "~icons/lucide/x";
 
 	interface Props {
 		items: Task[];
@@ -71,30 +71,16 @@
 	<div class="ui-select-trigger task-trigger" role="presentation">
 		{#each value as id (id)}
 			{@const hint = unavailable?.(id) ?? null}
-			<span class="task-chip" class:is-unavailable={hint !== null}>
-				{#if onopen && hint === null}
-					<button
-						type="button"
-						class="task-chip-open"
-						aria-label={`Open ${id}`}
-						onclick={() => onopen(id)}
-					>
-						{id}
-					</button>
-				{:else}
-					<span title={hint ?? undefined} aria-disabled={hint !== null}>
-						{id}
-					</span>
-				{/if}
-				<button
-					type="button"
-					class="task-chip-remove"
-					aria-label={`Remove ${id}`}
-					onclick={() => onremove(id)}
-				>
-					<X />
-				</button>
-			</span>
+			<Chip
+				unavailable={hint !== null}
+				hint={hint ?? undefined}
+				onopen={hint === null && onopen ? () => onopen(id) : undefined}
+				openLabel={`Open ${id}`}
+				removeLabel={`Remove ${id}`}
+				onremove={() => onremove(id)}
+			>
+				{id}
+			</Chip>
 		{/each}
 		<button
 			type="button"
@@ -133,57 +119,6 @@
 		gap: var(--space-1);
 		padding: var(--space-1) var(--space-2);
 		cursor: default;
-	}
-
-	.task-chip {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--space-1);
-		padding: 0 var(--space-1) 0 var(--space-2);
-		border: 1px solid var(--border-strong);
-		border-radius: var(--radius-sm);
-		background: var(--panel);
-		color: var(--text-secondary);
-		font-family: var(--font-mono);
-		font-size: var(--text-xs);
-		line-height: 1.75;
-	}
-
-	.task-chip.is-unavailable {
-		border-style: dashed;
-		color: var(--text-muted);
-	}
-
-	.task-chip.is-unavailable [aria-disabled="true"] {
-		cursor: not-allowed;
-	}
-
-	.task-chip-open {
-		border: 0;
-		padding: 0;
-		background: transparent;
-		color: inherit;
-		font: inherit;
-		cursor: pointer;
-	}
-
-	.task-chip-open:hover {
-		color: var(--foreground);
-		text-decoration: underline;
-	}
-
-	.task-chip-remove {
-		display: inline-flex;
-		color: var(--text-muted);
-	}
-
-	.task-chip-remove:hover {
-		color: var(--foreground);
-	}
-
-	.task-chip-remove :global(svg) {
-		width: 0.75rem;
-		height: 0.75rem;
 	}
 
 	.task-add {
