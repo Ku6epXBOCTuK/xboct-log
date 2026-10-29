@@ -21,6 +21,7 @@
 	],
 	"scripts": {
 		"deploy": "powershell -ExecutionPolicy Bypass -File scripts/deploy.ps1",
+		"deploy:origin": "powershell -ExecutionPolicy Bypass -File scripts/deploy.ps1 -Origin",
 		"start": "node bin/xboct-log.mjs",
 		"dev": "node scripts/dev.mjs",
 		"dev:vite": "vite dev",

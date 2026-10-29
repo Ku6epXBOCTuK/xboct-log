@@ -1,3 +1,7 @@
+param(
+	[switch]$Origin
+)
+
 $ErrorActionPreference = "Stop"
 
 $Repo     = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
@@ -12,18 +16,24 @@ $StartDir = (Get-Location).Path
 $EnvFile = Join-Path $BuildWt ".env"
 if (-not (Test-Path $EnvFile)) { throw "missing $EnvFile" }
 
-git -C $Repo fetch origin
+if ($Origin) {
+	git -C $Repo fetch origin
+	$Head = (git -C $Repo rev-parse origin/main).Trim()
+}
+else {
+	$Head = (git -C $Repo rev-parse HEAD).Trim()
+}
 
 $ready = $false
 if (Test-Path (Join-Path $BuildWt ".git")) {
-	git -C $BuildWt reset --hard origin/main 2>$null
+	git -C $BuildWt reset --hard $Head 2>$null
 	$ready = $LASTEXITCODE -eq 0
 }
 if (-not $ready) {
 	git -C $Repo worktree prune 2>$null
 	if (Test-Path $BuildWt) { Remove-Item $BuildWt -Recurse -Force -ErrorAction SilentlyContinue }
 	New-Item -ItemType Directory -Force (Split-Path $BuildWt -Parent) | Out-Null
-	git -C $Repo worktree add --detach $BuildWt origin/main
+	git -C $Repo worktree add --detach $BuildWt $Head
 }
 
 # NOTE: the build links the live ui-kit folder instead of a checkout, so

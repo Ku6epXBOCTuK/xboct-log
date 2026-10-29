@@ -180,7 +180,7 @@ cannot restore anything: it only reports which snapshots exist.
 | `pnpm start`       | Run the built app through the launcher             |
 | `pnpm package:win` | Build the Windows zip (add `-Installer` for setup) |
 | `pnpm preview`     | Preview the production build                       |
-| `pnpm run deploy`  | Build and deploy to the `xboct-log` service        |
+| `pnpm run deploy`  | Build and deploy the local `HEAD` to the service   |
 | `pnpm build:ext`   | Compile and package the VS Code extension          |
 | `pnpm check`       | Type-check with `svelte-check`                     |
 | `pnpm lint`        | Prettier check and ESLint                          |
