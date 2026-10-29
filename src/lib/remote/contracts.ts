@@ -64,12 +64,40 @@ export const tagRecord = z.looseObject({
 });
 
 export const backupRef = z.looseObject({
-	kind: z.string(),
+	kind: z.enum(["auto", "daily", "weekly", "manual"]),
 	name: z.string(),
 	path: z.string(),
 	size: z.number().int(),
 	mtime: z.string(),
 });
+
+export const snapshotInfo = z.looseObject({
+	projects: z.number().int(),
+	tasks: z.number().int(),
+});
+
+export const restoreOutcome = z.looseObject({
+	snapshot: snapshotInfo,
+	safetyPath: z.string(),
+});
+
+export interface BackupItem {
+	kind: "auto" | "daily" | "weekly" | "manual";
+	name: string;
+	path: string;
+	size: number;
+	mtime: string;
+}
+
+export interface SnapshotInfo {
+	projects: number;
+	tasks: number;
+}
+
+export interface RestoreOutcome {
+	snapshot: SnapshotInfo;
+	safetyPath: string;
+}
 
 export const taskCreated = z.looseObject({
 	...taskRef.shape,

@@ -9,6 +9,7 @@ export interface OpDefinition {
 	kind: OpKind;
 	input: ZodType;
 	output?: ZodType;
+	mcp?: boolean;
 	// NOTE: `never` as parameter type makes every concrete handler assignable
 	// (contravariance), while call sites cast their parsed input with `as never`.
 	handler: (input: never) => unknown;
@@ -28,4 +29,10 @@ export function registerOp(op: OpDefinition): void {
 
 export function getOps(): ReadonlyMap<string, OpDefinition> {
 	return ops;
+}
+
+// NOTE: an op that destroys or rewrites the whole database is not offered to
+// the AI: it stays reachable from the UI only.
+export function mcpOps(): OpDefinition[] {
+	return [...ops.values()].filter((op) => op.mcp !== false);
 }

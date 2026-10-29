@@ -1,6 +1,7 @@
 import "./activity.remote";
 import "./attachments.remote";
 import "./backup.remote";
+import "./backups.remote";
 import "./blockers.remote";
 import "./links.remote";
 import "./comments.remote";
@@ -10,4 +11,4 @@ import "./scopes.remote";
 import "./tasks.remote";
 import "./tags.remote";
 
-export { getOps } from "./registry";
+export { getOps, mcpOps } from "./registry";

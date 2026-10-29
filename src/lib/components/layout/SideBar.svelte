@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from "$app/state";
 	import ProjectSection from "#lib/components/projects/ProjectSection.svelte";
 	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
 	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
@@ -41,6 +42,8 @@
 	}: Props = $props();
 
 	let navOpen = $state(false);
+
+	const onBackups = $derived(page.url.pathname === "/backups");
 </script>
 
 <aside class="sidebar" class:rail={collapsed}>
@@ -85,17 +88,19 @@
 		inProgressCount={stats.inProgress}
 		onlyActive={!navOpen}
 	/>
-	<div class="sidebar-scroll">
-		<ProjectSection
-			{projects}
-			{scopes}
-			{tasks}
-			{stats}
-			{activeProject}
-			{selectionProjectId}
-			onselect={onprojectselect ?? (() => {})}
-		/>
-	</div>
+	{#if !onBackups}
+		<div class="sidebar-scroll">
+			<ProjectSection
+				{projects}
+				{scopes}
+				{tasks}
+				{stats}
+				{activeProject}
+				{selectionProjectId}
+				onselect={onprojectselect ?? (() => {})}
+			/>
+		</div>
+	{/if}
 	<BackupControl />
 </aside>
 

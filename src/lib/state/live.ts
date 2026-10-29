@@ -1,4 +1,5 @@
 import { CLIENT_ID } from "#lib/client/id.ts";
+import { reloadApp } from "#lib/reload.ts";
 import { ENTITIES, type Entity } from "#lib/types.ts";
 
 const COALESCE_MS = 300;
@@ -101,6 +102,7 @@ export function createFreshness(): Freshness {
 			invalidate(expand([change.entity as Entity]));
 		});
 		source.addEventListener("sync", () => invalidate(expand(ENTITIES)));
+		source.addEventListener("reset", () => reloadApp());
 
 		function handleVisibility(): void {
 			if (document.visibilityState === "visible") {

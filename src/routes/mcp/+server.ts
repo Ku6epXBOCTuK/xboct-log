@@ -6,7 +6,7 @@ import { prettifyError, z, ZodError } from "zod";
 import { clientLabel } from "#lib/mcp/client-label.ts";
 import { attachmentRef } from "#lib/remote/contracts.ts";
 import { runOp } from "#lib/remote/define.ts";
-import { getOps } from "#lib/remote/index.ts";
+import { mcpOps } from "#lib/remote/index.ts";
 import { strictObject } from "#lib/remote/strict.ts";
 import {
 	listAllAttachments,
@@ -38,7 +38,7 @@ function errorPayload(error: unknown): ToolError {
 }
 
 function registerTools(server: McpServer): void {
-	for (const op of getOps().values()) {
+	for (const op of mcpOps()) {
 		server.registerTool(
 			op.name,
 			{
@@ -226,7 +226,8 @@ const handler = createMcpHandler(registerTools, {
 		"factual, no dumps and no volatile details. " +
 		"backup_create makes a manual database backup, " +
 		"backup_list shows the existing snapshots. Restoring a backup is " +
-		"not part of these tools: ask the user to restore it themselves. " +
+		"not part of these tools: the user restores a snapshot on the " +
+		"Backups page of the UI, tell them which one. " +
 		"Check isError before reading the payload: a failed call explains " +
 		"the cause in the text, and errors raised by the tool itself also " +
 		"carry structuredContent.error = { kind, message }. " +

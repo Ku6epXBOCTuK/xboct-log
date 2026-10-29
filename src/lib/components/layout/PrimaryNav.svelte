@@ -5,6 +5,7 @@
 	import ArchiveRestore from "~icons/lucide/archive-restore";
 	import BarChart3 from "~icons/lucide/bar-chart-3";
 	import ClipBoardList from "~icons/lucide/clipboard-list";
+	import DatabaseBackup from "~icons/lucide/database-backup";
 	import FolderKanban from "~icons/lucide/folder-kanban";
 
 	interface Props {
@@ -19,6 +20,7 @@
 	const onKanban = $derived(page.url.pathname === "/kanban");
 	const onActivity = $derived(page.url.pathname === "/activity");
 	const onDeleted = $derived(page.url.pathname === "/deleted");
+	const onBackups = $derived(page.url.pathname === "/backups");
 </script>
 
 <nav
@@ -39,6 +41,9 @@
 	</a>
 	<a class="nav-item" class:active={onDeleted} href={resolve("/deleted")}>
 		<ArchiveRestore /> Deleted
+	</a>
+	<a class="nav-item" class:active={onBackups} href={resolve("/backups")}>
+		<DatabaseBackup /> Backups
 	</a>
 	<button class="nav-item">
 		<BarChart3 /> Statistics

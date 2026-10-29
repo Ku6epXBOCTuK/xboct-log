@@ -21,7 +21,7 @@ export const listBackupFiles = defineQuery({
 	name: "backup_list",
 	output: backupList,
 	description:
-		"List the existing database backups: the auto snapshots taken before MCP writes, the daily and weekly copies and the manual ones. Returns: {items} newest first, each item is { kind, name, path, size, mtime }. Restoring is not available here: if a restore is needed, tell the user which snapshot to restore and let them do it themselves.",
+		"List the existing database backups: the auto snapshots taken before MCP writes, the daily and weekly copies and the manual ones. Returns: {items} newest first, each item is { kind, name, path, size, mtime }. Restoring is not available here: the user picks the snapshot on the Backups page of the UI, so name the file they should restore.",
 	kind: "query",
 	input: strictObject({}),
 	handler: () => ({ items: listBackups(backupConfig()) }),

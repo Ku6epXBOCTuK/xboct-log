@@ -21,6 +21,7 @@ export interface OpSpec<TSchema extends ZodType = ZodType, TResult = unknown> {
 	kind: OpKind;
 	input: TSchema;
 	output?: ZodType;
+	mcp?: boolean;
 	handler: (
 		input: z.infer<TSchema>,
 	) =>

@@ -12,10 +12,22 @@ type Listener = (event: ChangeEvent) => void;
 
 let seq = 0;
 const listeners = new Set<Listener>();
+const resetListeners = new Set<() => void>();
 
 export function subscribe(listener: Listener): () => void {
 	listeners.add(listener);
 	return () => listeners.delete(listener);
+}
+
+export function subscribeReset(listener: () => void): () => void {
+	resetListeners.add(listener);
+	return () => resetListeners.delete(listener);
+}
+
+export function publishReset(): void {
+	for (const listener of resetListeners) {
+		listener();
+	}
 }
 
 export function currentSeq(): number {

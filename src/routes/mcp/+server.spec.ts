@@ -9,7 +9,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { taskSchema } from "#lib/entities.ts";
-import { getOps } from "#lib/remote/index.ts";
+import { mcpOps } from "#lib/remote/index.ts";
 import { searchActivity } from "#lib/server/activity.ts";
 import { resetAutoBackupState } from "#lib/server/auto-backup.ts";
 import { backupConfig } from "#lib/server/backup.ts";
@@ -108,7 +108,7 @@ describe("/mcp endpoint", () => {
 		const body = await rpc("tools/list", {});
 		expect(body.error).toBeUndefined();
 		expect(body.result?.tools?.map((tool) => tool.name).sort()).toEqual(
-			[...getOps().keys(), "attachments_read"].sort(),
+			[...mcpOps().map((op) => op.name), "attachments_read"].sort(),
 		);
 		for (const tool of body.result?.tools ?? []) {
 			expect(
@@ -720,9 +720,14 @@ describe("output contracts", () => {
 			}),
 		};
 
-		expect(Object.keys(fixtures).sort()).toEqual([...getOps().keys()].sort());
+		expect(Object.keys(fixtures).sort()).toEqual(
+			mcpOps()
+				.map((op) => op.name)
+				.sort(),
+		);
 
-		for (const [name, op] of getOps()) {
+		for (const op of mcpOps()) {
+			const name = op.name;
 			const structured = await call(name, await fixtures[name]());
 			const parsed = op.output!.safeParse(structured);
 			expect(

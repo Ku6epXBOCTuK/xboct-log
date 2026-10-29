@@ -1,4 +1,9 @@
-import { currentSeq, subscribe, type ChangeEvent } from "#lib/server/events.ts";
+import {
+	currentSeq,
+	subscribe,
+	subscribeReset,
+	type ChangeEvent,
+} from "#lib/server/events.ts";
 import type { RequestEvent } from "@sveltejs/kit";
 
 const HEARTBEAT_MS = 15_000;
@@ -31,6 +36,7 @@ export function GET({ request }: RequestEvent): Response {
 			const unsubscribe = subscribe((change: ChangeEvent) =>
 				send("change", change),
 			);
+			const unsubscribeReset = subscribeReset(() => send("reset", {}));
 			const heartbeat = setInterval(
 				() => push(new TextEncoder().encode(": ping\n\n")),
 				HEARTBEAT_MS,
@@ -40,6 +46,7 @@ export function GET({ request }: RequestEvent): Response {
 				closed = true;
 				clearInterval(heartbeat);
 				unsubscribe();
+				unsubscribeReset();
 			};
 
 			request.signal.addEventListener("abort", () => {
