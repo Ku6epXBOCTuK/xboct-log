@@ -11,6 +11,31 @@ describe("events", () => {
 		expect(entityOf("unknown_thing")).toBeNull();
 	});
 
+	it("maps every known prefix and leaves the rest alone", () => {
+		expect(entityOf("tasks_create_many")).toBe("tasks");
+		expect(entityOf("tasks_add_blocker")).toBe("tasks");
+		expect(entityOf("projects_create")).toBe("projects");
+		expect(entityOf("scopes_project_ids")).toBe("scopes");
+		expect(entityOf("backup_create")).toBeNull();
+		expect(entityOf("activity_list")).toBeNull();
+	});
+
+	it.fails("maps tag commands to the tags entity", () => {
+		for (const name of ["tags_create", "tags_update", "tags_rename"]) {
+			expect(entityOf(name), name).toBe("tags");
+		}
+	});
+
+	it.fails("maps comment commands to the comments entity", () => {
+		for (const name of [
+			"tasks_comments_add",
+			"tasks_comments_edit",
+			"tasks_comments_delete",
+		]) {
+			expect(entityOf(name), name).toBe("comments");
+		}
+	});
+
 	it("delivers changes to subscribers with an increasing seq", () => {
 		const seen: number[] = [];
 		const unsubscribe = subscribe((event) => {
