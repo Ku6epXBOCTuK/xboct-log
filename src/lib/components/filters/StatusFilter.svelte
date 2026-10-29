@@ -49,11 +49,16 @@
 		flex: none;
 	}
 
-	.filter-group .closed-chip.on,
-	.filter-group .closed-chip.on:hover {
+	.filter-group .closed-chip.on {
 		border-style: dashed;
 		border-color: var(--border);
 		background: transparent;
 		color: var(--text-muted);
+	}
+
+	.filter-group .closed-chip.on:hover {
+		border-color: var(--border-strong);
+		background: var(--hover);
+		color: var(--text-secondary);
 	}
 </style>
