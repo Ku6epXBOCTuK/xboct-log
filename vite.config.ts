@@ -65,6 +65,10 @@ export default defineConfig(({ mode }) => {
 			},
 		},
 		test: {
+			// NOTE: the shuffled order catches tests that only pass because a
+			// previous one left rows, files or env behind; the seed makes a
+			// failing run reproducible.
+			sequence: { shuffle: true, seed: 1234 },
 			expect: { requireAssertions: true },
 			projects: [
 				{

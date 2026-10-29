@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "../server/db";
 import { migrateDatabase } from "../server/migrations";
 import { createProject } from "../server/projects";
@@ -12,7 +12,7 @@ import type { Task } from "../types";
 
 let dbDir: string;
 
-beforeAll(async () => {
+beforeEach(async () => {
 	dbDir = mkdtempSync(join(tmpdir(), "xboct-log-blockers-"));
 	const db = getDb(join(dbDir, "blockers.db"));
 	await migrateDatabase(db);
@@ -24,7 +24,7 @@ beforeAll(async () => {
 	createTask(db, { project_id: "bil", title: "Blocked" });
 });
 
-afterAll(() => {
+afterEach(() => {
 	closeDb();
 	rmSync(dbDir, { recursive: true, force: true });
 });
@@ -67,6 +67,11 @@ describe("blocker tools", () => {
 	});
 
 	it("filters tasks by blocker and by blocked task", async () => {
+		await callTask("tasks_add_blocker", {
+			task_id: "SPA-2",
+			blocked_by: "SPA-1",
+		});
+
 		const byBlocker = await callList({ blocked_by: "SPA-1" });
 		expect(byBlocker.items.map((task) => task.id)).toEqual(["SPA-2"]);
 		expect(byBlocker.total).toBe(1);
@@ -86,6 +91,10 @@ describe("blocker tools", () => {
 	});
 
 	it("removes the link and releases the blocked status", async () => {
+		await callTask("tasks_add_blocker", {
+			task_id: "SPA-2",
+			blocked_by: "SPA-1",
+		});
 		await call("tasks_update", {
 			task_id: "SPA-2",
 			patch: { status: "blocked" },

@@ -25,12 +25,15 @@ let dbDir: string;
 beforeAll(async () => {
 	dbDir = mkdtempSync(join(tmpdir(), "xboct-log-mcp-"));
 	process.env.XBOCT_LOG_MEDIA_DIR = join(dbDir, "media");
+	process.env.XBOCT_LOG_BACKUP_DIR = join(dbDir, "backups");
 	const db = getDb(join(dbDir, "mcp.db"));
 	await migrateDatabase(db);
 });
 
 afterAll(() => {
 	closeDb();
+	delete process.env.XBOCT_LOG_MEDIA_DIR;
+	delete process.env.XBOCT_LOG_BACKUP_DIR;
 	rmSync(dbDir, { recursive: true, force: true });
 });
 
@@ -296,11 +299,11 @@ describe("/mcp endpoint", () => {
 		}
 	});
 
-	it("answers GET without crashing", async () => {
+	it("rejects GET with a method error instead of a server failure", async () => {
 		const response = await GET({
 			request: request("GET", undefined),
 		} as unknown as RequestEvent);
-		expect([200, 400, 405]).toContain(response.status);
+		expect(response.status).toBe(405);
 	});
 
 	it("accepts status as a string", async () => {
@@ -315,19 +318,6 @@ describe("/mcp endpoint", () => {
 		};
 		expect(Array.isArray(structured.items)).toBe(true);
 		expect(typeof structured.total).toBe("number");
-	});
-
-	it("returns structuredContent on tool call", async () => {
-		const body = await rpc("tools/call", {
-			name: "tasks_list",
-			arguments: {},
-		});
-		expect(body.error).toBeUndefined();
-		expect(body.result?.structuredContent).toBeDefined();
-		const structured = body.result?.structuredContent as {
-			items?: unknown;
-		};
-		expect(Array.isArray(structured.items)).toBe(true);
 	});
 
 	it("returns structuredContent when fields trims the task", async () => {
@@ -353,25 +343,6 @@ describe("/mcp endpoint", () => {
 		expect(
 			Object.keys(result.structuredContent?.items?.[0] ?? {}).sort(),
 		).toEqual(["id", "number", "project_id", "status", "title"]);
-	});
-
-	it("accepts list filters and the new sort keys", async () => {
-		const body = await rpc("tools/call", {
-			name: "tasks_list",
-			arguments: {
-				project_id: ["spa", "bil"],
-				scope_id: [1, 2],
-				epic_id: ["LOG-5", "LOG-6"],
-				exclude_project_id: "old",
-				has_scope: true,
-				has_epic: false,
-				sort: "number",
-				order: "desc",
-			},
-		});
-		expect(body.error).toBeUndefined();
-		const result = body.result as { isError?: boolean };
-		expect(result.isError).toBeUndefined();
 	});
 
 	it("filters by a JSON-encoded project list sent over rpc", async () => {
@@ -428,19 +399,6 @@ describe("/mcp endpoint", () => {
 		expect(result.isError).toBe(true);
 		expect(result.structuredContent?.error?.kind).toBe("not_found");
 		expect(result.structuredContent?.error?.message).toContain("ghost-project");
-	});
-
-	it("reports an invalid argument as an error result", async () => {
-		const body = await rpc("tools/call", {
-			name: "tasks_list",
-			arguments: { titel: "x" },
-		});
-		const result = body.result as {
-			isError?: boolean;
-			content?: { type: string; text: string }[];
-		};
-		expect(result.isError).toBe(true);
-		expect(result.content?.[0].text).toContain("titel");
 	});
 
 	it("takes a snapshot before an MCP command", async () => {

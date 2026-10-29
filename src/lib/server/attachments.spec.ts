@@ -19,8 +19,14 @@ import { createProject } from "./projects";
 import { createTask } from "./tasks";
 
 const folders: string[] = [];
+const savedMediaDir = process.env.XBOCT_LOG_MEDIA_DIR;
 
 afterEach(() => {
+	if (savedMediaDir === undefined) {
+		delete process.env.XBOCT_LOG_MEDIA_DIR;
+	} else {
+		process.env.XBOCT_LOG_MEDIA_DIR = savedMediaDir;
+	}
 	while (folders.length > 0) {
 		const folder = folders.pop();
 		if (folder) rmSync(folder, { recursive: true, force: true });

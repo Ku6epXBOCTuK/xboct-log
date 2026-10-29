@@ -87,7 +87,7 @@ async function seed(): Promise<DatabaseSync> {
 	return db;
 }
 
-describe("volume smoke", () => {
+describe("listing at volume", () => {
 	let db: DatabaseSync;
 	let counts: Record<string, number>;
 	let active: number;

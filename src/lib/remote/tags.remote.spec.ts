@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "../server/db";
 import { migrateDatabase } from "../server/migrations";
 import { createProject } from "../server/projects";
@@ -11,7 +11,7 @@ import { getOps } from "./index.js";
 
 let dbDir: string;
 
-beforeAll(async () => {
+beforeEach(async () => {
 	dbDir = mkdtempSync(join(tmpdir(), "xboct-log-tags-"));
 	const db = getDb(join(dbDir, "tags.db"));
 	await migrateDatabase(db);
@@ -36,7 +36,7 @@ beforeAll(async () => {
 	expect(other.isOk()).toBe(true);
 });
 
-afterAll(() => {
+afterEach(() => {
 	closeDb();
 	rmSync(dbDir, { recursive: true, force: true });
 });
