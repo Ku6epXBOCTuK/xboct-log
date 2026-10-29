@@ -197,7 +197,7 @@
 	}
 
 	.id-col {
-		width: 88px;
+		width: 120px;
 		padding-left: var(--edge-pad);
 	}
 

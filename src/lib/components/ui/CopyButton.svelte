@@ -9,9 +9,11 @@
 		text: string;
 		label: string;
 		title?: string;
+		size?: "sm" | "md" | "lg";
+		onclick?: (event: MouseEvent) => void;
 	}
 
-	let { text, label, title }: Props = $props();
+	let { text, label, title, size, onclick }: Props = $props();
 
 	let phase = $state<"idle" | "done" | "error">("idle");
 	let timer: ReturnType<typeof setTimeout> | undefined;
@@ -26,7 +28,15 @@
 	}
 </script>
 
-<IconButton {label} title={title ?? label} onclick={run}>
+<IconButton
+	{label}
+	title={title ?? label}
+	{size}
+	onclick={(event) => {
+		onclick?.(event);
+		void run();
+	}}
+>
 	{#if phase === "done"}
 		<CircleCheck />
 	{:else if phase === "error"}

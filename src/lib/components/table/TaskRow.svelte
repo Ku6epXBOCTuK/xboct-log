@@ -2,6 +2,7 @@
 	import BlockedBadge from "#lib/components/table/BlockedBadge.svelte";
 	import BlockingBadge from "#lib/components/table/BlockingBadge.svelte";
 	import EpicBadge from "#lib/components/table/EpicBadge.svelte";
+	import CopyButton from "#lib/components/ui/CopyButton.svelte";
 	import InfoPopover from "#lib/components/ui/InfoPopover.svelte";
 	import StatusDot from "#lib/components/ui/StatusDot.svelte";
 	import { STATUS_LABELS, formatDate } from "#lib/tasks/display.ts";
@@ -64,7 +65,17 @@
 	data-task-id={task.id}
 	aria-current={isselected ? "true" : undefined}
 >
-	<td class="task-id">{task.id}</td>
+	<td class="task-id">
+		<div class="task-id-inner">
+			<span class="task-id-text">{task.id}</span>
+			<CopyButton
+				text={task.id}
+				label="Copy task id"
+				size="sm"
+				onclick={(event) => event.stopPropagation()}
+			/>
+		</div>
+	</td>
 	{#if showProject}
 		<td class="project-label optional-column">{projectName}</td>
 	{/if}
@@ -189,6 +200,24 @@
 		font-variant-numeric: tabular-nums;
 		white-space: nowrap;
 		overflow: hidden;
+	}
+
+	.task-id-inner {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--space-2);
+		min-width: 0;
+	}
+
+	.task-id-text {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.task-id :global(.ui-icon-button) {
+		flex: 0 0 auto;
 	}
 
 	.task-title {
