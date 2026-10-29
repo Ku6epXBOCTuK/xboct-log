@@ -1,5 +1,4 @@
 <script lang="ts">
-	import BlockingFields from "#lib/components/task/BlockingFields.svelte";
 	import AdvancedFields from "#lib/components/task/AdvancedFields.svelte";
 	import TaskLinks from "#lib/components/task/TaskLinks.svelte";
 	import DetailActions from "#lib/components/detail/DetailActions.svelte";
@@ -12,6 +11,7 @@
 	import TaskFields from "#lib/components/task/TaskFields.svelte";
 	import { fieldNavigation } from "#lib/hotkeys/fields.ts";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
+	import SectionDivider from "#lib/components/ui/SectionDivider.svelte";
 	import CopyButton from "#lib/components/ui/CopyButton.svelte";
 	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
 	import StatusDot from "#lib/components/ui/StatusDot.svelte";
@@ -22,11 +22,16 @@
 	import type { TagStore } from "#lib/state/tags.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
 	import type { UiStore } from "#lib/state/ui.svelte.ts";
-	import AdvancedToggle from "#lib/components/task/AdvancedToggle.svelte";
-	import { STATUS_LABELS, formatDate, messageOf } from "#lib/tasks/display.ts";
+	import {
+		CLOSED_REASON_LABELS,
+		STATUS_LABELS,
+		formatDateTime,
+		messageOf,
+	} from "#lib/tasks/display.ts";
 	import { blockingCandidates, blockingIds } from "#lib/tasks/blocking.ts";
 	import { taskText } from "#lib/tasks/clipboard.ts";
 	import { advancedFilledCount } from "#lib/tasks/fields.ts";
+	import type { LinkField } from "#lib/tasks/links.ts";
 	import {
 		siblingEpics,
 		validateTaskDraft,
@@ -34,9 +39,7 @@
 	} from "#lib/tasks/fields.ts";
 	import { CLOSED_STATUSES } from "#lib/types.ts";
 	import type { ClosedReason, Status, Task } from "#lib/types.ts";
-	import { fetchFresh } from "#lib/remote/fresh.ts";
-	import { getTaskOptions } from "#lib/remote/options.remote.ts";
-	import { createDebouncedValue } from "#lib/state/debounce.svelte.ts";
+	import { createTaskFinder } from "#lib/state/task-finder.svelte.ts";
 	import { cubicOut } from "svelte/easing";
 	import Clock3 from "~icons/lucide/clock-3";
 	import MessageSquare from "~icons/lucide/message-square";
@@ -92,32 +95,21 @@
 		await tags.create(name);
 	}
 
-	const search = createDebouncedValue("");
-	let found = $state<Task[]>([]);
-	let searchRequest = 0;
+	const finder = createTaskFinder();
+	const searchTasks = finder.search;
 
-	function searchTasks(query: string) {
-		search.set(query);
+	const canMarkBlocked = $derived(
+		selected !== null &&
+			(selected.blocked_by ?? []).length > 0 &&
+			selected.status !== "blocked" &&
+			selected.status !== "done",
+	);
+
+	function stamp(task: Task): string {
+		return task.closed_at != null
+			? formatDateTime(task.closed_at)
+			: formatDateTime(task.updated_at);
 	}
-
-	$effect(() => {
-		const text = search.applied.trim();
-		if (text === "") {
-			found = [];
-			return;
-		}
-		const current = ++searchRequest;
-		void fetchFresh(getTaskOptions({ q: text }))
-			.then((page) => {
-				if (current !== searchRequest) return;
-				found = page.items;
-			})
-			.catch(() => {
-				if (current === searchRequest) found = [];
-			});
-	});
-
-	$effect(() => () => search.cancel());
 
 	function append(base: Task[], extra: Task[]): Task[] {
 		const ids = new Set(base.map((task) => task.id));
@@ -139,7 +131,7 @@
 			? []
 			: append(
 					blockingCandidates(projectData?.tasks ?? [], selected),
-					blockingCandidates(found, selected),
+					blockingCandidates(finder.found, selected),
 				),
 	);
 	let linkCandidates = $derived(
@@ -147,7 +139,7 @@
 			? []
 			: append(
 					(projectData?.tasks ?? []).filter(isLinkCandidate),
-					found.filter(isLinkCandidate),
+					finder.found.filter(isLinkCandidate),
 				),
 	);
 
@@ -263,24 +255,17 @@
 		save({ status });
 	}
 
-	function addBlocker(blockerId: string) {
+	function addLinkField(field: LinkField, id: string) {
 		const current = selected;
 		if (current === null) return;
-		void perform(() => tasks.addBlocker(current.id, blockerId));
-	}
-
-	function removeBlocker(blockerId: string) {
-		const current = selected;
-		if (current === null) return;
-		void perform(() => tasks.removeBlocker(current.id, blockerId));
-	}
-
-	function addLinkField(
-		field: "relates_to" | "duplicates" | "duplicated_by",
-		id: string,
-	) {
-		const current = selected;
-		if (current === null) return;
+		if (field === "blocked_by") {
+			void perform(() => tasks.addBlocker(current.id, id));
+			return;
+		}
+		if (field === "blocks") {
+			void perform(() => tasks.addBlocker(id, current.id));
+			return;
+		}
 		if (field === "duplicated_by") {
 			void perform(() => tasks.addLink(id, "duplicates", current.id));
 			return;
@@ -288,12 +273,17 @@
 		void perform(() => tasks.addLink(current.id, field, id));
 	}
 
-	function removeLinkField(
-		field: "relates_to" | "duplicates" | "duplicated_by",
-		id: string,
-	) {
+	function removeLinkField(field: LinkField, id: string) {
 		const current = selected;
 		if (current === null) return;
+		if (field === "blocked_by") {
+			void perform(() => tasks.removeBlocker(current.id, id));
+			return;
+		}
+		if (field === "blocks") {
+			void perform(() => tasks.removeBlocker(id, current.id));
+			return;
+		}
 		if (field === "duplicated_by") {
 			void perform(() => tasks.removeLink(id, "duplicates", current.id));
 			return;
@@ -405,12 +395,13 @@
 					<span class="epic-badge">{selected.id}</span>
 					<StatusDot status={selected.status} />
 					<span>{STATUS_LABELS[selected.status]}</span>
+					{#if selected.closed_reason !== null}
+						<span class="muted">
+							{CLOSED_REASON_LABELS[selected.closed_reason]}
+						</span>
+					{/if}
 					<span class="muted">
-						{saving
-							? "saving…"
-							: selected.updated_at == null
-								? ""
-								: `updated ${formatDate(selected.updated_at)}`}
+						{saving ? "saving…" : stamp(selected)}
 					</span>
 				</div>
 				<div class="detail-actions">
@@ -470,54 +461,45 @@
 				{tagCounts}
 				{onunknowntag}
 				editing
+				status={selected.status}
+				onstatus={setStatus}
+				blockedReason={selected.blocked_reason ?? ""}
+				onblockedreason={(reason) => save({ blocked_reason: reason })}
 				onfield={save}
 				oncreatechild={createChild}
 				commentsCount={comments.count(selected.id)}
 				oncomments={() => (commentsOpen = true)}
 			/>
-			<BlockingFields
-				status={selected.status}
+			<TaskLinks
 				blockedBy={selected.blocked_by ?? []}
 				blocks={blockingIds(selected)}
-				blockedReason={selected.blocked_reason ?? ""}
-				candidates={blockerCandidates}
-				busy={saving}
-				onstatus={setStatus}
-				onadd={addBlocker}
-				onremove={removeBlocker}
-				onreason={(reason) => save({ blocked_reason: reason })}
-				{onopen}
-				onsearch={searchTasks}
-				{unavailable}
-			/>
-			<TaskLinks
 				relatesTo={selected.relates_to ?? []}
 				duplicates={selected.duplicates ?? []}
 				duplicatedBy={selected.duplicated_by ?? []}
 				candidates={linkCandidates}
+				{blockerCandidates}
 				onadd={addLinkField}
 				onremove={removeLinkField}
 				{onopen}
 				onsearch={searchTasks}
 				{unavailable}
+				{canMarkBlocked}
+				busy={saving}
+				onmarkblocked={() => setStatus("blocked")}
 			/>
-			{#if ui.advanced}
+			<SectionDivider
+				title="Advanced"
+				count={advancedFilledCount(selected)}
+				open={ui.advanced}
+				onopenchange={(value) => ui.set(value)}
+			>
 				<AdvancedFields
 					value={selected}
 					onfield={save}
 					onerror={(message) => (failure = message)}
 				/>
-			{/if}
-			<div class="advanced-row">
-				<AdvancedToggle
-					count={advancedFilledCount(selected)}
-					checked={ui.advanced}
-					onchange={(value) => ui.set(value)}
-				/>
-			</div>
-			<div class="block-divider">
-				<TaskAttachments bind:this={attachments} task={selected} {tasks} />
-			</div>
+			</SectionDivider>
+			<TaskAttachments bind:this={attachments} task={selected} {tasks} />
 		</div>
 		<DetailActions
 			closed={selected.closed_at !== null}
@@ -625,12 +607,6 @@
 	.detail-head {
 		flex: none;
 		padding: var(--edge-pad) var(--edge-pad) 0;
-	}
-
-	.advanced-row {
-		display: flex;
-		justify-content: flex-end;
-		margin-top: var(--space-3);
 	}
 
 	.panel-body {

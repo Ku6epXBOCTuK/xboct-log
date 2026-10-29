@@ -17,8 +17,6 @@
 
 	let { value, onfield, onerror }: Props = $props();
 
-	const TASK_TYPES: ("task" | "epic")[] = ["task", "epic"];
-
 	const estimateChoices: { key: Estimate | ""; label: string }[] = [
 		{ key: "", label: "none" },
 		...ESTIMATES.map((estimate) => ({ key: estimate, label: estimate })),
@@ -85,18 +83,6 @@
 		/>
 	</div>
 	<div class="field">
-		Type
-		<SingleSelect
-			items={TASK_TYPES}
-			value={value.is_epic ? "epic" : "task"}
-			getKey={(type) => type}
-			getLabel={(type) => type}
-			onselect={(type) => onfield({ is_epic: type === "epic" })}
-			variant="field"
-			ariaLabel="Type"
-		/>
-	</div>
-	<label class="field">
 		Assignee
 		<input
 			class="field-control"
@@ -104,7 +90,7 @@
 			onchange={changeAssignee}
 			placeholder="nobody"
 		/>
-	</label>
+	</div>
 	<label class="field">
 		Source file
 		<input

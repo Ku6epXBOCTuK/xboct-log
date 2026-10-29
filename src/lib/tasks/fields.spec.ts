@@ -54,24 +54,6 @@ describe("advancedFilledCount", () => {
 			}),
 		).toBe(3);
 	});
-
-	it("counts an epic type as a filled field", () => {
-		expect(
-			advancedFilledCount({
-				project_id: "inbox",
-				priority: "medium",
-				is_epic: true,
-				epic_id: null,
-				scope_id: null,
-				source_file: null,
-				tags: [],
-				estimate: null,
-				assignee: null,
-				due_at: null,
-				description: "",
-			}),
-		).toBe(1);
-	});
 });
 
 describe("epicsForProject", () => {
@@ -195,6 +177,18 @@ describe("draftHasContent", () => {
 		expect(draftHasContent(values({ description: "text" }), "")).toBe(true);
 		expect(draftHasContent(values({ tags: ["ui"] }), "")).toBe(true);
 		expect(draftHasContent(values({ estimate: "M" }), "")).toBe(true);
+	});
+
+	it("is filled by a link without any other content", () => {
+		expect(
+			draftHasContent(values({}), "", {
+				blocked_by: ["LOG-1"],
+				blocks: [],
+				relates_to: [],
+				duplicates: [],
+				duplicated_by: [],
+			}),
+		).toBe(true);
 	});
 });
 

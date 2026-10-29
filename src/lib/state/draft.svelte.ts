@@ -1,4 +1,5 @@
 import type { TaskFieldValues } from "#lib/tasks/fields.ts";
+import type { TaskLinkDraft } from "#lib/tasks/links.ts";
 
 export interface CreatedTask {
 	id: string;
@@ -9,6 +10,7 @@ export interface SavedDraft {
 	values: TaskFieldValues;
 	title: string;
 	files?: File[];
+	links?: TaskLinkDraft;
 }
 
 export function createDraftStore() {

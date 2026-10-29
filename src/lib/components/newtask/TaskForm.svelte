@@ -3,15 +3,16 @@
 	import AttachmentList from "#lib/components/attachments/AttachmentList.svelte";
 	import ProjectScopeFields from "#lib/components/task/ProjectScopeFields.svelte";
 	import TaskFields from "#lib/components/task/TaskFields.svelte";
+	import TaskLinks from "#lib/components/task/TaskLinks.svelte";
 	import AdvancedFields from "#lib/components/task/AdvancedFields.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
+	import SectionDivider from "#lib/components/ui/SectionDivider.svelte";
 	import type { DraftStore } from "#lib/state/draft.svelte.ts";
 	import type { ProjectDataStore } from "#lib/state/project-data.svelte.ts";
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { TagStore } from "#lib/state/tags.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
 	import type { UiStore } from "#lib/state/ui.svelte.ts";
-	import AdvancedToggle from "#lib/components/task/AdvancedToggle.svelte";
 	import { messageOf } from "#lib/tasks/display.ts";
 	import { fileToBase64, isImage } from "#lib/tasks/attachments.ts";
 	import { addTaskAttachment } from "#lib/remote/attachments.remote.ts";
@@ -28,7 +29,19 @@
 		type TaskFieldValues,
 		type TaskPatch,
 	} from "#lib/tasks/fields.ts";
-	import { INBOX_PROJECT_ID, type Project, type Task } from "#lib/types.ts";
+	import {
+		emptyLinkDraft,
+		hasLinks,
+		type LinkField,
+		type TaskLinkDraft,
+	} from "#lib/tasks/links.ts";
+	import { createTaskFinder } from "#lib/state/task-finder.svelte.ts";
+	import {
+		CLOSED_STATUSES,
+		INBOX_PROJECT_ID,
+		type Project,
+		type Task,
+	} from "#lib/types.ts";
 	import { untrack } from "svelte";
 	import ArrowLeft from "~icons/lucide/arrow-left";
 	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
@@ -101,6 +114,8 @@
 	}
 
 	let draft = $state<TaskFieldValues>(blankDraft());
+	let links = $state<TaskLinkDraft>(emptyLinkDraft());
+	const finder = createTaskFinder();
 	let projectData = $derived(data.of(draft.project_id));
 	let tagEntries = $derived(tags.ordered(projectData?.tags ?? []));
 	let tagSuggestions = $derived(tagEntries.map((entry) => entry.tag));
@@ -130,12 +145,34 @@
 		);
 		title = restored.title;
 		files = restored.files ? [...restored.files] : [];
+		links = { ...emptyLinkDraft(), ...restored.links };
 	});
 
 	const epicOptions = $derived(
 		epicsForProject(epics, draft.project_id, draft.epic_id),
 	);
 	const scopeOptions = $derived(scopes.listFor(draft.project_id));
+
+	function openTasks(base: Task[]): Task[] {
+		return base.filter((task) => !CLOSED_STATUSES.includes(task.status));
+	}
+
+	function append(base: Task[], extra: Task[]): Task[] {
+		const ids = new Set(base.map((task) => task.id));
+		return [...base, ...extra.filter((task) => !ids.has(task.id))];
+	}
+
+	let linkCandidates = $derived(
+		append(openTasks(projectData?.tasks ?? []), openTasks(finder.found)),
+	);
+
+	function addLink(field: LinkField, id: string) {
+		links = { ...links, [field]: [...links[field], id] };
+	}
+
+	function removeLink(field: LinkField, id: string) {
+		links = { ...links, [field]: links[field].filter((item) => item !== id) };
+	}
 
 	$effect(() => {
 		data.ensure(draft.project_id);
@@ -147,8 +184,10 @@
 
 	$effect(() => {
 		const values = { ...draft, tags: [...draft.tags] };
-		if (committed || !draftHasContent(values, title)) return;
-		draftStore.save({ values, title, files: [...files] });
+		const snapshot = { ...links };
+		if (committed || (!draftHasContent(values, title) && !hasLinks(snapshot)))
+			return;
+		draftStore.save({ values, title, files: [...files], links: snapshot });
 	});
 
 	function reset() {
@@ -157,6 +196,7 @@
 			project_id: draft.project_id,
 			scope_id: draft.scope_id,
 		};
+		links = emptyLinkDraft();
 		title = "";
 		files = [];
 		failure = null;
@@ -283,6 +323,29 @@
 		formElement?.requestSubmit();
 	}
 
+	async function applyLinks(taskId: string): Promise<string | null> {
+		try {
+			for (const target of links.blocked_by) {
+				await tasks.addBlocker(taskId, target);
+			}
+			for (const target of links.blocks) {
+				await tasks.addBlocker(target, taskId);
+			}
+			for (const target of links.relates_to) {
+				await tasks.addLink(taskId, "relates_to", target);
+			}
+			for (const target of links.duplicates) {
+				await tasks.addLink(taskId, "duplicates", target);
+			}
+			for (const target of links.duplicated_by) {
+				await tasks.addLink(target, "duplicates", taskId);
+			}
+			return null;
+		} catch (error) {
+			return messageOf(error);
+		}
+	}
+
 	async function submit(event: SubmitEvent) {
 		event.preventDefault();
 
@@ -334,6 +397,11 @@
 					failure = messageOf(error);
 				}
 				files = [];
+			}
+
+			if (hasLinks(links)) {
+				const linkFailure = await applyLinks(created.id);
+				if (linkFailure !== null) failure = linkFailure;
 			}
 
 			if (keepOpen) {
@@ -400,7 +468,25 @@
 			{onunknowntag}
 		/>
 
-		{#if ui.advanced}
+		<TaskLinks
+			blockedBy={links.blocked_by}
+			blocks={links.blocks}
+			relatesTo={links.relates_to}
+			duplicates={links.duplicates}
+			duplicatedBy={links.duplicated_by}
+			candidates={linkCandidates}
+			blockerCandidates={linkCandidates}
+			onadd={addLink}
+			onremove={removeLink}
+			onsearch={finder.search}
+		/>
+
+		<SectionDivider
+			title="Advanced"
+			count={advancedFilledCount(draft)}
+			open={ui.advanced}
+			onopenchange={(value) => ui.set(value)}
+		>
 			<AdvancedFields
 				value={draft}
 				{onfield}
@@ -409,11 +495,10 @@
 					invalidField = true;
 				}}
 			/>
-		{/if}
+		</SectionDivider>
 
-		<div class="attachments block-divider">
-			<div class="attachments-head">
-				<span class="attachments-title">Attachments</span>
+		<div class="attachments">
+			<SectionDivider title="Attachments">
 				<IconButton
 					label="Attach a file"
 					title="Attach a file"
@@ -428,7 +513,7 @@
 					hidden
 					onchange={pickFiles}
 				/>
-			</div>
+			</SectionDivider>
 			{#if files.length > 0}
 				<AttachmentList>
 					{#each files as file, index (file.name + index)}
@@ -454,11 +539,6 @@
 				Create another
 				<kbd>Ctrl+Alt+C</kbd>
 			</label>
-			<AdvancedToggle
-				count={advancedFilledCount(draft)}
-				checked={ui.advanced}
-				onchange={(value) => ui.set(value)}
-			/>
 			{#if draftStore.last}
 				<button
 					class="back-button"
@@ -490,20 +570,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-2);
-	}
-
-	.attachments-head {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-	}
-
-	.attachments-title {
-		color: var(--text-muted);
-		font-size: var(--text-xs);
-		font-weight: 600;
-		letter-spacing: 0.06em;
-		text-transform: uppercase;
 	}
 
 	form {

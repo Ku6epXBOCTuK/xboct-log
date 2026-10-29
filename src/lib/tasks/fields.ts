@@ -5,6 +5,7 @@ import {
 	type Scope,
 	type Task,
 } from "#lib/types.ts";
+import { hasLinks, type TaskLinkDraft } from "#lib/tasks/links.ts";
 
 export type TaskPatch = Partial<
 	Pick<
@@ -60,12 +61,14 @@ export function validateTaskDraft(draft: {
 export function draftHasContent(
 	values: TaskFieldValues,
 	title: string,
+	links?: TaskLinkDraft,
 ): boolean {
 	return (
 		title.trim() !== "" ||
 		values.description.trim() !== "" ||
 		values.tags.some((tag) => tag.trim() !== "") ||
-		advancedFilledCount(values) > 0
+		advancedFilledCount(values) > 0 ||
+		(links !== undefined && hasLinks(links))
 	);
 }
 
@@ -113,7 +116,6 @@ export function advancedFilledCount(values: TaskFieldValues): number {
 	if (values.assignee !== null && values.assignee !== undefined) count += 1;
 	if (values.source_file !== null && values.source_file !== undefined)
 		count += 1;
-	if (values.is_epic) count += 1;
 	return count;
 }
 

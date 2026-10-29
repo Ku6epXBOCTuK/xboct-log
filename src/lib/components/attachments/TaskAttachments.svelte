@@ -13,6 +13,7 @@
 	import AttachmentItem from "#lib/components/attachments/AttachmentItem.svelte";
 	import AttachmentList from "#lib/components/attachments/AttachmentList.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
+	import SectionDivider from "#lib/components/ui/SectionDivider.svelte";
 	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
 	import Upload from "~icons/lucide/upload";
 
@@ -102,40 +103,41 @@
 <svelte:window onpaste={paste} />
 
 <div class="attachments">
-	<div class="attachments-head">
-		<span class="attachments-title">Attachments</span>
-		<IconButton
-			label="Attach a file"
-			title="Attach a file"
-			disabled={busy}
-			onclick={() => input?.click()}
-		>
-			<Upload />
-		</IconButton>
-		<input bind:this={input} type="file" multiple hidden onchange={upload} />
-	</div>
-	<ErrorNote message={failure} />
-	{#if failed}
-		<p class="attachments-empty">The attachments are unavailable</p>
-	{:else if items.length === 0}
-		<p class="attachments-empty">No files</p>
-	{:else}
-		<AttachmentList>
-			{#each items as item (item.id)}
-				<AttachmentItem
-					name={item.file_name}
-					size={item.size}
-					src={isImage(item.mime_type)
-						? resolve("/media/[id]", { id: item.id })
-						: undefined}
-					href={resolve("/media/[id]", { id: item.id })}
-					missing={item.missing}
-					{busy}
-					onremove={() => remove(item.id)}
-				/>
-			{/each}
-		</AttachmentList>
-	{/if}
+	<SectionDivider title="Attachments">
+		{#snippet actions()}
+			<IconButton
+				label="Attach a file"
+				title="Attach a file"
+				disabled={busy}
+				onclick={() => input?.click()}
+			>
+				<Upload />
+			</IconButton>
+			<input bind:this={input} type="file" multiple hidden onchange={upload} />
+		{/snippet}
+		<ErrorNote message={failure} />
+		{#if failed}
+			<p class="attachments-empty">The attachments are unavailable</p>
+		{:else if items.length === 0}
+			<p class="attachments-empty">No files</p>
+		{:else}
+			<AttachmentList>
+				{#each items as item (item.id)}
+					<AttachmentItem
+						name={item.file_name}
+						size={item.size}
+						src={isImage(item.mime_type)
+							? resolve("/media/[id]", { id: item.id })
+							: undefined}
+						href={resolve("/media/[id]", { id: item.id })}
+						missing={item.missing}
+						{busy}
+						onremove={() => remove(item.id)}
+					/>
+				{/each}
+			</AttachmentList>
+		{/if}
+	</SectionDivider>
 </div>
 
 <style>
@@ -143,20 +145,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-2);
-	}
-
-	.attachments-head {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-	}
-
-	.attachments-title {
-		color: var(--text-muted);
-		font-size: var(--text-xs);
-		font-weight: 600;
-		letter-spacing: 0.06em;
-		text-transform: uppercase;
 	}
 
 	.attachments-empty {

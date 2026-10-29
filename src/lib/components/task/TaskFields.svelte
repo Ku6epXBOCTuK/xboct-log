@@ -4,10 +4,15 @@
 	import TagInput from "@ku6epxboctuk/ui-kit/components/TagInput";
 	import CopyButton from "#lib/components/ui/CopyButton.svelte";
 	import InfoPopover from "#lib/components/ui/InfoPopover.svelte";
-	import { CLOSED_REASON_LABELS, formatDate } from "#lib/tasks/display.ts";
+	import { STATUS_LABELS } from "#lib/tasks/display.ts";
 	import type { TaskFieldValues, TaskPatch } from "#lib/tasks/fields.ts";
-	import type { Task } from "#lib/types.ts";
-	import { PRIORITIES } from "#lib/types.ts";
+	import {
+		BLOCKED_REASON_MAX_LENGTH,
+		PRIORITIES,
+		STATUSES,
+		type Status,
+		type Task,
+	} from "#lib/types.ts";
 	import Plus from "~icons/lucide/plus";
 	import CircleHelp from "~icons/lucide/circle-help";
 
@@ -23,6 +28,10 @@
 		tagSuggestions?: string[];
 		tagCounts?: Record<string, number>;
 		editing?: boolean;
+		status?: Status;
+		onstatus?: (status: Status) => void;
+		blockedReason?: string;
+		onblockedreason?: (reason: string | null) => void;
 		onfield: (patch: TaskPatch) => void;
 		oncreatechild?: () => void;
 		commentsCount?: number;
@@ -36,12 +45,18 @@
 		tagSuggestions = [],
 		tagCounts = {},
 		editing = false,
+		status,
+		onstatus,
+		blockedReason = "",
+		onblockedreason,
 		onfield,
 		oncreatechild,
 		commentsCount,
 		oncomments,
 		onunknowntag,
 	}: Props = $props();
+
+	const TASK_TYPES: ("task" | "epic")[] = ["task", "epic"];
 
 	let epicChoices = $derived<EpicChoice[]>([
 		{ key: "", label: "none", keywords: "" },
@@ -63,17 +78,29 @@
 		});
 	}
 
-	function closedLabel(): string {
-		if (value.closed_at == null) return "";
-		const reason =
-			value.closed_reason == null
-				? ""
-				: CLOSED_REASON_LABELS[value.closed_reason];
-		return `${formatDate(value.closed_at)} ${reason}`.trim();
+	function changeBlockedReason(event: Event) {
+		const input = event.currentTarget as HTMLInputElement;
+		const reason = input.value.trim();
+		onblockedreason?.(reason === "" ? null : reason);
 	}
 </script>
 
 <div class="detail-grid">
+	{#if status !== undefined && onstatus !== undefined}
+		<div class="field">
+			Status
+			<SingleSelect
+				items={[...STATUSES]}
+				value={status}
+				getKey={(item) => item}
+				getLabel={(item) => STATUS_LABELS[item]}
+				onselect={(item) => onstatus(item)}
+				variant="field"
+				ariaLabel="Status"
+				placeholder="Status"
+			/>
+		</div>
+	{/if}
 	<div class="field">
 		Priority
 		<SingleSelect
@@ -86,21 +113,21 @@
 			ariaLabel="Priority"
 		/>
 	</div>
-	{#if editing && value.is_epic && oncreatechild}
-		<div class="field-action">
-			<Button onclick={oncreatechild}>
-				{#snippet icon()}<Plus />{/snippet}
-				Create child task
-			</Button>
-		</div>
-	{/if}
-	{#if editing && value.closed_at != null}
-		<label class="field">
-			Closed
-			<input class="field-control" value={closedLabel()} readOnly />
-		</label>
-	{/if}
 </div>
+
+{#if status === "blocked" && onblockedreason !== undefined}
+	<div class="field detail-field">
+		Waiting for
+		<input
+			class="field-control"
+			value={blockedReason}
+			maxlength={BLOCKED_REASON_MAX_LENGTH}
+			onchange={changeBlockedReason}
+			placeholder="external blocker: release, answer, access"
+			aria-label="Waiting for"
+		/>
+	</div>
+{/if}
 
 <div class="description detail-field">
 	<textarea
@@ -131,8 +158,29 @@
 	</div>
 </div>
 
-<div class="classify-grid">
-	{#if !value.is_epic}
+<div class="detail-grid">
+	<div class="field">
+		Type
+		<SingleSelect
+			items={TASK_TYPES}
+			value={value.is_epic ? "epic" : "task"}
+			getKey={(type) => type}
+			getLabel={(type) => type}
+			onselect={(type) => onfield({ is_epic: type === "epic" })}
+			variant="field"
+			ariaLabel="Type"
+		/>
+	</div>
+	{#if value.is_epic}
+		{#if editing && oncreatechild}
+			<div class="field-action">
+				<Button onclick={oncreatechild}>
+					{#snippet icon()}<Plus />{/snippet}
+					Create child task
+				</Button>
+			</div>
+		{/if}
+	{:else}
 		<div class="field">
 			Epic
 			<SingleSelect
@@ -150,46 +198,40 @@
 			/>
 		</div>
 	{/if}
-	<div class="field" class:classify-full={value.is_epic}>
-		<span class="field-label">
-			Tags
-			<InfoPopover label="Tag input shortcuts">
-				{#snippet icon()}
-					<CircleHelp />
-				{/snippet}
-				{#snippet content()}
-					<dl>
-						<dt><code>Enter</code> <code>Space</code></dt>
-						<dd>add the highlighted tag</dd>
-						<dt><code>,</code></dt>
-						<dd>create a tag from the typed text</dd>
-						<dt><code>Backspace</code></dt>
-						<dd>remove the last tag</dd>
-					</dl>
-				{/snippet}
-			</InfoPopover>
-		</span>
-		<TagInput
-			value={value.tags}
-			suggestions={tagSuggestions}
-			counts={tagCounts}
-			onchange={(tags) => onfield({ tags })}
-			onunknown={onunknowntag}
-			ariaLabel="Tags"
-		/>
-	</div>
+</div>
+
+<div class="field tags-field">
+	<span class="field-label">
+		Tags
+		<InfoPopover label="Tag input shortcuts">
+			{#snippet icon()}
+				<CircleHelp />
+			{/snippet}
+			{#snippet content()}
+				<dl>
+					<dt><code>Enter</code> <code>Space</code></dt>
+					<dd>add the highlighted tag</dd>
+					<dt><code>,</code></dt>
+					<dd>create a tag from the typed text</dd>
+					<dt><code>Backspace</code></dt>
+					<dd>remove the last tag</dd>
+				</dl>
+			{/snippet}
+		</InfoPopover>
+	</span>
+	<TagInput
+		value={value.tags}
+		suggestions={tagSuggestions}
+		counts={tagCounts}
+		onchange={(tags) => onfield({ tags })}
+		onunknown={onunknowntag}
+		ariaLabel="Tags"
+	/>
 </div>
 
 <style>
-	.classify-grid {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: var(--space-3);
+	.tags-field {
 		margin-bottom: var(--space-4);
-	}
-
-	.classify-full {
-		grid-column: 1 / -1;
 	}
 
 	.description {
