@@ -1,10 +1,12 @@
 <script lang="ts">
+	import InfoPopover from "#lib/components/ui/InfoPopover.svelte";
+	import type { CountGroups } from "#lib/tasks/counts.ts";
 	import type { Snippet } from "svelte";
 
 	interface Props {
 		active: boolean;
 		selection?: boolean;
-		count: number;
+		counts: CountGroups;
 		onselect: () => void;
 		children: Snippet;
 	}
@@ -12,10 +14,17 @@
 	let {
 		active,
 		selection = false,
-		count,
+		counts,
 		onselect,
 		children,
 	}: Props = $props();
+
+	const stats = $derived([
+		["backlog", counts.backlog],
+		["active", counts.active],
+		["blocked", counts.blocked],
+		["complete", counts.complete],
+	] as const);
 </script>
 
 <button
@@ -28,7 +37,27 @@
 	<span class="project-name">
 		{@render children()}
 	</span>
-	<span class="project-count">{count}</span>
+	<span class="project-count-wrap">
+		<InfoPopover label="Project statistics">
+			{#snippet trigger({ open })}
+				<span
+					class="project-count"
+					class:zero={counts.active === 0}
+					aria-expanded={open}
+				>
+					{counts.active}
+				</span>
+			{/snippet}
+			{#snippet content()}
+				<dl class="project-stats">
+					{#each stats as [label, value] (label)}
+						<dt>{label}</dt>
+						<dd>{value}</dd>
+					{/each}
+				</dl>
+			{/snippet}
+		</InfoPopover>
+	</span>
 </button>
 
 <style>
@@ -103,13 +132,41 @@
 		background: var(--accent);
 	}
 
-	.project-count {
+	.project-count-wrap {
 		margin-left: auto;
-		color: var(--text-muted);
+		display: inline-flex;
+		flex: none;
+	}
+
+	.project-count {
+		min-width: var(--project-count-w, 1.75rem);
+		color: var(--foreground);
 		font-size: var(--text-xs);
 		font-variant-numeric: tabular-nums;
-		min-width: var(--project-count-w, 1.75rem);
 		text-align: right;
-		flex: none;
+		cursor: help;
+	}
+
+	.project-count.zero {
+		color: var(--text-muted);
+		opacity: 0.55;
+	}
+
+	.project-stats {
+		display: grid;
+		grid-template-columns: auto auto;
+		gap: 0 var(--space-4);
+		margin: 0;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.project-stats dt {
+		color: var(--text-muted);
+	}
+
+	.project-stats dd {
+		margin: 0;
+		color: var(--foreground);
+		text-align: right;
 	}
 </style>

@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { projectActive } from "#lib/tasks/counts.ts";
+	import { projectCounts, type CountGroups } from "#lib/tasks/counts.ts";
 	import type { Project, ProjectFilter } from "#lib/types.ts";
 	import ProjectItem from "./ProjectItem.svelte";
 	import ProjectRow from "./ProjectRow.svelte";
 
 	interface Props {
 		projects: Project[];
-		totalTasks: number;
+		totals: CountGroups;
 		activeProject: ProjectFilter;
 		selectionProjectId?: string | null;
 		onselect: (projectId: ProjectFilter) => void;
@@ -16,7 +16,7 @@
 
 	let {
 		projects,
-		totalTasks,
+		totals,
 		activeProject,
 		selectionProjectId = null,
 		onselect,
@@ -28,7 +28,7 @@
 <div class="project-all">
 	<ProjectItem
 		active={activeProject === null}
-		count={totalTasks}
+		counts={totals}
 		onselect={() => onselect(null)}
 	>
 		All projects
@@ -41,7 +41,7 @@
 		active={activeProject === project.id}
 		selection={project.id === selectionProjectId &&
 			project.id !== activeProject}
-		count={projectActive(project)}
+		counts={projectCounts(project)}
 		onselect={() => onselect(project.id)}
 		onarchive={() => onarchive(project)}
 		onsettings={() => onsettings(project)}

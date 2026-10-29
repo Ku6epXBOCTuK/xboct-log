@@ -44,7 +44,11 @@ function message(error: unknown): string {
 	return error instanceof Error ? error.message : String(error);
 }
 
-export function createTaskStore(initial: Task[] = [], initialTotal = 0) {
+export function createTaskStore(
+	initial: Task[] = [],
+	initialTotal = 0,
+	onMutate?: () => void,
+) {
 	let tasks = $state<Task[]>(initial);
 	let total = $state(initialTotal);
 	let loading = $state(initial.length === 0);
@@ -209,21 +213,25 @@ export function createTaskStore(initial: Task[] = [], initialTotal = 0) {
 			const task = await createTask(input);
 			keep(task);
 			await refresh();
+			onMutate?.();
 			return task;
 		},
 		async save(id: string, patch: TaskPatch) {
 			const updated = await updateTask({ task_id: id, patch });
 			put(updated);
+			onMutate?.();
 			return updated;
 		},
 		async moveTo(id: string, projectId: string) {
 			const moved = await moveTask({ task_id: id, project_id: projectId });
 			put(moved);
+			onMutate?.();
 			return moved;
 		},
 		async close(id: string, reason: ClosedReason) {
 			const updated = await closeTask({ task_id: id, reason });
 			put(updated);
+			onMutate?.();
 			return updated;
 		},
 		async destroy(id: string) {
@@ -239,6 +247,7 @@ export function createTaskStore(initial: Task[] = [], initialTotal = 0) {
 				delete next[id];
 				pinned = next;
 			}
+			onMutate?.();
 		},
 		async addBlocker(id: string, blockerId: string) {
 			const updated = await addBlockerCommand({

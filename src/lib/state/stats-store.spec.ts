@@ -54,6 +54,12 @@ describe("stats store", () => {
 		const store = createStatsStore();
 
 		expect(store.activeTasks).toBe(0);
+		expect(store.summary).toEqual({
+			backlog: 0,
+			active: 0,
+			blocked: 0,
+			complete: 0,
+		});
 		expect(store.inProgress).toBe(0);
 		expect(store.epics).toEqual([]);
 	});
@@ -65,6 +71,12 @@ describe("stats store", () => {
 		await store.load();
 
 		expect(store.activeTasks).toBe(7);
+		expect(store.summary).toEqual({
+			backlog: 0,
+			active: 6,
+			blocked: 1,
+			complete: 9,
+		});
 		expect(store.inProgress).toBe(2);
 		expect(store.epics.map((item) => item.id)).toEqual(["SPA-1"]);
 		expect(store.epics[0]?.children_counts).toEqual({

@@ -5,9 +5,11 @@ import {
 	emptyCounts,
 	epicActive,
 	projectActive,
+	projectCounts,
 	projectTotal,
 	scopeActive,
 	scopeTotal,
+	summarize,
 	totalCount,
 } from "./counts.ts";
 
@@ -58,6 +60,62 @@ describe("counts", () => {
 		expect(projectActive(project)).toBe(8);
 		expect(projectTotal(project)).toBe(18);
 		expect(projectActive({ ...project, task_counts: undefined })).toBe(2);
+	});
+
+	it("splits the project counters into backlog, active and blocked", () => {
+		const project = {
+			id: "spa",
+			name: "SPA",
+			prefix: "SPA",
+			repo: null,
+			created_at: "2026-01-01T00:00:00.000Z",
+			archived_at: null,
+			task_counts: { ...counts, backlog: 3 },
+			epic_counts: { open: 2, blocked: 1, done: 1, total: 4 },
+		};
+
+		expect(projectCounts(project)).toEqual({
+			backlog: 3,
+			active: 5,
+			blocked: 4,
+			complete: 5,
+		});
+	});
+
+	it("treats a project without counters as empty", () => {
+		const project = {
+			id: "spa",
+			name: "SPA",
+			prefix: "SPA",
+			repo: null,
+			created_at: "2026-01-01T00:00:00.000Z",
+			archived_at: null,
+		};
+
+		expect(projectCounts(project)).toEqual({
+			backlog: 0,
+			active: 0,
+			blocked: 0,
+			complete: 0,
+		});
+		expect(summarize(undefined, [])).toEqual({
+			backlog: 0,
+			active: 0,
+			blocked: 0,
+			complete: 0,
+		});
+	});
+
+	it("summarizes the whole tracker together with its epics", () => {
+		const epics = [
+			{ status: "backlog" },
+			{ status: "open" },
+			{ status: "blocked" },
+		] as Task[];
+
+		expect(summarize({ open: 3, "in-progress": 2, blocked: 1 }, epics)).toEqual(
+			{ backlog: 1, active: 6, blocked: 2, complete: 0 },
+		);
 	});
 
 	it("counts the open epics of the whole tracker", () => {

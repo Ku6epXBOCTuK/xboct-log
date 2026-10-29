@@ -1,5 +1,6 @@
 <script lang="ts">
 	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
+	import type { CountGroups } from "#lib/tasks/counts.ts";
 	import { INBOX_PROJECT_ID, type Project } from "#lib/types.ts";
 	import Settings from "~icons/lucide/settings";
 	import Trash from "~icons/lucide/trash";
@@ -10,7 +11,7 @@
 		project: Project;
 		active: boolean;
 		selection?: boolean;
-		count: number;
+		counts: CountGroups;
 		onselect: () => void;
 		onarchive: () => void;
 		onsettings: () => void;
@@ -20,7 +21,7 @@
 		project,
 		active,
 		selection = false,
-		count,
+		counts,
 		onselect,
 		onarchive,
 		onsettings,
@@ -28,7 +29,7 @@
 </script>
 
 <div class="project-row">
-	<ProjectItem {active} {selection} {count} {onselect}>
+	<ProjectItem {active} {selection} {counts} {onselect}>
 		{project.name}
 	</ProjectItem>
 	<div class="project-actions">

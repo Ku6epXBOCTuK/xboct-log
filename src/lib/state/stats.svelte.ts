@@ -4,6 +4,7 @@ import {
 	activeCount,
 	epicActive,
 	emptyCounts,
+	summarize,
 	type StatusCounts,
 } from "#lib/tasks/counts.ts";
 import type { Task } from "#lib/types.ts";
@@ -37,6 +38,9 @@ export function createStatsStore(initial?: {
 		},
 		get activeTasks() {
 			return activeCount(counts) + epicActive(epics);
+		},
+		get summary() {
+			return summarize(counts, epics);
 		},
 		get inProgress() {
 			return counts["in-progress"] ?? 0;

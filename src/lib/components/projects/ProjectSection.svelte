@@ -45,7 +45,7 @@
 			? null
 			: (projects.all.find((project) => project.id === settingsFor) ?? null),
 	);
-	const totalActiveTasks = $derived(stats.activeTasks);
+	const totals = $derived(stats.summary);
 
 	async function toggleArchived(project: Project) {
 		failure = null;
@@ -68,8 +68,8 @@
 			Projects
 		</button>
 		<span>
-			{totalActiveTasks}
-			{totalActiveTasks === 1 ? "task" : "tasks"}
+			{totals.active}
+			active
 		</span>
 		<IconButton
 			label="New project"
@@ -90,7 +90,7 @@
 			<ErrorNote message={failure} class="project-error" />
 			<ProjectList
 				projects={visible}
-				totalTasks={stats.activeTasks}
+				{totals}
 				{activeProject}
 				{selectionProjectId}
 				{onselect}

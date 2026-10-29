@@ -1,4 +1,9 @@
-import { createProject, updateProject } from "#lib/remote/projects.remote.ts";
+import { fetchFresh } from "#lib/remote/fresh.ts";
+import {
+	createProject,
+	getProjects,
+	updateProject,
+} from "#lib/remote/projects.remote.ts";
 import { sortProjects } from "#lib/projects/sort.ts";
 import type { Project } from "#lib/types.ts";
 
@@ -21,9 +26,20 @@ export function createProjectStore(initial: Project[]) {
 	function replace(updated: Project) {
 		projects = sortProjects(
 			projects.map((project) =>
-				project.id === updated.id ? updated : project,
+				project.id === updated.id
+					? {
+							...project,
+							...updated,
+							task_counts: updated.task_counts ?? project.task_counts,
+							epic_counts: updated.epic_counts ?? project.epic_counts,
+						}
+					: project,
 			),
 		);
+	}
+
+	function replaceAll(next: Project[]) {
+		projects = sortProjects(next);
 	}
 
 	return {
@@ -36,8 +52,9 @@ export function createProjectStore(initial: Project[]) {
 		get archived() {
 			return archived;
 		},
-		replaceAll(next: Project[]) {
-			projects = sortProjects(next);
+		replaceAll,
+		async refresh() {
+			replaceAll(await fetchFresh(getProjects({ includeArchived: true })));
 		},
 		async create(input: NewProjectInput) {
 			const { id, ...rest } = input;

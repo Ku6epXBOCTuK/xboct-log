@@ -28,10 +28,10 @@ export interface BoardInput {
 }
 
 export function createBoard(input: BoardInput) {
-	const tasks = createTaskStore();
 	const projects = createProjectStore(input.projects);
-	const scopes = createScopeStore(input.scopes);
 	const stats = createStatsStore();
+	const tasks = createTaskStore([], 0, syncCounts);
+	const scopes = createScopeStore(input.scopes);
 	const data = createProjectData();
 	const tags = createTagStore(input.tags);
 	const comments = createCommentsStore();
@@ -40,6 +40,13 @@ export function createBoard(input: BoardInput) {
 	const draft = createDraftStore();
 	const ui = createUiStore();
 	const selection = createSelection(tasks);
+
+	function syncCounts(): void {
+		void stats.refresh();
+		void projects.refresh().catch((error: unknown) => {
+			console.warn("[board] project counts reload failed", error);
+		});
+	}
 
 	$effect.root(() => {
 		$effect(() => {

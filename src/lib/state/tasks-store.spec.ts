@@ -255,4 +255,28 @@ describe("task store", () => {
 		expect(store.byId("SPA-9")?.title).toBe("edited");
 		expect(store.tasks.map((item) => item.id)).toEqual(["SPA-1"]);
 	});
+
+	it("reports a successful mutation so counters can be reloaded", async () => {
+		const onMutate = vi.fn();
+		const store = createTaskStore(first, 1, onMutate);
+		updateTask.mockResolvedValue(task("SPA-1", { status: "done" }));
+		deleteTask.mockResolvedValue(undefined);
+
+		await store.save("SPA-1", { status: "done" });
+		await store.destroy("SPA-1");
+
+		expect(onMutate).toHaveBeenCalledTimes(2);
+	});
+
+	it("stays quiet when the mutation fails", async () => {
+		const onMutate = vi.fn();
+		const store = createTaskStore(first, 1, onMutate);
+		updateTask.mockRejectedValue(new Error("offline"));
+
+		await expect(store.save("SPA-1", { status: "done" })).rejects.toThrow(
+			"offline",
+		);
+
+		expect(onMutate).not.toHaveBeenCalled();
+	});
 });
