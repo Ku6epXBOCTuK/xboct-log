@@ -1,11 +1,18 @@
+import { spawn, type ChildProcess } from "node:child_process";
 import { randomBytes } from "node:crypto";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import * as vscode from "vscode";
 
 const VIEW_TYPE = "xboctLog";
 const DEFAULT_SERVER_URL = "http://127.0.0.1:45881";
 const HEALTH_TIMEOUT_MS = 1500;
+const START_TIMEOUT_MS = 20_000;
+const POLL_INTERVAL_MS = 500;
+const RELEASES_URL = "https://github.com/Ku6epXBOCTuK/xboct-log/releases";
 
 let current: vscode.WebviewPanel | undefined;
+let serverProcess: ChildProcess | undefined;
 
 export function activate(context: vscode.ExtensionContext): void {
 	context.subscriptions.push(
@@ -14,6 +21,9 @@ export function activate(context: vscode.ExtensionContext): void {
 		}),
 		vscode.commands.registerCommand(`${VIEW_TYPE}.reload`, () => {
 			void current?.webview.postMessage({ type: "xboct-log:reload" });
+		}),
+		vscode.commands.registerCommand(`${VIEW_TYPE}.start`, () => {
+			void startAndShow(context);
 		}),
 		vscode.window.onDidChangeActiveColorTheme(() => {
 			void current?.webview.postMessage({
@@ -32,6 +42,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
 export function deactivate(): void {
 	current = undefined;
+	stopServer();
 }
 
 async function openBoard(context: vscode.ExtensionContext): Promise<void> {
@@ -51,6 +62,12 @@ async function openBoard(context: vscode.ExtensionContext): Promise<void> {
 	await render(panel);
 }
 
+async function startAndShow(context: vscode.ExtensionContext): Promise<void> {
+	await openBoard(context);
+	await startServer();
+	if (current) await render(current);
+}
+
 function attach(
 	panel: vscode.WebviewPanel,
 	context: vscode.ExtensionContext,
@@ -59,6 +76,16 @@ function attach(
 
 	const messages = panel.webview.onDidReceiveMessage((message) => {
 		if (isMessage(message, "xboct-log:retry")) void render(panel);
+		if (isMessage(message, "xboct-log:start")) void startAndShow(context);
+		if (isMessage(message, "xboct-log:settings")) {
+			void vscode.commands.executeCommand(
+				"workbench.action.openSettings",
+				"xboctLog",
+			);
+		}
+		if (isMessage(message, "xboct-log:download")) {
+			void vscode.env.openExternal(vscode.Uri.parse(RELEASES_URL));
+		}
 		if (isMessage(message, "xboct-log:next-tab")) {
 			void vscode.commands.executeCommand(
 				"workbench.action.openNextRecentlyUsedEditorInGroup",
@@ -87,9 +114,132 @@ function attach(
 }
 
 async function render(panel: vscode.WebviewPanel): Promise<void> {
-	panel.webview.html = (await isServerUp())
-		? boardHtml(currentTheme())
-		: offlineHtml();
+	if (await isServerUp()) {
+		panel.webview.html = boardHtml(currentTheme());
+		return;
+	}
+
+	if (!autoStart()) {
+		panel.webview.html = offlineHtml("Сервис не запущен.");
+		return;
+	}
+
+	panel.webview.html = startingHtml();
+	const started = await ensureStarted();
+
+	if (started && (await isServerUp())) {
+		panel.webview.html = boardHtml(currentTheme());
+		return;
+	}
+
+	panel.webview.html = offlineHtml(
+		started ? "Сервис не ответил вовремя." : "Не удалось запустить сервис.",
+	);
+}
+
+function ensureStarted(): Thenable<boolean> {
+	return vscode.window.withProgress(
+		{
+			location: vscode.ProgressLocation.Notification,
+			title: "Запускаю Xboct Log",
+			cancellable: false,
+		},
+		async () => {
+			await startServer();
+			return waitForServer();
+		},
+	);
+}
+
+async function waitForServer(): Promise<boolean> {
+	const deadline = Date.now() + START_TIMEOUT_MS;
+
+	while (Date.now() < deadline) {
+		if (await isServerUp()) return true;
+		await new Promise((done) => setTimeout(done, POLL_INTERVAL_MS));
+	}
+
+	return false;
+}
+
+async function startServer(): Promise<void> {
+	if (await isServerUp()) return;
+	if (serverProcess) return;
+
+	const command = serverCommand();
+	const port = portFromUrl();
+	const args = ["--no-open", "--port", port];
+	const dataDir = configuration().get<string>("dataDir", "").trim();
+
+	if (dataDir) args.push("--data", dataDir);
+
+	try {
+		const child = spawn(quote(command), args.map(quote), {
+			shell: true,
+			windowsHide: true,
+			stdio: "ignore",
+		});
+
+		child.on("exit", () => {
+			if (serverProcess === child) serverProcess = undefined;
+		});
+		child.on("error", () => {
+			if (serverProcess === child) serverProcess = undefined;
+		});
+
+		serverProcess = child;
+	} catch {
+		serverProcess = undefined;
+	}
+}
+
+function stopServer(): void {
+	const child = serverProcess;
+	serverProcess = undefined;
+
+	if (!child?.pid) return;
+
+	if (process.platform === "win32") {
+		spawn("taskkill", ["/pid", String(child.pid), "/T", "/F"], {
+			windowsHide: true,
+			stdio: "ignore",
+		});
+		return;
+	}
+
+	child.kill();
+}
+
+function serverCommand(): string {
+	const configured = configuration().get<string>("serverPath", "").trim();
+	if (configured) return configured;
+
+	if (process.platform === "win32" && process.env.LOCALAPPDATA) {
+		for (const folder of ["Xboct Log", "xboct-log"]) {
+			const candidate = join(
+				process.env.LOCALAPPDATA,
+				"Programs",
+				folder,
+				"xboct-log.cmd",
+			);
+
+			if (existsSync(candidate)) return candidate;
+		}
+	}
+
+	return "xboct-log";
+}
+
+function quote(value: string): string {
+	return /\s/.test(value) ? `"${value}"` : value;
+}
+
+function configuration(): vscode.WorkspaceConfiguration {
+	return vscode.workspace.getConfiguration("xboctLog");
+}
+
+function autoStart(): boolean {
+	return configuration().get<boolean>("autoStart", true);
 }
 
 function isMessage(message: unknown, type: string): boolean {
@@ -122,11 +272,20 @@ function currentTheme(): "light" | "dark" {
 }
 
 function serverUrl(): string {
-	const configured = vscode.workspace
-		.getConfiguration("xboctLog")
-		.get<string>("serverUrl", DEFAULT_SERVER_URL);
+	const configured = configuration().get<string>(
+		"serverUrl",
+		DEFAULT_SERVER_URL,
+	);
 
 	return configured.replace(/\/+$/, "");
+}
+
+function portFromUrl(): string {
+	try {
+		return new URL(serverUrl()).port || "45881";
+	} catch {
+		return "45881";
+	}
 }
 
 function frameOrigin(): string {
@@ -137,67 +296,7 @@ function frameOrigin(): string {
 	}
 }
 
-function boardHtml(theme: "light" | "dark"): string {
-	const nonce = randomBytes(16).toString("hex");
-	const src = `${serverUrl()}/?theme=${theme}`;
-
-	return `<!DOCTYPE html>
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<meta
-			http-equiv="Content-Security-Policy"
-			content="default-src 'none'; frame-src ${frameOrigin()}; script-src 'nonce-${nonce}'; style-src 'unsafe-inline'"
-		/>
-		<style>
-			html,
-			body {
-				margin: 0;
-				height: 100%;
-				overflow: hidden;
-			}
-
-			#board {
-				display: block;
-				border: 0;
-				width: 100%;
-				height: 100%;
-			}
-		</style>
-	</head>
-	<body>
-		<iframe id="board" src="${src}"></iframe>
-		<script nonce="${nonce}">
-			const frame = document.getElementById("board");
-			const base = frame.getAttribute("src");
-			const api = acquireVsCodeApi();
-
-			window.addEventListener("message", (event) => {
-				const data = event.data;
-				if (!data || typeof data !== "object") return;
-
-				if (data.type === "xboct-log:theme") {
-					frame.contentWindow.postMessage(data, "*");
-				}
-
-				if (data.type === "xboct-log:reload") {
-					frame.setAttribute("src", base + "&_=" + Date.now());
-				}
-
-				if (data.type === "xboct-log:next-tab") {
-					api.postMessage({ type: "xboct-log:next-tab" });
-				}
-
-				if (data.type === "xboct-log:prev-tab") {
-					api.postMessage({ type: "xboct-log:prev-tab" });
-				}
-			});
-		</script>
-	</body>
-</html>`;
-}
-
-function offlineHtml(): string {
+function page(body: string, script: string): string {
 	const nonce = randomBytes(16).toString("hex");
 
 	return `<!DOCTYPE html>
@@ -206,7 +305,7 @@ function offlineHtml(): string {
 		<meta charset="utf-8" />
 		<meta
 			http-equiv="Content-Security-Policy"
-			content="default-src 'none'; script-src 'nonce-${nonce}'; style-src 'unsafe-inline'"
+			content="default-src 'none'; frame-src ${frameOrigin()}; script-src 'nonce-${nonce}'; style-src 'unsafe-inline'"
 		/>
 		<style>
 			body {
@@ -242,8 +341,14 @@ function offlineHtml(): string {
 				background: var(--vscode-textCodeBlock-background);
 			}
 
+			.actions {
+				display: flex;
+				flex-wrap: wrap;
+				justify-content: center;
+				gap: 0.5rem;
+			}
+
 			button {
-				justify-self: center;
 				padding: 0.35em 1em;
 				border: 0;
 				border-radius: 3px;
@@ -256,33 +361,101 @@ function offlineHtml(): string {
 			button:hover {
 				background: var(--vscode-button-hoverBackground);
 			}
+
+			button.secondary {
+				color: var(--vscode-button-secondaryForeground);
+				background: var(--vscode-button-secondaryBackground);
+			}
+
+			button.secondary:hover {
+				background: var(--vscode-button-secondaryHoverBackground);
+			}
+
+			button:disabled {
+				opacity: 0.5;
+				cursor: default;
+			}
 		</style>
 	</head>
 	<body>
-		<h1>Xboct Log не отвечает</h1>
-		<p>
-			Служба <code>xboct-log</code> не отвечает на
-			<code>${serverUrl()}/api/health</code>.
-		</p>
-		<p>Запуск: <code>nssm start xboct-log</code></p>
-		<button id="retry">Проверить снова</button>
+		${body}
 		<script nonce="${nonce}">
 			const api = acquireVsCodeApi();
-			const button = document.getElementById("retry");
-
-			function retry() {
-				button.disabled = true;
-				button.textContent = "Проверяю…";
-				api.postMessage({ type: "xboct-log:retry" });
-			}
-
-			button.addEventListener("click", retry);
-
-			window.addEventListener("message", (event) => {
-				const data = event.data;
-				if (data && data.type === "xboct-log:reload") retry();
-			});
+			${script}
 		</script>
 	</body>
 </html>`;
+}
+
+function boardHtml(theme: "light" | "dark"): string {
+	const src = `${serverUrl()}/?theme=${theme}`;
+
+	return page(
+		`<iframe id="board" src="${src}" style="position:fixed;inset:0;border:0;width:100%;height:100%"></iframe>`,
+		`
+			const frame = document.getElementById("board");
+			const base = frame.getAttribute("src");
+
+			window.addEventListener("message", (event) => {
+				const data = event.data;
+				if (!data || typeof data !== "object") return;
+
+				if (data.type === "xboct-log:theme") {
+					frame.contentWindow.postMessage(data, "*");
+				}
+
+				if (data.type === "xboct-log:reload") {
+					frame.setAttribute("src", base + "&_=" + Date.now());
+				}
+
+				if (data.type === "xboct-log:next-tab") {
+					api.postMessage({ type: "xboct-log:next-tab" });
+				}
+
+				if (data.type === "xboct-log:prev-tab") {
+					api.postMessage({ type: "xboct-log:prev-tab" });
+				}
+			});
+		`,
+	);
+}
+
+function startingHtml(): string {
+	return page(`<h1>Xboct Log</h1><p>Запускаю сервис…</p>`, "");
+}
+
+function offlineHtml(reason: string): string {
+	return page(
+		`
+			<h1>Xboct Log не отвечает</h1>
+			<p>${reason} Адрес: <code>${serverUrl()}</code></p>
+			<div class="actions">
+				<button id="start">Запустить</button>
+				<button id="retry" class="secondary">Проверить снова</button>
+				<button id="settings" class="secondary">Настройки</button>
+				<button id="download" class="secondary">Скачать</button>
+			</div>
+		`,
+		`
+			const buttons = ["start", "retry", "settings", "download"];
+
+			for (const id of buttons) {
+				const button = document.getElementById(id);
+				button.addEventListener("click", () => {
+					api.postMessage({ type: "xboct-log:" + id });
+					if (id === "start" || id === "retry") {
+						button.disabled = true;
+						button.textContent = "Проверяю…";
+					}
+				});
+			}
+
+			window.addEventListener("message", (event) => {
+				const data = event.data;
+				if (data && data.type === "xboct-log:reload") {
+					api.postMessage({ type: "xboct-log:retry" });
+				}
+			});
+		`,
+	);
 }

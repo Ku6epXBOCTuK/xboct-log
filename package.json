@@ -1,20 +1,33 @@
 {
 	"name": "xboct-log",
 	"private": true,
-	"version": "0.0.1",
+	"version": "0.1.0",
 	"type": "module",
 	"description": "A local-first task backlog with projects, a kanban board, and SQLite storage.",
 	"license": "MIT",
+	"packageManager": "pnpm@12.15.0",
 	"engines": {
 		"node": ">=26"
 	},
+	"bin": {
+		"xboct-log": "bin/xboct-log.mjs"
+	},
+	"files": [
+		"bin",
+		"build",
+		"migrations",
+		"README.md",
+		"LICENSE"
+	],
 	"scripts": {
 		"deploy": "powershell -ExecutionPolicy Bypass -File scripts/deploy.ps1",
+		"start": "node bin/xboct-log.mjs",
 		"dev": "node scripts/dev.mjs",
 		"dev:vite": "vite dev",
 		"dev:seed": "node scripts/dev-seed.mjs",
 		"build": "vite build",
 		"build:ext": "npm --prefix vscode-extension run compile && npm --prefix vscode-extension run package",
+		"package:win": "powershell -ExecutionPolicy Bypass -File scripts/package-win.ps1",
 		"preview": "vite preview",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:tokens": "node scripts/check-tokens.mjs",

@@ -3,3 +3,4 @@ allowBuilds:
 
 minimumReleaseAgeExclude:
   - "@ku6epxboctuk/sqlite-up"
+  - "@ku6epxboctuk/ui-kit"

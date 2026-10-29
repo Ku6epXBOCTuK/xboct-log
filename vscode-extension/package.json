@@ -2,7 +2,7 @@
 	"name": "xboct-log",
 	"displayName": "Xboct Log",
 	"description": "Открывает борд xboct-log во вкладке редактора.",
-	"version": "0.0.4",
+	"version": "0.1.0",
 	"type": "commonjs",
 	"publisher": "xboct-log",
 	"license": "MIT",
@@ -32,6 +32,10 @@
 				"command": "xboctLog.reload",
 				"title": "Xboct Log: Reload",
 				"icon": "$(refresh)"
+			},
+			{
+				"command": "xboctLog.start",
+				"title": "Xboct Log: Start Server"
 			}
 		],
 		"viewsContainers": {
@@ -73,7 +77,22 @@
 				"xboctLog.serverUrl": {
 					"type": "string",
 					"default": "http://127.0.0.1:45881",
-					"description": "Адрес задеплоенного приложения xboct-log."
+					"description": "Адрес приложения xboct-log."
+				},
+				"xboctLog.autoStart": {
+					"type": "boolean",
+					"default": true,
+					"description": "Запускать локальный сервер xboct-log, если он не отвечает."
+				},
+				"xboctLog.serverPath": {
+					"type": "string",
+					"default": "",
+					"description": "Путь к xboct-log.cmd или к команде запуска. Пустое значение означает автопоиск: установленное приложение, затем PATH."
+				},
+				"xboctLog.dataDir": {
+					"type": "string",
+					"default": "",
+					"description": "Папка данных для запускаемого сервера. Пустое значение оставляет выбор за приложением."
 				}
 			}
 		}

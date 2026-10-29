@@ -12,21 +12,31 @@ export function envBool(value: string | undefined): boolean {
 	return value === "1" || value === "true" || value === "yes";
 }
 
-// NOTE: the path variables have no defaults on purpose. A default would point
-// at the production location, so a stray run without a .env would touch the
-// live database. A missing variable fails the build instead.
+const optionalPath = (value: string | undefined) => value ?? "";
+
+// NOTE: the path variables stay required but are resolved at runtime, so the
+// build carries no locations at all. The launcher of an installed copy fills
+// them in; a checkout needs no .env and `pnpm build` works without one.
 export const variables = defineEnvVars({
 	XBOCT_LOG_DB: {
-		static: true,
+		static: false,
 		description: "Absolute path to the SQLite database file",
+		schema: optionalPath,
 	},
 	XBOCT_LOG_MIGRATIONS: {
-		static: true,
+		static: false,
 		description: "Directory with migration files",
+		schema: optionalPath,
 	},
 	XBOCT_LOG_BACKUP_DIR: {
-		static: true,
+		static: false,
 		description: "Directory for database backups",
+		schema: optionalPath,
+	},
+	XBOCT_LOG_MEDIA_DIR: {
+		static: false,
+		description: "Directory for task attachments",
+		schema: optionalPath,
 	},
 	XBOCT_LOG_BACKUP_HOUR: {
 		static: true,

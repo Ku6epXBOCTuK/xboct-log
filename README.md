@@ -21,10 +21,34 @@ Built with SvelteKit and Svelte 5.
   tasks with restore.
 - **Light and dark** themes.
 
+## Install
+
+Three ways, pick one:
+
+- **Windows installer** — `xboct-log-<version>-win-x64-setup.exe` from
+  [releases](https://github.com/Ku6epXBOCTuK/xboct-log/releases). Installs for
+  the current user, no admin rights, no Node.js needed, adds a Start Menu
+  shortcut. Data lives in `%LOCALAPPDATA%\Xboct Log`.
+- **Windows portable zip** — unpack anywhere, double-click `xboct-log.cmd` (data
+  in `%LOCALAPPDATA%\Xboct Log`) or `xboct-log-portable.cmd` (data in the `data`
+  folder next to the launcher). Node.js is bundled.
+- **npm** — for machines that already have Node.js 26:
+
+  ```sh
+  npm install -g xboct-log
+  xboct-log
+  ```
+
+The launcher opens the board in the browser and keeps the database, media, and
+backups in one data folder. Port `45881` is the default; if it is taken, the
+next free one is used. Flags: `--data <dir>`, `--port <port>`, `--host <host>`,
+`--no-open`, `--portable`.
+
 ## Requirements
 
-- Node.js 26 or newer, for the built-in `node:sqlite` module.
-- pnpm.
+- To run a release build: nothing but the download.
+- To run from source: Node.js 26 or newer (for the built-in `node:sqlite`
+  module) and pnpm.
 
 ## Getting started
 
@@ -49,36 +73,37 @@ repository fetches it from the production host.
 
 ## Configuration
 
-`XBOCT_LOG_DB` is required by everything that touches a real database. Put it in
-`.env` at the repo root and keep the production copy in the `.env` that the
-deployment writes next to the application folder. Copy `.env.example` as a
-starting point:
+Paths are runtime values: nothing is baked into the build, and a checkout needs
+no `.env`. `pnpm dev` sets everything itself (`.dev/dev.db`, `.dev/backups`),
+`pnpm build` works without any variables, and the launcher of an installed copy
+fills in the data folder.
+
+The server variables are declared in `src/env.ts`; `.env.example` lists them.
+`XBOCT_LOG_DB`, `XBOCT_LOG_MIGRATIONS`, `XBOCT_LOG_BACKUP_DIR`, and
+`XBOCT_LOG_MEDIA_DIR` have no defaults, so the server refuses to start without
+them instead of silently opening some other database. Start it through
+`bin/xboct-log.mjs` (or `xboct-log`) and it resolves them from the data folder:
+
+| Platform | Default data folder                       |
+| -------- | ----------------------------------------- |
+| Windows  | `%LOCALAPPDATA%\Xboct Log`                |
+| macOS    | `~/Library/Application Support/Xboct Log` |
+| Linux    | `$XDG_DATA_HOME/xboct-log`                |
+
+Override it with `--data <dir>` or `XBOCT_LOG_DATA`. `--portable` keeps the data
+next to the application.
+
+The bare `node build/index.js` entry point still works if you set the variables
+yourself; it is what the deployment service uses.
+
+`migrate:*` scripts target the dev database (`XBOCT_LOG_DEV_DB`, default
+`./.dev/dev.db`). Production migrations run inside the server on startup.
+
+`pnpm dev:vite` is the raw Vite run with no isolation, so point it at a database
+yourself:
 
 ```sh
-XBOCT_LOG_DB=.dev/dev.db
-```
-
-There is no built-in default, so a fresh checkout fails to build: `pnpm build`
-exits with `env_invalid` until you create `.env` with `XBOCT_LOG_DB`. The server
-refuses to start for the same reason instead of silently opening the production
-database. The app reads the variable through `$app/env/private` (declared in
-`src/env.ts`), so the dev server picks it up from `.env` automatically.
-`pnpm dev` overrides it anyway, and the production launcher reads the `.env`
-next to the application folder at startup.
-
-All server-side variables are declared in `src/env.ts`; `.env.example` lists
-them with the defaults: `XBOCT_LOG_MIGRATIONS`, `XBOCT_LOG_BACKUP_*`,
-`XBOCT_LOG_ACTIVITY_KEEP_DAYS`.
-
-`migrate:*` scripts never read `.env` and never open the production database:
-they target the dev database (`XBOCT_LOG_DEV_DB`, default `./.dev/dev.db`).
-Production migrations run inside the server on startup.
-
-`pnpm dev:vite` is the raw Vite run; it reads `.env` too, so it points at the
-database named there unless the variable is overridden:
-
-```sh
-XBOCT_LOG_DB=./tasks.db pnpm dev:vite
+XBOCT_LOG_DB=./tasks.db XBOCT_LOG_MIGRATIONS=./migrations pnpm dev:vite
 ```
 
 ## Backups
@@ -146,21 +171,23 @@ cannot restore anything: it only reports which snapshots exist.
 
 ## Scripts
 
-| Command           | Description                                       |
-| ----------------- | ------------------------------------------------- |
-| `pnpm dev`        | Dev server on an isolated database                |
-| `pnpm dev:seed`   | Seed `./.dev/dev.db` from the newest snapshot     |
-| `pnpm dev:vite`   | Raw Vite dev server, no isolation                 |
-| `pnpm build`      | Build for production (Node adapter)               |
-| `pnpm preview`    | Preview the production build                      |
-| `pnpm run deploy` | Build and deploy to the `xboct-log` service       |
-| `pnpm build:ext`  | Compile and package the VS Code extension         |
-| `pnpm check`      | Type-check with `svelte-check`                    |
-| `pnpm lint`       | Prettier check and ESLint                         |
-| `pnpm format`     | Format with Prettier                              |
-| `pnpm test`       | Run unit tests with Vitest                        |
-| `pnpm migrate`    | Apply pending database migrations                 |
-| `pnpm restore`    | List snapshots or restore one (`list`, `restore`) |
+| Command            | Description                                        |
+| ------------------ | -------------------------------------------------- |
+| `pnpm dev`         | Dev server on an isolated database                 |
+| `pnpm dev:seed`    | Seed `./.dev/dev.db` from the newest snapshot      |
+| `pnpm dev:vite`    | Raw Vite dev server, no isolation                  |
+| `pnpm build`       | Build for production (Node adapter)                |
+| `pnpm start`       | Run the built app through the launcher             |
+| `pnpm package:win` | Build the Windows zip (add `-Installer` for setup) |
+| `pnpm preview`     | Preview the production build                       |
+| `pnpm run deploy`  | Build and deploy to the `xboct-log` service        |
+| `pnpm build:ext`   | Compile and package the VS Code extension          |
+| `pnpm check`       | Type-check with `svelte-check`                     |
+| `pnpm lint`        | Prettier check and ESLint                          |
+| `pnpm format`      | Format with Prettier                               |
+| `pnpm test`        | Run unit tests with Vitest                         |
+| `pnpm migrate`     | Apply pending database migrations                  |
+| `pnpm restore`     | List snapshots or restore one (`list`, `restore`)  |
 
 The `migrate:*` variants (`status`, `rollback`, `baseline`, `unlock`) are in
 `package.json`.
@@ -177,8 +204,10 @@ started.
 
 ## VS Code extension
 
-`vscode-extension/` is a thin client that opens the board in an editor tab.
-Build it with `pnpm build:ext`, then install the generated `.vsix`. See
+`vscode-extension/` is a client that opens the board in an editor tab and starts
+the local server when it is not running. Build it with `pnpm build:ext`, then
+install the generated `.vsix`. Settings: `xboctLog.autoStart`,
+`xboctLog.serverPath`, `xboctLog.dataDir`, `xboctLog.serverUrl`. See
 `vscode-extension/README.md`.
 
 ## Notes
