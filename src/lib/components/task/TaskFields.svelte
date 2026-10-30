@@ -3,6 +3,7 @@
 	import CopyButton from "#lib/components/ui/CopyButton.svelte";
 	import InfoPopover from "#lib/components/ui/InfoPopover.svelte";
 	import SingleSelect from "#lib/components/ui/select/SingleSelect.svelte";
+	import { appendMarkdown, markdownDrop } from "#lib/files/markdown-drop.ts";
 	import { matchesHotkey } from "#lib/hotkeys/hotkeys.ts";
 	import { STATUS_LABELS } from "#lib/tasks/display.ts";
 	import type { TaskFieldValues, TaskPatch } from "#lib/tasks/fields.ts";
@@ -31,6 +32,7 @@
 		value: TaskFieldValues;
 		epics: Task[];
 		taskId?: string;
+		repo?: string | null;
 		tagSuggestions?: string[];
 		tagCounts?: Record<string, number>;
 		editing?: boolean;
@@ -51,6 +53,7 @@
 		value,
 		epics,
 		taskId,
+		repo = null,
 		tagSuggestions = [],
 		tagCounts = {},
 		editing = false,
@@ -117,6 +120,17 @@
 			return;
 		}
 		onfield(patch);
+	}
+
+	function takeMarkdown(markdown: string) {
+		const next = appendMarkdown(text, markdown);
+		if (next === text) return;
+		draftText = next;
+		draftTask = taskId;
+		dirty = false;
+		preview = false;
+		oncanceldraft?.();
+		onfield({ description: next });
 	}
 
 	function togglePreview() {
@@ -224,13 +238,13 @@
 {/if}
 
 <div class="description detail-field">
-	<div class="description-box">
+	<div class="description-box" use:markdownDrop={{ ontext: takeMarkdown }}>
 		{#if preview}
 			<div class="description-preview">
 				{#if previewText.trim() === ""}
 					<p class="description-empty">Nothing to preview</p>
 				{:else}
-					<MarkdownView text={previewText} />
+					<MarkdownView text={previewText} {repo} />
 				{/if}
 			</div>
 		{:else}

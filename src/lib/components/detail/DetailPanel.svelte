@@ -79,6 +79,10 @@
 	let projectData = $derived(
 		selected === null ? undefined : data.of(selected.project_id),
 	);
+	let projectRepo = $derived(
+		projects.all.find((project) => project.id === selected?.project_id)?.repo ??
+			null,
+	);
 	let tagEntries = $derived(tags.ordered(projectData?.tags ?? []));
 	let tagSuggestions = $derived(tagEntries.map((entry) => entry.tag));
 	let tagCounts = $derived(
@@ -343,6 +347,7 @@
 				value={selected}
 				epics={siblingEpics(tasks.epics, selected)}
 				taskId={selected.id}
+				repo={projectRepo}
 				{tagSuggestions}
 				{tagCounts}
 				{onunknowntag}
@@ -414,6 +419,7 @@
 			<CommentsOverlay
 				task={selected}
 				{comments}
+				repo={projectRepo}
 				onback={() => (commentsOpen = false)}
 				onclose={onclear}
 			/>

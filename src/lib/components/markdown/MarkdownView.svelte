@@ -1,16 +1,17 @@
 <script lang="ts">
 	import type { Attachment } from "svelte/attachments";
 	import ImageViewer from "#lib/components/ui/ImageViewer.svelte";
-	import { openExternal } from "#lib/host/embed.ts";
-	import { classifyLink } from "#lib/markdown/links.ts";
+	import { openExternal, openRepoFile } from "#lib/host/embed.ts";
+	import { classifyLink, repoPath } from "#lib/markdown/links.ts";
 	import { renderMarkdown } from "#lib/markdown/render.ts";
 
 	interface Props {
 		text: string;
 		class?: string;
+		repo?: string | null;
 	}
 
-	let { text, class: className = "" }: Props = $props();
+	let { text, class: className = "", repo = null }: Props = $props();
 
 	let html = $derived(renderMarkdown(text));
 	let viewing = $state<{ src: string; alt: string }>();
@@ -21,15 +22,19 @@
 
 		const anchor = target.closest("a");
 		if (anchor !== null) {
-			const kind = classifyLink(
-				anchor.getAttribute("href") ?? "",
-				location.href,
-			);
+			const href = anchor.getAttribute("href") ?? "";
+			const kind = classifyLink(href, location.href);
 			if (kind === "ignore") return;
 
 			event.preventDefault();
 			if (kind === "media") {
 				view(anchor.href, anchor.getAttribute("title") ?? "");
+				return;
+			}
+
+			if (kind === "file") {
+				const path = repoPath(href);
+				if (path !== null) openRepoFile(repo ?? "", path, anchor.href);
 				return;
 			}
 

@@ -119,6 +119,9 @@
 	let links = $state<TaskLinkDraft>(emptyLinkDraft());
 	const finder = createTaskFinder();
 	let projectData = $derived(data.of(draft.project_id));
+	const projectRepo = $derived(
+		projects.find((project) => project.id === draft.project_id)?.repo ?? null,
+	);
 	let tagEntries = $derived(tags.ordered(projectData?.tags ?? []));
 	let tagSuggestions = $derived(tagEntries.map((entry) => entry.tag));
 	let tagCounts = $derived(
@@ -440,6 +443,7 @@
 			epics={epicOptions}
 			{tagSuggestions}
 			{tagCounts}
+			repo={projectRepo}
 			{onfield}
 			{onunknowntag}
 		/>

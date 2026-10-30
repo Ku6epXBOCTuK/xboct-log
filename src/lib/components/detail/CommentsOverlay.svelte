@@ -12,11 +12,12 @@
 	interface Props {
 		task: Task;
 		comments: CommentsStore;
+		repo?: string | null;
 		onback: () => void;
 		onclose: () => void;
 	}
 
-	let { task, comments, onback, onclose }: Props = $props();
+	let { task, comments, repo = null, onback, onclose }: Props = $props();
 </script>
 
 <PanelOverlay title="Comments" label="Task comments" {onback} {onclose}>
@@ -40,7 +41,7 @@
 		</div>
 		{#if task.description.trim() !== ""}
 			<div class="summary-description">
-				<MarkdownView text={task.description} />
+				<MarkdownView text={task.description} {repo} />
 			</div>
 		{/if}
 	</div>
