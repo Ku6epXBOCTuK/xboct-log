@@ -1,9 +1,8 @@
 <script lang="ts">
-	import SingleSelect from "#lib/components/ui/select/SingleSelect.svelte";
-	import Button from "@ku6epxboctuk/ui-kit/components/Button";
-	import TagInput from "@ku6epxboctuk/ui-kit/components/TagInput";
+	import MarkdownView from "#lib/components/markdown/MarkdownView.svelte";
 	import CopyButton from "#lib/components/ui/CopyButton.svelte";
 	import InfoPopover from "#lib/components/ui/InfoPopover.svelte";
+	import SingleSelect from "#lib/components/ui/select/SingleSelect.svelte";
 	import { STATUS_LABELS } from "#lib/tasks/display.ts";
 	import type { TaskFieldValues, TaskPatch } from "#lib/tasks/fields.ts";
 	import {
@@ -13,8 +12,12 @@
 		type Status,
 		type Task,
 	} from "#lib/types.ts";
-	import Plus from "~icons/lucide/plus";
+	import Button from "@ku6epxboctuk/ui-kit/components/Button";
+	import TagInput from "@ku6epxboctuk/ui-kit/components/TagInput";
 	import CircleHelp from "~icons/lucide/circle-help";
+	import Eye from "~icons/lucide/eye";
+	import EyeOff from "~icons/lucide/eye-off";
+	import Plus from "~icons/lucide/plus";
 
 	interface EpicChoice {
 		key: string;
@@ -25,6 +28,7 @@
 	interface Props {
 		value: TaskFieldValues;
 		epics: Task[];
+		taskId?: string;
 		tagSuggestions?: string[];
 		tagCounts?: Record<string, number>;
 		editing?: boolean;
@@ -42,6 +46,7 @@
 	let {
 		value,
 		epics,
+		taskId,
 		tagSuggestions = [],
 		tagCounts = {},
 		editing = false,
@@ -72,10 +77,70 @@
 			epicChoices[0],
 	);
 
-	function changeDescription(event: Event) {
-		onfield({
-			description: (event.currentTarget as HTMLTextAreaElement).value,
-		});
+	let area: HTMLTextAreaElement | undefined = $state();
+	let preview = $state(false);
+	let previewText = $state("");
+	let previewTask: string | undefined;
+	let dirty = false;
+
+	$effect(() => {
+		if (taskId === undefined || taskId === previewTask) return;
+		previewTask = taskId;
+		preview = false;
+		dirty = false;
+	});
+
+	function markDirty() {
+		dirty = true;
+	}
+
+	function commitDescription() {
+		if (!dirty) return;
+		dirty = false;
+		onfield({ description: area?.value ?? value.description });
+	}
+
+	function togglePreview() {
+		if (preview) {
+			preview = false;
+			return;
+		}
+		const text = area?.value ?? value.description;
+		if (dirty) {
+			dirty = false;
+			onfield({ description: text });
+		}
+		previewText = text;
+		preview = true;
+	}
+
+	function indent(event: KeyboardEvent) {
+		if (event.key !== "Tab" || event.ctrlKey || event.altKey) return;
+		const element = area;
+		if (element === undefined) return;
+		event.preventDefault();
+
+		const start = element.selectionStart;
+		const end = element.selectionEnd;
+		const text = element.value;
+
+		if (event.shiftKey) {
+			const lineStart = text.lastIndexOf("\n", start - 1) + 1;
+			const line = text.slice(lineStart, end);
+			const trimmed = line.replace(/^ {1,2}/, "");
+			const removed = line.length - trimmed.length;
+			if (removed === 0) return;
+			element.value = text.slice(0, lineStart) + trimmed + text.slice(end);
+			element.setSelectionRange(
+				Math.max(lineStart, start - removed),
+				end - removed,
+			);
+		} else {
+			element.value = `${text.slice(0, start)}  ${text.slice(end)}`;
+			element.setSelectionRange(start + 2, start + 2);
+		}
+
+		markDirty();
 	}
 
 	function changeBlockedReason(event: Event) {
@@ -130,13 +195,43 @@
 {/if}
 
 <div class="description detail-field">
-	<textarea
-		class="field-control"
-		value={value.description}
-		onchange={changeDescription}
-		placeholder="Description"
-		aria-label="Description"></textarea>
+	<div class="description-box">
+		{#if preview}
+			<div class="description-preview">
+				{#if previewText.trim() === ""}
+					<p class="description-empty">Nothing to preview</p>
+				{:else}
+					<MarkdownView text={previewText} />
+				{/if}
+			</div>
+		{:else}
+			<textarea
+				class="field-control description-input"
+				bind:this={area}
+				value={value.description}
+				wrap="off"
+				oninput={markDirty}
+				onblur={commitDescription}
+				onkeydown={indent}
+				placeholder="Description"
+				aria-label="Description"></textarea>
+		{/if}
+	</div>
 	<div class="description-actions">
+		<button
+			class="description-toggle"
+			type="button"
+			onclick={togglePreview}
+			aria-pressed={preview}
+		>
+			{#if preview}
+				<EyeOff />
+				Edit
+			{:else}
+				<Eye />
+				Preview
+			{/if}
+		</button>
 		{#if editing}
 			<CopyButton
 				text={value.description}
@@ -239,6 +334,41 @@
 		font-size: var(--text-md);
 	}
 
+	.description-box {
+		height: 20rem;
+		min-height: 6rem;
+		resize: vertical;
+		overflow: hidden;
+	}
+
+	.description-box textarea {
+		height: 100%;
+		min-height: 0;
+		resize: none;
+		white-space: pre;
+		overflow-wrap: normal;
+	}
+
+	.description-input {
+		font-family: var(--font-mono);
+		font-size: var(--text-sm);
+	}
+
+	.description-preview {
+		height: 100%;
+		border: 1px solid var(--border-strong);
+		border-radius: var(--radius);
+		background: var(--field);
+		padding: var(--space-3);
+		overflow: auto;
+	}
+
+	.description-empty {
+		margin: 0;
+		color: var(--text-muted);
+		font-size: var(--text-sm);
+	}
+
 	.description-actions {
 		display: flex;
 		align-items: center;
@@ -246,7 +376,35 @@
 		margin-top: var(--space-2);
 	}
 
+	.description-toggle {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-1);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-sm);
+		padding: 0 var(--space-2);
+		min-height: 1.5rem;
+		font-size: var(--text-xs);
+		color: var(--text-muted);
+	}
+
+	.description-toggle:hover {
+		border-color: var(--border-strong);
+		color: var(--foreground);
+	}
+
+	.description-toggle[aria-pressed="true"] {
+		background: var(--selected);
+		color: var(--foreground);
+	}
+
+	.description-toggle :global(svg) {
+		width: 0.9rem;
+		height: 0.9rem;
+	}
+
 	.comments-count {
+		margin-left: auto;
 		border: 1px solid var(--border);
 		border-radius: var(--radius-sm);
 		padding: 0 var(--space-2);

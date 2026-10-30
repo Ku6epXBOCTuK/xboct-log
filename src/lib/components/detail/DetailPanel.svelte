@@ -9,6 +9,7 @@
 	import PanelOverlay from "#lib/components/detail/PanelOverlay.svelte";
 	import TaskAttachments from "#lib/components/attachments/TaskAttachments.svelte";
 	import TaskFields from "#lib/components/task/TaskFields.svelte";
+	import MarkdownView from "#lib/components/markdown/MarkdownView.svelte";
 	import { fieldNavigation } from "#lib/hotkeys/fields.ts";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import SectionDivider from "#lib/components/ui/SectionDivider.svelte";
@@ -457,6 +458,7 @@
 			<TaskFields
 				value={selected}
 				epics={siblingEpics(tasks.epics, selected)}
+				taskId={selected.id}
 				{tagSuggestions}
 				{tagCounts}
 				{onunknowntag}
@@ -548,7 +550,9 @@
 						<span>{STATUS_LABELS[selected.status]}</span>
 					</div>
 					{#if selected.description.trim() !== ""}
-						<p class="summary-description">{selected.description}</p>
+						<div class="summary-description">
+							<MarkdownView text={selected.description} />
+						</div>
 					{/if}
 				</div>
 				<TaskComments taskId={selected.id} {comments} />
@@ -666,11 +670,6 @@
 
 	.summary-description {
 		margin: 0;
-		font-size: var(--text-sm);
-		line-height: 1.55;
-		color: var(--text-secondary);
-		white-space: pre-wrap;
-		overflow-wrap: anywhere;
 	}
 
 	.detail-id {

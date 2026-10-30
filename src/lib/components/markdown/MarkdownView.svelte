@@ -1,0 +1,135 @@
+<script lang="ts">
+	import { renderMarkdown } from "#lib/markdown/render.ts";
+
+	interface Props {
+		text: string;
+		class?: string;
+	}
+
+	let { text, class: className = "" }: Props = $props();
+
+	let html = $derived(renderMarkdown(text));
+</script>
+
+{#if html !== ""}
+	<!-- eslint-disable-next-line svelte/no-at-html-tags -- renderMarkdown escapes raw html and rejects unsafe links -->
+	<div class="markdown-body {className}">{@html html}</div>
+{/if}
+
+<style>
+	.markdown-body {
+		font-size: var(--text-sm);
+		line-height: 1.55;
+		color: var(--text-secondary);
+		overflow-wrap: anywhere;
+	}
+
+	.markdown-body :global(> :first-child) {
+		margin-top: 0;
+	}
+
+	.markdown-body :global(> :last-child) {
+		margin-bottom: 0;
+	}
+
+	.markdown-body :global(p) {
+		margin: 0 0 var(--space-3);
+	}
+
+	.markdown-body :global(h1),
+	.markdown-body :global(h2),
+	.markdown-body :global(h3),
+	.markdown-body :global(h4) {
+		margin: var(--space-4) 0 var(--space-2);
+		color: var(--foreground);
+		font-weight: 600;
+		line-height: 1.25;
+	}
+
+	.markdown-body :global(h1) {
+		font-size: var(--text-xl);
+	}
+
+	.markdown-body :global(h2) {
+		font-size: var(--text-lg);
+	}
+
+	.markdown-body :global(h3),
+	.markdown-body :global(h4) {
+		font-size: var(--text-md);
+	}
+
+	.markdown-body :global(ul),
+	.markdown-body :global(ol) {
+		margin: 0 0 var(--space-3);
+		padding-left: var(--space-5);
+	}
+
+	.markdown-body :global(li) {
+		margin: 0 0 var(--space-1);
+	}
+
+	.markdown-body :global(li > p) {
+		margin: 0;
+	}
+
+	.markdown-body :global(code) {
+		background: var(--hover);
+		border-radius: var(--radius-sm);
+		padding: 0 var(--space-1);
+		font-family: var(--font-mono);
+		font-size: 0.92em;
+	}
+
+	.markdown-body :global(pre) {
+		margin: 0 0 var(--space-3);
+		background: var(--hover);
+		border-radius: var(--radius);
+		padding: var(--space-3);
+		overflow-x: auto;
+	}
+
+	.markdown-body :global(pre code) {
+		background: none;
+		padding: 0;
+		font-size: var(--text-xs);
+		line-height: 1.5;
+	}
+
+	.markdown-body :global(blockquote) {
+		margin: 0 0 var(--space-3);
+		border-left: 2px solid var(--border-strong);
+		padding-left: var(--space-3);
+		color: var(--text-muted);
+	}
+
+	.markdown-body :global(a) {
+		color: var(--accent);
+		text-decoration: underline;
+		text-underline-offset: 0.15em;
+	}
+
+	.markdown-body :global(hr) {
+		margin: var(--space-4) 0;
+		border: 0;
+		border-top: 1px solid var(--border);
+	}
+
+	.markdown-body :global(img) {
+		max-width: 100%;
+		border-radius: var(--radius-sm);
+	}
+
+	.markdown-body :global(table) {
+		border-collapse: collapse;
+		margin: 0 0 var(--space-3);
+	}
+
+	.markdown-body :global(th),
+	.markdown-body :global(td) {
+		border: 1px solid var(--border);
+		padding: var(--space-1) var(--space-2);
+		text-align: left;
+		white-space: nowrap;
+	}
+</style>
