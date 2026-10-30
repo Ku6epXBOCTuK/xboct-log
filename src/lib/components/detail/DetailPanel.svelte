@@ -53,6 +53,7 @@
 		ondelete?: (id: string) => void;
 		oncreatechild?: (task: Task) => void;
 		onopen?: (id: string) => void;
+		onmoved?: (id: string) => void;
 	}
 
 	let {
@@ -68,6 +69,7 @@
 		ondelete,
 		oncreatechild,
 		onopen,
+		onmoved,
 	}: Props = $props();
 
 	let saving = $state(false);
@@ -213,7 +215,11 @@
 	function moveTo(projectId: string) {
 		const current = selected;
 		if (current === null || projectId === current.project_id) return;
-		void perform(() => tasks.moveTo(current.id, projectId));
+		void perform(async () => {
+			const moved = await tasks.moveTo(current.id, projectId);
+			onmoved?.(moved.id);
+			return moved;
+		});
 	}
 
 	function createChild() {

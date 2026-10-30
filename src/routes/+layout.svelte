@@ -1,8 +1,11 @@
 <script lang="ts">
+	import { goto } from "$app/navigation";
 	import { page } from "$app/state";
 	import SideBar from "#lib/components/layout/SideBar.svelte";
 	import UpdateBanner from "#lib/components/ui/UpdateBanner.svelte";
 	import { matchesHotkey } from "#lib/hotkeys/hotkeys.ts";
+	import { listHref, taskHref } from "#lib/navigation/href.ts";
+	import { parsePath, taskPath } from "#lib/navigation/paths.ts";
 	import { createBoard, provideBoard } from "#lib/state/board.svelte.ts";
 	import { onMount, untrack } from "svelte";
 	import "@fontsource/ibm-plex-sans/400.css";
@@ -22,7 +25,7 @@
 			projects: data.projects,
 			scopes: data.scopes,
 			tags: data.tags,
-			project: page.url.searchParams.get("project"),
+			project: parsePath(page.url.pathname).project,
 			theme:
 				requestedTheme === "light" || requestedTheme === "dark"
 					? requestedTheme
@@ -49,6 +52,36 @@
 		) {
 			board.filters.scope = "any";
 		}
+	});
+
+	$effect(() => {
+		const id = parsePath(page.url.pathname).taskId?.toUpperCase() ?? null;
+		board.selection.select(id);
+	});
+
+	$effect(() => {
+		const id = parsePath(page.url.pathname).taskId?.toUpperCase();
+		if (id === undefined) return;
+		void board.tasks.pin([id]);
+	});
+
+	$effect(() => {
+		const location = parsePath(page.url.pathname);
+		const id = location.taskId?.toUpperCase();
+		if (id === undefined || !board.tasks.isAbsent(id)) return;
+		const target = listHref("tasks", location.project);
+		void goto(target, { replace: true });
+	});
+
+	$effect(() => {
+		const location = parsePath(page.url.pathname);
+		const id = location.taskId?.toUpperCase();
+		if (id === undefined) return;
+		const task = board.tasks.byId(id);
+		if (task === undefined) return;
+		if (taskPath(task.project_id, task.id) === page.url.pathname) return;
+		const target = taskHref(task.project_id, task.id);
+		void goto(target, { replace: true });
 	});
 
 	onMount(() => {

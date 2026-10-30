@@ -25,6 +25,7 @@
 			const href = anchor.getAttribute("href") ?? "";
 			const kind = classifyLink(href, location.href);
 			if (kind === "ignore") return;
+			if (kind === "task") return;
 
 			event.preventDefault();
 			if (kind === "media") {

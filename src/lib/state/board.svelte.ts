@@ -1,8 +1,8 @@
 import { goto } from "$app/navigation";
-import { resolve } from "$app/paths";
 import { page } from "$app/state";
-import { SvelteURL } from "svelte/reactivity";
 import { getContext, setContext } from "svelte";
+import { listHref } from "#lib/navigation/href.ts";
+import { parsePath } from "#lib/navigation/paths.ts";
 import { fetchFresh } from "#lib/remote/fresh.ts";
 import { getScopedProjectIds, getScopes } from "#lib/remote/scopes.remote.ts";
 import { createCommentsStore } from "#lib/state/comments.svelte.ts";
@@ -63,6 +63,14 @@ export function createBoard(input: BoardInput) {
 
 	$effect.root(() => {
 		$effect(() => {
+			const { project } = parsePath(page.url.pathname);
+			if (filters.activeProject === project) return;
+			filters.activeProject = project;
+			filters.epic = "any";
+			filters.scope = "any";
+		});
+
+		$effect(() => {
 			void stats.load();
 		});
 
@@ -83,21 +91,9 @@ export function createBoard(input: BoardInput) {
 	});
 
 	function setActiveProject(projectId: ProjectFilter) {
-		filters.activeProject = projectId;
-		filters.epic = "any";
-		filters.scope = "any";
-
-		const url = new SvelteURL(page.url.href);
-		if (projectId === null) {
-			url.searchParams.delete("project");
-		} else {
-			url.searchParams.set("project", projectId);
-		}
-
-		const pathname = url.pathname.slice(1);
-		const target = `${pathname}${url.search}` as
-			"" | "kanban" | `?${string}` | `kanban?${string}`;
-		void goto(resolve(target), { replace: true, shallow: true });
+		const { category } = parsePath(page.url.pathname);
+		const target = listHref(category ?? "tasks", projectId);
+		void goto(target, { replace: true });
 	}
 
 	return {

@@ -21,7 +21,7 @@
 		</p>
 		<p class="error-path">{page.url.pathname}</p>
 		<div class="error-actions">
-			<a class="error-link primary" href={resolve("/")}>На главную</a>
+			<a class="error-link primary" href={resolve("/tasks")}>На главную</a>
 			<a class="error-link" href={resolve("/kanban")}>Канбан</a>
 		</div>
 	</div>

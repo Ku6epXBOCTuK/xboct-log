@@ -1,12 +1,14 @@
 <script lang="ts">
-	import { page } from "$app/state";
 	import { resolve } from "$app/paths";
+	import { page } from "$app/state";
 	import Activity from "~icons/lucide/activity";
 	import ArchiveRestore from "~icons/lucide/archive-restore";
 	import BarChart3 from "~icons/lucide/bar-chart-3";
 	import ClipBoardList from "~icons/lucide/clipboard-list";
 	import DatabaseBackup from "~icons/lucide/database-backup";
 	import FolderKanban from "~icons/lucide/folder-kanban";
+	import { listHref } from "#lib/navigation/href.ts";
+	import { parsePath } from "#lib/navigation/paths.ts";
 
 	interface Props {
 		taskCount: number;
@@ -16,10 +18,14 @@
 
 	let { taskCount, inProgressCount, onlyActive = false }: Props = $props();
 
-	const onTasks = $derived(page.url.pathname === "/");
-	const onKanban = $derived(page.url.pathname === "/kanban");
-	const onActivity = $derived(page.url.pathname === "/activity");
-	const onDeleted = $derived(page.url.pathname === "/deleted");
+	const location = $derived(parsePath(page.url.pathname));
+
+	const project = $derived(location.project);
+
+	const onTasks = $derived(location.category === "tasks");
+	const onKanban = $derived(location.category === "kanban");
+	const onActivity = $derived(location.category === "activity");
+	const onDeleted = $derived(location.category === "deleted");
 	const onBackups = $derived(page.url.pathname === "/backups");
 </script>
 
@@ -28,18 +34,30 @@
 	class:only-active={onlyActive}
 	aria-label="Primary navigation"
 >
-	<a class="nav-item" class:active={onTasks} href={resolve("/")}>
+	<a class="nav-item" class:active={onTasks} href={listHref("tasks", project)}>
 		<ClipBoardList /> Tasks
 		<span class="nav-count">{taskCount}</span>
 	</a>
-	<a class="nav-item" class:active={onKanban} href={resolve("/kanban")}>
+	<a
+		class="nav-item"
+		class:active={onKanban}
+		href={listHref("kanban", project)}
+	>
 		<FolderKanban /> Kanban
 		<span class="nav-count">{inProgressCount}</span>
 	</a>
-	<a class="nav-item" class:active={onActivity} href={resolve("/activity")}>
+	<a
+		class="nav-item"
+		class:active={onActivity}
+		href={listHref("activity", project)}
+	>
 		<Activity /> Activity
 	</a>
-	<a class="nav-item" class:active={onDeleted} href={resolve("/deleted")}>
+	<a
+		class="nav-item"
+		class:active={onDeleted}
+		href={listHref("deleted", project)}
+	>
 		<ArchiveRestore /> Deleted
 	</a>
 	<a class="nav-item" class:active={onBackups} href={resolve("/backups")}>

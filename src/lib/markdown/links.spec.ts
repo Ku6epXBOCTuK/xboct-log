@@ -20,6 +20,18 @@ describe("classifyLink", () => {
 		);
 	});
 
+	it("treats same-origin task links as tasks", () => {
+		expect(classifyLink("/tasks/LOG-42", base)).toBe("task");
+		expect(classifyLink("/tasks/project/xboct-log/LOG-42", base)).toBe("task");
+		expect(classifyLink("http://127.0.0.1:45881/tasks/inb-7", base)).toBe(
+			"task",
+		);
+	});
+
+	it("falls back to a file for a task path that is not an id", () => {
+		expect(classifyLink("/tasks/LOG-42/history", base)).toBe("file");
+	});
+
 	it("treats same-origin pages outside the media folder as files", () => {
 		expect(classifyLink("/docs/notes.md", base)).toBe("file");
 		expect(classifyLink("./docs/notes.md", base)).toBe("file");

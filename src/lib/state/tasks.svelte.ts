@@ -224,7 +224,17 @@ export function createTaskStore(
 		},
 		async moveTo(id: string, projectId: string) {
 			const moved = await moveTask({ task_id: id, project_id: projectId });
-			put(moved);
+			if (moved.id === id) {
+				put(moved);
+			} else {
+				tasks = tasks.map((task) => (task.id === id ? moved : task));
+				if (pinned[id] !== undefined) {
+					const next = { ...pinned };
+					delete next[id];
+					next[moved.id] = moved;
+					pinned = next;
+				}
+			}
 			onMutate?.();
 			return moved;
 		},

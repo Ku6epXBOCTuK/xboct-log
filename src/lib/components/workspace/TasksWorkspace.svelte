@@ -1,12 +1,16 @@
 <script lang="ts">
+	import { goto } from "$app/navigation";
+	import { page } from "$app/state";
 	import DetailPanel from "#lib/components/detail/DetailPanel.svelte";
 	import NewTaskModal from "#lib/components/newtask/NewTaskModal.svelte";
 	import TaskTable from "#lib/components/table/TaskTable.svelte";
 	import Pager from "#lib/components/ui/Pager.svelte";
 	import WorkspaceHeader from "#lib/components/workspace/WorkspaceHeader.svelte";
+	import { isTypingTarget, matchesHotkey } from "#lib/hotkeys/hotkeys.ts";
+	import { listHref, taskHref } from "#lib/navigation/href.ts";
+	import { parsePath } from "#lib/navigation/paths.ts";
 	import { reloadApp } from "#lib/reload.ts";
 	import { useBoard } from "#lib/state/board.svelte.ts";
-	import { isTypingTarget, matchesHotkey } from "#lib/hotkeys/hotkeys.ts";
 	import { TASK_PAGE_SIZE } from "#lib/tasks/paging.ts";
 	import type { Task } from "#lib/types.ts";
 
@@ -41,6 +45,20 @@
 		epicId: childEpic?.id ?? null,
 		scopeId: childEpic?.scope_id ?? null,
 	});
+
+	function openTask(id: string) {
+		const task = tasks.byId(id);
+		if (task === undefined) return;
+		const target = taskHref(task.project_id, task.id);
+		void goto(target, {
+			replace: parsePath(page.url.pathname).taskId !== null,
+		});
+	}
+
+	function closeTask() {
+		const target = listHref("tasks", parsePath(page.url.pathname).project);
+		void goto(target, { replace: true });
+	}
 
 	function openNew() {
 		childEpic = null;
@@ -92,7 +110,7 @@
 		sortKey={filters.sortKey}
 		sortOrder={filters.sortOrder}
 		onsort={(key) => filters.setSort(key)}
-		onselect={(id) => selection.select(id)}
+		onselect={openTask}
 		{total}
 		page={filters.page}
 		onclear={() => filters.clear()}
@@ -118,10 +136,11 @@
 	{data}
 	{comments}
 	{ui}
-	onclear={() => selection.clear()}
+	onclear={closeTask}
 	ondelete={forgetEpic}
 	oncreatechild={openChild}
-	onopen={(id) => selection.select(id)}
+	onopen={openTask}
+	onmoved={openTask}
 />
 
 <NewTaskModal
@@ -138,7 +157,7 @@
 	initialEpic={createDefaults.epicId}
 	initialScope={createDefaults.scopeId}
 	onopen={(id) => {
-		selection.select(id);
+		openTask(id);
 		creating = false;
 	}}
 />

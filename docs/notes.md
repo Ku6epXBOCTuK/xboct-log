@@ -11,6 +11,12 @@
 - Старт: `hooks.server.ts` → `getDb()` → `migrateDatabase()` → `ensureInbox()` →
   `startBackupScheduler()`.
 - Импорты — `#lib/...`, не `$lib`.
+- **Адрес задачи — `/tasks/project/{projectId}/{taskId}`**, проекта —
+  `/tasks/project/{projectId}` (так же `/kanban`, `/activity`, `/deleted`).
+  Активный проект читается из pathname, а не из `?project`; `/tasks/{taskId}` —
+  короткий алиас для markdown, канонический путь достраивает `+layout.svelte`.
+  Открытая задача — это URL, а не состояние: `selection` выводится из pathname,
+  задача догружается через `pin`. `/` → 307 `/tasks`.
 
 ## Данные
 
