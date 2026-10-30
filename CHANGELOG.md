@@ -2,6 +2,15 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.4.0](https://github.com/Ku6epXBOCTuK/xboct-log/compare/630518633b6cc36374ca62d06dc3cca3f54d8d80..v0.4.0) - 2026-10-30
+#### Features
+- update task chips to use links - ([d77b295](https://github.com/Ku6epXBOCTuK/xboct-log/commit/d77b2956b7dabe95aa31f908994c4d07ddffd040)) - Ku6epXBOCTuK
+- update app routing - ([6305186](https://github.com/Ku6epXBOCTuK/xboct-log/commit/630518633b6cc36374ca62d06dc3cca3f54d8d80)) - Ku6epXBOCTuK
+#### Bug Fixes
+- app links works in markdown - ([2948748](https://github.com/Ku6epXBOCTuK/xboct-log/commit/29487483a2e49876c834ba60c1d6ea4157dec194)) - Ku6epXBOCTuK
+
+- - -
+
 ## [v0.3.0](https://github.com/Ku6epXBOCTuK/xboct-log/compare/183d7b9e239654cd501a1c0755e7cdb426f10dfb..v0.3.0) - 2026-10-30
 #### Features
 - open links from markdown files - ([fd6a498](https://github.com/Ku6epXBOCTuK/xboct-log/commit/fd6a498d699234122fce3e8d8a8d44634e5ab953)) - Ku6epXBOCTuK
