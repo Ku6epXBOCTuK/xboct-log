@@ -77,7 +77,7 @@ export const addBlocker = defineBlockerLinkOp({
 	name: "tasks_add_blocker",
 	output: taskRef,
 	description:
-		"Link two tasks: the task `task_id` becomes blocked by the task `blocked_by` (that is the blocker). Both ids use the full task id form 'PREFIX-NUMBER'. The blocker may live in another project. A task cannot block itself and cycles are rejected. The blocked task keeps its current status: set status 'blocked' with tasks_update yourself. Returns: the updated blocked task - " +
+		"Link two tasks: the task `task_id` becomes blocked by the task `blocked_by` (that is the blocker). Both ids use the full task id form 'PREFIX-NUMBER'. The blocker may live in another project. A task cannot block itself and cycles are rejected. The blocked task keeps its current status: set status 'blocked' with tasks_update yourself. The link is history and stays after the blocker is closed or the task is released, so never remove it for cleanup. Returns: the updated blocked task - " +
 		TASK_FIELDS +
 		" with a changes array describing the link.",
 	run: addBlockerLink,
@@ -87,7 +87,7 @@ export const removeBlocker = defineBlockerLinkOp({
 	name: "tasks_remove_blocker",
 	output: taskRef,
 	description:
-		"Remove a blocking link: the task `task_id` is no longer blocked by the task `blocked_by`. Both ids use the full task id form 'PREFIX-NUMBER'. If no open blocker remains, the blocked task leaves status 'blocked' and returns to the status it had before it was blocked ('open' when that status is unknown). Returns: the updated blocked task - " +
+		"Remove a blocking link that was recorded by mistake: the task `task_id` is no longer blocked by the task `blocked_by`. Both ids use the full task id form 'PREFIX-NUMBER'. A closed blocker and a task that already left status 'blocked' are not reasons to remove the link: it is the history of the wait and must stay in blocked_by. If no open blocker remains, the blocked task leaves status 'blocked' and returns to the status it had before it was blocked ('open' when that status is unknown). Returns: the updated blocked task - " +
 		TASK_FIELDS +
 		" with a changes array describing the link and the status release.",
 	run: removeBlockerLink,

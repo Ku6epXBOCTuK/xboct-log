@@ -426,7 +426,7 @@ export const closeTask = defineCommand({
 	name: "tasks_close",
 	output: taskRef,
 	description:
-		"Close a task by task_id with a reason: 'fixed' → done, 'wontfix' | 'obsolete' | 'duplicate' | 'not-reproduced' → cancelled. 'not-reproduced' marks a report that could not be reproduced. The task_id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). Closing a task that blocks others releases them from status 'blocked' - every released task returns to the status it had before it was blocked ('open' when that status is unknown), and those tasks are listed in released. Returns: the closed task - " +
+		"Close a task by task_id with a reason: 'fixed' → done, 'wontfix' | 'obsolete' | 'duplicate' | 'not-reproduced' → cancelled. 'not-reproduced' marks a report that could not be reproduced. The task_id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). Closing a task that blocks others releases them from status 'blocked' - every released task returns to the status it had before it was blocked ('open' when that status is unknown), and those tasks are listed in released. The blocking links stay in place as history, so do not remove them afterwards. Returns: the closed task - " +
 		TASK_FIELDS +
 		" with a changes array and a released array.",
 	kind: "command",

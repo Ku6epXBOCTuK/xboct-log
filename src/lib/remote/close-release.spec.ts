@@ -92,6 +92,7 @@ describe("closed task releases blocked tasks", () => {
 		]);
 		const after = getTask(getDb(), blocked.id);
 		expect(after?.status).toBe("open");
+		expect(after?.blocked_by).toEqual([blocker.id]);
 	});
 
 	it("records the released status in the activity log", async () => {
