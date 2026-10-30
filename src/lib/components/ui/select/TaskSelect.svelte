@@ -15,7 +15,8 @@
 		value: string[];
 		onadd: (id: string) => void;
 		onremove: (id: string) => void;
-		onopen?: (id: string) => void;
+		href?: (id: string) => string | null;
+		onlink?: (id: string) => void;
 		onsearch?: (query: string) => void;
 		unavailable?: (id: string) => string | null;
 		placeholder?: string;
@@ -29,7 +30,8 @@
 		value,
 		onadd,
 		onremove,
-		onopen,
+		href,
+		onlink,
 		onsearch,
 		unavailable,
 		placeholder = "Add task",
@@ -71,15 +73,19 @@
 	<div class="ui-select-trigger task-trigger" role="presentation">
 		{#each value as id (id)}
 			{@const hint = unavailable?.(id) ?? null}
+			{@const target = hint === null ? (href?.(id) ?? null) : null}
 			<Chip
 				unavailable={hint !== null}
 				hint={hint ?? undefined}
-				onopen={hint === null && onopen ? () => onopen(id) : undefined}
-				openLabel={`Open ${id}`}
 				removeLabel={`Remove ${id}`}
 				onremove={() => onremove(id)}
 			>
-				{id}
+				{#if target !== null}
+					<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- href comes from taskHref(), which resolves the task route -->
+					<a href={target} onclick={() => onlink?.(id)}>{id}</a>
+				{:else}
+					{id}
+				{/if}
 			</Chip>
 		{/each}
 		<button

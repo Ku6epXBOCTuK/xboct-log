@@ -139,7 +139,6 @@
 	onclear={closeTask}
 	ondelete={forgetEpic}
 	oncreatechild={openChild}
-	onopen={openTask}
 	onmoved={openTask}
 />
 

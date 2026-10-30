@@ -20,6 +20,7 @@
 	import { matchesHotkey } from "#lib/hotkeys/hotkeys.ts";
 	import { fieldNavigation } from "#lib/hotkeys/fields.ts";
 	import { fileDrop } from "#lib/files/drop.ts";
+	import { taskHrefFor } from "#lib/navigation/href.ts";
 	import {
 		advancedFilledCount,
 		draftHasContent,
@@ -170,6 +171,14 @@
 	let linkCandidates = $derived(
 		append(openTasks(projectData?.tasks ?? []), openTasks(finder.found)),
 	);
+
+	function linkHref(id: string): string | null {
+		return taskHrefFor(
+			(value) =>
+				linkCandidates.find((item) => item.id === value) ?? tasks.byId(value),
+			id,
+		);
+	}
 
 	function addLink(field: LinkField, id: string) {
 		links = { ...links, [field]: [...links[field], id] };
@@ -458,6 +467,8 @@
 			blockerCandidates={linkCandidates}
 			onadd={addLink}
 			onremove={removeLink}
+			href={linkHref}
+			onlink={onclose}
 			onsearch={finder.search}
 		/>
 

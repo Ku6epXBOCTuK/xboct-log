@@ -15,7 +15,8 @@
 		blockerCandidates: Task[];
 		onadd: (field: LinkField, id: string) => void;
 		onremove: (field: LinkField, id: string) => void;
-		onopen?: (id: string) => void;
+		href?: (id: string) => string | null;
+		onlink?: (id: string) => void;
 		onsearch?: (query: string) => void;
 		unavailable?: (id: string) => string | null;
 		canMarkBlocked?: boolean;
@@ -33,7 +34,8 @@
 		blockerCandidates,
 		onadd,
 		onremove,
-		onopen,
+		href,
+		onlink,
 		onsearch,
 		unavailable,
 		canMarkBlocked = false,
@@ -65,7 +67,8 @@
 				value={blockedBy}
 				onadd={(id) => onadd("blocked_by", id)}
 				onremove={(id) => onremove("blocked_by", id)}
-				{onopen}
+				{href}
+				{onlink}
 				{onsearch}
 				{unavailable}
 				placeholder="Add blocker"
@@ -80,13 +83,14 @@
 				{:else}
 					{#each blocks as id (id)}
 						{@const hint = unavailable?.(id) ?? null}
-						<Chip
-							unavailable={hint !== null}
-							hint={hint ?? undefined}
-							onopen={hint === null ? () => onopen?.(id) : undefined}
-							openLabel={`Open ${id}`}
-						>
-							{id}
+						{@const target = hint === null ? (href?.(id) ?? null) : null}
+						<Chip unavailable={hint !== null} hint={hint ?? undefined}>
+							{#if target !== null}
+								<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- href comes from taskHref(), which resolves the task route -->
+								<a href={target} onclick={() => onlink?.(id)}>{id}</a>
+							{:else}
+								{id}
+							{/if}
 						</Chip>
 					{/each}
 				{/if}
@@ -99,7 +103,8 @@
 				value={relatesTo}
 				onadd={(id) => onadd("relates_to", id)}
 				onremove={(id) => onremove("relates_to", id)}
-				{onopen}
+				{href}
+				{onlink}
 				{onsearch}
 				{unavailable}
 				placeholder="Add related task"
@@ -113,7 +118,8 @@
 				value={duplicates}
 				onadd={(id) => onadd("duplicates", id)}
 				onremove={(id) => onremove("duplicates", id)}
-				{onopen}
+				{href}
+				{onlink}
 				{onsearch}
 				{unavailable}
 				placeholder="Add duplicate of"
@@ -127,7 +133,8 @@
 				value={duplicatedBy}
 				onadd={(id) => onadd("duplicated_by", id)}
 				onremove={(id) => onremove("duplicated_by", id)}
-				{onopen}
+				{href}
+				{onlink}
 				{onsearch}
 				{unavailable}
 				placeholder="Add duplicate source"

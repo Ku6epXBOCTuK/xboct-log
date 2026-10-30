@@ -14,6 +14,7 @@
 	import SectionDivider from "#lib/components/ui/SectionDivider.svelte";
 	import { fieldNavigation } from "#lib/hotkeys/fields.ts";
 	import { fileDrop } from "#lib/files/drop.ts";
+	import { taskHrefFor } from "#lib/navigation/href.ts";
 	import type { CommentsStore } from "#lib/state/comments.svelte.ts";
 	import type { ProjectDataStore } from "#lib/state/project-data.svelte.ts";
 	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
@@ -52,7 +53,6 @@
 		onclear: () => void;
 		ondelete?: (id: string) => void;
 		oncreatechild?: (task: Task) => void;
-		onopen?: (id: string) => void;
 		onmoved?: (id: string) => void;
 	}
 
@@ -68,7 +68,6 @@
 		onclear,
 		ondelete,
 		oncreatechild,
-		onopen,
 		onmoved,
 	}: Props = $props();
 
@@ -379,7 +378,7 @@
 				blockerCandidates={candidates.blockers}
 				onadd={addLinkField}
 				onremove={removeLinkField}
-				{onopen}
+				href={(id) => taskHrefFor(tasks.byId, id)}
 				onsearch={searchTasks}
 				{unavailable}
 				{canMarkBlocked}
