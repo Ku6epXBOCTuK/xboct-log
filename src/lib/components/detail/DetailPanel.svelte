@@ -1,53 +1,44 @@
 <script lang="ts">
 	import TaskAttachments from "#lib/components/attachments/TaskAttachments.svelte";
+	import CommentsOverlay from "#lib/components/detail/CommentsOverlay.svelte";
 	import DetailActions from "#lib/components/detail/DetailActions.svelte";
+	import DetailHeader from "#lib/components/detail/DetailHeader.svelte";
 	import PanelOverlay from "#lib/components/detail/PanelOverlay.svelte";
-	import TaskComments from "#lib/components/detail/TaskComments.svelte";
 	import TaskHistory from "#lib/components/detail/TaskHistory.svelte";
 	import TaskRevisions from "#lib/components/detail/TaskRevisions.svelte";
-	import MarkdownView from "#lib/components/markdown/MarkdownView.svelte";
 	import AdvancedFields from "#lib/components/task/AdvancedFields.svelte";
 	import ProjectScopeFields from "#lib/components/task/ProjectScopeFields.svelte";
 	import TaskFields from "#lib/components/task/TaskFields.svelte";
 	import TaskLinks from "#lib/components/task/TaskLinks.svelte";
-	import CopyButton from "#lib/components/ui/CopyButton.svelte";
-	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
+	import DropOverlay from "#lib/components/ui/DropOverlay.svelte";
 	import SectionDivider from "#lib/components/ui/SectionDivider.svelte";
-	import StatusDot from "#lib/components/ui/StatusDot.svelte";
 	import { fieldNavigation } from "#lib/hotkeys/fields.ts";
+	import { fileDrop } from "#lib/files/drop.ts";
 	import type { CommentsStore } from "#lib/state/comments.svelte.ts";
 	import type { ProjectDataStore } from "#lib/state/project-data.svelte.ts";
 	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { TagStore } from "#lib/state/tags.svelte.ts";
+	import { createTaskDraft } from "#lib/state/task-draft.ts";
 	import { createTaskFinder } from "#lib/state/task-finder.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
 	import type { UiStore } from "#lib/state/ui.svelte.ts";
-	import { blockingCandidates, blockingIds } from "#lib/tasks/blocking.ts";
-	import { taskText } from "#lib/tasks/clipboard.ts";
+	import { blockingIds } from "#lib/tasks/blocking.ts";
 	import {
-		CLOSED_REASON_LABELS,
-		STATUS_LABELS,
-		formatDateTime,
-		messageOf,
-	} from "#lib/tasks/display.ts";
+		addConnection,
+		connectionCandidates,
+		removeConnection,
+	} from "#lib/tasks/connections.ts";
+	import { messageOf } from "#lib/tasks/display.ts";
 	import {
 		advancedFilledCount,
 		siblingEpics,
-		validateTaskDraft,
 		type TaskPatch,
 	} from "#lib/tasks/fields.ts";
 	import type { LinkField } from "#lib/tasks/links.ts";
 	import type { ClosedReason, Status, Task } from "#lib/types.ts";
-	import { CLOSED_STATUSES } from "#lib/types.ts";
-	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
 	import { untrack } from "svelte";
 	import { cubicOut } from "svelte/easing";
-	import Clock3 from "~icons/lucide/clock-3";
-	import MessageSquare from "~icons/lucide/message-square";
-	import RefreshCw from "~icons/lucide/refresh-cw";
-	import Upload from "~icons/lucide/upload";
-	import X from "~icons/lucide/x";
 
 	interface Props {
 		selected: Task | null;
@@ -107,42 +98,10 @@
 			selected.status !== "done",
 	);
 
-	function stamp(task: Task): string {
-		return task.closed_at != null
-			? formatDateTime(task.closed_at)
-			: formatDateTime(task.updated_at);
-	}
-
-	function append(base: Task[], extra: Task[]): Task[] {
-		const ids = new Set(base.map((task) => task.id));
-		return [...base, ...extra.filter((task) => !ids.has(task.id))];
-	}
-
-	function isLinkCandidate(task: Task): boolean {
-		if (selected === null || task.id === selected.id) return false;
-		if (CLOSED_STATUSES.includes(task.status)) return false;
-		return (
-			!(selected.relates_to ?? []).includes(task.id) &&
-			!(selected.duplicates ?? []).includes(task.id) &&
-			!(selected.duplicated_by ?? []).includes(task.id)
-		);
-	}
-
-	let blockerCandidates = $derived(
+	let candidates = $derived(
 		selected === null
-			? []
-			: append(
-					blockingCandidates(projectData?.tasks ?? [], selected),
-					blockingCandidates(finder.found, selected),
-				),
-	);
-	let linkCandidates = $derived(
-		selected === null
-			? []
-			: append(
-					(projectData?.tasks ?? []).filter(isLinkCandidate),
-					finder.found.filter(isLinkCandidate),
-				),
+			? { blockers: [], links: [] }
+			: connectionCandidates(projectData?.tasks ?? [], finder.found, selected),
 	);
 
 	// NOTE: the derived value only changes when the task id changes, so a live
@@ -212,47 +171,29 @@
 		void perform(() => tasks.save(current.id, patch));
 	}
 
-	const DRAFT_FLUSH_MS = 10_000;
-
-	let pendingId: string | null = null;
-	let pending: TaskPatch = {};
-	let flushTimer: ReturnType<typeof setTimeout> | undefined;
-
-	function flushDraft() {
-		clearTimeout(flushTimer);
-		const id = pendingId;
-		const patch = pending;
-		pendingId = null;
-		pending = {};
-		if (id === null || Object.keys(patch).length === 0) return;
-		void perform(() => tasks.save(id, patch));
-	}
+	const drafts = createTaskDraft({
+		save: (id, patch) => void perform(() => tasks.save(id, patch)),
+	});
 
 	function draft(patch: TaskPatch) {
 		const current = selected;
 		if (current === null) return;
-		if (pendingId !== null && pendingId !== current.id) flushDraft();
-		pendingId = current.id;
-		pending = { ...pending, ...patch };
-		clearTimeout(flushTimer);
-		flushTimer = setTimeout(flushDraft, DRAFT_FLUSH_MS);
+		drafts.draft(current.id, patch);
 	}
 
 	function cancelDraft() {
-		clearTimeout(flushTimer);
-		flushTimer = undefined;
+		drafts.cancel();
 	}
 
 	$effect(() => {
 		const id = selectedId ?? null;
-		untrack(() => {
-			if (pendingId !== null && pendingId !== id) flushDraft();
-		});
+		untrack(() => drafts.release(id));
 	});
 
 	$effect(() => {
-		window.addEventListener("pagehide", flushDraft);
-		return () => window.removeEventListener("pagehide", flushDraft);
+		const flush = drafts.flush;
+		window.addEventListener("pagehide", flush);
+		return () => window.removeEventListener("pagehide", flush);
 	});
 
 	async function onnewscope(name: string): Promise<number> {
@@ -263,19 +204,6 @@
 			name,
 		});
 		return scope.id;
-	}
-
-	function saveTitle(event: Event) {
-		const input = event.currentTarget as HTMLInputElement;
-		const invalid = validateTaskDraft({ title: input.value });
-
-		if (invalid !== null) {
-			failure = invalid;
-			input.value = selected?.title ?? "";
-			return;
-		}
-
-		draft({ title: input.value.trim() });
 	}
 
 	function moveTo(projectId: string) {
@@ -303,37 +231,13 @@
 	function addLinkField(field: LinkField, id: string) {
 		const current = selected;
 		if (current === null) return;
-		if (field === "blocked_by") {
-			void perform(() => tasks.addBlocker(current.id, id));
-			return;
-		}
-		if (field === "blocks") {
-			void perform(() => tasks.addBlocker(id, current.id));
-			return;
-		}
-		if (field === "duplicated_by") {
-			void perform(() => tasks.addLink(id, "duplicates", current.id));
-			return;
-		}
-		void perform(() => tasks.addLink(current.id, field, id));
+		void perform(() => addConnection(tasks, current, field, id));
 	}
 
 	function removeLinkField(field: LinkField, id: string) {
 		const current = selected;
 		if (current === null) return;
-		if (field === "blocked_by") {
-			void perform(() => tasks.removeBlocker(current.id, id));
-			return;
-		}
-		if (field === "blocks") {
-			void perform(() => tasks.removeBlocker(id, current.id));
-			return;
-		}
-		if (field === "duplicated_by") {
-			void perform(() => tasks.removeLink(id, "duplicates", current.id));
-			return;
-		}
-		void perform(() => tasks.removeLink(current.id, field, id));
+		void perform(() => removeConnection(tasks, current, field, id));
 	}
 
 	function reopen() {
@@ -369,29 +273,8 @@
 		};
 	}
 
-	function dragOver(event: DragEvent) {
-		if (event.dataTransfer?.types.includes("Files") !== true) return;
-		event.preventDefault();
-		dragging = true;
-	}
-
-	function dragLeave(event: DragEvent) {
-		const panel = event.currentTarget;
-		const related = event.relatedTarget;
-		if (
-			panel instanceof Node &&
-			related instanceof Node &&
-			panel.contains(related)
-		) {
-			return;
-		}
-		dragging = false;
-	}
-
-	function drop(event: DragEvent) {
-		event.preventDefault();
-		dragging = false;
-		void attachments?.addFiles([...(event.dataTransfer?.files ?? [])]);
+	function takeFiles(files: File[]) {
+		void attachments?.addFiles(files);
 	}
 
 	function onkeydown(event: KeyboardEvent) {
@@ -430,74 +313,22 @@
 		transition:slideRight
 		aria-label="Task details"
 		use:fieldNavigation={{ exclude: ".panel-overlay" }}
-		ondragover={dragOver}
-		ondragleave={dragLeave}
-		ondrop={drop}
+		use:fileDrop={{
+			onfiles: takeFiles,
+			ondragchange: (value) => (dragging = value),
+		}}
 	>
-		<div class="detail-head">
-			<div class="detail-top">
-				<div class="detail-id">
-					<span class="detail-id-badge">
-						<span class="epic-badge">{selected.id}</span>
-						<CopyButton
-							size="sm"
-							text={selected.id}
-							label="Copy task id"
-							title="Copy task id"
-						/>
-					</span>
-					<StatusDot status={selected.status} />
-					<span>{STATUS_LABELS[selected.status]}</span>
-					{#if selected.closed_reason !== null}
-						<span class="muted">
-							{CLOSED_REASON_LABELS[selected.closed_reason]}
-						</span>
-					{/if}
-					<span class="muted">
-						{saving ? "saving…" : stamp(selected)}
-					</span>
-				</div>
-				<div class="detail-actions">
-					<CopyButton
-						text={taskText(selected.title, selected.description)}
-						label="Copy title and description"
-						title="Copy title and description"
-					/>
-					<IconButton
-						label="Task history"
-						title="Task history"
-						onclick={() => (historyOpen = true)}
-					>
-						<Clock3 />
-					</IconButton>
-					<IconButton
-						label="Task comments"
-						title="Task comments"
-						onclick={() => (commentsOpen = true)}
-					>
-						<MessageSquare />
-					</IconButton>
-					<IconButton label="Close task details" onclick={onclear}>
-						<X />
-					</IconButton>
-				</div>
-			</div>
-			<div class="title-row">
-				<input
-					class="title-input"
-					value={selected.title}
-					onchange={saveTitle}
-					onfocus={cancelDraft}
-					aria-label="Title"
-				/>
-				<CopyButton
-					text={selected.title}
-					label="Copy title"
-					title="Copy title"
-				/>
-			</div>
-			<ErrorNote message={failure} />
-		</div>
+		<DetailHeader
+			task={selected}
+			{saving}
+			{failure}
+			onrename={(title) => draft({ title })}
+			onerror={(message) => (failure = message)}
+			onhistory={() => (historyOpen = true)}
+			oncomments={() => (commentsOpen = true)}
+			onclose={onclear}
+			oncanceldraft={cancelDraft}
+		/>
 		<div class="panel-body">
 			<ProjectScopeFields
 				value={selected}
@@ -533,8 +364,8 @@
 				relatesTo={selected.relates_to ?? []}
 				duplicates={selected.duplicates ?? []}
 				duplicatedBy={selected.duplicated_by ?? []}
-				candidates={linkCandidates}
-				{blockerCandidates}
+				candidates={candidates.links}
+				blockerCandidates={candidates.blockers}
 				onadd={addLinkField}
 				onremove={removeLinkField}
 				{onopen}
@@ -580,44 +411,15 @@
 			</PanelOverlay>
 		{/if}
 		{#if commentsOpen}
-			<PanelOverlay
-				title="Comments"
-				label="Task comments"
+			<CommentsOverlay
+				task={selected}
+				{comments}
 				onback={() => (commentsOpen = false)}
 				onclose={onclear}
-			>
-				{#snippet actions()}
-					<IconButton
-						label="Reload comments"
-						title="Reload comments"
-						onclick={() => {
-							void comments.load(selected.id).catch(() => {});
-						}}
-					>
-						<RefreshCw />
-					</IconButton>
-				{/snippet}
-				<div class="task-summary">
-					<div class="summary-title">{selected.title}</div>
-					<div class="summary-meta">
-						<span class="epic-badge">{selected.id}</span>
-						<StatusDot status={selected.status} />
-						<span>{STATUS_LABELS[selected.status]}</span>
-					</div>
-					{#if selected.description.trim() !== ""}
-						<div class="summary-description">
-							<MarkdownView text={selected.description} />
-						</div>
-					{/if}
-				</div>
-				<TaskComments taskId={selected.id} {comments} />
-			</PanelOverlay>
+			/>
 		{/if}
 		{#if dragging}
-			<div class="drop-overlay" aria-hidden="true">
-				<Upload />
-				<span>Drop files to attach</span>
-			</div>
+			<DropOverlay z={30} />
 		{/if}
 	</aside>
 {/if}
@@ -639,51 +441,8 @@
 		overflow: hidden;
 	}
 
-	.drop-overlay {
-		position: absolute;
-		inset: 0;
-		z-index: 30;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		gap: var(--space-3);
-		border: 2px dashed var(--accent);
-		border-radius: var(--radius);
-		background: color-mix(in oklch, var(--panel) 82%, transparent);
-		color: var(--text-secondary);
-		font-size: var(--text-lg);
-		font-weight: 600;
-		pointer-events: none;
-	}
-
-	.drop-overlay :global(svg) {
-		width: 2rem;
-		height: 2rem;
-		color: var(--accent);
-	}
-
-	.detail-head {
-		flex: none;
-		padding: var(--edge-pad) var(--edge-pad) 0;
-	}
-
 	.panel-body {
 		padding: var(--space-4) var(--edge-pad) var(--space-5);
-	}
-
-	.detail-top {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		gap: var(--space-2);
-	}
-
-	.detail-actions {
-		display: flex;
-		align-items: center;
-		gap: var(--space-1);
-		flex: none;
 	}
 
 	.previous-versions {
@@ -699,87 +458,6 @@
 		font-size: var(--text-xl);
 		font-weight: 600;
 		letter-spacing: -0.02em;
-	}
-
-	.task-summary {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-2);
-		padding-bottom: var(--space-4);
-		border-bottom: 1px solid var(--border);
-	}
-
-	.summary-title {
-		font-size: var(--text-lg);
-		font-weight: 600;
-		line-height: 1.3;
-	}
-
-	.summary-meta {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		color: var(--text-muted);
-		font-size: var(--text-sm);
-	}
-
-	.summary-description {
-		margin: 0;
-	}
-
-	.detail-id {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		min-width: 0;
-	}
-
-	.detail-id-badge {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--space-1);
-		flex: none;
-		margin-right: var(--space-2);
-	}
-
-	.detail-id-badge :global(.epic-badge) {
-		margin-left: 0;
-	}
-
-	.muted {
-		color: var(--text-muted);
-		font-variant-numeric: tabular-nums;
-	}
-
-	.title-row {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-	}
-
-	.title-row :global(.ui-icon-button) {
-		margin-top: var(--space-3);
-	}
-
-	.title-input {
-		width: 100%;
-		font-size: var(--text-xl);
-		line-height: 1.25;
-		margin: var(--space-3) 0 0;
-		letter-spacing: -0.02em;
-		font-weight: 600;
-		color: var(--foreground);
-		background: transparent;
-		border: 0;
-		border-bottom: 1px solid transparent;
-		border-radius: 0;
-		padding: 0 0 var(--space-1);
-		min-height: 2.5rem;
-	}
-
-	.title-input:focus {
-		border-bottom-color: var(--accent);
-		box-shadow: none;
 	}
 
 	@media (max-width: 820px) {

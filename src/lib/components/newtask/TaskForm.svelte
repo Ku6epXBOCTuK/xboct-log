@@ -6,6 +6,7 @@
 	import TaskLinks from "#lib/components/task/TaskLinks.svelte";
 	import AdvancedFields from "#lib/components/task/AdvancedFields.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
+	import DropOverlay from "#lib/components/ui/DropOverlay.svelte";
 	import SectionDivider from "#lib/components/ui/SectionDivider.svelte";
 	import type { DraftStore } from "#lib/state/draft.svelte.ts";
 	import type { ProjectDataStore } from "#lib/state/project-data.svelte.ts";
@@ -18,6 +19,7 @@
 	import { addTaskAttachment } from "#lib/remote/attachments.remote.ts";
 	import { matchesHotkey } from "#lib/hotkeys/hotkeys.ts";
 	import { fieldNavigation } from "#lib/hotkeys/fields.ts";
+	import { fileDrop } from "#lib/files/drop.ts";
 	import {
 		advancedFilledCount,
 		draftHasContent,
@@ -221,33 +223,6 @@
 		files = [...files, ...images];
 	}
 
-	function dragOver(event: DragEvent) {
-		if (event.dataTransfer?.types.includes("Files") !== true) return;
-		event.preventDefault();
-		dragging = true;
-	}
-
-	function dragLeave(event: DragEvent) {
-		const form = event.currentTarget;
-		const related = event.relatedTarget;
-		if (
-			form instanceof Node &&
-			related instanceof Node &&
-			form.contains(related)
-		) {
-			return;
-		}
-		dragging = false;
-	}
-
-	function drop(event: DragEvent) {
-		event.preventDefault();
-		dragging = false;
-		const dropped = [...(event.dataTransfer?.files ?? [])];
-		if (dropped.length === 0) return;
-		files = [...files, ...dropped];
-	}
-
 	async function uploadFiles(taskId: string) {
 		for (const file of files) {
 			const content = await fileToBase64(file);
@@ -424,9 +399,10 @@
 	bind:this={formElement}
 	onsubmit={submit}
 	use:fieldNavigation
-	ondragover={dragOver}
-	ondragleave={dragLeave}
-	ondrop={drop}
+	use:fileDrop={{
+		onfiles: (dropped) => (files = [...files, ...dropped]),
+		ondragchange: (value) => (dragging = value),
+	}}
 >
 	<ScrollArea class="panel-body">
 		<ProjectScopeFields
@@ -558,10 +534,7 @@
 	</div>
 
 	{#if dragging}
-		<div class="drop-overlay" aria-hidden="true">
-			<Upload />
-			<span>Drop files to attach</span>
-		</div>
+		<DropOverlay />
 	{/if}
 </form>
 
@@ -578,30 +551,6 @@
 		flex: 1 1 auto;
 		min-height: 0;
 		position: relative;
-	}
-
-	.drop-overlay {
-		position: absolute;
-		inset: 0;
-		z-index: 10;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		gap: var(--space-3);
-		border: 2px dashed var(--accent);
-		border-radius: var(--radius);
-		background: color-mix(in oklch, var(--panel) 82%, transparent);
-		color: var(--text-secondary);
-		font-size: var(--text-lg);
-		font-weight: 600;
-		pointer-events: none;
-	}
-
-	.drop-overlay :global(svg) {
-		width: 2rem;
-		height: 2rem;
-		color: var(--accent);
 	}
 
 	.modal-foot {
