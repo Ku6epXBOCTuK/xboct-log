@@ -1,47 +1,47 @@
 <script lang="ts">
-	import AdvancedFields from "#lib/components/task/AdvancedFields.svelte";
-	import TaskLinks from "#lib/components/task/TaskLinks.svelte";
+	import TaskAttachments from "#lib/components/attachments/TaskAttachments.svelte";
 	import DetailActions from "#lib/components/detail/DetailActions.svelte";
-	import ProjectScopeFields from "#lib/components/task/ProjectScopeFields.svelte";
+	import PanelOverlay from "#lib/components/detail/PanelOverlay.svelte";
 	import TaskComments from "#lib/components/detail/TaskComments.svelte";
 	import TaskHistory from "#lib/components/detail/TaskHistory.svelte";
 	import TaskRevisions from "#lib/components/detail/TaskRevisions.svelte";
-	import PanelOverlay from "#lib/components/detail/PanelOverlay.svelte";
-	import TaskAttachments from "#lib/components/attachments/TaskAttachments.svelte";
-	import TaskFields from "#lib/components/task/TaskFields.svelte";
 	import MarkdownView from "#lib/components/markdown/MarkdownView.svelte";
-	import { fieldNavigation } from "#lib/hotkeys/fields.ts";
-	import { untrack } from "svelte";
+	import AdvancedFields from "#lib/components/task/AdvancedFields.svelte";
+	import ProjectScopeFields from "#lib/components/task/ProjectScopeFields.svelte";
+	import TaskFields from "#lib/components/task/TaskFields.svelte";
+	import TaskLinks from "#lib/components/task/TaskLinks.svelte";
+	import CopyButton from "#lib/components/ui/CopyButton.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import SectionDivider from "#lib/components/ui/SectionDivider.svelte";
-	import CopyButton from "#lib/components/ui/CopyButton.svelte";
-	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
 	import StatusDot from "#lib/components/ui/StatusDot.svelte";
-	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
-	import type { ProjectDataStore } from "#lib/state/project-data.svelte.ts";
-	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
+	import { fieldNavigation } from "#lib/hotkeys/fields.ts";
 	import type { CommentsStore } from "#lib/state/comments.svelte.ts";
+	import type { ProjectDataStore } from "#lib/state/project-data.svelte.ts";
+	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
+	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { TagStore } from "#lib/state/tags.svelte.ts";
+	import { createTaskFinder } from "#lib/state/task-finder.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
 	import type { UiStore } from "#lib/state/ui.svelte.ts";
+	import { blockingCandidates, blockingIds } from "#lib/tasks/blocking.ts";
+	import { taskText } from "#lib/tasks/clipboard.ts";
 	import {
 		CLOSED_REASON_LABELS,
 		STATUS_LABELS,
 		formatDateTime,
 		messageOf,
 	} from "#lib/tasks/display.ts";
-	import { blockingCandidates, blockingIds } from "#lib/tasks/blocking.ts";
-	import { taskText } from "#lib/tasks/clipboard.ts";
-	import { advancedFilledCount } from "#lib/tasks/fields.ts";
-	import type { LinkField } from "#lib/tasks/links.ts";
 	import {
+		advancedFilledCount,
 		siblingEpics,
 		validateTaskDraft,
 		type TaskPatch,
 	} from "#lib/tasks/fields.ts";
-	import { CLOSED_STATUSES } from "#lib/types.ts";
+	import type { LinkField } from "#lib/tasks/links.ts";
 	import type { ClosedReason, Status, Task } from "#lib/types.ts";
-	import { createTaskFinder } from "#lib/state/task-finder.svelte.ts";
+	import { CLOSED_STATUSES } from "#lib/types.ts";
+	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
+	import { untrack } from "svelte";
 	import { cubicOut } from "svelte/easing";
 	import Clock3 from "~icons/lucide/clock-3";
 	import MessageSquare from "~icons/lucide/message-square";
@@ -437,7 +437,15 @@
 		<div class="detail-head">
 			<div class="detail-top">
 				<div class="detail-id">
-					<span class="epic-badge">{selected.id}</span>
+					<span class="detail-id-badge">
+						<span class="epic-badge">{selected.id}</span>
+						<CopyButton
+							size="sm"
+							text={selected.id}
+							label="Copy task id"
+							title="Copy task id"
+						/>
+					</span>
 					<StatusDot status={selected.status} />
 					<span>{STATUS_LABELS[selected.status]}</span>
 					{#if selected.closed_reason !== null}
@@ -724,6 +732,18 @@
 		align-items: center;
 		gap: var(--space-2);
 		min-width: 0;
+	}
+
+	.detail-id-badge {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-1);
+		flex: none;
+		margin-right: var(--space-2);
+	}
+
+	.detail-id-badge :global(.epic-badge) {
+		margin-left: 0;
 	}
 
 	.muted {
