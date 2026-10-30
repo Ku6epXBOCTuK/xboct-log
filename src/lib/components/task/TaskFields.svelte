@@ -3,6 +3,7 @@
 	import CopyButton from "#lib/components/ui/CopyButton.svelte";
 	import InfoPopover from "#lib/components/ui/InfoPopover.svelte";
 	import SingleSelect from "#lib/components/ui/select/SingleSelect.svelte";
+	import { matchesHotkey } from "#lib/hotkeys/hotkeys.ts";
 	import { STATUS_LABELS } from "#lib/tasks/display.ts";
 	import type { TaskFieldValues, TaskPatch } from "#lib/tasks/fields.ts";
 	import {
@@ -18,6 +19,7 @@
 	import Eye from "~icons/lucide/eye";
 	import EyeOff from "~icons/lucide/eye-off";
 	import Plus from "~icons/lucide/plus";
+	import WrapText from "~icons/lucide/wrap-text";
 
 	interface EpicChoice {
 		key: string;
@@ -83,6 +85,7 @@
 
 	let area: HTMLTextAreaElement | undefined = $state();
 	let preview = $state(false);
+	let wrap = $state(true);
 	let previewText = $state("");
 	let draftText = $state<string | null>(null);
 	let draftTask = $state<string | undefined>(undefined);
@@ -156,6 +159,19 @@
 		dirty = true;
 	}
 
+	function toggleWrap() {
+		wrap = !wrap;
+	}
+
+	function handleKeydown(event: KeyboardEvent) {
+		if (matchesHotkey(event, "alt+z")) {
+			event.preventDefault();
+			toggleWrap();
+			return;
+		}
+		indent(event);
+	}
+
 	function changeBlockedReason(event: Event) {
 		const input = event.currentTarget as HTMLInputElement;
 		const reason = input.value.trim();
@@ -222,11 +238,13 @@
 				class="field-control description-input"
 				bind:this={area}
 				value={text}
-				wrap="off"
+				wrap={wrap ? "soft" : "off"}
+				style:white-space={wrap ? "pre-wrap" : "pre"}
+				style:overflow-wrap={wrap ? "anywhere" : "normal"}
 				oninput={markDirty}
 				onfocus={() => oncanceldraft?.()}
 				onblur={commitDescription}
-				onkeydown={indent}
+				onkeydown={handleKeydown}
 				placeholder="Description"
 				aria-label="Description"></textarea>
 		{/if}
@@ -246,6 +264,19 @@
 				Preview
 			{/if}
 		</button>
+		{#if !preview}
+			<button
+				class="description-toggle"
+				type="button"
+				onclick={toggleWrap}
+				aria-pressed={wrap}
+				aria-label="Wrap long lines"
+				title="Wrap long lines (Alt+Z)"
+			>
+				<WrapText />
+				Wrap
+			</button>
+		{/if}
 		{#if editing}
 			<CopyButton {text} label="Copy description" title="Copy description" />
 		{/if}
@@ -355,8 +386,6 @@
 		height: 100%;
 		min-height: 0;
 		resize: none;
-		white-space: pre;
-		overflow-wrap: normal;
 	}
 
 	.description-input {
