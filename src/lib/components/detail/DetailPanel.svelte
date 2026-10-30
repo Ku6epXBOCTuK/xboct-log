@@ -11,6 +11,7 @@
 	import TaskFields from "#lib/components/task/TaskFields.svelte";
 	import MarkdownView from "#lib/components/markdown/MarkdownView.svelte";
 	import { fieldNavigation } from "#lib/hotkeys/fields.ts";
+	import { untrack } from "svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import SectionDivider from "#lib/components/ui/SectionDivider.svelte";
 	import CopyButton from "#lib/components/ui/CopyButton.svelte";
@@ -211,6 +212,49 @@
 		void perform(() => tasks.save(current.id, patch));
 	}
 
+	const DRAFT_FLUSH_MS = 10_000;
+
+	let pendingId: string | null = null;
+	let pending: TaskPatch = {};
+	let flushTimer: ReturnType<typeof setTimeout> | undefined;
+
+	function flushDraft() {
+		clearTimeout(flushTimer);
+		const id = pendingId;
+		const patch = pending;
+		pendingId = null;
+		pending = {};
+		if (id === null || Object.keys(patch).length === 0) return;
+		void perform(() => tasks.save(id, patch));
+	}
+
+	function draft(patch: TaskPatch) {
+		const current = selected;
+		if (current === null) return;
+		if (pendingId !== null && pendingId !== current.id) flushDraft();
+		pendingId = current.id;
+		pending = { ...pending, ...patch };
+		clearTimeout(flushTimer);
+		flushTimer = setTimeout(flushDraft, DRAFT_FLUSH_MS);
+	}
+
+	function cancelDraft() {
+		clearTimeout(flushTimer);
+		flushTimer = undefined;
+	}
+
+	$effect(() => {
+		const id = selectedId ?? null;
+		untrack(() => {
+			if (pendingId !== null && pendingId !== id) flushDraft();
+		});
+	});
+
+	$effect(() => {
+		window.addEventListener("pagehide", flushDraft);
+		return () => window.removeEventListener("pagehide", flushDraft);
+	});
+
 	async function onnewscope(name: string): Promise<number> {
 		const current = selected;
 		if (current === null) throw new Error("no task selected");
@@ -231,7 +275,7 @@
 			return;
 		}
 
-		save({ title: input.value.trim() });
+		draft({ title: input.value.trim() });
 	}
 
 	function moveTo(projectId: string) {
@@ -435,6 +479,7 @@
 					class="title-input"
 					value={selected.title}
 					onchange={saveTitle}
+					onfocus={cancelDraft}
 					aria-label="Title"
 				/>
 				<CopyButton
@@ -468,6 +513,8 @@
 				blockedReason={selected.blocked_reason ?? ""}
 				onblockedreason={(reason) => save({ blocked_reason: reason })}
 				onfield={save}
+				ondraft={draft}
+				oncanceldraft={cancelDraft}
 				oncreatechild={createChild}
 				commentsCount={comments.count(selected.id)}
 				oncomments={() => (commentsOpen = true)}

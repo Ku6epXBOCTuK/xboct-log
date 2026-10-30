@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { type AppError } from "./errors";
 import { openMigratedDatabase } from "./migrations";
 import { createProject } from "./projects";
-import { listRevisions } from "./revisions";
+import { listRevisions, recordRevision, REVISION_MERGE_MS } from "./revisions";
 import { createTask, updateTask } from "./tasks";
 
 function unwrap<T>(result: Result<T, AppError>): T {
@@ -26,7 +26,7 @@ async function setup(): Promise<DatabaseSync> {
 }
 
 describe("description revisions", () => {
-	it("keeps the previous description on every change", async () => {
+	it("merges the edits made inside the window into one revision", async () => {
 		const db = await setup();
 
 		unwrap(updateTask(db, "SPA-1", { description: "second" }));
@@ -34,7 +34,6 @@ describe("description revisions", () => {
 
 		expect(listRevisions(db, "SPA-1").map((item) => item.body)).toEqual([
 			"first",
-			"second",
 		]);
 		expect(
 			listRevisions(db, "SPA-1").every((item) => item.field === "description"),
@@ -42,6 +41,33 @@ describe("description revisions", () => {
 		expect(
 			listRevisions(db, "SPA-1").every((item) => item.ref_id === null),
 		).toBe(true);
+	});
+
+	it("starts a new revision once the window has passed", async () => {
+		const db = await setup();
+		const start = new Date("2026-01-01T10:00:00.000Z");
+		const at = (offset: number) => new Date(start.getTime() + offset);
+
+		recordRevision(
+			db,
+			{ task_id: "SPA-1", field: "description", body: "first" },
+			start,
+		);
+		recordRevision(
+			db,
+			{ task_id: "SPA-1", field: "description", body: "second" },
+			at(REVISION_MERGE_MS - 1000),
+		);
+		recordRevision(
+			db,
+			{ task_id: "SPA-1", field: "description", body: "third" },
+			at(REVISION_MERGE_MS + 1000),
+		);
+
+		expect(listRevisions(db, "SPA-1").map((item) => item.body)).toEqual([
+			"first",
+			"third",
+		]);
 	});
 
 	it("writes no revision when the description does not change", async () => {

@@ -37,6 +37,8 @@
 		blockedReason?: string;
 		onblockedreason?: (reason: string | null) => void;
 		onfield: (patch: TaskPatch) => void;
+		ondraft?: (patch: TaskPatch) => void;
+		oncanceldraft?: () => void;
 		oncreatechild?: () => void;
 		commentsCount?: number;
 		oncomments?: () => void;
@@ -55,6 +57,8 @@
 		blockedReason = "",
 		onblockedreason,
 		onfield,
+		ondraft,
+		oncanceldraft,
 		oncreatechild,
 		commentsCount,
 		oncomments,
@@ -80,6 +84,11 @@
 	let area: HTMLTextAreaElement | undefined = $state();
 	let preview = $state(false);
 	let previewText = $state("");
+	let draftText = $state<string | null>(null);
+	let draftTask = $state<string | undefined>(undefined);
+	let text = $derived(
+		draftTask === taskId && draftText !== null ? draftText : value.description,
+	);
 	let previewTask: string | undefined;
 	let dirty = false;
 
@@ -90,25 +99,27 @@
 		dirty = false;
 	});
 
-	function markDirty() {
+	function markDirty(event: Event) {
+		draftText = (event.currentTarget as HTMLTextAreaElement).value;
+		draftTask = taskId;
 		dirty = true;
 	}
 
 	function commitDescription() {
 		if (!dirty) return;
 		dirty = false;
-		onfield({ description: area?.value ?? value.description });
+		const patch = { description: text };
+		if (ondraft !== undefined) {
+			ondraft(patch);
+			return;
+		}
+		onfield(patch);
 	}
 
 	function togglePreview() {
 		if (preview) {
 			preview = false;
 			return;
-		}
-		const text = area?.value ?? value.description;
-		if (dirty) {
-			dirty = false;
-			onfield({ description: text });
 		}
 		previewText = text;
 		preview = true;
@@ -122,25 +133,27 @@
 
 		const start = element.selectionStart;
 		const end = element.selectionEnd;
-		const text = element.value;
+		const source = element.value;
 
 		if (event.shiftKey) {
-			const lineStart = text.lastIndexOf("\n", start - 1) + 1;
-			const line = text.slice(lineStart, end);
+			const lineStart = source.lastIndexOf("\n", start - 1) + 1;
+			const line = source.slice(lineStart, end);
 			const trimmed = line.replace(/^ {1,2}/, "");
 			const removed = line.length - trimmed.length;
 			if (removed === 0) return;
-			element.value = text.slice(0, lineStart) + trimmed + text.slice(end);
+			element.value = source.slice(0, lineStart) + trimmed + source.slice(end);
 			element.setSelectionRange(
 				Math.max(lineStart, start - removed),
 				end - removed,
 			);
 		} else {
-			element.value = `${text.slice(0, start)}  ${text.slice(end)}`;
+			element.value = `${source.slice(0, start)}  ${source.slice(end)}`;
 			element.setSelectionRange(start + 2, start + 2);
 		}
 
-		markDirty();
+		draftText = element.value;
+		draftTask = taskId;
+		dirty = true;
 	}
 
 	function changeBlockedReason(event: Event) {
@@ -208,9 +221,10 @@
 			<textarea
 				class="field-control description-input"
 				bind:this={area}
-				value={value.description}
+				value={text}
 				wrap="off"
 				oninput={markDirty}
+				onfocus={() => oncanceldraft?.()}
 				onblur={commitDescription}
 				onkeydown={indent}
 				placeholder="Description"
@@ -233,11 +247,7 @@
 			{/if}
 		</button>
 		{#if editing}
-			<CopyButton
-				text={value.description}
-				label="Copy description"
-				title="Copy description"
-			/>
+			<CopyButton {text} label="Copy description" title="Copy description" />
 		{/if}
 		{#if commentsCount !== undefined}
 			<button

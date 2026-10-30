@@ -342,11 +342,15 @@ export function updateTaskDetailed(
 	return guard(() =>
 		withTransaction(db, () => {
 			if (descriptionChanged) {
-				recordRevision(db, {
-					task_id: targetId,
-					field: "description",
-					body: current.description,
-				});
+				recordRevision(
+					db,
+					{
+						task_id: targetId,
+						field: "description",
+						body: current.description,
+					},
+					new Date(now),
+				);
 			}
 			db.prepare(`UPDATE tasks SET ${sets.join(", ")} WHERE id = ?`).run(
 				...params,

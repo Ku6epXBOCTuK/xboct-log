@@ -20,18 +20,38 @@ export interface NewRevision {
 	body: string;
 }
 
+export const REVISION_MERGE_MS = 30 * 60_000;
+
+// NOTE: the body is the text from before the edit, so skipping a row inside
+// the window keeps the chain correct: the previous text is still the start of
+// the same editing session, only the intermediate snapshots are dropped.
 export function recordRevision(
 	db: DatabaseSync,
 	revision: NewRevision,
 	now: Date = new Date(),
 ): void {
+	const refId = revision.ref_id ?? null;
+	const latest = db
+		.prepare(
+			`SELECT created_at FROM task_revisions
+			 WHERE task_id = ? AND field = ? AND ref_id IS ?
+			 ORDER BY id DESC LIMIT 1`,
+		)
+		.get(revision.task_id, revision.field, refId) as
+		{ created_at: string } | undefined;
+
+	if (latest !== undefined) {
+		const elapsed = now.getTime() - Date.parse(latest.created_at);
+		if (elapsed >= 0 && elapsed < REVISION_MERGE_MS) return;
+	}
+
 	db.prepare(
 		`INSERT INTO task_revisions (task_id, field, ref_id, body, created_at)
 		 VALUES (?, ?, ?, ?, ?)`,
 	).run(
 		revision.task_id,
 		revision.field,
-		revision.ref_id ?? null,
+		refId,
 		revision.body,
 		now.toISOString(),
 	);
