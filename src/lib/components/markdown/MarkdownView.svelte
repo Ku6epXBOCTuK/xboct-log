@@ -1,7 +1,9 @@
 <script lang="ts">
+	import { goto } from "$app/navigation";
 	import type { Attachment } from "svelte/attachments";
 	import ImageViewer from "#lib/components/ui/ImageViewer.svelte";
 	import { openExternal, openRepoFile } from "#lib/host/embed.ts";
+	import { appHref } from "#lib/navigation/href.ts";
 	import { classifyLink, repoPath } from "#lib/markdown/links.ts";
 	import { renderMarkdown } from "#lib/markdown/render.ts";
 
@@ -30,6 +32,11 @@
 			event.preventDefault();
 			if (kind === "media") {
 				view(anchor.href, anchor.getAttribute("title") ?? "");
+				return;
+			}
+
+			if (kind === "app") {
+				void goto(appHref(new URL(anchor.href)));
 				return;
 			}
 

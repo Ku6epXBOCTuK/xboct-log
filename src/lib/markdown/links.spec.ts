@@ -32,6 +32,15 @@ describe("classifyLink", () => {
 		expect(classifyLink("/tasks/LOG-42/history", base)).toBe("file");
 	});
 
+	it("treats same-origin app pages as app routes", () => {
+		expect(classifyLink("/", base)).toBe("app");
+		expect(classifyLink("/kanban", base)).toBe("app");
+		expect(classifyLink("/activity/project/inbox", base)).toBe("app");
+		expect(classifyLink("/backups", base)).toBe("app");
+		expect(classifyLink("http://127.0.0.1:45881/deleted", base)).toBe("app");
+		expect(classifyLink("/tasks", base)).toBe("app");
+	});
+
 	it("treats same-origin pages outside the media folder as files", () => {
 		expect(classifyLink("/docs/notes.md", base)).toBe("file");
 		expect(classifyLink("./docs/notes.md", base)).toBe("file");

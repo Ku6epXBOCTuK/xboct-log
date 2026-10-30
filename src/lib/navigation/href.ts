@@ -13,6 +13,13 @@ export function listHref(
 	);
 }
 
+export function appHref(url: URL): ResolvedPathname {
+	// NOTE: the app runs without a base path, so the absolute pathname from a
+	// markdown link is already resolved; the current search keeps the theme.
+	const search = url.search || page.url.search;
+	return `${url.pathname}${search}${url.hash}` as ResolvedPathname;
+}
+
 export function taskHref(project: string, taskId: string): ResolvedPathname {
 	return resolve(
 		`/tasks/project/[project]/[id]${page.url.search}` as "/tasks/project/[project]/[id]",

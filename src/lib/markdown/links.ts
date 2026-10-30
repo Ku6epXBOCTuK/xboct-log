@@ -1,6 +1,7 @@
-import { parsePath } from "#lib/navigation/paths.ts";
+import { appPath, parsePath } from "#lib/navigation/paths.ts";
 
-export type LinkKind = "external" | "media" | "task" | "file" | "ignore";
+export type LinkKind =
+	"external" | "media" | "task" | "app" | "file" | "ignore";
 
 export function classifyLink(href: string, base: string): LinkKind {
 	const value = href.trim();
@@ -23,6 +24,7 @@ export function classifyLink(href: string, base: string): LinkKind {
 	}
 	if (parsePath(url.pathname).taskId !== null) return "task";
 	if (url.pathname.startsWith("/media/")) return "media";
+	if (appPath(url.pathname) !== null) return "app";
 
 	return "file";
 }

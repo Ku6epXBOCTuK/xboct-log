@@ -35,6 +35,35 @@ export function parsePath(pathname: string): AppLocation {
 	return { category, project: null, taskId: null };
 }
 
+export function appPath(pathname: string): string | null {
+	const segments = pathname.split("/").filter(Boolean);
+	if (segments.length === 0) return "/";
+
+	const [head, second, third, fourth] = segments;
+	const category = CATEGORIES.find((item) => item === head);
+
+	if (segments.length === 1) {
+		if (category !== undefined || head === "backups") return pathname;
+		return null;
+	}
+
+	if (category === undefined) return null;
+
+	if (second === "project" && third !== undefined) {
+		if (segments.length === 3) return pathname;
+		if (segments.length === 4 && category === "tasks") {
+			return isTaskId(fourth) ? pathname : null;
+		}
+		return null;
+	}
+
+	if (category === "tasks" && segments.length === 2 && isTaskId(second)) {
+		return pathname;
+	}
+
+	return null;
+}
+
 export function listPath(category: Category, project: string | null): string {
 	if (project === null) return `/${category}`;
 	return `/${category}/project/${project}`;
