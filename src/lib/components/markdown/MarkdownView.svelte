@@ -1,4 +1,8 @@
 <script lang="ts">
+	import type { Attachment } from "svelte/attachments";
+	import ImageViewer from "#lib/components/ui/ImageViewer.svelte";
+	import { openExternal } from "#lib/host/embed.ts";
+	import { classifyLink } from "#lib/markdown/links.ts";
 	import { renderMarkdown } from "#lib/markdown/render.ts";
 
 	interface Props {
@@ -9,11 +13,61 @@
 	let { text, class: className = "" }: Props = $props();
 
 	let html = $derived(renderMarkdown(text));
+	let viewing = $state<{ src: string; alt: string }>();
+
+	function onClick(event: MouseEvent) {
+		const target = event.target;
+		if (!(target instanceof Element)) return;
+
+		const anchor = target.closest("a");
+		if (anchor !== null) {
+			const kind = classifyLink(
+				anchor.getAttribute("href") ?? "",
+				location.href,
+			);
+			if (kind === "ignore") return;
+
+			event.preventDefault();
+			if (kind === "media") {
+				view(anchor.href, anchor.getAttribute("title") ?? "");
+				return;
+			}
+
+			openExternal(anchor.href);
+			return;
+		}
+
+		const image = target.closest("img");
+		if (image === null) return;
+
+		event.preventDefault();
+		view(image.src, image.alt);
+	}
+
+	function view(src: string, alt: string) {
+		viewing = { src, alt };
+	}
+
+	const follow: Attachment<HTMLElement> = (node) => {
+		node.addEventListener("click", onClick);
+		return () => node.removeEventListener("click", onClick);
+	};
 </script>
 
 {#if html !== ""}
-	<!-- eslint-disable-next-line svelte/no-at-html-tags -- renderMarkdown escapes raw html and rejects unsafe links -->
-	<div class="markdown-body {className}">{@html html}</div>
+	<div class="markdown-body {className}" {@attach follow}>
+		<!-- eslint-disable-next-line svelte/no-at-html-tags -- renderMarkdown escapes raw html and rejects unsafe links -->
+		{@html html}
+	</div>
+{/if}
+
+{#if viewing !== undefined}
+	<ImageViewer
+		src={viewing.src}
+		alt={viewing.alt}
+		title={viewing.alt || "Image"}
+		onclose={() => (viewing = undefined)}
+	/>
 {/if}
 
 <style>
@@ -107,6 +161,7 @@
 		color: var(--accent);
 		text-decoration: underline;
 		text-underline-offset: 0.15em;
+		cursor: pointer;
 	}
 
 	.markdown-body :global(hr) {
@@ -118,6 +173,7 @@
 	.markdown-body :global(img) {
 		max-width: 100%;
 		border-radius: var(--radius-sm);
+		cursor: zoom-in;
 	}
 
 	.markdown-body :global(table) {

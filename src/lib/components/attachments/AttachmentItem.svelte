@@ -1,7 +1,8 @@
 <script lang="ts">
 	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
-	import Modal from "@ku6epxboctuk/ui-kit/components/Modal";
 	import CopyImageButton from "#lib/components/ui/CopyImageButton.svelte";
+	import ImageViewer from "#lib/components/ui/ImageViewer.svelte";
+	import { openExternal, openMedia } from "#lib/host/embed.ts";
 	import { formatSize } from "#lib/tasks/attachments.ts";
 	import Paperclip from "~icons/lucide/paperclip";
 	import Trash2 from "~icons/lucide/trash-2";
@@ -31,7 +32,6 @@
 	let preview = $state<string | undefined>();
 	let viewer = $state(false);
 	let previewImage = $state<HTMLImageElement>();
-	let viewerImage = $state<HTMLImageElement>();
 
 	$effect(() => {
 		if (file === undefined || !file.type.startsWith("image/")) return;
@@ -49,19 +49,8 @@
 			return;
 		}
 		if (href !== undefined) {
-			window.open(href, "_blank", "noopener");
+			openExternal(new URL(href, location.href).href);
 		}
-	}
-
-	function openInBrowser() {
-		if (src === undefined || window.parent === window) return;
-		window.parent.postMessage(
-			{
-				type: "xboct-log:open-media",
-				url: new URL(src, location.href).href,
-			},
-			"*",
-		);
 	}
 </script>
 
@@ -100,7 +89,7 @@
 		<CopyImageButton
 			image={previewImage}
 			label="Copy the image"
-			onfail={openInBrowser}
+			onfail={() => src !== undefined && openMedia(src)}
 		/>
 	{/if}
 	<IconButton
@@ -114,30 +103,12 @@
 </li>
 
 {#if viewer && image !== undefined}
-	<Modal
-		open={true}
+	<ImageViewer
+		src={image}
+		alt={name}
 		title={name}
-		label="Attachment preview"
-		size="full"
-		dismissable
 		onclose={() => (viewer = false)}
-	>
-		<div class="lightbox">
-			<img
-				bind:this={viewerImage}
-				class="lightbox-image"
-				src={image}
-				alt={name}
-			/>
-			<div class="lightbox-copy">
-				<CopyImageButton
-					image={viewerImage}
-					label="Copy the image"
-					onfail={openInBrowser}
-				/>
-			</div>
-		</div>
-	</Modal>
+	/>
 {/if}
 
 <style>
@@ -217,30 +188,5 @@
 		font-size: var(--text-xs);
 		font-variant-numeric: tabular-nums;
 		white-space: nowrap;
-	}
-
-	.lightbox {
-		position: relative;
-		display: flex;
-		justify-content: center;
-	}
-
-	.lightbox-copy {
-		position: absolute;
-		top: var(--space-2);
-		right: var(--space-2);
-		border: 1px solid var(--border);
-		border-radius: var(--radius-sm);
-		background: var(--surface);
-	}
-
-	.lightbox-image {
-		display: block;
-		width: auto;
-		height: auto;
-		max-width: calc(100dvw - 2 * var(--edge-pad) - 2 * var(--space-3));
-		max-height: calc(100dvh - 7rem);
-		object-fit: contain;
-		border-radius: var(--radius-sm);
 	}
 </style>

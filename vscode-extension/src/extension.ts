@@ -110,6 +110,12 @@ function attach(
 				void vscode.env.openExternal(vscode.Uri.parse(url));
 			}
 		}
+		if (isMessage(message, "xboct-log:open-external")) {
+			const url = (message as { url?: unknown }).url;
+			if (typeof url === "string" && isExternalUrl(url)) {
+				void vscode.env.openExternal(vscode.Uri.parse(url));
+			}
+		}
 		if (isMessage(message, "xboct-log:copy-image")) {
 			const { requestId, png } = message as {
 				requestId?: unknown;
@@ -282,6 +288,16 @@ function isMessage(message: unknown, type: string): boolean {
 function isServerUrl(value: string): boolean {
 	try {
 		return new URL(value).origin === new URL(serverUrl()).origin;
+	} catch {
+		return false;
+	}
+}
+
+const EXTERNAL_PROTOCOLS = new Set(["http:", "https:", "mailto:"]);
+
+function isExternalUrl(value: string): boolean {
+	try {
+		return EXTERNAL_PROTOCOLS.has(new URL(value).protocol);
 	} catch {
 		return false;
 	}
@@ -633,6 +649,13 @@ function boardHtml(theme: "light" | "dark"): string {
 
 				if (data.type === "xboct-log:open-media") {
 					api.postMessage({ type: "xboct-log:open-media", url: data.url });
+				}
+
+				if (data.type === "xboct-log:open-external") {
+					api.postMessage({
+						type: "xboct-log:open-external",
+						url: data.url,
+					});
 				}
 
 				if (data.type === "xboct-log:copy-image") {
