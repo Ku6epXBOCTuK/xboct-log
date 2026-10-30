@@ -2,6 +2,22 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.3.0](https://github.com/Ku6epXBOCTuK/xboct-log/compare/183d7b9e239654cd501a1c0755e7cdb426f10dfb..v0.3.0) - 2026-10-30
+#### Features
+- open links from markdown files - ([fd6a498](https://github.com/Ku6epXBOCTuK/xboct-log/commit/fd6a498d699234122fce3e8d8a8d44634e5ab953)) - Ku6epXBOCTuK
+- add wrap lines to edit description - ([96405d0](https://github.com/Ku6epXBOCTuK/xboct-log/commit/96405d048783599e79613908d8071f257232e4ee)) - Ku6epXBOCTuK
+- add copybutton for task id in sidebar panel - ([0809cbd](https://github.com/Ku6epXBOCTuK/xboct-log/commit/0809cbde4d2eb3b6da2dc8ba7a29dc885f89500e)) - Ku6epXBOCTuK
+- add clickable links and image preview in markdown - ([d7e6ec2](https://github.com/Ku6epXBOCTuK/xboct-log/commit/d7e6ec25c285a56c48e625a4693a6a68a7e2b052)) - Ku6epXBOCTuK
+- add markdown viewer - ([11ac776](https://github.com/Ku6epXBOCTuK/xboct-log/commit/11ac776b797f1f53c72c914759ec96b7961d7c97)) - Ku6epXBOCTuK
+- add restore backup flow - ([183d7b9](https://github.com/Ku6epXBOCTuK/xboct-log/commit/183d7b9e239654cd501a1c0755e7cdb426f10dfb)) - Ku6epXBOCTuK
+#### Bug Fixes
+- update blocked_by descriptions - ([f5dae91](https://github.com/Ku6epXBOCTuK/xboct-log/commit/f5dae91bfbd65fe2e3fa8eff9db9d1e715ef4c65)) - Ku6epXBOCTuK
+- update fields and revisions with timeout flush, coalesce revisions - ([1953f35](https://github.com/Ku6epXBOCTuK/xboct-log/commit/1953f352ab6a4b53b27e3c120b6a7cd21fd5796d)) - Ku6epXBOCTuK
+#### Refactoring
+- split DetailPanel.svelte - ([87c529f](https://github.com/Ku6epXBOCTuK/xboct-log/commit/87c529f0d61925002170b05f7d3b47136d4ac215)) - Ku6epXBOCTuK
+
+- - -
+
 ## [v0.2.0](https://github.com/Ku6epXBOCTuK/xboct-log/compare/d97d2d7d78043479a468e8e916d72a38053e827c..v0.2.0) - 2026-10-29
 #### Features
 - add source\client id - ([a177f59](https://github.com/Ku6epXBOCTuK/xboct-log/commit/a177f5932b69fbe306c28f319029704de4803a09)) - Ku6epXBOCTuK
