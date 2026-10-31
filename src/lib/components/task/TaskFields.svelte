@@ -14,6 +14,7 @@
 		type Status,
 		type Task,
 	} from "#lib/types.ts";
+	import { untrack } from "svelte";
 	import Button from "@ku6epxboctuk/ui-kit/components/Button";
 	import TagInput from "@ku6epxboctuk/ui-kit/components/TagInput";
 	import CircleHelp from "~icons/lucide/circle-help";
@@ -103,6 +104,17 @@
 		previewTask = taskId;
 		preview = false;
 		dirty = false;
+	});
+
+	// NOTE: the parent may replace the description without a blur (form reset),
+	// so the local draft follows the value instead of outliving it.
+	$effect(() => {
+		const current = value.description;
+		untrack(() => {
+			if (draftText === null || draftText === current) return;
+			draftText = current;
+			preview = false;
+		});
 	});
 
 	function markDirty(event: Event) {
