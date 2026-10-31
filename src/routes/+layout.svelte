@@ -25,6 +25,7 @@
 			projects: data.projects,
 			scopes: data.scopes,
 			tags: data.tags,
+			tagNames: data.tagNames,
 			project: parsePath(page.url.pathname).project,
 			theme:
 				requestedTheme === "light" || requestedTheme === "dark"

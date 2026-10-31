@@ -84,11 +84,7 @@
 		projects.all.find((project) => project.id === selected?.project_id)?.repo ??
 			null,
 	);
-	let tagEntries = $derived(tags.ordered(projectData?.tags ?? []));
-	let tagSuggestions = $derived(tagEntries.map((entry) => entry.tag));
-	let tagCounts = $derived(
-		Object.fromEntries(tagEntries.map((entry) => [entry.tag, entry.count])),
-	);
+	let tagPicker = $derived(tags.picker(projectData?.tags ?? []));
 	async function onunknowntag(name: string) {
 		await tags.create(name);
 	}
@@ -353,8 +349,8 @@
 				epics={siblingEpics(tasks.epics, selected)}
 				taskId={selected.id}
 				repo={projectRepo}
-				{tagSuggestions}
-				{tagCounts}
+				tagSuggestions={tagPicker.suggestions}
+				tagCounts={tagPicker.counts}
 				{onunknowntag}
 				editing
 				status={selected.status}

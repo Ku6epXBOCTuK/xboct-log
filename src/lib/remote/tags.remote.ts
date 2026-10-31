@@ -5,11 +5,12 @@ import {
 	ensureTag,
 	renameTag,
 	setTagArchived,
+	listDictionary,
 	listTags,
 	type TagRecord,
 } from "../server/tasks";
 import { STATUSES } from "../types";
-import { tagList, tagRecord } from "./contracts";
+import { idList, tagList, tagRecord } from "./contracts";
 import { defineCommand, defineQuery } from "./define";
 import { oneOrList } from "./list";
 import { strictObject } from "./strict";
@@ -32,6 +33,20 @@ export const getTags = defineQuery({
 		const items = listTags(getDb(), { project_id, status });
 		return { items, total: items.length };
 	},
+});
+
+export const getTagDictionary = defineQuery({
+	name: "tags_dictionary",
+	output: idList,
+	description:
+		"List every tag name in the dictionary, including the tags that no task carries yet. Archived tags are excluded: they cannot be assigned. Use tags_list for the counts of the tags in use. Returns: {items} - the tag names, sorted by name.",
+	kind: "query",
+	input: strictObject({}),
+	handler: () => ({
+		items: listDictionary(getDb())
+			.filter((tag) => !tag.archived)
+			.map((tag) => tag.name),
+	}),
 });
 
 export const createTag = defineCommand({

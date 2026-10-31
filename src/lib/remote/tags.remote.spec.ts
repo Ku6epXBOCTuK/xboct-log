@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "../server/db";
 import { migrateDatabase } from "../server/migrations";
 import { createProject } from "../server/projects";
-import { createTask, ensureTag } from "../server/tasks";
+import { createTask, ensureTag, setTagArchived } from "../server/tasks";
 import { runOp } from "./define";
 import { getOps } from "./index.js";
 
@@ -137,5 +137,19 @@ describe("tags_list", () => {
 		await expect(
 			runOp(op("tags_list"), { project: "spa" }, "mcp"),
 		).rejects.toThrow();
+	});
+});
+
+describe("tags_dictionary", () => {
+	it("lists the tags no task carries and leaves out the archived ones", async () => {
+		const db = getDb();
+		expect(ensureTag(db, "idea").isOk()).toBe(true);
+		expect(setTagArchived(db, "db", true).isOk()).toBe(true);
+
+		const result = (await runOp(op("tags_dictionary"), {}, "mcp")) as {
+			items: string[];
+		};
+
+		expect(result.items).toEqual(["idea", "mcp", "ui"]);
 	});
 });

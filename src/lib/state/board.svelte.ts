@@ -26,6 +26,7 @@ export interface BoardInput {
 	projects: Project[];
 	scopes: Scope[];
 	tags: TagEntry[];
+	tagNames: string[];
 	project: ProjectFilter;
 	theme: ThemeName | null;
 }
@@ -39,7 +40,7 @@ export function createBoard(input: BoardInput) {
 	);
 	const scopes = createScopeStore(input.scopes);
 	const data = createProjectData();
-	const tags = createTagStore(input.tags);
+	const tags = createTagStore(input.tags, input.tagNames);
 	const comments = createCommentsStore();
 	const filters = createFilters(input.project);
 	const theme = createTheme(input.theme);

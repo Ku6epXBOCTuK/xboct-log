@@ -123,11 +123,7 @@
 	const projectRepo = $derived(
 		projects.find((project) => project.id === draft.project_id)?.repo ?? null,
 	);
-	let tagEntries = $derived(tags.ordered(projectData?.tags ?? []));
-	let tagSuggestions = $derived(tagEntries.map((entry) => entry.tag));
-	let tagCounts = $derived(
-		Object.fromEntries(tagEntries.map((entry) => [entry.tag, entry.count])),
-	);
+	let tagPicker = $derived(tags.picker(projectData?.tags ?? []));
 	let title = $state("");
 	let keepOpen = $state(false);
 	let saving = $state(false);
@@ -450,8 +446,8 @@
 		<TaskFields
 			value={draft}
 			epics={epicOptions}
-			{tagSuggestions}
-			{tagCounts}
+			tagSuggestions={tagPicker.suggestions}
+			tagCounts={tagPicker.counts}
 			repo={projectRepo}
 			{onfield}
 			{onunknowntag}

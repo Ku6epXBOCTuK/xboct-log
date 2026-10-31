@@ -635,6 +635,7 @@ describe("output contracts", () => {
 				dry_run: true,
 			}),
 			tags_list: () => ({}),
+			tags_dictionary: () => ({}),
 			tags_create: () => ({ name: "sweep-tag" }),
 			tags_update: () => ({ name: "sweep-tag", patch: { archived: true } }),
 			tags_rename: async () => {
