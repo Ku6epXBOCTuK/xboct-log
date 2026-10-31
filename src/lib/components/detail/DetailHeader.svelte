@@ -2,13 +2,11 @@
 	import CopyButton from "#lib/components/ui/CopyButton.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import StatusDot from "#lib/components/ui/StatusDot.svelte";
-	import { taskText } from "#lib/tasks/clipboard.ts";
 	import {
 		CLOSED_REASON_LABELS,
 		STATUS_LABELS,
 		formatDateTime,
 	} from "#lib/tasks/display.ts";
-	import { validateTaskDraft } from "#lib/tasks/fields.ts";
 	import type { Task } from "#lib/types.ts";
 	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
 	import Clock3 from "~icons/lucide/clock-3";
@@ -19,43 +17,18 @@
 		task: Task;
 		saving: boolean;
 		failure: string | null;
-		onrename: (title: string) => void;
-		onerror: (message: string) => void;
 		onhistory: () => void;
 		oncomments: () => void;
 		onclose: () => void;
-		oncanceldraft: () => void;
 	}
 
-	let {
-		task,
-		saving,
-		failure,
-		onrename,
-		onerror,
-		onhistory,
-		oncomments,
-		onclose,
-		oncanceldraft,
-	}: Props = $props();
+	let { task, saving, failure, onhistory, oncomments, onclose }: Props =
+		$props();
 
 	function stamp(): string {
 		return task.closed_at != null
 			? formatDateTime(task.closed_at)
 			: formatDateTime(task.updated_at);
-	}
-
-	function saveTitle(event: Event) {
-		const input = event.currentTarget as HTMLInputElement;
-		const invalid = validateTaskDraft({ title: input.value });
-
-		if (invalid !== null) {
-			onerror(invalid);
-			input.value = task.title;
-			return;
-		}
-
-		onrename(input.value.trim());
 	}
 </script>
 
@@ -79,11 +52,6 @@
 			<span class="muted">{saving ? "saving…" : stamp()}</span>
 		</div>
 		<div class="detail-actions">
-			<CopyButton
-				text={taskText(task.title, task.description)}
-				label="Copy title and description"
-				title="Copy title and description"
-			/>
 			<IconButton label="Task history" title="Task history" onclick={onhistory}>
 				<Clock3 />
 			</IconButton>
@@ -98,16 +66,6 @@
 				<X />
 			</IconButton>
 		</div>
-	</div>
-	<div class="title-row">
-		<input
-			class="title-input"
-			value={task.title}
-			onchange={saveTitle}
-			onfocus={oncanceldraft}
-			aria-label="Title"
-		/>
-		<CopyButton text={task.title} label="Copy title" title="Copy title" />
 	</div>
 	<ErrorNote message={failure} />
 </div>
@@ -154,36 +112,5 @@
 	.muted {
 		color: var(--text-muted);
 		font-variant-numeric: tabular-nums;
-	}
-
-	.title-row {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-	}
-
-	.title-row :global(.ui-icon-button) {
-		margin-top: var(--space-3);
-	}
-
-	.title-input {
-		width: 100%;
-		font-size: var(--text-xl);
-		line-height: 1.25;
-		margin: var(--space-3) 0 0;
-		letter-spacing: -0.02em;
-		font-weight: 600;
-		color: var(--foreground);
-		background: transparent;
-		border: 0;
-		border-bottom: 1px solid transparent;
-		border-radius: 0;
-		padding: 0 0 var(--space-1);
-		min-height: 2.5rem;
-	}
-
-	.title-input:focus {
-		border-bottom-color: var(--accent);
-		box-shadow: none;
 	}
 </style>

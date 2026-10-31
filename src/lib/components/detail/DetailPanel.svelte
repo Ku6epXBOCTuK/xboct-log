@@ -1,17 +1,15 @@
 <script lang="ts">
 	import TaskAttachments from "#lib/components/attachments/TaskAttachments.svelte";
+	import AttachButton from "#lib/components/attachments/AttachButton.svelte";
 	import CommentsOverlay from "#lib/components/detail/CommentsOverlay.svelte";
 	import DetailActions from "#lib/components/detail/DetailActions.svelte";
 	import DetailHeader from "#lib/components/detail/DetailHeader.svelte";
 	import PanelOverlay from "#lib/components/detail/PanelOverlay.svelte";
 	import TaskHistory from "#lib/components/detail/TaskHistory.svelte";
 	import TaskRevisions from "#lib/components/detail/TaskRevisions.svelte";
-	import AdvancedFields from "#lib/components/task/AdvancedFields.svelte";
-	import ProjectScopeFields from "#lib/components/task/ProjectScopeFields.svelte";
-	import TaskFields from "#lib/components/task/TaskFields.svelte";
-	import TaskLinks from "#lib/components/task/TaskLinks.svelte";
+	import TaskEditorFields from "#lib/components/task/TaskEditorFields.svelte";
+	import CopyButton from "#lib/components/ui/CopyButton.svelte";
 	import DropOverlay from "#lib/components/ui/DropOverlay.svelte";
-	import SectionDivider from "#lib/components/ui/SectionDivider.svelte";
 	import { fieldNavigation } from "#lib/hotkeys/fields.ts";
 	import { fileDrop } from "#lib/files/drop.ts";
 	import { taskHrefFor } from "#lib/navigation/href.ts";
@@ -20,6 +18,7 @@
 	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { TagStore } from "#lib/state/tags.svelte.ts";
+	import { createTaskAttachments } from "#lib/state/task-attachments.svelte.ts";
 	import { createTaskDraft } from "#lib/state/task-draft.ts";
 	import { createTaskFinder } from "#lib/state/task-finder.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
@@ -32,8 +31,8 @@
 	} from "#lib/tasks/connections.ts";
 	import { messageOf } from "#lib/tasks/display.ts";
 	import {
-		advancedFilledCount,
 		siblingEpics,
+		validateTaskDraft,
 		type TaskPatch,
 	} from "#lib/tasks/fields.ts";
 	import type { LinkField } from "#lib/tasks/links.ts";
@@ -75,7 +74,10 @@
 	let failure = $state<string | null>(null);
 	let historyOpen = $state(false);
 	let commentsOpen = $state(false);
-	let attachments: TaskAttachments | undefined = $state();
+	const attachments = createTaskAttachments(
+		() => selected,
+		() => tasks,
+	);
 	let dragging = $state(false);
 	let projectData = $derived(
 		selected === null ? undefined : data.of(selected.project_id),
@@ -249,6 +251,17 @@
 		save({ status: "open" });
 	}
 
+	function saveTitle(title: string) {
+		const invalid = validateTaskDraft({ title });
+		if (invalid !== null) {
+			failure = invalid;
+			return;
+		}
+		const current = selected;
+		if (current === null || title.trim() === current.title) return;
+		draft({ title: title.trim() });
+	}
+
 	async function remove() {
 		const current = selected;
 		if (current === null) return;
@@ -279,7 +292,7 @@
 	}
 
 	function takeFiles(files: File[]) {
-		void attachments?.addFiles(files);
+		void attachments.addFiles(files);
 	}
 
 	function onkeydown(event: KeyboardEvent) {
@@ -327,73 +340,71 @@
 			task={selected}
 			{saving}
 			{failure}
-			onrename={(title) => draft({ title })}
-			onerror={(message) => (failure = message)}
 			onhistory={() => (historyOpen = true)}
 			oncomments={() => (commentsOpen = true)}
 			onclose={onclear}
-			oncanceldraft={cancelDraft}
 		/>
+		{#snippet attachmentSection()}
+			<TaskAttachments store={attachments} />
+		{/snippet}
+		{#snippet titleTrailing()}
+			<CopyButton text={selected.title} label="copy title" />
+			<AttachButton
+				count={attachments.count}
+				fresh={attachments.fresh}
+				onpick={attachments.openPicker}
+			/>
+		{/snippet}
 		<div class="panel-body">
-			<ProjectScopeFields
+			<TaskEditorFields
 				value={selected}
+				title={selected.title}
+				titleId={`task-title-${selected.id}`}
+				{titleTrailing}
+				ontitlecommit={saveTitle}
+				ontitlefocus={cancelDraft}
+				epics={siblingEpics(tasks.epics, selected)}
 				projects={projects.all}
 				scopes={scopes.listFor(selected.project_id)}
-				editing
+				repo={projectRepo}
+				{tagPicker}
+				taskId={selected.id}
+				linkFields={{
+					blocked_by: selected.blocked_by ?? [],
+					blocks: blockingIds(selected),
+					relates_to: selected.relates_to ?? [],
+					duplicates: selected.duplicates ?? [],
+					duplicated_by: selected.duplicated_by ?? [],
+				}}
+				linkCandidates={candidates.links}
+				blockerCandidates={candidates.blockers}
+				onlinkadd={addLinkField}
+				onlinkremove={removeLinkField}
+				linkHref={(id) => taskHrefFor(tasks.byId, id)}
+				onlinksearch={searchTasks}
+				linkUnavailable={unavailable}
+				{canMarkBlocked}
+				busy={saving}
+				onmarkblocked={() => setStatus("blocked")}
 				onfield={save}
 				onproject={moveTo}
 				{onnewscope}
-			/>
-			<TaskFields
-				value={selected}
-				epics={siblingEpics(tasks.epics, selected)}
-				taskId={selected.id}
-				repo={projectRepo}
-				tagSuggestions={tagPicker.suggestions}
-				tagCounts={tagPicker.counts}
 				{onunknowntag}
+				onerror={(message) => (failure = message)}
 				editing
 				status={selected.status}
 				onstatus={setStatus}
 				blockedReason={selected.blocked_reason ?? ""}
 				onblockedreason={(reason) => save({ blocked_reason: reason })}
-				onfield={save}
 				ondraft={draft}
 				oncanceldraft={cancelDraft}
 				oncreatechild={createChild}
 				commentsCount={comments.count(selected.id)}
 				oncomments={() => (commentsOpen = true)}
+				advancedOpen={ui.advanced}
+				onadvancedchange={(value) => ui.set(value)}
+				attachments={attachmentSection}
 			/>
-			<TaskLinks
-				blockedBy={selected.blocked_by ?? []}
-				blocks={blockingIds(selected)}
-				relatesTo={selected.relates_to ?? []}
-				duplicates={selected.duplicates ?? []}
-				duplicatedBy={selected.duplicated_by ?? []}
-				candidates={candidates.links}
-				blockerCandidates={candidates.blockers}
-				onadd={addLinkField}
-				onremove={removeLinkField}
-				href={(id) => taskHrefFor(tasks.byId, id)}
-				onsearch={searchTasks}
-				{unavailable}
-				{canMarkBlocked}
-				busy={saving}
-				onmarkblocked={() => setStatus("blocked")}
-			/>
-			<SectionDivider
-				title="Advanced"
-				count={advancedFilledCount(selected)}
-				open={ui.advanced}
-				onopenchange={(value) => ui.set(value)}
-			>
-				<AdvancedFields
-					value={selected}
-					onfield={save}
-					onerror={(message) => (failure = message)}
-				/>
-			</SectionDivider>
-			<TaskAttachments bind:this={attachments} task={selected} {tasks} />
 		</div>
 		<DetailActions
 			closed={selected.closed_at !== null}

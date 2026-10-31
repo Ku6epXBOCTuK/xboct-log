@@ -39,6 +39,7 @@
 		editing?: boolean;
 		status?: Status;
 		onstatus?: (status: Status) => void;
+		statusWarn?: boolean;
 		blockedReason?: string;
 		onblockedreason?: (reason: string | null) => void;
 		onfield: (patch: TaskPatch) => void;
@@ -60,6 +61,7 @@
 		editing = false,
 		status,
 		onstatus,
+		statusWarn = false,
 		blockedReason = "",
 		onblockedreason,
 		onfield,
@@ -207,7 +209,11 @@
 
 <div class="detail-grid">
 	{#if status !== undefined && onstatus !== undefined}
-		<div class="field">
+		<div
+			class="field status-field"
+			class:is-warn={statusWarn}
+			title={statusWarn ? "a new task does not start in backlog" : undefined}
+		>
 			Status
 			<SingleSelect
 				items={[...STATUSES]}
@@ -392,6 +398,11 @@
 </div>
 
 <style>
+	.status-field.is-warn :global(.ui-select-trigger) {
+		outline: var(--ui-focus-ring-w) solid var(--warning);
+		outline-offset: var(--ui-focus-ring-offset);
+	}
+
 	.tags-field {
 		margin-bottom: var(--space-4);
 	}

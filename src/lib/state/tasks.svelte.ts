@@ -19,12 +19,19 @@ import {
 import type { TaskPatch } from "#lib/tasks/fields.ts";
 import { pageCount, TASK_PAGE_SIZE } from "#lib/tasks/paging.ts";
 import type { TaskQueryArgs } from "#lib/tasks/query.ts";
-import type { ClosedReason, Estimate, Priority, Task } from "#lib/types.ts";
+import type {
+	ClosedReason,
+	Estimate,
+	Priority,
+	Status,
+	Task,
+} from "#lib/types.ts";
 
 export interface NewTaskInput {
 	project_id: string;
 	title: string;
 	description?: string;
+	status?: Status;
 	priority?: Priority;
 	is_epic?: boolean;
 	epic_id?: string | null;

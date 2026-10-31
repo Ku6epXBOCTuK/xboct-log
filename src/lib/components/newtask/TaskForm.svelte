@@ -1,13 +1,13 @@
-<script lang="ts">
+﻿<script lang="ts">
+	import AttachButton from "#lib/components/attachments/AttachButton.svelte";
 	import AttachmentItem from "#lib/components/attachments/AttachmentItem.svelte";
 	import AttachmentList from "#lib/components/attachments/AttachmentList.svelte";
-	import ProjectScopeFields from "#lib/components/task/ProjectScopeFields.svelte";
-	import TaskFields from "#lib/components/task/TaskFields.svelte";
-	import TaskLinks from "#lib/components/task/TaskLinks.svelte";
-	import AdvancedFields from "#lib/components/task/AdvancedFields.svelte";
+	import AttachmentSection from "#lib/components/attachments/AttachmentSection.svelte";
+	import TaskEditorFields from "#lib/components/task/TaskEditorFields.svelte";
+	import CopyButton from "#lib/components/ui/CopyButton.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import DropOverlay from "#lib/components/ui/DropOverlay.svelte";
-	import SectionDivider from "#lib/components/ui/SectionDivider.svelte";
+	import { createAttachmentFlash } from "#lib/state/attachment-flash.svelte.ts";
 	import type { DraftStore } from "#lib/state/draft.svelte.ts";
 	import type { ProjectDataStore } from "#lib/state/project-data.svelte.ts";
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
@@ -21,11 +21,7 @@
 	import { fieldNavigation } from "#lib/hotkeys/fields.ts";
 	import { fileDrop } from "#lib/files/drop.ts";
 	import { taskHrefFor } from "#lib/navigation/href.ts";
-	import {
-		advancedFilledCount,
-		draftHasContent,
-		fitDraftToProjects,
-	} from "#lib/tasks/fields.ts";
+	import { draftHasContent, fitDraftToProjects } from "#lib/tasks/fields.ts";
 	import {
 		epicsForProject,
 		validateTaskDraft,
@@ -47,13 +43,9 @@
 	} from "#lib/types.ts";
 	import { untrack } from "svelte";
 	import ArrowLeft from "~icons/lucide/arrow-left";
-	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
 	import Button from "@ku6epxboctuk/ui-kit/components/Button";
-	import ControlRow from "@ku6epxboctuk/ui-kit/components/ControlRow";
 	import ScrollArea from "@ku6epxboctuk/ui-kit/components/ScrollArea";
-	import TextInput from "@ku6epxboctuk/ui-kit/components/TextInput";
 	import Paperclip from "~icons/lucide/paperclip";
-	import Upload from "~icons/lucide/upload";
 
 	interface Props {
 		tasks: TaskStore;
@@ -103,6 +95,7 @@
 	function blankDraft(): TaskFieldValues {
 		return {
 			project_id: defaultProject(),
+			status: "backlog",
 			priority: "medium",
 			is_epic: false,
 			epic_id: initialEpic,
@@ -134,19 +127,13 @@
 	let files = $state<File[]>([]);
 	let dragging = $state(false);
 	let committed = $state(false);
-	let justAttached = $state(false);
-	let attachTimer: ReturnType<typeof setTimeout> | null = null;
-	const attachLabel = $derived(
-		files.length === 0
-			? "Attach a file"
-			: `Attach a file, ${files.length} attached`,
-	);
+	const flash = createAttachmentFlash();
 
 	untrack(() => {
 		const restored = draftStore.saved;
 		if (!restored) return;
 		draft = fitDraftToProjects(
-			{ ...restored.values, tags: [...restored.values.tags] },
+			{ ...blankDraft(), ...restored.values, tags: [...restored.values.tags] },
 			projects,
 			epics,
 			scopes.all,
@@ -207,9 +194,7 @@
 		draftStore.save({ values, title, files: [...files], links: snapshot });
 	});
 
-	$effect(() => () => {
-		if (attachTimer !== null) clearTimeout(attachTimer);
-	});
+	$effect(() => () => flash.dispose());
 
 	function reset() {
 		draft = {
@@ -225,19 +210,10 @@
 		committed = false;
 	}
 
-	function markAttached() {
-		justAttached = true;
-		if (attachTimer !== null) clearTimeout(attachTimer);
-		attachTimer = setTimeout(() => {
-			justAttached = false;
-			attachTimer = null;
-		}, 2000);
-	}
-
 	function addFiles(added: File[]) {
 		if (added.length === 0) return;
 		files = [...files, ...added];
-		markAttached();
+		flash.mark();
 	}
 
 	function pickFiles(event: Event) {
@@ -384,6 +360,7 @@
 				project_id: draft.project_id,
 				title: title.trim(),
 				description: draft.description,
+				status: draft.status,
 				priority: draft.priority,
 				is_epic: draft.is_epic,
 				epic_id: draft.is_epic ? null : draft.epic_id,
@@ -437,104 +414,17 @@
 		ondragchange: (value) => (dragging = value),
 	}}
 >
-	<ScrollArea class="panel-body">
-		<ProjectScopeFields
-			value={draft}
-			{projects}
-			scopes={scopeOptions}
-			{onfield}
-			{onproject}
-			{onnewscope}
+	{#snippet titleTrailing()}
+		<CopyButton text={title} label="copy title" />
+		<AttachButton
+			count={files.length}
+			fresh={flash.fresh}
+			onpick={() => fileInput?.click()}
 		/>
+	{/snippet}
 
-		<div class="field detail-field title-field">
-			<label for="new-task-title">Title</label>
-			<ControlRow>
-				<div class="title-control">
-					<TextInput
-						id="new-task-title"
-						bind:value={title}
-						placeholder="What needs to be done"
-					/>
-				</div>
-				<span class="attach-button" class:is-fresh={justAttached}>
-					<IconButton
-						label={attachLabel}
-						title={attachLabel}
-						size="md"
-						onclick={() => fileInput?.click()}
-					>
-						<Paperclip />
-					</IconButton>
-					{#if files.length > 0}
-						<span class="attach-badge" class:is-fresh={justAttached}>
-							{files.length}
-						</span>
-					{/if}
-				</span>
-			</ControlRow>
-		</div>
-
-		<TaskFields
-			value={draft}
-			epics={epicOptions}
-			tagSuggestions={tagPicker.suggestions}
-			tagCounts={tagPicker.counts}
-			repo={projectRepo}
-			{onfield}
-			{onunknowntag}
-		/>
-
-		<TaskLinks
-			blockedBy={links.blocked_by}
-			blocks={links.blocks}
-			relatesTo={links.relates_to}
-			duplicates={links.duplicates}
-			duplicatedBy={links.duplicated_by}
-			candidates={linkCandidates}
-			blockerCandidates={linkCandidates}
-			onadd={addLink}
-			onremove={removeLink}
-			href={linkHref}
-			onlink={onclose}
-			onsearch={finder.search}
-		/>
-
-		<SectionDivider
-			title="Advanced"
-			count={advancedFilledCount(draft)}
-			open={ui.advanced}
-			onopenchange={(value) => ui.set(value)}
-		>
-			<AdvancedFields
-				value={draft}
-				{onfield}
-				onerror={(message) => {
-					failure = message;
-					invalidField = true;
-				}}
-			/>
-		</SectionDivider>
-
-		<div class="attachments" class:is-just-attached={justAttached}>
-			<SectionDivider title="Attachments">
-				{#snippet actions()}
-					<span class="attach-button" class:is-fresh={justAttached}>
-						<IconButton
-							label={attachLabel}
-							title={attachLabel}
-							onclick={() => fileInput?.click()}
-						>
-							<Upload />
-						</IconButton>
-						{#if files.length > 0}
-							<span class="attach-badge" class:is-fresh={justAttached}
-								>{files.length}</span
-							>
-						{/if}
-					</span>
-				{/snippet}
-			</SectionDivider>
+	{#snippet attachments()}
+		{#snippet hidden()}
 			<input
 				bind:this={fileInput}
 				type="file"
@@ -542,6 +432,13 @@
 				hidden
 				onchange={pickFiles}
 			/>
+		{/snippet}
+		<AttachmentSection
+			count={files.length}
+			fresh={flash.fresh}
+			onpick={() => fileInput?.click()}
+			{hidden}
+		>
 			{#if files.length > 0}
 				<AttachmentList>
 					{#each files as file, index (file.name + index)}
@@ -555,7 +452,43 @@
 					{/each}
 				</AttachmentList>
 			{/if}
-		</div>
+		</AttachmentSection>
+	{/snippet}
+
+	<ScrollArea class="panel-body">
+		<TaskEditorFields
+			bind:title
+			value={draft}
+			titleId="new-task-title"
+			{titleTrailing}
+			epics={epicOptions}
+			{projects}
+			scopes={scopeOptions}
+			repo={projectRepo}
+			{tagPicker}
+			linkFields={links}
+			{linkCandidates}
+			blockerCandidates={linkCandidates}
+			onlinkadd={addLink}
+			onlinkremove={removeLink}
+			{linkHref}
+			onlinkopen={onclose}
+			onlinksearch={finder.search}
+			{onfield}
+			{onproject}
+			{onnewscope}
+			{onunknowntag}
+			onerror={(message) => {
+				failure = message;
+				invalidField = true;
+			}}
+			status={draft.status}
+			onstatus={(status) => onfield({ status })}
+			statusWarn={draft.status !== "backlog"}
+			advancedOpen={ui.advanced}
+			onadvancedchange={(value) => ui.set(value)}
+			{attachments}
+		/>
 	</ScrollArea>
 
 	<div class="modal-foot">
@@ -568,7 +501,7 @@
 				<kbd>Ctrl+Alt+C</kbd>
 			</label>
 			{#if files.length > 0}
-				<span class="attach-chip" class:is-fresh={justAttached}>
+				<span class="attach-chip" class:is-fresh={flash.fresh}>
 					<Paperclip />
 					{files.length}
 					{files.length === 1 ? "file" : "files"}
@@ -587,7 +520,7 @@
 			{/if}
 			<Button type="button" onclick={cancel}>Cancel</Button>
 			<Button variant="primary" type="submit" disabled={saving}>
-				{saving ? "creating…" : "Create task"}
+				{saving ? "creatingвЂ¦" : "Create task"}
 			</Button>
 		</div>
 	</div>
@@ -598,57 +531,6 @@
 </form>
 
 <style>
-	.attachments {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-2);
-		border-radius: var(--radius);
-	}
-
-	.attachments :global(.section-divider) {
-		padding: var(--space-1) var(--space-2);
-		margin: 0 calc(var(--space-2) * -1) var(--space-3);
-		border-radius: var(--radius-sm);
-		transition: background-color 400ms ease;
-	}
-
-	.attachments.is-just-attached :global(.section-divider) {
-		background: color-mix(in oklch, var(--accent) 18%, transparent);
-	}
-
-	.attach-button {
-		position: relative;
-		display: inline-flex;
-		flex: none;
-	}
-
-	.attach-button.is-fresh :global(.ui-icon-button) {
-		background: color-mix(in oklch, var(--accent) 22%, transparent);
-		color: var(--accent-ink);
-	}
-
-	.attach-badge {
-		position: absolute;
-		top: -0.2rem;
-		right: -0.2rem;
-		display: grid;
-		place-items: center;
-		min-width: 1rem;
-		height: 1rem;
-		padding: 0 0.2rem;
-		border-radius: 999px;
-		background: var(--accent);
-		color: var(--on-accent);
-		font-size: 0.625rem;
-		font-weight: 700;
-		line-height: 1;
-		pointer-events: none;
-	}
-
-	.attach-badge.is-fresh {
-		animation: attach-pop 700ms ease-out;
-	}
-
 	.attach-chip {
 		display: flex;
 		align-items: center;
@@ -669,28 +551,6 @@
 		color: var(--accent-ink);
 	}
 
-	@keyframes attach-pop {
-		0% {
-			transform: scale(0.6);
-			box-shadow: 0 0 0 0 color-mix(in oklch, var(--accent) 55%, transparent);
-		}
-
-		45% {
-			transform: scale(1.3);
-		}
-
-		100% {
-			transform: scale(1);
-			box-shadow: 0 0 0 0.4rem transparent;
-		}
-	}
-
-	@media (prefers-reduced-motion: reduce) {
-		.attach-badge.is-fresh {
-			animation: none;
-		}
-	}
-
 	form {
 		display: flex;
 		flex-direction: column;
@@ -703,11 +563,6 @@
 		flex: none;
 		margin: 0 calc(var(--modal-pad) * -1) calc(var(--modal-pad) * -1);
 		padding: var(--space-3) var(--modal-pad) var(--modal-pad);
-	}
-
-	.title-control {
-		flex: 1 1 auto;
-		min-width: 0;
 	}
 
 	.modal-actions {
