@@ -134,6 +134,13 @@
 	let files = $state<File[]>([]);
 	let dragging = $state(false);
 	let committed = $state(false);
+	let justAttached = $state(false);
+	let attachTimer: ReturnType<typeof setTimeout> | null = null;
+	const attachLabel = $derived(
+		files.length === 0
+			? "Attach a file"
+			: `Attach a file, ${files.length} attached`,
+	);
 
 	untrack(() => {
 		const restored = draftStore.saved;
@@ -200,6 +207,10 @@
 		draftStore.save({ values, title, files: [...files], links: snapshot });
 	});
 
+	$effect(() => () => {
+		if (attachTimer !== null) clearTimeout(attachTimer);
+	});
+
 	function reset() {
 		draft = {
 			...blankDraft(),
@@ -214,12 +225,26 @@
 		committed = false;
 	}
 
+	function markAttached() {
+		justAttached = true;
+		if (attachTimer !== null) clearTimeout(attachTimer);
+		attachTimer = setTimeout(() => {
+			justAttached = false;
+			attachTimer = null;
+		}, 2000);
+	}
+
+	function addFiles(added: File[]) {
+		if (added.length === 0) return;
+		files = [...files, ...added];
+		markAttached();
+	}
+
 	function pickFiles(event: Event) {
 		const target = event.currentTarget as HTMLInputElement;
 		const picked = [...(target.files ?? [])];
 		target.value = "";
-		if (picked.length === 0) return;
-		files = [...files, ...picked];
+		addFiles(picked);
 	}
 
 	function paste(event: ClipboardEvent) {
@@ -228,7 +253,7 @@
 		);
 		if (images.length === 0) return;
 		event.preventDefault();
-		files = [...files, ...images];
+		addFiles(images);
 	}
 
 	async function uploadFiles(taskId: string) {
@@ -408,7 +433,7 @@
 	onsubmit={submit}
 	use:fieldNavigation
 	use:fileDrop={{
-		onfiles: (dropped) => (files = [...files, ...dropped]),
+		onfiles: (dropped) => addFiles(dropped),
 		ondragchange: (value) => (dragging = value),
 	}}
 >
@@ -432,14 +457,21 @@
 						placeholder="What needs to be done"
 					/>
 				</div>
-				<IconButton
-					label="Attach a file"
-					title="Attach a file"
-					size="md"
-					onclick={() => fileInput?.click()}
-				>
-					<Paperclip />
-				</IconButton>
+				<span class="attach-button" class:is-fresh={justAttached}>
+					<IconButton
+						label={attachLabel}
+						title={attachLabel}
+						size="md"
+						onclick={() => fileInput?.click()}
+					>
+						<Paperclip />
+					</IconButton>
+					{#if files.length > 0}
+						<span class="attach-badge" class:is-fresh={justAttached}>
+							{files.length}
+						</span>
+					{/if}
+				</span>
 			</ControlRow>
 		</div>
 
@@ -484,23 +516,32 @@
 			/>
 		</SectionDivider>
 
-		<div class="attachments">
+		<div class="attachments" class:is-just-attached={justAttached}>
 			<SectionDivider title="Attachments">
-				<IconButton
-					label="Attach a file"
-					title="Attach a file"
-					onclick={() => fileInput?.click()}
-				>
-					<Upload />
-				</IconButton>
-				<input
-					bind:this={fileInput}
-					type="file"
-					multiple
-					hidden
-					onchange={pickFiles}
-				/>
+				{#snippet actions()}
+					<span class="attach-button" class:is-fresh={justAttached}>
+						<IconButton
+							label={attachLabel}
+							title={attachLabel}
+							onclick={() => fileInput?.click()}
+						>
+							<Upload />
+						</IconButton>
+						{#if files.length > 0}
+							<span class="attach-badge" class:is-fresh={justAttached}
+								>{files.length}</span
+							>
+						{/if}
+					</span>
+				{/snippet}
 			</SectionDivider>
+			<input
+				bind:this={fileInput}
+				type="file"
+				multiple
+				hidden
+				onchange={pickFiles}
+			/>
 			{#if files.length > 0}
 				<AttachmentList>
 					{#each files as file, index (file.name + index)}
@@ -526,6 +567,13 @@
 				Create another
 				<kbd>Ctrl+Alt+C</kbd>
 			</label>
+			{#if files.length > 0}
+				<span class="attach-chip" class:is-fresh={justAttached}>
+					<Paperclip />
+					{files.length}
+					{files.length === 1 ? "file" : "files"}
+				</span>
+			{/if}
 			{#if draftStore.last}
 				<button
 					class="back-button"
@@ -554,6 +602,93 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-2);
+		border-radius: var(--radius);
+	}
+
+	.attachments :global(.section-divider) {
+		padding: var(--space-1) var(--space-2);
+		margin: 0 calc(var(--space-2) * -1) var(--space-3);
+		border-radius: var(--radius-sm);
+		transition: background-color 400ms ease;
+	}
+
+	.attachments.is-just-attached :global(.section-divider) {
+		background: color-mix(in oklch, var(--accent) 18%, transparent);
+	}
+
+	.attach-button {
+		position: relative;
+		display: inline-flex;
+		flex: none;
+	}
+
+	.attach-button.is-fresh :global(.ui-icon-button) {
+		background: color-mix(in oklch, var(--accent) 22%, transparent);
+		color: var(--accent-ink);
+	}
+
+	.attach-badge {
+		position: absolute;
+		top: -0.2rem;
+		right: -0.2rem;
+		display: grid;
+		place-items: center;
+		min-width: 1rem;
+		height: 1rem;
+		padding: 0 0.2rem;
+		border-radius: 999px;
+		background: var(--accent);
+		color: var(--on-accent);
+		font-size: 0.625rem;
+		font-weight: 700;
+		line-height: 1;
+		pointer-events: none;
+	}
+
+	.attach-badge.is-fresh {
+		animation: attach-pop 700ms ease-out;
+	}
+
+	.attach-chip {
+		display: flex;
+		align-items: center;
+		flex: none;
+		gap: var(--space-1);
+		color: var(--text-secondary);
+		font-size: var(--text-sm);
+		white-space: nowrap;
+		transition: color 150ms ease;
+	}
+
+	.attach-chip :global(svg) {
+		width: 0.875rem;
+		height: 0.875rem;
+	}
+
+	.attach-chip.is-fresh {
+		color: var(--accent-ink);
+	}
+
+	@keyframes attach-pop {
+		0% {
+			transform: scale(0.6);
+			box-shadow: 0 0 0 0 color-mix(in oklch, var(--accent) 55%, transparent);
+		}
+
+		45% {
+			transform: scale(1.3);
+		}
+
+		100% {
+			transform: scale(1);
+			box-shadow: 0 0 0 0.4rem transparent;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.attach-badge.is-fresh {
+			animation: none;
+		}
 	}
 
 	form {
