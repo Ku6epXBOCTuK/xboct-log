@@ -23,6 +23,7 @@ const FIELD_LABELS: Record<string, string> = {
 	duplicates: "Duplicates",
 	duplicated_by: "Duplicated by",
 	comments: "Comments",
+	attachments: "Attachments",
 	name: "Name",
 	prefix: "Prefix",
 	repo: "Repository",
@@ -37,6 +38,10 @@ const OP_LABELS: Record<string, string> = {
 	tasks_remove_blocker: "Blocker removed",
 	tasks_add_link: "Link added",
 	tasks_remove_link: "Link removed",
+	attachments_add: "Attachment added",
+	attachments_delete: "Attachment deleted",
+	attachments_restore: "Attachment restored",
+	attachments_purge: "Attachment removed",
 };
 
 const ENTITY_LABELS: Record<string, string> = {

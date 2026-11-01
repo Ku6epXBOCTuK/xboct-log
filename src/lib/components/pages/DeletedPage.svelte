@@ -1,4 +1,5 @@
 <script lang="ts">
+	import DeletedAttachments from "#lib/components/attachments/DeletedAttachments.svelte";
 	import SearchBar from "#lib/components/filters/SearchBar.svelte";
 	import Pager from "#lib/components/ui/Pager.svelte";
 	import TaskTable from "#lib/components/table/TaskTable.svelte";
@@ -29,6 +30,7 @@
 
 	let error = $state("");
 	let busy = $state("");
+	let tab = $state<"tasks" | "attachments">("tasks");
 	let sortKey = $state<TaskSortKey>("updated");
 	let sortOrder = $state<SortOrder>("desc");
 
@@ -110,9 +112,11 @@
 
 <section class="deleted-page">
 	<header class="page-head">
-		<h1>Deleted tasks</h1>
+		<h1>{tab === "tasks" ? "Deleted tasks" : "Deleted attachments"}</h1>
 		<span class="muted">
-			{activeProjectName ?? "All projects"} · {paged.total} deleted
+			{tab === "tasks"
+				? `${activeProjectName ?? "All projects"} · ${paged.total} deleted`
+				: "Kept for 30 days, then removed"}
 		</span>
 		<div class="head-actions">
 			<IconButton
@@ -134,44 +138,65 @@
 		</div>
 	</header>
 
-	<div class="filters">
-		<SearchBar value={search.value} oninput={(value) => search.set(value)} />
-	</div>
+	<nav class="tabs">
+		<button
+			type="button"
+			class:active={tab === "tasks"}
+			onclick={() => (tab = "tasks")}
+		>
+			Tasks
+		</button>
+		<button
+			type="button"
+			class:active={tab === "attachments"}
+			onclick={() => (tab = "attachments")}
+		>
+			Attachments
+		</button>
+	</nav>
 
-	{#if error !== ""}
-		<div class="error-wrap">
-			<ErrorNote message={error} />
-		</div>
-	{/if}
-
-	{#if paged.failed}
-		<p class="empty">Deleted tasks are unavailable</p>
-	{:else if !paged.loaded}
-		<p class="empty">Loading…</p>
+	{#if tab === "attachments"}
+		<DeletedAttachments />
 	{:else}
-		<TaskTable
-			tasks={visible}
-			allTasks={paged.items}
-			{scopes}
-			projects={projects.all}
-			showProject={filters.activeProject === null}
-			selectedId={null}
-			{sortKey}
-			{sortOrder}
-			onsort={sortBy}
+		<div class="filters">
+			<SearchBar value={search.value} oninput={(value) => search.set(value)} />
+		</div>
+
+		{#if error !== ""}
+			<div class="error-wrap">
+				<ErrorNote message={error} />
+			</div>
+		{/if}
+
+		{#if paged.failed}
+			<p class="empty">Deleted tasks are unavailable</p>
+		{:else if !paged.loaded}
+			<p class="empty">Loading…</p>
+		{:else}
+			<TaskTable
+				tasks={visible}
+				allTasks={paged.items}
+				{scopes}
+				projects={projects.all}
+				showProject={filters.activeProject === null}
+				selectedId={null}
+				{sortKey}
+				{sortOrder}
+				onsort={sortBy}
+				total={paged.total}
+				action={restoreAction}
+				empty={emptyState}
+			/>
+		{/if}
+
+		<Pager
+			offset={paged.offset}
+			limit={LIMIT}
 			total={paged.total}
-			action={restoreAction}
-			empty={emptyState}
+			emptyLabel="0 tasks"
+			onchange={(next) => void paged.load(next)}
 		/>
 	{/if}
-
-	<Pager
-		offset={paged.offset}
-		limit={LIMIT}
-		total={paged.total}
-		emptyLabel="0 tasks"
-		onchange={(next) => void paged.load(next)}
-	/>
 </section>
 
 <style>
@@ -209,6 +234,34 @@
 		color: var(--text-muted);
 		font-size: var(--text-sm);
 		font-variant-numeric: tabular-nums;
+	}
+
+	.tabs {
+		flex: none;
+		display: flex;
+		gap: var(--space-1);
+		padding: 0 var(--edge-pad) var(--space-3);
+	}
+
+	.tabs button {
+		border: 1px solid transparent;
+		border-radius: var(--radius-sm);
+		background: none;
+		color: var(--text-muted);
+		padding: var(--space-1) var(--space-3);
+		font-size: var(--text-sm);
+		cursor: pointer;
+	}
+
+	.tabs button:hover {
+		color: var(--foreground);
+		background: var(--hover);
+	}
+
+	.tabs button.active {
+		color: var(--foreground);
+		border-color: var(--border);
+		background: var(--surface);
 	}
 
 	.filters {

@@ -151,3 +151,7 @@ export interface ChangedTaskWithWarnings extends TaskWithChanges {
 export type Task = z.infer<typeof taskSchema>;
 
 export type TaskAttachment = z.infer<typeof attachmentSchema>;
+
+export type DeletedAttachment = TaskAttachment & {
+	task_title: string | null;
+};

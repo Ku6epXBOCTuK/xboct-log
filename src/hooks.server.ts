@@ -1,4 +1,5 @@
 import { pruneActivity } from "#lib/server/activity.ts";
+import { purgeSoftDeletedAttachments } from "#lib/server/attachments.ts";
 import { getDb } from "#lib/server/db.ts";
 import { migrateDatabase } from "#lib/server/migrations.ts";
 import { defaultDbPath } from "#lib/server/paths.ts";
@@ -12,6 +13,7 @@ export const init: ServerInit = async () => {
 	await migrateDatabase(db);
 	pruneActivity(db);
 	purgeSoftDeletedTasks(db);
+	purgeSoftDeletedAttachments(db);
 	ensureInbox(db);
 	// NOTE: the checkpoint folds the WAL into the database file, so the data
 	// survives even if the WAL is lost or replaced.

@@ -6,6 +6,7 @@ import {
 	scheduledFor,
 	type BackupConfig,
 } from "./backup";
+import { purgeSoftDeletedAttachments } from "./attachments";
 import { getDb } from "./db";
 import { purgeSoftDeletedTasks } from "./purge";
 
@@ -34,9 +35,16 @@ function msUntilNext(config: BackupConfig, now: Date): number {
 
 function runPurge(): void {
 	try {
-		const purged = purgeSoftDeletedTasks(getDb());
+		const db = getDb();
+		const purged = purgeSoftDeletedTasks(db);
 		if (purged > 0) {
 			console.log(`[purge] removed ${purged} soft-deleted tasks`);
+		}
+		const attachments = purgeSoftDeletedAttachments(db);
+		if (attachments.purged > 0 || attachments.gone > 0) {
+			console.log(
+				`[purge] removed ${attachments.purged} soft-deleted attachments, ${attachments.gone} of them with a file already gone`,
+			);
 		}
 	} catch (error) {
 		console.warn("[purge] failed", error);

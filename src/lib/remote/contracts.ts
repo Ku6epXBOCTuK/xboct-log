@@ -173,8 +173,17 @@ export const attachmentCreated = z.looseObject({
 	item: attachmentRef,
 });
 
-export const attachmentDeleted = z.looseObject({
+export const attachmentDeleted = attachmentRef;
+
+export const attachmentRestored = attachmentRef;
+
+export const attachmentPurged = z.looseObject({
 	id: z.string(),
+	file_removed: z.boolean(),
+});
+
+export const attachmentDeletedList = z.looseObject({
+	items: z.array(attachmentRef.extend({ task_title: z.string().nullable() })),
 });
 
 export const attachmentVerify = z.looseObject({

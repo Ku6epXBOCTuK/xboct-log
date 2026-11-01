@@ -23,9 +23,12 @@ export interface Attachment {
 	created_at: string;
 	uri: string;
 	missing: boolean;
+	deleted_at: string | null;
 }
 
 export const MAX_ATTACHMENT_SIZE = 20 * 1024 * 1024;
+
+export const ATTACHMENT_PURGE_KEEP_DAYS = 30;
 
 interface AttachmentRow {
 	id: string;
@@ -35,6 +38,15 @@ interface AttachmentRow {
 	size: number;
 	stored_name: string;
 	created_at: string;
+	deleted_at: string | null;
+}
+
+interface DeletedRow extends AttachmentRow {
+	task_title: string | null;
+}
+
+interface DeletedAttachment extends Attachment {
+	task_title: string | null;
 }
 
 export function mediaDir(): string {
@@ -68,6 +80,7 @@ function toAttachment(row: AttachmentRow): Attachment {
 		created_at: row.created_at,
 		uri: attachmentUri(row.id),
 		missing: false,
+		deleted_at: row.deleted_at,
 	};
 }
 
@@ -81,30 +94,69 @@ function rowsOf(db: DatabaseSync, taskId?: string): AttachmentRow[] {
 	if (taskId === undefined) {
 		return db
 			.prepare(
-				"SELECT * FROM task_attachments ORDER BY task_id ASC, created_at ASC",
+				`SELECT * FROM task_attachments
+				 WHERE deleted_at IS NULL
+				 ORDER BY task_id ASC, created_at ASC`,
 			)
 			.all() as unknown as AttachmentRow[];
 	}
 	return db
 		.prepare(
-			"SELECT * FROM task_attachments WHERE task_id = ? ORDER BY created_at ASC, id ASC",
+			`SELECT * FROM task_attachments
+			 WHERE task_id = ? AND deleted_at IS NULL
+			 ORDER BY created_at ASC, id ASC`,
 		)
 		.all(taskId) as unknown as AttachmentRow[];
+}
+
+function deletedRowsOf(db: DatabaseSync, taskId?: string): DeletedRow[] {
+	if (taskId === undefined) {
+		return db
+			.prepare(
+				`SELECT a.*, t.title AS task_title
+				 FROM task_attachments a
+				 LEFT JOIN tasks t ON t.id = a.task_id
+				 WHERE a.deleted_at IS NOT NULL
+				 ORDER BY a.deleted_at DESC, a.id ASC`,
+			)
+			.all() as unknown as DeletedRow[];
+	}
+	return db
+		.prepare(
+			`SELECT a.*, t.title AS task_title
+			 FROM task_attachments a
+			 LEFT JOIN tasks t ON t.id = a.task_id
+			 WHERE a.task_id = ? AND a.deleted_at IS NOT NULL
+			 ORDER BY a.deleted_at DESC, a.id ASC`,
+		)
+		.all(taskId) as unknown as DeletedRow[];
+}
+
+function withMissing(rows: AttachmentRow[]): Attachment[] {
+	return rows.map((row) => ({
+		...toAttachment(row),
+		missing: !existsSync(storedPath(row)),
+	}));
 }
 
 export function listAttachments(
 	db: DatabaseSync,
 	taskId: string,
 ): Attachment[] {
-	return rowsOf(db, taskId).map((row) => ({
-		...toAttachment(row),
-		missing: !existsSync(storedPath(row)),
-	}));
+	return withMissing(rowsOf(db, taskId));
 }
 
 export function listAllAttachments(db: DatabaseSync): Attachment[] {
-	return rowsOf(db).map((row) => ({
+	return withMissing(rowsOf(db));
+}
+
+export function listDeletedAttachments(
+	db: DatabaseSync,
+	taskId?: string,
+): DeletedAttachment[] {
+	return deletedRowsOf(db, taskId).map((row) => ({
 		...toAttachment(row),
+		task_title: row.task_title,
 		missing: !existsSync(storedPath(row)),
 	}));
 }
@@ -124,11 +176,7 @@ export function verifyAttachments(
 ): { ok: Attachment[]; missing: Attachment[] } {
 	const okItems: Attachment[] = [];
 	const missing: Attachment[] = [];
-	for (const row of rowsOf(db, taskId)) {
-		const item = {
-			...toAttachment(row),
-			missing: !existsSync(storedPath(row)),
-		};
+	for (const item of withMissing(rowsOf(db, taskId))) {
 		if (item.missing) {
 			missing.push(item);
 		} else {
@@ -183,6 +231,7 @@ export function addAttachment(
 		created_at: createdAt,
 		uri: attachmentUri(id),
 		missing: false,
+		deleted_at: null,
 	});
 }
 
@@ -216,33 +265,113 @@ export function addAttachmentFromBase64(
 export function deleteAttachment(
 	db: DatabaseSync,
 	id: string,
-): Result<{ id: string }, AppError> {
+): Result<Attachment, AppError> {
 	const row = rowById(db, id);
-	if (!row) {
+	if (!row || row.deleted_at !== null) {
 		return err(notFound(`no attachment with the id ${id}`));
 	}
-	db.prepare("DELETE FROM task_attachments WHERE id = ?").run(id);
-	try {
-		rmSync(storedPath(row), { force: true });
-	} catch {
-		// NOTE: the row is gone, a leftover file is harmless
-	}
-	return ok({ id });
+	const now = new Date().toISOString();
+	db.prepare("UPDATE task_attachments SET deleted_at = ? WHERE id = ?").run(
+		now,
+		id,
+	);
+	return ok({ ...toAttachment(row), deleted_at: now });
 }
 
-export function readAttachmentFile(
+export function restoreAttachment(
 	db: DatabaseSync,
 	id: string,
-): Result<{ attachment: Attachment; data: Buffer }, AppError> {
+): Result<Attachment, AppError> {
 	const row = rowById(db, id);
-	if (!row) {
-		return err(notFound(`no attachment with the id ${id}`));
+	if (!row || row.deleted_at === null) {
+		return err(notFound(`no deleted attachment with the id ${id}`));
 	}
+	const task = db
+		.prepare("SELECT deleted_at FROM tasks WHERE id = ?")
+		.get(row.task_id) as { deleted_at: string | null } | undefined;
+	if (task === undefined) {
+		return err(
+			notFound(`the task ${row.task_id} of the attachment ${id} is gone`),
+		);
+	}
+	if (task.deleted_at !== null) {
+		return err(
+			invalid(`the task ${row.task_id} is deleted: restore the task first`),
+		);
+	}
+	if (!existsSync(storedPath(row))) {
+		return err(
+			notFound(
+				`the file ${row.file_name} of the attachment ${id} is gone from the media folder, there is nothing to restore`,
+			),
+		);
+	}
+	db.prepare("UPDATE task_attachments SET deleted_at = NULL WHERE id = ?").run(
+		id,
+	);
+	return ok({ ...toAttachment(row), deleted_at: null });
+}
+
+export function purgeAttachment(
+	db: DatabaseSync,
+	id: string,
+): Result<{ id: string; file_removed: boolean }, AppError> {
+	const row = rowById(db, id);
+	if (!row || row.deleted_at === null) {
+		return err(notFound(`no deleted attachment with the id ${id}`));
+	}
+	const path = storedPath(row);
+	const fileRemoved = existsSync(path);
+	if (fileRemoved) {
+		try {
+			rmSync(path, { force: true });
+		} catch {
+			// NOTE: the row goes away anyway, a leftover file costs only disk
+		}
+	}
+	db.prepare("DELETE FROM task_attachments WHERE id = ?").run(id);
+	return ok({ id, file_removed: fileRemoved });
+}
+
+export function purgeSoftDeletedAttachments(
+	db: DatabaseSync,
+	keepDays: number = ATTACHMENT_PURGE_KEEP_DAYS,
+	now: Date = new Date(),
+): { purged: number; gone: number } {
+	const cutoff = new Date(now.getTime() - keepDays * 86_400_000).toISOString();
+	const rows = db
+		.prepare(
+			`SELECT * FROM task_attachments
+			 WHERE deleted_at IS NOT NULL AND deleted_at < ?`,
+		)
+		.all(cutoff) as unknown as AttachmentRow[];
+	const remove = db.prepare("DELETE FROM task_attachments WHERE id = ?");
+	let purged = 0;
+	let gone = 0;
+	for (const row of rows) {
+		if (existsSync(storedPath(row))) {
+			try {
+				rmSync(storedPath(row), { force: true });
+			} catch {
+				// NOTE: the row goes away anyway, a leftover file costs only disk
+			}
+			purged += 1;
+		} else {
+			gone += 1;
+		}
+		remove.run(row.id);
+	}
+	return { purged, gone };
+}
+
+function readStoredFile(
+	row: AttachmentRow,
+): Result<{ attachment: Attachment; data: Buffer }, AppError> {
 	const path = storedPath(row);
 	if (!existsSync(path)) {
 		return err(
 			notFound(
-				`the file ${row.file_name} of the attachment ${id} is gone from the media folder`,
+				`the file ${row.file_name} of the attachment ${row.id} is gone from the media folder`,
 			),
 		);
 	}
@@ -256,8 +385,33 @@ export function readAttachmentFile(
 	}
 }
 
+export function readAttachmentFile(
+	db: DatabaseSync,
+	id: string,
+): Result<{ attachment: Attachment; data: Buffer }, AppError> {
+	const row = rowById(db, id);
+	if (!row || row.deleted_at !== null) {
+		return err(notFound(`no attachment with the id ${id}`));
+	}
+	return readStoredFile(row);
+}
+
+export function readDeletedAttachmentFile(
+	db: DatabaseSync,
+	id: string,
+): Result<{ attachment: Attachment; data: Buffer }, AppError> {
+	const row = rowById(db, id);
+	if (!row || row.deleted_at === null) {
+		return err(notFound(`no deleted attachment with the id ${id}`));
+	}
+	return readStoredFile(row);
+}
+
 export function removeTaskAttachments(db: DatabaseSync, taskId: string): void {
-	for (const row of rowsOf(db, taskId)) {
+	const rows = db
+		.prepare("SELECT * FROM task_attachments WHERE task_id = ?")
+		.all(taskId) as unknown as AttachmentRow[];
+	for (const row of rows) {
 		try {
 			rmSync(storedPath(row), { force: true });
 		} catch {

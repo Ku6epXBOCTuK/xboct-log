@@ -40,6 +40,7 @@ export const attachmentSchema = z.object({
 	created_at: z.string(),
 	uri: z.string(),
 	missing: z.boolean(),
+	deleted_at: z.string().nullable(),
 });
 
 export const taskSchema = z.object({

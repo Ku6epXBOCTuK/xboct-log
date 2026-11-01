@@ -1,10 +1,14 @@
 import { err } from "neverthrow";
 import { z } from "zod";
 import {
+	ATTACHMENT_PURGE_KEEP_DAYS,
 	addAttachmentFromBase64,
 	addAttachmentFromPath,
 	deleteAttachment,
 	listAttachments,
+	listDeletedAttachments,
+	purgeAttachment,
+	restoreAttachment,
 	verifyAttachments,
 } from "../server/attachments";
 import { getDb } from "../server/db";
@@ -12,20 +16,24 @@ import { invalid } from "../server/errors";
 import {
 	attachmentCreated,
 	attachmentDeleted,
+	attachmentDeletedList,
 	attachmentList,
+	attachmentPurged,
+	attachmentRestored,
 	attachmentVerify,
 } from "./contracts";
 import { defineCommand, defineQuery } from "./define";
 import { resolveTaskOrThrow } from "./ids";
 import { ATTACHMENT_FIELDS } from "./shape";
 import { strictObject } from "./strict";
+import { activityEntry } from "../server/activity";
 import { ID_DESCRIPTION, taskIdSchema } from "#lib/tasks/ids.ts";
 
 export const getTaskAttachments = defineQuery({
 	name: "attachments_list",
 	output: attachmentList,
 	description:
-		"List the files attached to one task. Read-only. Returns: {items} - every item is " +
+		"List the files attached to one task, without the ones deleted. Read-only. Returns: {items} - every item is " +
 		ATTACHMENT_FIELDS +
 		". The uri of an item is an MCP resource holding the bytes of the file: read it with resources/read instead of looking for the file on disk. A file that is gone from the media folder is still listed, with missing set to true.",
 	kind: "query",
@@ -35,6 +43,30 @@ export const getTaskAttachments = defineQuery({
 	handler: ({ task_id }) => {
 		const db = getDb();
 		return { items: listAttachments(db, resolveTaskOrThrow(db, task_id)) };
+	},
+});
+
+export const getDeletedAttachments = defineQuery({
+	name: "attachments_deleted_list",
+	output: attachmentDeletedList,
+	description:
+		"List the soft-deleted attachments, newest deletion first. Read-only. Give task_id to list the deleted attachments of one task only, omit it to list every deleted attachment. Soft-deleted files are kept for " +
+		String(ATTACHMENT_PURGE_KEEP_DAYS) +
+		" days, then the file and the row are removed for good. Returns: {items} - every item is " +
+		ATTACHMENT_FIELDS +
+		" with deleted_at set and task_title - the title of the task the file returns to.",
+	kind: "query",
+	input: strictObject({
+		task_id: taskIdSchema(ID_DESCRIPTION).optional(),
+	}),
+	handler: ({ task_id }) => {
+		const db = getDb();
+		return {
+			items: listDeletedAttachments(
+				db,
+				task_id === undefined ? undefined : resolveTaskOrThrow(db, task_id),
+			),
+		};
 	},
 });
 
@@ -84,13 +116,19 @@ export const addTaskAttachment = defineCommand({
 		}
 		return { item: result.value };
 	},
+	activity: (_input, result: { item: { task_id: string } }) =>
+		activityEntry("task", result.item.task_id, ["attachments"]),
 });
 
 export const removeTaskAttachment = defineCommand({
 	name: "attachments_delete",
 	output: attachmentDeleted,
 	description:
-		"Delete one attachment of a task: the file in the media folder and the reference to it. The attachment_id is the `id` field of an item from attachments_list. Returns: {id} - the id of the deleted attachment.",
+		"Soft-delete one attachment of a task: the file stays in the media folder and the row keeps its deleted_at, so the attachment can be restored with attachments_restore for " +
+		String(ATTACHMENT_PURGE_KEEP_DAYS) +
+		" days. It disappears from attachments_list and from the task right away. The attachment_id is the `id` field of an item from attachments_list. Returns: the deleted attachment - " +
+		ATTACHMENT_FIELDS +
+		" with deleted_at set.",
 	kind: "command",
 	input: strictObject({
 		attachment_id: z
@@ -105,13 +143,61 @@ export const removeTaskAttachment = defineCommand({
 		}
 		return result.value;
 	},
+	activity: (_input, attachment: { task_id: string }) =>
+		activityEntry("task", attachment.task_id, ["attachments"]),
+});
+
+export const restoreTaskAttachment = defineCommand({
+	name: "attachments_restore",
+	output: attachmentRestored,
+	description:
+		"Restore a soft-deleted attachment: it goes back to the task it was attached to, nothing is copied or moved. Find deleted attachments with attachments_deleted_list. Fails when the task is deleted (restore the task first) or when the file is gone from the media folder. Returns: the restored attachment - " +
+		ATTACHMENT_FIELDS +
+		" with deleted_at set to null.",
+	kind: "command",
+	input: strictObject({
+		attachment_id: z
+			.string()
+			.uuid()
+			.describe("The `id` of an attachment from attachments_deleted_list."),
+	}),
+	handler: ({ attachment_id }) => {
+		const result = restoreAttachment(getDb(), attachment_id);
+		if (result.isErr()) {
+			return err(result.error);
+		}
+		return result.value;
+	},
+	activity: (_input, attachment: { task_id: string }) =>
+		activityEntry("task", attachment.task_id, ["attachments"]),
+});
+
+export const purgeTaskAttachment = defineCommand({
+	name: "attachments_purge",
+	output: attachmentPurged,
+	description:
+		"Remove a soft-deleted attachment for good, now instead of waiting for the automatic cleanup: the file in the media folder and the row are gone and cannot be restored. Only works on a soft-deleted attachment. Returns: {id, file_removed} - file_removed is false when the file was already gone from the media folder.",
+	kind: "command",
+	input: strictObject({
+		attachment_id: z
+			.string()
+			.uuid()
+			.describe("The `id` of an attachment from attachments_deleted_list."),
+	}),
+	handler: ({ attachment_id }) => {
+		const result = purgeAttachment(getDb(), attachment_id);
+		if (result.isErr()) {
+			return err(result.error);
+		}
+		return result.value;
+	},
 });
 
 export const checkTaskAttachments = defineQuery({
 	name: "attachments_verify",
 	output: attachmentVerify,
 	description:
-		"Check the files of the attachments: which ones are still in the media folder and which ones are gone. Read-only. Returns: {ok, missing} - ok is the list of attachments still in the media folder, missing the ones that are gone. Give task_id to check one task only, omit it to check everything.",
+		"Check the files of the attachments: which ones are still in the media folder and which ones are gone. Read-only, soft-deleted attachments are skipped. Returns: {ok, missing} - ok is the list of attachments still in the media folder, missing the ones that are gone. Give task_id to check one task only, omit it to check everything.",
 	kind: "query",
 	input: strictObject({
 		task_id: taskIdSchema(ID_DESCRIPTION).optional(),
