@@ -3,24 +3,23 @@
 	import TaskComments from "#lib/components/detail/TaskComments.svelte";
 	import MarkdownView from "#lib/components/markdown/MarkdownView.svelte";
 	import StatusDot from "#lib/components/ui/StatusDot.svelte";
-	import type { CommentsStore } from "#lib/state/comments.svelte.ts";
+	import { useBoard } from "#lib/state/board.svelte.ts";
+	import { useTaskPanel } from "#lib/state/task-panel.ts";
 	import { STATUS_LABELS } from "#lib/tasks/display.ts";
-	import type { Task } from "#lib/types.ts";
 	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
 	import RefreshCw from "~icons/lucide/refresh-cw";
 
-	interface Props {
-		task: Task;
-		comments: CommentsStore;
-		repo?: string | null;
-		onback: () => void;
-		onclose: () => void;
-	}
-
-	let { task, comments, repo = null, onback, onclose }: Props = $props();
+	const { comments } = useBoard();
+	const panel = useTaskPanel();
+	const task = $derived(panel.task);
 </script>
 
-<PanelOverlay title="Comments" label="Task comments" {onback} {onclose}>
+<PanelOverlay
+	title="Comments"
+	label="Task comments"
+	onback={panel.closeComments}
+	onclose={panel.close}
+>
 	{#snippet actions()}
 		<IconButton
 			label="Reload comments"
@@ -41,11 +40,11 @@
 		</div>
 		{#if task.description.trim() !== ""}
 			<div class="summary-description">
-				<MarkdownView text={task.description} {repo} />
+				<MarkdownView text={task.description} repo={panel.repo} />
 			</div>
 		{/if}
 	</div>
-	<TaskComments taskId={task.id} {comments} {repo} />
+	<TaskComments taskId={task.id} {comments} repo={panel.repo} />
 </PanelOverlay>
 
 <style>

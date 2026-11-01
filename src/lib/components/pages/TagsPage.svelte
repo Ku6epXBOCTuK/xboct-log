@@ -3,74 +3,24 @@
 	import TagCreateForm from "#lib/components/tags/TagCreateForm.svelte";
 	import TagList from "#lib/components/tags/TagList.svelte";
 	import { useBoard } from "#lib/state/board.svelte.ts";
-	import { messageOf } from "#lib/tasks/display.ts";
+	import { createTagPage, provideTagPage } from "#lib/state/tag-page.svelte.ts";
 
 	const { tags } = useBoard();
 
-	let error = $state("");
-	let busy = $state("");
-	let loaded = $state(false);
-	let query = $state("");
-	let editing = $state<string | null>(null);
-
-	const all = $derived(tags.inventory);
-	const filtered = $derived(
-		query.trim() === ""
-			? all
-			: all.filter((entry) => entry.name.includes(query.trim().toLowerCase())),
-	);
-	const active = $derived(filtered.filter((entry) => !entry.archived));
-	const archived = $derived(filtered.filter((entry) => entry.archived));
-	const activeTotal = $derived(all.filter((entry) => !entry.archived).length);
-	const archivedTotal = $derived(all.length - activeTotal);
-
-	async function run(key: string, work: () => Promise<unknown>) {
-		error = "";
-		busy = key;
-		try {
-			await work();
-			return true;
-		} catch (cause) {
-			error = messageOf(cause);
-			return false;
-		} finally {
-			busy = "";
-		}
-	}
-
-	function reload() {
-		void run("load", async () => {
-			await tags.refresh();
-			loaded = true;
-		});
-	}
+	const page = createTagPage(tags);
+	provideTagPage(page);
 
 	$effect(() => {
-		reload();
+		void page.reload();
 	});
-
-	function create(name: string) {
-		return run("create", () => tags.create(name));
-	}
-
-	function rename(name: string, value: string) {
-		editing = null;
-		void run(name, () => tags.rename(name, value));
-	}
-
-	function archive(name: string, archived: boolean) {
-		void run(name, () => tags.setArchived(name, archived));
-	}
-
-	function discard() {
-		editing = null;
-	}
 </script>
 
 <section class="tags-page">
 	<header class="page-head">
 		<h1>Tags</h1>
-		<span class="muted">{activeTotal} active · {archivedTotal} archived</span>
+		<span class="muted"
+			>{page.activeTotal} active · {page.archivedTotal} archived</span
+		>
 	</header>
 
 	<div class="toolbar">
@@ -79,9 +29,10 @@
 			placeholder="Filter by name"
 			aria-label="Filter tags by name"
 			title="Filter the list by a part of the tag name"
-			bind:value={query}
+			value={page.query}
+			oninput={(event) => page.setQuery(event.currentTarget.value)}
 		/>
-		<TagCreateForm busy={busy === "create"} oncreate={create} />
+		<TagCreateForm busy={page.isCreating()} oncreate={page.create} />
 	</div>
 
 	<p class="hint">
@@ -90,24 +41,18 @@
 		already carry it; it only leaves the suggestions.
 	</p>
 
-	{#if error !== ""}
+	{#if page.error !== ""}
 		<div class="error-wrap">
-			<ErrorNote message={error} />
+			<ErrorNote message={page.error} />
 		</div>
 	{/if}
 
 	<div class="lists">
-		{#if loaded}
+		{#if page.loaded}
 			<TagList
-				{active}
-				{archived}
-				{query}
-				{busy}
-				{editing}
-				onstartedit={(name) => (editing = name)}
-				onsave={rename}
-				ondiscard={discard}
-				onarchive={archive}
+				active={page.active}
+				archived={page.archived}
+				query={page.query}
 			/>
 		{:else}
 			<p class="empty">Loading…</p>
@@ -117,8 +62,8 @@
 	<button
 		class="refresh"
 		title="Read the dictionary again"
-		onclick={reload}
-		disabled={busy === "load"}
+		onclick={() => void page.reload()}
+		disabled={page.isLoading()}
 	>
 		Reload
 	</button>

@@ -2,6 +2,7 @@
 	import CopyButton from "#lib/components/ui/CopyButton.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import StatusDot from "#lib/components/ui/StatusDot.svelte";
+	import { useTaskPanel } from "#lib/state/task-panel.ts";
 	import {
 		CLOSED_REASON_LABELS,
 		STATUS_LABELS,
@@ -13,22 +14,13 @@
 	import MessageSquare from "~icons/lucide/message-square";
 	import X from "~icons/lucide/x";
 
-	interface Props {
-		task: Task;
-		saving: boolean;
-		failure: string | null;
-		onhistory: () => void;
-		oncomments: () => void;
-		onclose: () => void;
-	}
+	const panel = useTaskPanel();
+	const task = $derived(panel.task);
 
-	let { task, saving, failure, onhistory, oncomments, onclose }: Props =
-		$props();
-
-	function stamp(): string {
-		return task.closed_at != null
-			? formatDateTime(task.closed_at)
-			: formatDateTime(task.updated_at);
+	function stamp(value: Task): string {
+		return value.closed_at != null
+			? formatDateTime(value.closed_at)
+			: formatDateTime(value.updated_at);
 	}
 </script>
 
@@ -49,25 +41,29 @@
 			{#if task.closed_reason !== null}
 				<span class="muted">{CLOSED_REASON_LABELS[task.closed_reason]}</span>
 			{/if}
-			<span class="muted">{saving ? "saving…" : stamp()}</span>
+			<span class="muted">{panel.saving ? "saving…" : stamp(task)}</span>
 		</div>
 		<div class="detail-actions">
-			<IconButton label="Task history" title="Task history" onclick={onhistory}>
+			<IconButton
+				label="Task history"
+				title="Task history"
+				onclick={panel.openHistory}
+			>
 				<Clock3 />
 			</IconButton>
 			<IconButton
 				label="Task comments"
 				title="Task comments"
-				onclick={oncomments}
+				onclick={panel.openComments}
 			>
 				<MessageSquare />
 			</IconButton>
-			<IconButton label="Close task details" onclick={onclose}>
+			<IconButton label="Close task details" onclick={panel.close}>
 				<X />
 			</IconButton>
 		</div>
 	</div>
-	<ErrorNote message={failure} />
+	<ErrorNote message={panel.failure} />
 </div>
 
 <style>

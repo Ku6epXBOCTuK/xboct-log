@@ -14,20 +14,7 @@
 	import { TASK_PAGE_SIZE } from "#lib/tasks/paging.ts";
 	import type { Task } from "#lib/types.ts";
 
-	const {
-		tasks,
-		projects,
-		scopes,
-		stats,
-		data,
-		tags,
-		comments,
-		filters,
-		theme,
-		draft,
-		ui,
-		selection,
-	} = useBoard();
+	const { tasks, projects, scopes, stats, filters, selection } = useBoard();
 
 	let creating = $state(false);
 	let childEpic = $state<Task | null>(null);
@@ -85,17 +72,7 @@
 <svelte:window {onkeydown} />
 
 <section class="workspace">
-	<WorkspaceHeader
-		{tasks}
-		{filters}
-		{scopes}
-		{projects}
-		{stats}
-		tagStore={tags}
-		{theme}
-		onnew={openNew}
-		onreload={reloadApp}
-	/>
+	<WorkspaceHeader onnew={openNew} onreload={reloadApp} />
 	{#if tasks.error !== null}
 		<p class="load-error" role="alert">Could not load tasks: {tasks.error}</p>
 	{/if}
@@ -129,13 +106,6 @@
 
 <DetailPanel
 	{selected}
-	{tasks}
-	{projects}
-	{scopes}
-	{tags}
-	{data}
-	{comments}
-	{ui}
 	onclear={closeTask}
 	ondelete={forgetEpic}
 	oncreatechild={openChild}
@@ -144,14 +114,6 @@
 
 <NewTaskModal
 	bind:open={creating}
-	{projects}
-	{scopes}
-	{tasks}
-	{epics}
-	{tags}
-	{data}
-	draftStore={draft}
-	{ui}
 	initialProject={createDefaults.projectId}
 	initialEpic={createDefaults.epicId}
 	initialScope={createDefaults.scopeId}

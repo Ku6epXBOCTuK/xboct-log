@@ -2,11 +2,7 @@
 	import { page } from "$app/state";
 	import ProjectSection from "#lib/components/projects/ProjectSection.svelte";
 	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
-	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
-	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
-	import type { StatsStore } from "#lib/state/stats.svelte.ts";
-	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
-	import type { ProjectFilter } from "#lib/types.ts";
+	import { useBoard } from "#lib/state/board.svelte.ts";
 	import ChevronDown from "~icons/lucide/chevron-down";
 	import ChevronUp from "~icons/lucide/chevron-up";
 	import PanelLeftClose from "~icons/lucide/panel-left-close";
@@ -15,37 +11,23 @@
 	import BrandMark from "./BrandMark.svelte";
 	import PrimaryNav from "./PrimaryNav.svelte";
 
-	interface Props {
-		projects: ProjectStore;
-		scopes: ScopeStore;
-		tasks: TaskStore;
-		stats: StatsStore;
-		activeProject: ProjectFilter;
-		selectionProjectId?: string | null;
-		onprojectselect?: (projectId: ProjectFilter) => void;
-		collapsed?: boolean;
-		onhide?: () => void;
-		onexpand?: () => void;
-	}
-
-	let {
-		projects,
-		scopes,
-		tasks,
-		stats,
-		activeProject,
-		selectionProjectId = null,
-		onprojectselect,
-		collapsed = false,
-		onhide,
-		onexpand,
-	}: Props = $props();
+	const { stats, ui } = useBoard();
 
 	let navOpen = $state(false);
+
+	const collapsed = $derived(ui.sidebarHidden);
 
 	const standalonePage = $derived(
 		page.url.pathname === "/backups" || page.url.pathname === "/tags",
 	);
+
+	function hide() {
+		ui.setSidebarHidden(true);
+	}
+
+	function expand() {
+		ui.setSidebarHidden(false);
+	}
 </script>
 
 <aside class="sidebar" class:rail={collapsed}>
@@ -63,23 +45,23 @@
 					<ChevronDown />
 				{/if}
 			</IconButton>
-			{#if onhide}
+			{#if !collapsed}
 				<IconButton
 					label="Hide navigation"
 					title="Hide navigation"
-					onclick={() => onhide?.()}
+					onclick={hide}
 				>
 					<PanelLeftClose />
 				</IconButton>
 			{/if}
 		</div>
 	</div>
-	{#if collapsed && onexpand}
+	{#if collapsed}
 		<div class="sidebar-expand">
 			<IconButton
 				label="Show navigation"
 				title="Show navigation"
-				onclick={() => onexpand?.()}
+				onclick={expand}
 			>
 				<PanelLeftOpen />
 			</IconButton>
@@ -92,15 +74,7 @@
 	/>
 	{#if !standalonePage}
 		<div class="sidebar-scroll">
-			<ProjectSection
-				{projects}
-				{scopes}
-				{tasks}
-				{stats}
-				{activeProject}
-				{selectionProjectId}
-				onselect={onprojectselect ?? (() => {})}
-			/>
+			<ProjectSection />
 		</div>
 	{/if}
 	<BackupControl />

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import CommentItem from "#lib/components/detail/CommentItem.svelte";
+	import { provideCommentRow } from "#lib/state/comment-row.ts";
 	import type { Comment } from "#lib/types.ts";
 
 	interface Props {
@@ -23,6 +24,23 @@
 		oncancel,
 		onremove,
 	}: Props = $props();
+
+	provideCommentRow({
+		get busy() {
+			return busy;
+		},
+		isEditing: (id) => editingId === id,
+		startEdit: (id) => {
+			const comment = items.find((item) => item.id === id);
+			if (comment !== undefined) onstartedit(comment);
+		},
+		save: (id, body) => onsave(id, body),
+		cancel: () => oncancel(),
+		remove: (id) => {
+			const comment = items.find((item) => item.id === id);
+			if (comment !== undefined) onremove(comment);
+		},
+	});
 </script>
 
 {#if items.length === 0}
@@ -30,16 +48,7 @@
 {:else}
 	<ul class="comment-list">
 		{#each items as comment (comment.id)}
-			<CommentItem
-				{comment}
-				{repo}
-				editing={editingId === comment.id}
-				{busy}
-				onstartedit={() => onstartedit(comment)}
-				onsave={(body) => onsave(comment.id, body)}
-				{oncancel}
-				onremove={() => onremove(comment)}
-			/>
+			<CommentItem {comment} {repo} />
 		{/each}
 	</ul>
 {/if}

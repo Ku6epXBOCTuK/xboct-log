@@ -11,13 +11,9 @@
 	import { matchesHotkey } from "#lib/hotkeys/hotkeys.ts";
 	import { taskHrefFor } from "#lib/navigation/href.ts";
 	import { createDraftAttachments } from "#lib/state/attachments.svelte.ts";
-	import type { DraftStore } from "#lib/state/draft.svelte.ts";
-	import type { ProjectDataStore } from "#lib/state/project-data.svelte.ts";
-	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
-	import type { TagStore } from "#lib/state/tags.svelte.ts";
+	import { useBoard } from "#lib/state/board.svelte.ts";
 	import { createTaskFinder } from "#lib/state/task-finder.svelte.ts";
-	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
-	import type { UiStore } from "#lib/state/ui.svelte.ts";
+	import type { TaskEditor } from "#lib/state/task-editor.ts";
 	import { ATTACHMENT_ACCEPT } from "#lib/tasks/attachment-kinds.ts";
 	import type { UploadFailure } from "#lib/tasks/attachments.ts";
 	import { messageOf } from "#lib/tasks/display.ts";
@@ -38,12 +34,7 @@
 		type LinkJob,
 		type TaskLinkDraft,
 	} from "#lib/tasks/links.ts";
-	import {
-		CLOSED_STATUSES,
-		INBOX_PROJECT_ID,
-		type Project,
-		type Task,
-	} from "#lib/types.ts";
+	import { CLOSED_STATUSES, INBOX_PROJECT_ID, type Task } from "#lib/types.ts";
 	import Button from "@ku6epxboctuk/ui-kit/components/Button";
 	import ScrollArea from "@ku6epxboctuk/ui-kit/components/ScrollArea";
 	import { untrack } from "svelte";
@@ -51,14 +42,6 @@
 	import Paperclip from "~icons/lucide/paperclip";
 
 	interface Props {
-		tasks: TaskStore;
-		epics: Task[];
-		projects: Project[];
-		scopes: ScopeStore;
-		tags: TagStore;
-		data: ProjectDataStore;
-		draftStore: DraftStore;
-		ui: UiStore;
 		initialProject?: string;
 		initialEpic?: string | null;
 		initialScope?: number | null;
@@ -67,20 +50,26 @@
 	}
 
 	let {
-		tasks,
-		epics,
-		projects,
-		scopes,
-		tags,
-		data,
-		draftStore,
-		ui,
 		initialProject,
 		initialEpic = null,
 		initialScope = null,
 		onclose,
 		onopen,
 	}: Props = $props();
+
+	const {
+		tasks,
+		scopes,
+		tags,
+		data,
+		stats,
+		draft: draftStore,
+		ui,
+		projects: projectStore,
+	} = useBoard();
+
+	const projects = $derived(projectStore.active);
+	const epics = $derived(stats.epics);
 
 	function defaultProject(): string {
 		if (
@@ -473,6 +462,40 @@
 			saving = false;
 		}
 	}
+
+	const editor = $derived<TaskEditor>({
+		value: draft,
+		editing: false,
+		repo: projectRepo,
+		epics: epicOptions,
+		projects,
+		scopes: scopeOptions,
+		tagPicker,
+		status: draft.status,
+		statusWarn: draft.status !== "backlog",
+		blockedReason: "",
+		advancedOpen: ui.advanced,
+		linkFields: links,
+		linkCandidates,
+		blockerCandidates: linkCandidates,
+		canMarkBlocked: false,
+		busy: false,
+		onfield,
+		onproject,
+		onnewscope,
+		onunknowntag,
+		onerror: (message) => {
+			failure = message;
+			invalidField = true;
+		},
+		onstatus: (status) => onfield({ status }),
+		onlinkadd: addLink,
+		onlinkremove: removeLink,
+		linkHref,
+		onlinkopen: onclose,
+		onlinksearch: finder.search,
+		onadvancedchange: (value) => ui.set(value),
+	});
 </script>
 
 <svelte:window {onkeydown} onpaste={paste} />
@@ -553,36 +576,10 @@
 			</div>
 		{:else}
 			<TaskEditorFields
+				{editor}
 				bind:title
-				value={draft}
 				titleId="new-task-title"
 				{titleTrailing}
-				epics={epicOptions}
-				{projects}
-				scopes={scopeOptions}
-				repo={projectRepo}
-				{tagPicker}
-				linkFields={links}
-				{linkCandidates}
-				blockerCandidates={linkCandidates}
-				onlinkadd={addLink}
-				onlinkremove={removeLink}
-				{linkHref}
-				onlinkopen={onclose}
-				onlinksearch={finder.search}
-				{onfield}
-				{onproject}
-				{onnewscope}
-				{onunknowntag}
-				onerror={(message) => {
-					failure = message;
-					invalidField = true;
-				}}
-				status={draft.status}
-				onstatus={(status) => onfield({ status })}
-				statusWarn={draft.status !== "backlog"}
-				advancedOpen={ui.advanced}
-				onadvancedchange={(value) => ui.set(value)}
 				{attachments}
 			/>
 		{/if}

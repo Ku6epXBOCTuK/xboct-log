@@ -109,18 +109,7 @@
 <main
 	class={`app-shell ${board.theme.themeClass} ${board.ui.sidebarHidden ? "sidebar-collapsed" : ""}`}
 >
-	<SideBar
-		projects={board.projects}
-		scopes={board.scopes}
-		tasks={board.tasks}
-		stats={board.stats}
-		activeProject={board.filters.activeProject}
-		selectionProjectId={board.selection.projectId}
-		onprojectselect={board.setActiveProject}
-		collapsed={board.ui.sidebarHidden}
-		onhide={() => board.ui.setSidebarHidden(true)}
-		onexpand={() => board.ui.setSidebarHidden(false)}
-	/>
+	<SideBar />
 
 	{@render children()}
 </main>

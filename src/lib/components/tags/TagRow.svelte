@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { TagInventoryEntry } from "#lib/state/tags.svelte.ts";
+	import { useTagPage } from "#lib/state/tag-page.svelte.ts";
 	import { tagHref } from "#lib/navigation/href.ts";
 	import TagEditField from "#lib/components/tags/TagEditField.svelte";
 	import Badge from "@ku6epxboctuk/ui-kit/components/Badge";
@@ -11,23 +12,13 @@
 
 	interface Props {
 		entry: TagInventoryEntry;
-		busy?: boolean;
-		editing?: boolean;
-		onstartedit: () => void;
-		onsave: (value: string) => void;
-		ondiscard: () => void;
-		onarchive: (archived: boolean) => void;
 	}
 
-	let {
-		entry,
-		busy = false,
-		editing = false,
-		onstartedit,
-		onsave,
-		ondiscard,
-		onarchive,
-	}: Props = $props();
+	let { entry }: Props = $props();
+
+	const page = useTagPage();
+	const busy = $derived(page.isBusy(entry.name));
+	const editing = $derived(page.isEditing(entry.name));
 
 	const archiveTitle = $derived(
 		entry.count > 0
@@ -39,7 +30,12 @@
 <li class="tag-row" class:is-archived={entry.archived}>
 	<div class="tag-name">
 		{#if editing}
-			<TagEditField name={entry.name} {busy} {onsave} {ondiscard} />
+			<TagEditField
+				name={entry.name}
+				{busy}
+				onsave={(value) => page.rename(entry.name, value)}
+				ondiscard={page.discard}
+			/>
 		{:else}
 			<span class="name">{entry.name}</span>
 			<IconButton
@@ -47,7 +43,7 @@
 				title="Rename the tag"
 				size="sm"
 				class="edit"
-				onclick={onstartedit}
+				onclick={() => page.startEdit(entry.name)}
 			>
 				<Pencil />
 			</IconButton>
@@ -80,7 +76,7 @@
 				size="sm"
 				disabled={busy}
 				title="Put the tag back into suggestions"
-				onclick={() => onarchive(false)}
+				onclick={() => page.archive(entry.name, false)}
 			>
 				{#snippet icon()}<ArchiveRestore />{/snippet}
 				Restore
@@ -91,7 +87,7 @@
 				size="sm"
 				disabled={busy}
 				title={archiveTitle}
-				onclick={() => onarchive(true)}
+				onclick={() => page.archive(entry.name, true)}
 			>
 				{#snippet icon()}<Archive />{/snippet}
 				Archive

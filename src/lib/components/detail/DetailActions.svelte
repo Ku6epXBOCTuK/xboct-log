@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Button from "@ku6epxboctuk/ui-kit/components/Button";
 	import ControlRow from "@ku6epxboctuk/ui-kit/components/ControlRow";
+	import { useTaskPanel } from "#lib/state/task-panel.ts";
 	import SingleSelect from "#lib/components/ui/select/SingleSelect.svelte";
 	import {
 		CLOSED_REASONS,
@@ -9,15 +10,8 @@
 	} from "#lib/types.ts";
 	import { CLOSED_REASON_LABELS, STATUS_LABELS } from "#lib/tasks/display.ts";
 
-	interface Props {
-		closed: boolean;
-		saving: boolean;
-		onclose: (reason: ClosedReason) => void;
-		onreopen: () => void;
-		ondelete: () => void;
-	}
-
-	let { closed, saving, onclose, onreopen, ondelete }: Props = $props();
+	const panel = useTaskPanel();
+	const closed = $derived(panel.task.closed_at !== null);
 
 	let reason = $state<ClosedReason>("fixed");
 	let confirming = $state(false);
@@ -41,17 +35,17 @@
 			</div>
 			<Button
 				variant="primary"
-				onclick={() => onclose(reason)}
-				disabled={saving}
+				onclick={() => panel.closeTask(reason)}
+				disabled={panel.saving}
 			>
 				Close task
 			</Button>
 		{:else}
-			<Button onclick={onreopen} disabled={saving}>Reopen</Button>
+			<Button onclick={panel.reopen} disabled={panel.saving}>Reopen</Button>
 		{/if}
 		{#snippet end()}
 			{#if confirming}
-				<Button variant="danger" onclick={ondelete} disabled={saving}>
+				<Button variant="danger" onclick={panel.remove} disabled={panel.saving}>
 					Confirm delete
 				</Button>
 				<Button onclick={() => (confirming = false)}>Cancel</Button>

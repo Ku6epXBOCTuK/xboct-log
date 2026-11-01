@@ -1,21 +1,12 @@
 <script lang="ts">
 	import SingleSelect from "#lib/components/ui/select/SingleSelect.svelte";
-	import {
-		toSourceFile,
-		validateTaskDraft,
-		type TaskFieldValues,
-		type TaskPatch,
-	} from "#lib/tasks/fields.ts";
+	import { useTaskEditorSlot } from "#lib/state/task-editor.ts";
+	import { toSourceFile, validateTaskDraft } from "#lib/tasks/fields.ts";
 	import { ESTIMATES, type Estimate } from "#lib/types.ts";
 	import { normalizeDueDate } from "#lib/tasks/display.ts";
 
-	interface Props {
-		value: TaskFieldValues;
-		onfield: (patch: TaskPatch) => void;
-		onerror: (message: string) => void;
-	}
-
-	let { value, onfield, onerror }: Props = $props();
+	const slot = useTaskEditorSlot();
+	const editor = $derived(slot.current);
 
 	const estimateChoices: { key: Estimate | ""; label: string }[] = [
 		{ key: "", label: "none" },
@@ -23,8 +14,9 @@
 	];
 
 	let estimateChoice = $derived(
-		estimateChoices.find((choice) => choice.key === (value.estimate ?? "")) ??
-			estimateChoices[0],
+		estimateChoices.find(
+			(choice) => choice.key === (editor.value.estimate ?? ""),
+		) ?? estimateChoices[0],
 	);
 
 	function changeSourceFile(event: Event) {
@@ -34,16 +26,16 @@
 		});
 
 		if (invalid !== null) {
-			onerror(invalid);
-			input.value = value.source_file ?? "";
+			editor.onerror(invalid);
+			input.value = editor.value.source_file ?? "";
 			return;
 		}
 
-		onfield({ source_file: toSourceFile(input.value) });
+		editor.onfield({ source_file: toSourceFile(input.value) });
 	}
 
 	function changeAssignee(event: Event) {
-		onfield({
+		editor.onfield({
 			assignee: toSourceFile((event.currentTarget as HTMLInputElement).value),
 		});
 	}
@@ -52,10 +44,10 @@
 		const raw = (event.currentTarget as HTMLInputElement).value;
 		const dueAt = normalizeDueDate(raw);
 		if (raw.trim() !== "" && dueAt === null) {
-			onerror("invalid due date");
+			editor.onerror("invalid due date");
 			return;
 		}
-		onfield({ due_at: dueAt });
+		editor.onfield({ due_at: dueAt });
 	}
 </script>
 
@@ -65,7 +57,7 @@
 		<input
 			class="field-control"
 			type="date"
-			value={value.due_at ?? ""}
+			value={editor.value.due_at ?? ""}
 			onchange={changeDueAt}
 		/>
 	</label>
@@ -77,7 +69,7 @@
 			getKey={(choice) => choice.key}
 			getLabel={(choice) => choice.label}
 			onselect={(choice) =>
-				onfield({ estimate: choice.key === "" ? null : choice.key })}
+				editor.onfield({ estimate: choice.key === "" ? null : choice.key })}
 			variant="field"
 			ariaLabel="Estimate"
 		/>
@@ -86,7 +78,7 @@
 		Assignee
 		<input
 			class="field-control"
-			value={value.assignee ?? ""}
+			value={editor.value.assignee ?? ""}
 			onchange={changeAssignee}
 			placeholder="nobody"
 		/>
@@ -95,7 +87,7 @@
 		Source file
 		<input
 			class="field-control"
-			value={value.source_file ?? ""}
+			value={editor.value.source_file ?? ""}
 			onchange={changeSourceFile}
 		/>
 	</label>

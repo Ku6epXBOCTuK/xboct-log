@@ -3,50 +3,40 @@
 	import FilterBlock from "#lib/components/filters/FilterBlock.svelte";
 	import PriorityFilter from "#lib/components/filters/PriorityFilter.svelte";
 	import StatusFilter from "#lib/components/filters/StatusFilter.svelte";
-	import type { Priority, Status } from "#lib/types.ts";
+	import type { Filters } from "#lib/state/filters.svelte.ts";
 	import X from "~icons/lucide/x";
 
 	interface Props {
-		statuses: Status[];
-		priority: Priority | "all";
-		statusChanged: boolean;
-		priorityChanged: boolean;
-		onpick: (value: Status) => void;
-		onadd: (value: Status) => void;
-		onpreset: (value: Status[]) => void;
-		onpriority: (value: Priority | "all") => void;
-		onresetstatus: () => void;
-		onresetpriority: () => void;
-		onclear: () => void;
+		filters: Filters;
 	}
 
-	let {
-		statuses,
-		priority,
-		statusChanged,
-		priorityChanged,
-		onpick,
-		onadd,
-		onpreset,
-		onpriority,
-		onresetstatus,
-		onresetpriority,
-		onclear,
-	}: Props = $props();
+	let { filters }: Props = $props();
 </script>
 
 <div class="filter-row">
-	<FilterBlock label="status" active={statusChanged} onreset={onresetstatus}>
-		<StatusFilter {statuses} {onpick} {onadd} {onpreset} />
+	<FilterBlock
+		label="status"
+		active={filters.statusChanged}
+		onreset={() => filters.resetStatus()}
+	>
+		<StatusFilter
+			statuses={filters.statuses}
+			onpick={(value) => filters.pickStatus(value)}
+			onadd={(value) => filters.toggleStatus(value)}
+			onpreset={(value) => filters.setStatuses(value)}
+		/>
 	</FilterBlock>
 	<FilterBlock
 		label="priority"
-		active={priorityChanged}
-		onreset={onresetpriority}
+		active={filters.priorityChanged}
+		onreset={() => filters.resetPriority()}
 	>
-		<PriorityFilter value={priority} onselect={onpriority} />
+		<PriorityFilter
+			value={filters.priority}
+			onselect={(value) => (filters.priority = value)}
+		/>
 	</FilterBlock>
-	<Button variant="ghost" class="clear-filters" onclick={onclear}>
+	<Button variant="ghost" class="clear-filters" onclick={() => filters.clear()}>
 		{#snippet icon()}<X />{/snippet}
 		Clear
 	</Button>

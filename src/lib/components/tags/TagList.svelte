@@ -6,25 +6,9 @@
 		active: TagInventoryEntry[];
 		archived: TagInventoryEntry[];
 		query: string;
-		busy: string;
-		editing: string | null;
-		onstartedit: (name: string) => void;
-		onsave: (name: string, value: string) => void;
-		ondiscard: () => void;
-		onarchive: (name: string, archived: boolean) => void;
 	}
 
-	let {
-		active,
-		archived,
-		query,
-		busy,
-		editing,
-		onstartedit,
-		onsave,
-		ondiscard,
-		onarchive,
-	}: Props = $props();
+	let { active, archived, query }: Props = $props();
 
 	const searching = $derived(query.trim() !== "");
 </script>
@@ -43,15 +27,7 @@
 	{:else}
 		<ul class="tag-list">
 			{#each active as entry (entry.name)}
-				<TagRow
-					{entry}
-					busy={busy === entry.name}
-					editing={editing === entry.name}
-					onstartedit={() => onstartedit(entry.name)}
-					onsave={(value) => onsave(entry.name, value)}
-					{ondiscard}
-					onarchive={(archived) => onarchive(entry.name, archived)}
-				/>
+				<TagRow {entry} />
 			{/each}
 		</ul>
 	{/if}
@@ -60,15 +36,7 @@
 		<h2 class="tag-group">Archived</h2>
 		<ul class="tag-list">
 			{#each archived as entry (entry.name)}
-				<TagRow
-					{entry}
-					busy={busy === entry.name}
-					editing={editing === entry.name}
-					onstartedit={() => onstartedit(entry.name)}
-					onsave={(value) => onsave(entry.name, value)}
-					{ondiscard}
-					onarchive={(archived) => onarchive(entry.name, archived)}
-				/>
+				<TagRow {entry} />
 			{/each}
 		</ul>
 	{/if}

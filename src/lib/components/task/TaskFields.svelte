@@ -2,14 +2,12 @@
 	import DescriptionField from "#lib/components/task/DescriptionField.svelte";
 	import InfoPopover from "#lib/components/ui/InfoPopover.svelte";
 	import SingleSelect from "#lib/components/ui/select/SingleSelect.svelte";
+	import { useTaskEditorSlot } from "#lib/state/task-editor.ts";
 	import { STATUS_LABELS } from "#lib/tasks/display.ts";
-	import type { TaskFieldValues, TaskPatch } from "#lib/tasks/fields.ts";
 	import {
 		BLOCKED_REASON_MAX_LENGTH,
 		PRIORITIES,
 		STATUSES,
-		type Status,
-		type Task,
 	} from "#lib/types.ts";
 	import Button from "@ku6epxboctuk/ui-kit/components/Button";
 	import TagInput from "@ku6epxboctuk/ui-kit/components/TagInput";
@@ -22,55 +20,14 @@
 		keywords: string;
 	}
 
-	interface Props {
-		value: TaskFieldValues;
-		epics: Task[];
-		taskId?: string;
-		repo?: string | null;
-		tagSuggestions?: string[];
-		tagCounts?: Record<string, number>;
-		editing?: boolean;
-		status?: Status;
-		onstatus?: (status: Status) => void;
-		statusWarn?: boolean;
-		blockedReason?: string;
-		onblockedreason?: (reason: string | null) => void;
-		onfield: (patch: TaskPatch) => void;
-		ondraft?: (patch: TaskPatch) => void;
-		oncanceldraft?: () => void;
-		oncreatechild?: () => void;
-		commentsCount?: number;
-		oncomments?: () => void;
-		onunknowntag?: (tag: string) => Promise<unknown>;
-	}
-
-	let {
-		value,
-		epics,
-		taskId,
-		repo = null,
-		tagSuggestions = [],
-		tagCounts = {},
-		editing = false,
-		status,
-		onstatus,
-		statusWarn = false,
-		blockedReason = "",
-		onblockedreason,
-		onfield,
-		ondraft,
-		oncanceldraft,
-		oncreatechild,
-		commentsCount,
-		oncomments,
-		onunknowntag,
-	}: Props = $props();
+	const slot = useTaskEditorSlot();
+	const editor = $derived(slot.current);
 
 	const TASK_TYPES: ("task" | "epic")[] = ["task", "epic"];
 
 	let epicChoices = $derived<EpicChoice[]>([
 		{ key: "", label: "none", keywords: "" },
-		...epics.map((epic) => ({
+		...editor.epics.map((epic) => ({
 			key: epic.id,
 			label: `${epic.id} — ${epic.title}`,
 			keywords: `${epic.id} ${epic.title}`,
@@ -78,31 +35,33 @@
 	]);
 
 	let epicChoice = $derived(
-		epicChoices.find((choice) => choice.key === (value.epic_id ?? "")) ??
+		epicChoices.find((choice) => choice.key === (editor.value.epic_id ?? "")) ??
 			epicChoices[0],
 	);
 
 	function changeBlockedReason(event: Event) {
 		const input = event.currentTarget as HTMLInputElement;
 		const reason = input.value.trim();
-		onblockedreason?.(reason === "" ? null : reason);
+		editor.onblockedreason?.(reason === "" ? null : reason);
 	}
 </script>
 
 <div class="detail-grid">
-	{#if status !== undefined && onstatus !== undefined}
+	{#if editor.status !== undefined && editor.onstatus !== undefined}
 		<div
 			class="field status-field"
-			class:is-warn={statusWarn}
-			title={statusWarn ? "a new task does not start in backlog" : undefined}
+			class:is-warn={editor.statusWarn}
+			title={editor.statusWarn
+				? "a new task does not start in backlog"
+				: undefined}
 		>
 			Status
 			<SingleSelect
 				items={[...STATUSES]}
-				value={status}
+				value={editor.status}
 				getKey={(item) => item}
 				getLabel={(item) => STATUS_LABELS[item]}
-				onselect={(item) => onstatus(item)}
+				onselect={(item) => editor.onstatus?.(item)}
 				variant="field"
 				ariaLabel="Status"
 				placeholder="Status"
@@ -113,22 +72,22 @@
 		Priority
 		<SingleSelect
 			items={[...PRIORITIES].reverse()}
-			value={value.priority}
+			value={editor.value.priority}
 			getKey={(priority) => priority}
 			getLabel={(priority) => priority}
-			onselect={(priority) => onfield({ priority })}
+			onselect={(priority) => editor.onfield({ priority })}
 			variant="field"
 			ariaLabel="Priority"
 		/>
 	</div>
 </div>
 
-{#if status === "blocked" && onblockedreason !== undefined}
+{#if editor.status === "blocked" && editor.onblockedreason !== undefined}
 	<div class="field detail-field">
 		Waiting for
 		<input
 			class="field-control"
-			value={blockedReason}
+			value={editor.blockedReason}
 			maxlength={BLOCKED_REASON_MAX_LENGTH}
 			onchange={changeBlockedReason}
 			placeholder="external blocker: release, answer, access"
@@ -137,35 +96,25 @@
 	</div>
 {/if}
 
-<DescriptionField
-	{value}
-	{taskId}
-	{repo}
-	{editing}
-	{commentsCount}
-	{oncomments}
-	{onfield}
-	{ondraft}
-	{oncanceldraft}
-/>
+<DescriptionField />
 
 <div class="detail-grid">
 	<div class="field">
 		Type
 		<SingleSelect
 			items={TASK_TYPES}
-			value={value.is_epic ? "epic" : "task"}
+			value={editor.value.is_epic ? "epic" : "task"}
 			getKey={(type) => type}
 			getLabel={(type) => type}
-			onselect={(type) => onfield({ is_epic: type === "epic" })}
+			onselect={(type) => editor.onfield({ is_epic: type === "epic" })}
 			variant="field"
 			ariaLabel="Type"
 		/>
 	</div>
-	{#if value.is_epic}
-		{#if editing && oncreatechild}
+	{#if editor.value.is_epic}
+		{#if editor.editing && editor.oncreatechild !== undefined}
 			<div class="field-action">
-				<Button onclick={oncreatechild}>
+				<Button onclick={() => editor.oncreatechild?.()}>
 					{#snippet icon()}<Plus />{/snippet}
 					Create child task
 				</Button>
@@ -181,7 +130,7 @@
 				getLabel={(choice) => choice.label}
 				getKeywords={(choice) => choice.keywords}
 				onselect={(choice) =>
-					onfield({ epic_id: choice.key === "" ? null : choice.key })}
+					editor.onfield({ epic_id: choice.key === "" ? null : choice.key })}
 				variant="field"
 				searchable
 				searchPlaceholder="Search epics"
@@ -211,11 +160,11 @@
 		</InfoPopover>
 	</span>
 	<TagInput
-		value={value.tags}
-		suggestions={tagSuggestions}
-		counts={tagCounts}
-		onchange={(tags) => onfield({ tags })}
-		onunknown={onunknowntag}
+		value={editor.value.tags}
+		suggestions={editor.tagPicker.suggestions}
+		counts={editor.tagPicker.counts}
+		onchange={(tags) => editor.onfield({ tags })}
+		onunknown={editor.onunknowntag}
 		ariaLabel="Tags"
 	/>
 </div>

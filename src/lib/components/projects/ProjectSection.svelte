@@ -1,37 +1,24 @@
 <script lang="ts">
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
-	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
-	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
-	import type { StatsStore } from "#lib/state/stats.svelte.ts";
-	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
+	import { useBoard } from "#lib/state/board.svelte.ts";
 	import { messageOf } from "#lib/tasks/display.ts";
-	import { type Project, type ProjectFilter } from "#lib/types.ts";
+	import type { Project } from "#lib/types.ts";
 	import ChevronDown from "~icons/lucide/chevron-down";
 	import Plus from "~icons/lucide/plus";
 	import ProjectCreateDialog from "./ProjectCreateDialog.svelte";
 	import ProjectList from "./ProjectList.svelte";
 	import ProjectSettingsDialog from "./ProjectSettingsDialog.svelte";
 
-	interface Props {
-		projects: ProjectStore;
-		scopes: ScopeStore;
-		tasks: TaskStore;
-		stats: StatsStore;
-		activeProject: ProjectFilter;
-		selectionProjectId?: string | null;
-		onselect: (projectId: ProjectFilter) => void;
-	}
-
-	let {
+	const {
 		projects,
 		scopes,
 		tasks,
 		stats,
-		activeProject,
-		selectionProjectId = null,
-		onselect,
-	}: Props = $props();
+		filters,
+		selection,
+		setActiveProject,
+	} = useBoard();
 
 	let open = $state(true);
 	let showArchived = $state(false);
@@ -39,6 +26,8 @@
 	let failure = $state<string | null>(null);
 	let settingsFor = $state<string | null>(null);
 
+	const activeProject = $derived(filters.activeProject);
+	const selectionProjectId = $derived(selection.projectId);
 	const visible = $derived(showArchived ? projects.all : projects.active);
 	const settingsProject = $derived(
 		settingsFor === null
@@ -93,7 +82,7 @@
 				{totals}
 				{activeProject}
 				{selectionProjectId}
-				{onselect}
+				onselect={setActiveProject}
 				onarchive={toggleArchived}
 				onsettings={(project) => (settingsFor = project.id)}
 			/>

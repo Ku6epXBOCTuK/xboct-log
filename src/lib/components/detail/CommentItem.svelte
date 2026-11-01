@@ -3,6 +3,7 @@
 	import MarkdownView from "#lib/components/markdown/MarkdownView.svelte";
 	import CopyButton from "#lib/components/ui/CopyButton.svelte";
 	import { formatDateTime } from "#lib/tasks/display.ts";
+	import { useCommentRow } from "#lib/state/comment-row.ts";
 	import type { Comment } from "#lib/types.ts";
 	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
 	import Button from "@ku6epxboctuk/ui-kit/components/Button";
@@ -14,24 +15,12 @@
 	interface Props {
 		comment: Comment;
 		repo?: string | null;
-		editing: boolean;
-		busy: boolean;
-		onstartedit: () => void;
-		onsave: (body: string) => void;
-		oncancel: () => void;
-		onremove: () => void;
 	}
 
-	let {
-		comment,
-		repo = null,
-		editing,
-		busy,
-		onstartedit,
-		onsave,
-		oncancel,
-		onremove,
-	}: Props = $props();
+	let { comment, repo = null }: Props = $props();
+
+	const row = useCommentRow();
+	const editing = $derived(row.isEditing(comment.id));
 
 	let raw = $state(false);
 	let confirming = $state(false);
@@ -50,10 +39,10 @@
 					<Button
 						size="sm"
 						variant="danger"
-						disabled={busy}
+						disabled={row.busy}
 						onclick={() => {
 							confirming = false;
-							onremove();
+							row.remove(comment.id);
 						}}
 					>
 						Delete
@@ -78,7 +67,7 @@
 						label="Edit comment"
 						title="Edit comment"
 						size="sm"
-						onclick={onstartedit}
+						onclick={() => row.startEdit(comment.id)}
 					>
 						<Pencil />
 					</IconButton>
@@ -87,7 +76,7 @@
 						title="Delete comment"
 						variant="danger"
 						size="sm"
-						disabled={busy}
+						disabled={row.busy}
 						onclick={() => (confirming = true)}
 					>
 						<Trash2 />
@@ -97,7 +86,13 @@
 		{/if}
 	</div>
 	{#if editing}
-		<CommentEditor body={comment.body} {repo} {busy} {onsave} {oncancel} />
+		<CommentEditor
+			body={comment.body}
+			{repo}
+			busy={row.busy}
+			onsave={(body) => row.save(comment.id, body)}
+			oncancel={row.cancel}
+		/>
 	{:else}
 		<div class="comment-body">
 			{#if raw}

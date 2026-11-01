@@ -1,59 +1,23 @@
 <script lang="ts">
 	import SectionDivider from "#lib/components/ui/SectionDivider.svelte";
 	import TaskSelect from "#lib/components/ui/select/TaskSelect.svelte";
-	import type { LinkField } from "#lib/tasks/links.ts";
-	import type { Task } from "#lib/types.ts";
+	import { useTaskEditorSlot } from "#lib/state/task-editor.ts";
 	import Chip from "@ku6epxboctuk/ui-kit/components/Chip";
 
-	interface Props {
-		blockedBy: string[];
-		blocks: string[];
-		relatesTo: string[];
-		duplicates: string[];
-		duplicatedBy: string[];
-		candidates: Task[];
-		blockerCandidates: Task[];
-		onadd: (field: LinkField, id: string) => void;
-		onremove: (field: LinkField, id: string) => void;
-		href?: (id: string) => string | null;
-		onlink?: (id: string) => void;
-		onsearch?: (query: string) => void;
-		unavailable?: (id: string) => string | null;
-		canMarkBlocked?: boolean;
-		busy?: boolean;
-		onmarkblocked?: () => void;
-	}
-
-	let {
-		blockedBy,
-		blocks,
-		relatesTo,
-		duplicates,
-		duplicatedBy,
-		candidates,
-		blockerCandidates,
-		onadd,
-		onremove,
-		href,
-		onlink,
-		onsearch,
-		unavailable,
-		canMarkBlocked = false,
-		busy = false,
-		onmarkblocked,
-	}: Props = $props();
+	const slot = useTaskEditorSlot();
+	const editor = $derived(slot.current);
 
 	let linksOpen = $state(false);
 </script>
 
 <SectionDivider title="Links" bind:open={linksOpen}>
 	{#snippet actions()}
-		{#if canMarkBlocked}
+		{#if editor.canMarkBlocked}
 			<button
 				type="button"
 				class="links-hint"
-				disabled={busy}
-				onclick={() => onmarkblocked?.()}
+				disabled={editor.busy}
+				onclick={() => editor.onmarkblocked?.()}
 			>
 				mark blocked
 			</button>
@@ -63,14 +27,14 @@
 		<div class="field">
 			Blocked by
 			<TaskSelect
-				items={blockerCandidates}
-				value={blockedBy}
-				onadd={(id) => onadd("blocked_by", id)}
-				onremove={(id) => onremove("blocked_by", id)}
-				{href}
-				{onlink}
-				{onsearch}
-				{unavailable}
+				items={editor.blockerCandidates}
+				value={editor.linkFields.blocked_by}
+				onadd={(id) => editor.onlinkadd("blocked_by", id)}
+				onremove={(id) => editor.onlinkremove("blocked_by", id)}
+				href={editor.linkHref}
+				onlink={editor.onlinkopen}
+				onsearch={editor.onlinksearch}
+				unavailable={editor.linkUnavailable}
 				placeholder="Add blocker"
 				ariaLabel="Blocked by"
 			/>
@@ -78,16 +42,18 @@
 		<div class="field">
 			Blocks
 			<div class="block-field">
-				{#if blocks.length === 0}
+				{#if editor.linkFields.blocks.length === 0}
 					<span class="block-empty">none</span>
 				{:else}
-					{#each blocks as id (id)}
-						{@const hint = unavailable?.(id) ?? null}
-						{@const target = hint === null ? (href?.(id) ?? null) : null}
+					{#each editor.linkFields.blocks as id (id)}
+						{@const hint = editor.linkUnavailable?.(id) ?? null}
+						{@const target =
+							hint === null ? (editor.linkHref?.(id) ?? null) : null}
 						<Chip unavailable={hint !== null} hint={hint ?? undefined}>
 							{#if target !== null}
 								<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- href comes from taskHref(), which resolves the task route -->
-								<a href={target} onclick={() => onlink?.(id)}>{id}</a>
+								<a href={target} onclick={() => editor.onlinkopen?.(id)}>{id}</a
+								>
 							{:else}
 								{id}
 							{/if}
@@ -99,14 +65,14 @@
 		<div class="field field-wide">
 			Relates to
 			<TaskSelect
-				items={candidates}
-				value={relatesTo}
-				onadd={(id) => onadd("relates_to", id)}
-				onremove={(id) => onremove("relates_to", id)}
-				{href}
-				{onlink}
-				{onsearch}
-				{unavailable}
+				items={editor.linkCandidates}
+				value={editor.linkFields.relates_to}
+				onadd={(id) => editor.onlinkadd("relates_to", id)}
+				onremove={(id) => editor.onlinkremove("relates_to", id)}
+				href={editor.linkHref}
+				onlink={editor.onlinkopen}
+				onsearch={editor.onlinksearch}
+				unavailable={editor.linkUnavailable}
 				placeholder="Add related task"
 				ariaLabel="Relates to"
 			/>
@@ -114,14 +80,14 @@
 		<div class="field">
 			Duplicates
 			<TaskSelect
-				items={candidates}
-				value={duplicates}
-				onadd={(id) => onadd("duplicates", id)}
-				onremove={(id) => onremove("duplicates", id)}
-				{href}
-				{onlink}
-				{onsearch}
-				{unavailable}
+				items={editor.linkCandidates}
+				value={editor.linkFields.duplicates}
+				onadd={(id) => editor.onlinkadd("duplicates", id)}
+				onremove={(id) => editor.onlinkremove("duplicates", id)}
+				href={editor.linkHref}
+				onlink={editor.onlinkopen}
+				onsearch={editor.onlinksearch}
+				unavailable={editor.linkUnavailable}
 				placeholder="Add duplicate of"
 				ariaLabel="Duplicates"
 			/>
@@ -129,14 +95,14 @@
 		<div class="field">
 			Duplicated by
 			<TaskSelect
-				items={candidates}
-				value={duplicatedBy}
-				onadd={(id) => onadd("duplicated_by", id)}
-				onremove={(id) => onremove("duplicated_by", id)}
-				{href}
-				{onlink}
-				{onsearch}
-				{unavailable}
+				items={editor.linkCandidates}
+				value={editor.linkFields.duplicated_by}
+				onadd={(id) => editor.onlinkadd("duplicated_by", id)}
+				onremove={(id) => editor.onlinkremove("duplicated_by", id)}
+				href={editor.linkHref}
+				onlink={editor.onlinkopen}
+				onsearch={editor.onlinksearch}
+				unavailable={editor.linkUnavailable}
 				placeholder="Add duplicate source"
 				ariaLabel="Duplicated by"
 			/>

@@ -1,58 +1,42 @@
 <script lang="ts">
 	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
 	import SingleSelect from "#lib/components/ui/select/SingleSelect.svelte";
-	import type { TaskFieldValues, TaskPatch } from "#lib/tasks/fields.ts";
+	import { useTaskEditorSlot } from "#lib/state/task-editor.ts";
 	import {
 		scopeChoices as buildScopeChoices,
 		scopeIdOf,
 		type ScopeChoice,
 	} from "#lib/tasks/scopes.ts";
-	import type { Project, Scope } from "#lib/types.ts";
 	import Plus from "~icons/lucide/plus";
 	import ScopeCreateDialog from "./ScopeCreateDialog.svelte";
 
-	interface Props {
-		value: TaskFieldValues;
-		projects: Project[];
-		scopes: Scope[];
-		editing?: boolean;
-		onfield: (patch: TaskPatch) => void;
-		onproject: (projectId: string) => void;
-		onnewscope: (name: string) => Promise<number>;
-	}
-
-	let {
-		value,
-		projects,
-		scopes,
-		editing = false,
-		onfield,
-		onproject,
-		onnewscope,
-	}: Props = $props();
+	const slot = useTaskEditorSlot();
+	const editor = $derived(slot.current);
 
 	let creatingScope = $state(false);
 
-	let scopeChoices = $derived<ScopeChoice[]>(buildScopeChoices(scopes));
+	let scopeChoices = $derived<ScopeChoice[]>(buildScopeChoices(editor.scopes));
 
 	let scopeChoice = $derived(
 		scopeChoices.find(
 			(choice) =>
-				choice.key === (value.scope_id === null ? "" : String(value.scope_id)),
+				choice.key ===
+				(editor.value.scope_id === null ? "" : String(editor.value.scope_id)),
 		) ?? scopeChoices[0],
 	);
 
 	let projectChoice = $derived(
-		projects.find((project) => project.id === value.project_id) ?? null,
+		editor.projects.find((project) => project.id === editor.value.project_id) ??
+			null,
 	);
 
 	function pickScope(choice: ScopeChoice) {
-		onfield({ scope_id: scopeIdOf(choice) });
+		editor.onfield({ scope_id: scopeIdOf(choice) });
 	}
 
 	async function addScope(name: string) {
-		const id = await onnewscope(name);
-		onfield({ scope_id: id });
+		const id = await editor.onnewscope(name);
+		editor.onfield({ scope_id: id });
 	}
 </script>
 
@@ -60,18 +44,18 @@
 	<div class="field">
 		Project
 		<SingleSelect
-			items={projects}
+			items={editor.projects}
 			value={projectChoice}
 			getKey={(project) => project.id}
 			getLabel={(project) => project.name}
-			onselect={(project) => onproject(project.id)}
+			onselect={(project) => editor.onproject(project.id)}
 			variant="field"
 			placeholder="Select project"
 			ariaLabel="Project"
 		/>
 	</div>
 	<div
-		class={`field${!editing && value.scope_id === null ? " scope-missing" : ""}`}
+		class={`field${!editor.editing && editor.value.scope_id === null ? " scope-missing" : ""}`}
 	>
 		Scope
 		<div class="scope-row">

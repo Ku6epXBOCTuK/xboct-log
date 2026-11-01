@@ -3,38 +3,25 @@
 	import MetaRow from "#lib/components/filters/MetaRow.svelte";
 	import SearchBar from "#lib/components/filters/SearchBar.svelte";
 	import TitleRow from "#lib/components/workspace/TitleRow.svelte";
-	import type { Filters } from "#lib/state/filters.svelte.ts";
-	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
-	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
-	import type { StatsStore } from "#lib/state/stats.svelte.ts";
-	import type { TagStore } from "#lib/state/tags.svelte.ts";
-	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
-	import type { Theme } from "#lib/state/theme.svelte.ts";
+	import { useBoard } from "#lib/state/board.svelte.ts";
 	import { epicsForProject } from "#lib/tasks/fields.ts";
 
 	interface Props {
-		tasks: TaskStore;
-		filters: Filters;
-		projects: ProjectStore;
-		scopes: ScopeStore;
-		stats: StatsStore;
-		tagStore: TagStore;
-		theme: Theme;
 		onnew: () => void;
 		onreload: () => void;
 	}
 
-	let {
+	let { onnew, onreload }: Props = $props();
+
+	const {
 		tasks,
 		filters,
 		projects,
 		scopes,
 		stats,
-		tagStore,
+		tags: tagStore,
 		theme,
-		onnew,
-		onreload,
-	}: Props = $props();
+	} = useBoard();
 
 	const epics = $derived(
 		epicsForProject(stats.epics, filters.activeProject, filters.epic),
@@ -60,19 +47,7 @@
 		oninput={(value) => (filters.query = value)}
 		onclear={() => filters.resetQuery()}
 	/>
-	<FilterRow
-		statuses={filters.statuses}
-		priority={filters.priority}
-		statusChanged={filters.statusChanged}
-		priorityChanged={filters.priorityChanged}
-		onpick={(value) => filters.pickStatus(value)}
-		onadd={(value) => filters.toggleStatus(value)}
-		onpreset={(value) => filters.setStatuses(value)}
-		onpriority={(value) => (filters.priority = value)}
-		onresetstatus={() => filters.resetStatus()}
-		onresetpriority={() => filters.resetPriority()}
-		onclear={() => filters.clear()}
-	/>
+	<FilterRow {filters} />
 	<MetaRow
 		{filters}
 		{epics}
