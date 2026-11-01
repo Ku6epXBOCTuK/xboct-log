@@ -3,31 +3,43 @@
 	import CopyImageButton from "#lib/components/ui/CopyImageButton.svelte";
 	import ImageViewer from "#lib/components/ui/ImageViewer.svelte";
 	import { openExternal, openMedia } from "#lib/host/embed.ts";
-	import { formatSize } from "#lib/tasks/attachments.ts";
+	import {
+		formatSize,
+		isImage,
+		type AttachmentEntry,
+	} from "#lib/tasks/attachments.ts";
+	import { resolve } from "$app/paths";
 	import Paperclip from "~icons/lucide/paperclip";
 	import Trash2 from "~icons/lucide/trash-2";
 
 	interface Props {
-		name: string;
-		size: number;
-		src?: string;
-		href?: string;
-		file?: File;
-		missing?: boolean;
+		entry: AttachmentEntry;
 		busy?: boolean;
 		onremove: () => void;
 	}
 
-	let {
-		name,
-		size,
-		src,
-		href,
-		file,
-		missing = false,
-		busy = false,
-		onremove,
-	}: Props = $props();
+	let { entry, busy = false, onremove }: Props = $props();
+
+	const file = $derived(entry.kind === "file" ? entry.file : undefined);
+	const name = $derived(
+		entry.kind === "file" ? entry.file.name : entry.attachment.file_name,
+	);
+	const size = $derived(
+		entry.kind === "file" ? entry.file.size : entry.attachment.size,
+	);
+	const missing = $derived(
+		entry.kind === "saved" ? entry.attachment.missing : false,
+	);
+	const src = $derived(
+		entry.kind === "saved" && isImage(entry.attachment.mime_type)
+			? resolve("/media/[id]", { id: entry.attachment.id })
+			: undefined,
+	);
+	const href = $derived(
+		entry.kind === "saved"
+			? resolve("/media/[id]", { id: entry.attachment.id })
+			: undefined,
+	);
 
 	let preview = $state<string | undefined>();
 	let viewer = $state(false);

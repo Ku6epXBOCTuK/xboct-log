@@ -18,7 +18,7 @@
 	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { TagStore } from "#lib/state/tags.svelte.ts";
-	import { createTaskAttachments } from "#lib/state/task-attachments.svelte.ts";
+	import { createSavedAttachments } from "#lib/state/attachments.svelte.ts";
 	import { createTaskDraft } from "#lib/state/task-draft.ts";
 	import { createTaskFinder } from "#lib/state/task-finder.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
@@ -74,7 +74,7 @@
 	let failure = $state<string | null>(null);
 	let historyOpen = $state(false);
 	let commentsOpen = $state(false);
-	const attachments = createTaskAttachments(
+	const attachments = createSavedAttachments(
 		() => selected,
 		() => tasks,
 	);

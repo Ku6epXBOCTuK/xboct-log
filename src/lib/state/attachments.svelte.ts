@@ -8,11 +8,109 @@ import { createAttachmentFlash } from "#lib/state/attachment-flash.svelte.ts";
 import { createAttachmentNotice } from "#lib/state/attachment-notice.svelte.ts";
 import type { TaskStore } from "#lib/state/tasks.svelte.ts";
 import { filterFiles, rejectionMessage } from "#lib/tasks/attachment-kinds.ts";
-import { fileToBase64 } from "#lib/tasks/attachments.ts";
+import { fileToBase64, type AttachmentEntry } from "#lib/tasks/attachments.ts";
 import { messageOf } from "#lib/tasks/display.ts";
 import type { Task, TaskAttachment } from "#lib/types.ts";
 
-export function createTaskAttachments(
+function createFeedback() {
+	const flash = createAttachmentFlash();
+	const notice = createAttachmentNotice();
+
+	$effect(() => () => {
+		flash.dispose();
+		notice.dispose();
+	});
+
+	return { flash, notice };
+}
+
+export function createDraftAttachments() {
+	let files = $state<{ key: string; file: File }[]>([]);
+	let input = $state<HTMLInputElement | null>(null);
+	let sequence = 0;
+	const { flash, notice } = createFeedback();
+
+	const entries = $derived<AttachmentEntry[]>(
+		files.map(({ key, file }) => ({ kind: "file", key, file })),
+	);
+
+	function nextKey(): string {
+		sequence += 1;
+		return `file-${sequence}`;
+	}
+
+	function addFiles(added: File[]) {
+		if (added.length === 0) return;
+		const { accepted, rejected } = filterFiles(added);
+		if (rejected.length > 0) notice.show(rejectionMessage(rejected));
+		if (accepted.length === 0) return;
+		files = [...files, ...accepted.map((file) => ({ key: nextKey(), file }))];
+		flash.mark();
+	}
+
+	function restore(saved: File[]) {
+		files = saved.map((file) => ({ key: nextKey(), file }));
+	}
+
+	function remove(key: string) {
+		files = files.filter((item) => item.key !== key);
+	}
+
+	function clear() {
+		files = [];
+	}
+
+	async function upload(taskId: string) {
+		for (const item of files) {
+			const content = await fileToBase64(item.file);
+			await addTaskAttachment({
+				task_id: taskId,
+				filename: item.file.name,
+				content_base64: content,
+				mime_type: item.file.type || undefined,
+			});
+		}
+	}
+
+	function openPicker() {
+		input?.click();
+	}
+
+	return {
+		get entries() {
+			return entries;
+		},
+		get files() {
+			return files.map((item) => item.file);
+		},
+		get count() {
+			return files.length;
+		},
+		get fresh() {
+			return flash.fresh;
+		},
+		get notice() {
+			return notice.message;
+		},
+		get denied() {
+			return notice.denied;
+		},
+		get input() {
+			return input;
+		},
+		set input(element: HTMLInputElement | null) {
+			input = element;
+		},
+		addFiles,
+		restore,
+		remove,
+		clear,
+		upload,
+		openPicker,
+	};
+}
+
+export function createSavedAttachments(
 	getTask: () => Task | null,
 	getTasks: () => TaskStore,
 ) {
@@ -21,13 +119,15 @@ export function createTaskAttachments(
 	let busy = $state(false);
 	let failure = $state("");
 	let input = $state<HTMLInputElement | null>(null);
-	const flash = createAttachmentFlash();
-	const notice = createAttachmentNotice();
+	const { flash, notice } = createFeedback();
 
-	$effect(() => () => {
-		flash.dispose();
-		notice.dispose();
-	});
+	const entries = $derived<AttachmentEntry[]>(
+		items.map((attachment) => ({
+			kind: "saved",
+			key: attachment.id,
+			attachment,
+		})),
+	);
 
 	$effect(() => {
 		const task = getTask();
@@ -43,6 +143,11 @@ export function createTaskAttachments(
 		} catch {
 			failed = true;
 		}
+	}
+
+	function reload() {
+		const task = getTask();
+		if (task !== null) void load(task.id);
 	}
 
 	async function addFiles(files: File[]) {
@@ -94,8 +199,8 @@ export function createTaskAttachments(
 	}
 
 	return {
-		get items() {
-			return items;
+		get entries() {
+			return entries;
 		},
 		get failed() {
 			return failed;
@@ -126,8 +231,10 @@ export function createTaskAttachments(
 		},
 		addFiles,
 		remove,
+		reload,
 		openPicker,
 	};
 }
 
-export type TaskAttachmentsStore = ReturnType<typeof createTaskAttachments>;
+export type DraftAttachmentsStore = ReturnType<typeof createDraftAttachments>;
+export type SavedAttachmentsStore = ReturnType<typeof createSavedAttachments>;

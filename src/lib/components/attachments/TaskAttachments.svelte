@@ -1,15 +1,11 @@
 <script lang="ts">
-	import AttachmentItem from "#lib/components/attachments/AttachmentItem.svelte";
-	import AttachmentList from "#lib/components/attachments/AttachmentList.svelte";
+	import AttachmentBody from "#lib/components/attachments/AttachmentBody.svelte";
 	import AttachmentSection from "#lib/components/attachments/AttachmentSection.svelte";
-	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
-	import type { TaskAttachmentsStore } from "#lib/state/task-attachments.svelte.ts";
+	import type { SavedAttachmentsStore } from "#lib/state/attachments.svelte.ts";
 	import { ATTACHMENT_ACCEPT } from "#lib/tasks/attachment-kinds.ts";
-	import { isImage } from "#lib/tasks/attachments.ts";
-	import { resolve } from "$app/paths";
 
 	interface Props {
-		store: TaskAttachmentsStore;
+		store: SavedAttachmentsStore;
 	}
 
 	let { store }: Props = $props();
@@ -32,55 +28,32 @@
 
 <svelte:window onpaste={paste} />
 
-<div class="attachments">
-	{#snippet hidden()}
-		<input
-			bind:this={store.input}
-			type="file"
-			multiple
-			accept={ATTACHMENT_ACCEPT}
-			hidden
-			onchange={upload}
-		/>
-	{/snippet}
-	<AttachmentSection
-		count={store.count}
-		fresh={store.fresh}
-		busy={store.busy}
-		denied={store.denied}
-		notice={store.notice}
-		onpick={store.openPicker}
-		{hidden}
-	>
-		<ErrorNote message={store.failure} />
-		{#if store.failed}
-			<p class="attachments-empty">The attachments are unavailable</p>
-		{:else if store.items.length === 0}
-			<p class="attachments-empty">No files</p>
-		{:else}
-			<AttachmentList>
-				{#each store.items as item (item.id)}
-					<AttachmentItem
-						name={item.file_name}
-						size={item.size}
-						src={isImage(item.mime_type)
-							? resolve("/media/[id]", { id: item.id })
-							: undefined}
-						href={resolve("/media/[id]", { id: item.id })}
-						missing={item.missing}
-						busy={store.busy}
-						onremove={() => store.remove(item.id)}
-					/>
-				{/each}
-			</AttachmentList>
-		{/if}
-	</AttachmentSection>
-</div>
+{#snippet hidden()}
+	<input
+		bind:this={store.input}
+		type="file"
+		multiple
+		accept={ATTACHMENT_ACCEPT}
+		hidden
+		onchange={upload}
+	/>
+{/snippet}
 
-<style>
-	.attachments-empty {
-		margin: 0;
-		color: var(--text-muted);
-		font-size: var(--text-sm);
-	}
-</style>
+<AttachmentSection
+	count={store.count}
+	fresh={store.fresh}
+	busy={store.busy}
+	denied={store.denied}
+	notice={store.notice}
+	onpick={store.openPicker}
+	{hidden}
+>
+	<AttachmentBody
+		items={store.entries}
+		busy={store.busy}
+		failure={store.failure}
+		failed={store.failed}
+		onremove={store.remove}
+		onretry={store.reload}
+	/>
+</AttachmentSection>

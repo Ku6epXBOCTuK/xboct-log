@@ -1,3 +1,9 @@
+import type { TaskAttachment } from "#lib/types.ts";
+
+export type AttachmentEntry =
+	| { kind: "file"; key: string; file: File }
+	| { kind: "saved"; key: string; attachment: TaskAttachment };
+
 export function fileToBase64(file: File): Promise<string> {
 	return new Promise((resolve, reject) => {
 		const reader = new FileReader();

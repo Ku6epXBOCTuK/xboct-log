@@ -1,7 +1,6 @@
 ﻿<script lang="ts">
 	import AttachButton from "#lib/components/attachments/AttachButton.svelte";
-	import AttachmentItem from "#lib/components/attachments/AttachmentItem.svelte";
-	import AttachmentList from "#lib/components/attachments/AttachmentList.svelte";
+	import AttachmentBody from "#lib/components/attachments/AttachmentBody.svelte";
 	import AttachmentSection from "#lib/components/attachments/AttachmentSection.svelte";
 	import TaskEditorFields from "#lib/components/task/TaskEditorFields.svelte";
 	import CopyButton from "#lib/components/ui/CopyButton.svelte";
@@ -11,9 +10,7 @@
 	import { fieldNavigation } from "#lib/hotkeys/fields.ts";
 	import { matchesHotkey } from "#lib/hotkeys/hotkeys.ts";
 	import { taskHrefFor } from "#lib/navigation/href.ts";
-	import { addTaskAttachment } from "#lib/remote/attachments.remote.ts";
-	import { createAttachmentFlash } from "#lib/state/attachment-flash.svelte.ts";
-	import { createAttachmentNotice } from "#lib/state/attachment-notice.svelte.ts";
+	import { createDraftAttachments } from "#lib/state/attachments.svelte.ts";
 	import type { DraftStore } from "#lib/state/draft.svelte.ts";
 	import type { ProjectDataStore } from "#lib/state/project-data.svelte.ts";
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
@@ -21,12 +18,7 @@
 	import { createTaskFinder } from "#lib/state/task-finder.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
 	import type { UiStore } from "#lib/state/ui.svelte.ts";
-	import {
-		ATTACHMENT_ACCEPT,
-		filterFiles,
-		rejectionMessage,
-	} from "#lib/tasks/attachment-kinds.ts";
-	import { fileToBase64 } from "#lib/tasks/attachments.ts";
+	import { ATTACHMENT_ACCEPT } from "#lib/tasks/attachment-kinds.ts";
 	import { messageOf } from "#lib/tasks/display.ts";
 	import {
 		draftHasContent,
@@ -130,12 +122,9 @@
 	let failure = $state<string | null>(null);
 	let invalidField = $state(false);
 	let formElement = $state<HTMLFormElement | null>(null);
-	let fileInput = $state<HTMLInputElement | null>(null);
-	let files = $state<File[]>([]);
 	let dragging = $state(false);
 	let committed = $state(false);
-	const flash = createAttachmentFlash();
-	const notice = createAttachmentNotice();
+	const attachmentsStore = createDraftAttachments();
 
 	untrack(() => {
 		const restored = draftStore.saved;
@@ -148,7 +137,7 @@
 			defaultProject(),
 		);
 		title = restored.title;
-		files = restored.files ? [...restored.files] : [];
+		attachmentsStore.restore(restored.files ?? []);
 		links = { ...emptyLinkDraft(), ...restored.links };
 	});
 
@@ -199,12 +188,12 @@
 		const snapshot = { ...links };
 		if (committed || (!draftHasContent(values, title) && !hasLinks(snapshot)))
 			return;
-		draftStore.save({ values, title, files: [...files], links: snapshot });
-	});
-
-	$effect(() => () => {
-		flash.dispose();
-		notice.dispose();
+		draftStore.save({
+			values,
+			title,
+			files: attachmentsStore.files,
+			links: snapshot,
+		});
 	});
 
 	function reset() {
@@ -215,45 +204,24 @@
 		};
 		links = emptyLinkDraft();
 		title = "";
-		files = [];
+		attachmentsStore.clear();
 		failure = null;
 		invalidField = false;
 		committed = false;
-	}
-
-	function addFiles(added: File[]) {
-		if (added.length === 0) return;
-		const { accepted, rejected } = filterFiles(added);
-		if (rejected.length > 0) notice.show(rejectionMessage(rejected));
-		if (accepted.length === 0) return;
-		files = [...files, ...accepted];
-		flash.mark();
 	}
 
 	function pickFiles(event: Event) {
 		const target = event.currentTarget as HTMLInputElement;
 		const picked = [...(target.files ?? [])];
 		target.value = "";
-		addFiles(picked);
+		attachmentsStore.addFiles(picked);
 	}
 
 	function paste(event: ClipboardEvent) {
 		const files = [...(event.clipboardData?.files ?? [])];
 		if (files.length === 0) return;
 		event.preventDefault();
-		addFiles(files);
-	}
-
-	async function uploadFiles(taskId: string) {
-		for (const file of files) {
-			const content = await fileToBase64(file);
-			await addTaskAttachment({
-				task_id: taskId,
-				filename: file.name,
-				content_base64: content,
-				mime_type: file.type || undefined,
-			});
-		}
+		attachmentsStore.addFiles(files);
 	}
 
 	function onfield(patch: TaskPatch) {
@@ -387,13 +355,13 @@
 			draftStore.setLast({ id: created.id, title: created.title });
 			draftStore.clearDraft();
 
-			if (files.length > 0) {
+			if (attachmentsStore.count > 0) {
 				try {
-					await uploadFiles(created.id);
+					await attachmentsStore.upload(created.id);
 				} catch (error) {
 					failure = messageOf(error);
 				}
-				files = [];
+				attachmentsStore.clear();
 			}
 
 			if (hasLinks(links)) {
@@ -422,24 +390,24 @@
 	onsubmit={submit}
 	use:fieldNavigation
 	use:fileDrop={{
-		onfiles: (dropped) => addFiles(dropped),
+		onfiles: (dropped) => attachmentsStore.addFiles(dropped),
 		ondragchange: (value) => (dragging = value),
 	}}
 >
 	{#snippet titleTrailing()}
 		<CopyButton text={title} label="copy title" />
 		<AttachButton
-			count={files.length}
-			fresh={flash.fresh}
-			denied={notice.denied}
-			onpick={() => fileInput?.click()}
+			count={attachmentsStore.count}
+			fresh={attachmentsStore.fresh}
+			denied={attachmentsStore.denied}
+			onpick={attachmentsStore.openPicker}
 		/>
 	{/snippet}
 
 	{#snippet attachments()}
 		{#snippet hidden()}
 			<input
-				bind:this={fileInput}
+				bind:this={attachmentsStore.input}
 				type="file"
 				multiple
 				accept={ATTACHMENT_ACCEPT}
@@ -448,26 +416,18 @@
 			/>
 		{/snippet}
 		<AttachmentSection
-			count={files.length}
-			fresh={flash.fresh}
-			denied={notice.denied}
-			notice={notice.message}
-			onpick={() => fileInput?.click()}
+			count={attachmentsStore.count}
+			fresh={attachmentsStore.fresh}
+			denied={attachmentsStore.denied}
+			notice={attachmentsStore.notice}
+			onpick={attachmentsStore.openPicker}
 			{hidden}
 		>
-			{#if files.length > 0}
-				<AttachmentList>
-					{#each files as file, index (file.name + index)}
-						<AttachmentItem
-							name={file.name}
-							size={file.size}
-							{file}
-							busy={saving}
-							onremove={() => (files = files.filter((_, i) => i !== index))}
-						/>
-					{/each}
-				</AttachmentList>
-			{/if}
+			<AttachmentBody
+				items={attachmentsStore.entries}
+				busy={saving}
+				onremove={attachmentsStore.remove}
+			/>
 		</AttachmentSection>
 	{/snippet}
 
@@ -516,11 +476,11 @@
 				Create another
 				<kbd>Ctrl+Alt+C</kbd>
 			</label>
-			{#if files.length > 0}
-				<span class="attach-chip" class:is-fresh={flash.fresh}>
+			{#if attachmentsStore.count > 0}
+				<span class="attach-chip" class:is-fresh={attachmentsStore.fresh}>
 					<Paperclip />
-					{files.length}
-					{files.length === 1 ? "file" : "files"}
+					{attachmentsStore.count}
+					{attachmentsStore.count === 1 ? "file" : "files"}
 				</span>
 			{/if}
 			{#if draftStore.last}
