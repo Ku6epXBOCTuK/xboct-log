@@ -5,25 +5,33 @@
 	import AttachmentSection from "#lib/components/attachments/AttachmentSection.svelte";
 	import TaskEditorFields from "#lib/components/task/TaskEditorFields.svelte";
 	import CopyButton from "#lib/components/ui/CopyButton.svelte";
-	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import DropOverlay from "#lib/components/ui/DropOverlay.svelte";
+	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
+	import { fileDrop } from "#lib/files/drop.ts";
+	import { fieldNavigation } from "#lib/hotkeys/fields.ts";
+	import { matchesHotkey } from "#lib/hotkeys/hotkeys.ts";
+	import { taskHrefFor } from "#lib/navigation/href.ts";
+	import { addTaskAttachment } from "#lib/remote/attachments.remote.ts";
 	import { createAttachmentFlash } from "#lib/state/attachment-flash.svelte.ts";
+	import { createAttachmentNotice } from "#lib/state/attachment-notice.svelte.ts";
 	import type { DraftStore } from "#lib/state/draft.svelte.ts";
 	import type { ProjectDataStore } from "#lib/state/project-data.svelte.ts";
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { TagStore } from "#lib/state/tags.svelte.ts";
+	import { createTaskFinder } from "#lib/state/task-finder.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
 	import type { UiStore } from "#lib/state/ui.svelte.ts";
-	import { messageOf } from "#lib/tasks/display.ts";
-	import { fileToBase64, isImage } from "#lib/tasks/attachments.ts";
-	import { addTaskAttachment } from "#lib/remote/attachments.remote.ts";
-	import { matchesHotkey } from "#lib/hotkeys/hotkeys.ts";
-	import { fieldNavigation } from "#lib/hotkeys/fields.ts";
-	import { fileDrop } from "#lib/files/drop.ts";
-	import { taskHrefFor } from "#lib/navigation/href.ts";
-	import { draftHasContent, fitDraftToProjects } from "#lib/tasks/fields.ts";
 	import {
+		ATTACHMENT_ACCEPT,
+		filterFiles,
+		rejectionMessage,
+	} from "#lib/tasks/attachment-kinds.ts";
+	import { fileToBase64 } from "#lib/tasks/attachments.ts";
+	import { messageOf } from "#lib/tasks/display.ts";
+	import {
+		draftHasContent,
 		epicsForProject,
+		fitDraftToProjects,
 		validateTaskDraft,
 		type TaskFieldValues,
 		type TaskPatch,
@@ -34,17 +42,16 @@
 		type LinkField,
 		type TaskLinkDraft,
 	} from "#lib/tasks/links.ts";
-	import { createTaskFinder } from "#lib/state/task-finder.svelte.ts";
 	import {
 		CLOSED_STATUSES,
 		INBOX_PROJECT_ID,
 		type Project,
 		type Task,
 	} from "#lib/types.ts";
-	import { untrack } from "svelte";
-	import ArrowLeft from "~icons/lucide/arrow-left";
 	import Button from "@ku6epxboctuk/ui-kit/components/Button";
 	import ScrollArea from "@ku6epxboctuk/ui-kit/components/ScrollArea";
+	import { untrack } from "svelte";
+	import ArrowLeft from "~icons/lucide/arrow-left";
 	import Paperclip from "~icons/lucide/paperclip";
 
 	interface Props {
@@ -128,6 +135,7 @@
 	let dragging = $state(false);
 	let committed = $state(false);
 	const flash = createAttachmentFlash();
+	const notice = createAttachmentNotice();
 
 	untrack(() => {
 		const restored = draftStore.saved;
@@ -194,7 +202,10 @@
 		draftStore.save({ values, title, files: [...files], links: snapshot });
 	});
 
-	$effect(() => () => flash.dispose());
+	$effect(() => () => {
+		flash.dispose();
+		notice.dispose();
+	});
 
 	function reset() {
 		draft = {
@@ -212,7 +223,10 @@
 
 	function addFiles(added: File[]) {
 		if (added.length === 0) return;
-		files = [...files, ...added];
+		const { accepted, rejected } = filterFiles(added);
+		if (rejected.length > 0) notice.show(rejectionMessage(rejected));
+		if (accepted.length === 0) return;
+		files = [...files, ...accepted];
 		flash.mark();
 	}
 
@@ -224,12 +238,10 @@
 	}
 
 	function paste(event: ClipboardEvent) {
-		const images = [...(event.clipboardData?.files ?? [])].filter((file) =>
-			isImage(file.type),
-		);
-		if (images.length === 0) return;
+		const files = [...(event.clipboardData?.files ?? [])];
+		if (files.length === 0) return;
 		event.preventDefault();
-		addFiles(images);
+		addFiles(files);
 	}
 
 	async function uploadFiles(taskId: string) {
@@ -419,6 +431,7 @@
 		<AttachButton
 			count={files.length}
 			fresh={flash.fresh}
+			denied={notice.denied}
 			onpick={() => fileInput?.click()}
 		/>
 	{/snippet}
@@ -429,6 +442,7 @@
 				bind:this={fileInput}
 				type="file"
 				multiple
+				accept={ATTACHMENT_ACCEPT}
 				hidden
 				onchange={pickFiles}
 			/>
@@ -436,6 +450,8 @@
 		<AttachmentSection
 			count={files.length}
 			fresh={flash.fresh}
+			denied={notice.denied}
+			notice={notice.message}
 			onpick={() => fileInput?.click()}
 			{hidden}
 		>

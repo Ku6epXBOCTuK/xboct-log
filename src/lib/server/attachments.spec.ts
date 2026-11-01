@@ -106,11 +106,46 @@ describe("attachments", () => {
 		const tooBig = addAttachment(
 			db,
 			taskId,
-			"big.bin",
+			"big.zip",
 			Buffer.alloc(MAX_ATTACHMENT_SIZE + 1),
 		);
 		expect(tooBig.isErr()).toBe(true);
 		expect(tooBig._unsafeUnwrapErr().message).toContain("20 MB");
+	});
+
+	it("rejects a type outside the allowlist", async () => {
+		const { db, taskId } = await setup();
+		for (const name of ["page.html", "logo.svg", "tool.exe", "build.bin"]) {
+			const result = addAttachment(db, taskId, name, Buffer.from("bytes"));
+			expect(result.isErr()).toBe(true);
+			expect(result._unsafeUnwrapErr().message).toContain("not supported");
+		}
+		expect(listAttachments(db, taskId)).toHaveLength(0);
+	});
+
+	it("takes the mime type from the extension, not from the caller", async () => {
+		const { db, taskId } = await setup();
+		const item = addAttachment(
+			db,
+			taskId,
+			"photo.png",
+			Buffer.from("bytes"),
+			"text/html",
+		)._unsafeUnwrap();
+		expect(item.mime_type).toBe("image/png");
+	});
+
+	it("takes the extension of an unnamed file from the mime type", async () => {
+		const { db, taskId } = await setup();
+		const item = addAttachment(
+			db,
+			taskId,
+			"screenshot",
+			Buffer.from("bytes"),
+			"image/png",
+		)._unsafeUnwrap();
+		expect(item.mime_type).toBe("image/png");
+		expect(existsSync(join(mediaDir(), taskId, `${item.id}.png`))).toBe(true);
 	});
 
 	it("rejects an empty file", async () => {

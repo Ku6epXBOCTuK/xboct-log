@@ -5,7 +5,9 @@ import {
 } from "#lib/remote/attachments.remote.ts";
 import { fetchFresh } from "#lib/remote/fresh.ts";
 import { createAttachmentFlash } from "#lib/state/attachment-flash.svelte.ts";
+import { createAttachmentNotice } from "#lib/state/attachment-notice.svelte.ts";
 import type { TaskStore } from "#lib/state/tasks.svelte.ts";
+import { filterFiles, rejectionMessage } from "#lib/tasks/attachment-kinds.ts";
 import { fileToBase64 } from "#lib/tasks/attachments.ts";
 import { messageOf } from "#lib/tasks/display.ts";
 import type { Task, TaskAttachment } from "#lib/types.ts";
@@ -20,8 +22,12 @@ export function createTaskAttachments(
 	let failure = $state("");
 	let input = $state<HTMLInputElement | null>(null);
 	const flash = createAttachmentFlash();
+	const notice = createAttachmentNotice();
 
-	$effect(() => () => flash.dispose());
+	$effect(() => () => {
+		flash.dispose();
+		notice.dispose();
+	});
 
 	$effect(() => {
 		const task = getTask();
@@ -42,10 +48,13 @@ export function createTaskAttachments(
 	async function addFiles(files: File[]) {
 		const task = getTask();
 		if (task === null || files.length === 0 || busy) return;
+		const { accepted, rejected } = filterFiles(files);
+		if (rejected.length > 0) notice.show(rejectionMessage(rejected));
+		if (accepted.length === 0) return;
 		busy = true;
 		failure = "";
 		try {
-			for (const file of files) {
+			for (const file of accepted) {
 				const content = await fileToBase64(file);
 				const { item } = await addTaskAttachment({
 					task_id: task.id,
@@ -99,6 +108,12 @@ export function createTaskAttachments(
 		},
 		get fresh() {
 			return flash.fresh;
+		},
+		get notice() {
+			return notice.message;
+		},
+		get denied() {
+			return notice.denied;
 		},
 		get count() {
 			return items.length;

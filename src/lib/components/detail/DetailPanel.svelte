@@ -352,6 +352,7 @@
 			<AttachButton
 				count={attachments.count}
 				fresh={attachments.fresh}
+				denied={attachments.denied}
 				onpick={attachments.openPicker}
 			/>
 		{/snippet}

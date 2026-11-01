@@ -55,6 +55,8 @@
 	--accent-ink: var(--ui-accent-ink);
 	--on-accent: var(--ui-on-accent);
 	--danger-surface: var(--ui-danger-surface);
+	--danger: var(--ui-danger);
+	--on-danger: var(--ui-on-danger);
 	--warning: var(--ui-warning);
 
 	--violet: light-dark(#7c4ddb, #b38aff);

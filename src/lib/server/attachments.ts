@@ -7,8 +7,9 @@ import {
 	rmSync,
 	writeFileSync,
 } from "node:fs";
-import { dirname, extname, join } from "node:path";
+import { dirname, join } from "node:path";
 import type { DatabaseSync } from "node:sqlite";
+import { attachmentFormat } from "../tasks/attachment-kinds.ts";
 import { envString } from "./env";
 import { invalid, notFound, unexpected, type AppError } from "./errors";
 import { defaultDbPath } from "./paths";
@@ -25,24 +26,6 @@ export interface Attachment {
 }
 
 export const MAX_ATTACHMENT_SIZE = 20 * 1024 * 1024;
-
-const MIME_BY_EXTENSION: Record<string, string> = {
-	png: "image/png",
-	jpg: "image/jpeg",
-	jpeg: "image/jpeg",
-	gif: "image/gif",
-	webp: "image/webp",
-	avif: "image/avif",
-	svg: "image/svg+xml",
-	bmp: "image/bmp",
-	ico: "image/x-icon",
-	pdf: "application/pdf",
-	txt: "text/plain",
-	md: "text/markdown",
-	json: "application/json",
-	csv: "text/csv",
-	zip: "application/zip",
-};
 
 interface AttachmentRow {
 	id: string;
@@ -69,11 +52,6 @@ function safeName(name: string): string {
 	const base = (name.split(/[\\/]/).pop() ?? "file").trim();
 	const cleaned = base.replace(/[^\w.\- ]+/g, "_").slice(0, 120);
 	return cleaned === "" ? "file" : cleaned;
-}
-
-function extensionOf(name: string): string {
-	const ext = extname(name).slice(1).toLowerCase();
-	return /^[a-z0-9]{1,10}$/.test(ext) ? ext : "";
 }
 
 export function attachmentUri(id: string): string {
@@ -167,6 +145,10 @@ export function addAttachment(
 	data: Buffer,
 	mimeType?: string,
 ): Result<Attachment, AppError> {
+	const format = attachmentFormat(fileName, mimeType);
+	if (format === null) {
+		return err(invalid(`the file type of ${fileName} is not supported`));
+	}
 	const name = safeName(fileName);
 	if (data.byteLength === 0) {
 		return err(invalid("the file is empty"));
@@ -179,8 +161,7 @@ export function addAttachment(
 		);
 	}
 	const id = randomUUID();
-	const ext = extensionOf(name);
-	const storedName = ext === "" ? id : `${id}.${ext}`;
+	const storedName = `${id}.${format.extension}`;
 	const directory = join(mediaDir(), taskId);
 	try {
 		mkdirSync(directory, { recursive: true });
@@ -188,7 +169,7 @@ export function addAttachment(
 	} catch (error) {
 		return err(unexpected(error));
 	}
-	const mime = mimeType ?? MIME_BY_EXTENSION[ext] ?? null;
+	const mime = format.mime;
 	const createdAt = new Date().toISOString();
 	db.prepare(
 		`INSERT INTO task_attachments (id, task_id, file_name, mime_type, size, stored_name, created_at)

@@ -7,6 +7,8 @@
 		count: number;
 		fresh?: boolean;
 		busy?: boolean;
+		denied?: boolean;
+		notice?: string;
 		onpick: () => void;
 		hidden?: Snippet;
 		children?: Snippet;
@@ -16,6 +18,8 @@
 		count,
 		fresh = false,
 		busy = false,
+		denied = false,
+		notice = "",
 		onpick,
 		hidden,
 		children,
@@ -25,8 +29,11 @@
 <div class="attachments" class:is-just-attached={fresh}>
 	<SectionDivider title="Attachments">
 		{#snippet actions()}
-			<AttachButton {count} {fresh} {busy} {onpick} icon="upload" />
+			<AttachButton {count} {fresh} {busy} {denied} {onpick} icon="upload" />
 		{/snippet}
+		{#if notice !== ""}
+			<p class="attachments-notice" role="status">{notice}</p>
+		{/if}
 		{@render children?.()}
 	</SectionDivider>
 	{@render hidden?.()}
@@ -49,5 +56,11 @@
 
 	.attachments.is-just-attached :global(.section-divider) {
 		background: color-mix(in oklch, var(--accent) 18%, transparent);
+	}
+
+	.attachments-notice {
+		margin: 0;
+		color: var(--text-secondary);
+		font-size: var(--text-md);
 	}
 </style>
