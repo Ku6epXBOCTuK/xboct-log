@@ -2,6 +2,27 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.5.0](https://github.com/Ku6epXBOCTuK/xboct-log/compare/b4ab09406db9742b6eaade9a8b2fbd1ecb3eaddf..v0.5.0) - 2026-11-01
+#### Features
+- add tags page - ([03f60d8](https://github.com/Ku6epXBOCTuK/xboct-log/commit/03f60d88cf44eca9fe4a7dffcd9aec0493b71653)) - Ku6epXBOCTuK
+- add markdown to comments - ([0242dc7](https://github.com/Ku6epXBOCTuK/xboct-log/commit/0242dc7d2a5a91414a6871996905d2238ba53ea5)) - Ku6epXBOCTuK
+- add attachment count badge and insert event highlight - ([6899e60](https://github.com/Ku6epXBOCTuK/xboct-log/commit/6899e6052b9a88aede7a3877afdaa1e5717d76c8)) - Ku6epXBOCTuK
+#### Bug Fixes
+- use mime type from extension - ([0654f1c](https://github.com/Ku6epXBOCTuK/xboct-log/commit/0654f1ccd71ce83cba8c3abd61ea34b380d56dbf)) - Ku6epXBOCTuK
+- delete attachments confirmation - ([0908a62](https://github.com/Ku6epXBOCTuK/xboct-log/commit/0908a620bbaf1d6972df695e10a2dbf678b73983)) - Ku6epXBOCTuK
+- error handling on create task and add task links - ([d3a2977](https://github.com/Ku6epXBOCTuK/xboct-log/commit/d3a297789a8680f67f180ecbe75d1e05a40527c0)) - Ku6epXBOCTuK
+- error handling on create task and attach files - ([fab03a1](https://github.com/Ku6epXBOCTuK/xboct-log/commit/fab03a1293e2548fe7fee985458b15ad1fd86c2f)) - Ku6epXBOCTuK
+- attachments flow - whitelist, discard event - ([00e7863](https://github.com/Ku6epXBOCTuK/xboct-log/commit/00e78630201b19a06b3c447226f35ea6d2a9787a)) - Ku6epXBOCTuK
+- task can be patched via flat fields - ([66d8b3e](https://github.com/Ku6epXBOCTuK/xboct-log/commit/66d8b3e1540257989d3cb7da08d6fd41b5d0d345)) - Ku6epXBOCTuK
+- overdue highlight use local day - ([af669ea](https://github.com/Ku6epXBOCTuK/xboct-log/commit/af669eaacc63745969cea97ded4edd94d4a15a75)) - Ku6epXBOCTuK
+- search and sort tags - ([7bbdef8](https://github.com/Ku6epXBOCTuK/xboct-log/commit/7bbdef8fc65bea8c0d6aa3e34b227ad168e886f8)) - Ku6epXBOCTuK
+- reset description on new task - ([b4ab094](https://github.com/Ku6epXBOCTuK/xboct-log/commit/b4ab09406db9742b6eaade9a8b2fbd1ecb3eaddf)) - Ku6epXBOCTuK
+#### Refactoring
+- attachments - use single state for new task and edit task - ([9be8416](https://github.com/Ku6epXBOCTuK/xboct-log/commit/9be84164e3844d4f81c1ae4c16848e7e655b981f)) - Ku6epXBOCTuK
+- reduce doubling for create new task and edit task forms - ([a446020](https://github.com/Ku6epXBOCTuK/xboct-log/commit/a44602034f786fe3209be733f6e0ede6f06f2ec0)) - Ku6epXBOCTuK
+
+- - -
+
 ## [v0.4.0](https://github.com/Ku6epXBOCTuK/xboct-log/compare/630518633b6cc36374ca62d06dc3cca3f54d8d80..v0.4.0) - 2026-10-30
 #### Features
 - update task chips to use links - ([d77b295](https://github.com/Ku6epXBOCTuK/xboct-log/commit/d77b2956b7dabe95aa31f908994c4d07ddffd040)) - Ku6epXBOCTuK
