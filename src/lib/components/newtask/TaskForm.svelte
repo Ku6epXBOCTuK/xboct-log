@@ -30,9 +30,12 @@
 		type TaskPatch,
 	} from "#lib/tasks/fields.ts";
 	import {
+		applyLinkJobs,
 		emptyLinkDraft,
 		hasLinks,
+		type LinkFailure,
 		type LinkField,
+		type LinkJob,
 		type TaskLinkDraft,
 	} from "#lib/tasks/links.ts";
 	import {
@@ -159,6 +162,21 @@
 
 	let linkCandidates = $derived(
 		append(openTasks(projectData?.tasks ?? []), openTasks(finder.found)),
+	);
+
+	const pendingLinks = $derived(
+		(Object.entries(links) as [LinkField, string[]][]).flatMap(
+			([field, targets]) =>
+				targets.map((target) => `${field.replaceAll("_", " ")} ${target}`),
+		),
+	);
+
+	const retryLabel = $derived(
+		attachmentsStore.count > 0
+			? "Retry upload"
+			: pendingLinks.length > 0
+				? "Retry links"
+				: "Done",
 	);
 
 	function linkHref(id: string): string | null {
@@ -290,27 +308,60 @@
 		formElement?.requestSubmit();
 	}
 
-	async function applyLinks(taskId: string): Promise<string | null> {
-		try {
-			for (const target of links.blocked_by) {
-				await tasks.addBlocker(taskId, target);
-			}
-			for (const target of links.blocks) {
-				await tasks.addBlocker(target, taskId);
-			}
-			for (const target of links.relates_to) {
-				await tasks.addLink(taskId, "relates_to", target);
-			}
-			for (const target of links.duplicates) {
-				await tasks.addLink(taskId, "duplicates", target);
-			}
-			for (const target of links.duplicated_by) {
-				await tasks.addLink(target, "duplicates", taskId);
-			}
-			return null;
-		} catch (error) {
-			return messageOf(error);
+	function linkJobs(taskId: string): LinkJob[] {
+		const jobs: LinkJob[] = [];
+		for (const target of links.blocked_by) {
+			jobs.push({
+				field: "blocked_by",
+				target,
+				run: () => tasks.addBlocker(taskId, target),
+			});
 		}
+		for (const target of links.blocks) {
+			jobs.push({
+				field: "blocks",
+				target,
+				run: () => tasks.addBlocker(target, taskId),
+			});
+		}
+		for (const target of links.relates_to) {
+			jobs.push({
+				field: "relates_to",
+				target,
+				run: () => tasks.addLink(taskId, "relates_to", target),
+			});
+		}
+		for (const target of links.duplicates) {
+			jobs.push({
+				field: "duplicates",
+				target,
+				run: () => tasks.addLink(taskId, "duplicates", target),
+			});
+		}
+		for (const target of links.duplicated_by) {
+			jobs.push({
+				field: "duplicated_by",
+				target,
+				run: () => tasks.addLink(target, "duplicates", taskId),
+			});
+		}
+		return jobs;
+	}
+
+	function linkFailureMessage(items: LinkFailure[]): string {
+		const names = items.map(
+			(item) =>
+				`${item.field.replaceAll("_", " ")} ${item.target}: ${item.message}`,
+		);
+		return `${items.length} ${items.length === 1 ? "link was" : "links were"} not saved: ${names.join("; ")}`;
+	}
+
+	async function applyLinks(taskId: string) {
+		const failures = await applyLinkJobs(linkJobs(taskId), (job) =>
+			removeLink(job.field, job.target),
+		);
+		if (failures.length > 0) failure = linkFailureMessage(failures);
+		return failures.length === 0;
 	}
 
 	function uploadFailure(items: UploadFailure[]): string {
@@ -330,10 +381,7 @@
 	}
 
 	async function finishCreated(taskId: string) {
-		if (hasLinks(links)) {
-			const linkFailure = await applyLinks(taskId);
-			if (linkFailure !== null) failure = linkFailure;
-		}
+		if (!(await applyLinks(taskId))) return;
 
 		if (keepOpen) {
 			reset();
@@ -491,6 +539,17 @@
 						onremove={attachmentsStore.remove}
 					/>
 				{/if}
+				{#if pendingLinks.length > 0}
+					<p class="created-hint">
+						These links did not reach the task. Retry, or add them on the task
+						page.
+					</p>
+					<ul class="created-links">
+						{#each pendingLinks as line (line)}
+							<li>{line}</li>
+						{/each}
+					</ul>
+				{/if}
 			</div>
 		{:else}
 			<TaskEditorFields
@@ -571,11 +630,7 @@
 				{/if}
 				<Button type="button" onclick={cancel}>Close</Button>
 				<Button variant="primary" type="submit" disabled={saving}>
-					{saving
-						? "uploading…"
-						: attachmentsStore.count > 0
-							? "Retry upload"
-							: "Done"}
+					{saving ? "saving…" : retryLabel}
 				</Button>
 			{/if}
 		</div>
@@ -686,6 +741,18 @@
 		margin: var(--space-2) 0 0;
 		color: var(--text-secondary);
 		font-size: var(--text-sm);
+	}
+
+	.created-links {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-1);
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		color: var(--text-secondary);
+		font-family: var(--font-mono);
+		font-size: var(--text-xs);
 	}
 
 	.back-button {
