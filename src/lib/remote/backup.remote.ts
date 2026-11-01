@@ -15,6 +15,7 @@ export const createBackup = defineCommand({
 		const result = await runBackup(getDb(), backupConfig(), "manual");
 		return result.map((path) => ({ path }));
 	},
+	activity: null,
 });
 
 export const listBackupFiles = defineQuery({

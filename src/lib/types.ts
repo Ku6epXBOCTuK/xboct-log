@@ -108,6 +108,7 @@ export interface ActivityChange {
 	field: string;
 	from: ActivityValue;
 	to: ActivityValue;
+	ref_id?: string;
 }
 
 export interface ActivityItem {

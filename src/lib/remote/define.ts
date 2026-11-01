@@ -15,6 +15,11 @@ import {
 import { registerOp, type OpDefinition, type OpKind } from "./registry";
 import { unwrap } from "./result";
 
+export type ActivityRecorder<TInput, TResult> = (
+	input: TInput,
+	result: TResult,
+) => ActivityEntry | ActivityEntry[] | null;
+
 export interface OpSpec<TSchema extends ZodType = ZodType, TResult = unknown> {
 	name: string;
 	description: string;
@@ -30,10 +35,14 @@ export interface OpSpec<TSchema extends ZodType = ZodType, TResult = unknown> {
 		| TResult
 		| Result<TResult, AppError>
 		| Promise<TResult | Result<TResult, AppError>>;
-	activity?: (
-		input: z.infer<TSchema>,
-		result: never,
-	) => ActivityEntry | ActivityEntry[] | null;
+	activity?: ActivityRecorder<z.infer<TSchema>, TResult>;
+}
+
+export interface CommandSpec<
+	TSchema extends ZodType = ZodType,
+	TResult = unknown,
+> extends Omit<OpSpec<TSchema, TResult>, "activity"> {
+	activity: ActivityRecorder<z.infer<TSchema>, TResult> | null;
 }
 
 function isAppResult(value: unknown): value is Result<unknown, AppError> {
@@ -74,7 +83,10 @@ export async function runOp(
 				source === "ui" ? requestClient() : client,
 			);
 		}
-		const entries = op.activity?.(parsed as never, result as never);
+		const entries =
+			op.activity === null
+				? null
+				: op.activity(parsed as never, result as never);
 		if (entries) {
 			recordActivity(
 				getDb(),
@@ -91,16 +103,21 @@ export async function runOp(
 export function defineQuery<TSchema extends ZodType, TResult>(
 	op: OpSpec<TSchema, TResult>,
 ) {
-	registerOp(op);
-	return query(op.input, (input) => runOp(op, input, "ui") as Promise<TResult>);
+	const definition: OpDefinition = { ...op, activity: op.activity ?? null };
+	registerOp(definition);
+	return query(
+		op.input,
+		(input) => runOp(definition, input, "ui") as Promise<TResult>,
+	);
 }
 
 export function defineCommand<TSchema extends ZodType, TResult>(
-	op: OpSpec<TSchema, TResult>,
+	op: CommandSpec<TSchema, TResult>,
 ) {
-	registerOp(op);
+	const definition: OpDefinition = { ...op, activity: op.activity };
+	registerOp(definition);
 	return command(
 		op.input,
-		(input) => runOp(op, input, "ui") as Promise<TResult>,
+		(input) => runOp(definition, input, "ui") as Promise<TResult>,
 	);
 }

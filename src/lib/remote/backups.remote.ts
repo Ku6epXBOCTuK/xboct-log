@@ -49,6 +49,7 @@ export const inspectBackup = defineCommand({
 		}
 		return inspectSnapshot(found.entry.path);
 	},
+	activity: null,
 });
 
 export const applyBackup = defineCommand({
@@ -77,4 +78,5 @@ export const applyBackup = defineCommand({
 		setTimeout(() => publishReset(), 300).unref();
 		return outcome;
 	},
+	activity: null,
 });

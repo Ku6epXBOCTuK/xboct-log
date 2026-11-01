@@ -4,6 +4,7 @@ import {
 	ATTACHMENT_PURGE_KEEP_DAYS,
 	addAttachmentFromBase64,
 	addAttachmentFromPath,
+	type Attachment,
 	deleteAttachment,
 	listAttachments,
 	listDeletedAttachments,
@@ -26,7 +27,7 @@ import { defineCommand, defineQuery } from "./define";
 import { resolveTaskOrThrow } from "./ids";
 import { ATTACHMENT_FIELDS } from "./shape";
 import { strictObject } from "./strict";
-import { activityEntry } from "../server/activity";
+import { attachmentActivity } from "../server/activity-entries";
 import { ID_DESCRIPTION, taskIdSchema } from "#lib/tasks/ids.ts";
 
 export const getTaskAttachments = defineQuery({
@@ -116,8 +117,8 @@ export const addTaskAttachment = defineCommand({
 		}
 		return { item: result.value };
 	},
-	activity: (_input, result: { item: { task_id: string } }) =>
-		activityEntry("task", result.item.task_id, ["attachments"]),
+	activity: (_input, result: { item: Attachment }) =>
+		attachmentActivity.added(result.item),
 });
 
 export const removeTaskAttachment = defineCommand({
@@ -143,8 +144,8 @@ export const removeTaskAttachment = defineCommand({
 		}
 		return result.value;
 	},
-	activity: (_input, attachment: { task_id: string }) =>
-		activityEntry("task", attachment.task_id, ["attachments"]),
+	activity: (_input, attachment: Attachment) =>
+		attachmentActivity.deleted(attachment),
 });
 
 export const restoreTaskAttachment = defineCommand({
@@ -168,15 +169,15 @@ export const restoreTaskAttachment = defineCommand({
 		}
 		return result.value;
 	},
-	activity: (_input, attachment: { task_id: string }) =>
-		activityEntry("task", attachment.task_id, ["attachments"]),
+	activity: (_input, attachment: Attachment) =>
+		attachmentActivity.restored(attachment),
 });
 
 export const purgeTaskAttachment = defineCommand({
 	name: "attachments_purge",
 	output: attachmentPurged,
 	description:
-		"Remove a soft-deleted attachment for good, now instead of waiting for the automatic cleanup: the file in the media folder and the row are gone and cannot be restored. Only works on a soft-deleted attachment. Returns: {id, file_removed} - file_removed is false when the file was already gone from the media folder.",
+		"Remove a soft-deleted attachment for good, now instead of waiting for the automatic cleanup: the file in the media folder and the row are gone and cannot be restored. Only works on a soft-deleted attachment. Returns: {id, task_id, file_name, file_removed} - file_removed is false when the file was already gone from the media folder.",
 	kind: "command",
 	input: strictObject({
 		attachment_id: z
@@ -191,6 +192,10 @@ export const purgeTaskAttachment = defineCommand({
 		}
 		return result.value;
 	},
+	activity: (
+		_input,
+		result: { id: string; task_id: string; file_name: string },
+	) => attachmentActivity.purged(result),
 });
 
 export const checkTaskAttachments = defineQuery({

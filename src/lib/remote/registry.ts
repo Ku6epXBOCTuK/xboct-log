@@ -15,10 +15,9 @@ export interface OpDefinition {
 	// NOTE: `never` as parameter type makes every concrete handler assignable
 	// (contravariance), while call sites cast their parsed input with `as never`.
 	handler: (input: never) => unknown;
-	activity?: (
-		input: never,
-		result: never,
-	) => ActivityEntry | ActivityEntry[] | null;
+	activity:
+		| ((input: never, result: never) => ActivityEntry | ActivityEntry[] | null)
+		| null;
 }
 
 const ops = new Map<string, OpDefinition>();

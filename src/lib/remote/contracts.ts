@@ -179,6 +179,8 @@ export const attachmentRestored = attachmentRef;
 
 export const attachmentPurged = z.looseObject({
 	id: z.string(),
+	task_id: z.string(),
+	file_name: z.string(),
 	file_removed: z.boolean(),
 });
 

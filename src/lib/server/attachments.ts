@@ -315,7 +315,15 @@ export function restoreAttachment(
 export function purgeAttachment(
 	db: DatabaseSync,
 	id: string,
-): Result<{ id: string; file_removed: boolean }, AppError> {
+): Result<
+	{
+		id: string;
+		task_id: string;
+		file_name: string;
+		file_removed: boolean;
+	},
+	AppError
+> {
 	const row = rowById(db, id);
 	if (!row || row.deleted_at === null) {
 		return err(notFound(`no deleted attachment with the id ${id}`));
@@ -330,7 +338,12 @@ export function purgeAttachment(
 		}
 	}
 	db.prepare("DELETE FROM task_attachments WHERE id = ?").run(id);
-	return ok({ id, file_removed: fileRemoved });
+	return ok({
+		id,
+		task_id: row.task_id,
+		file_name: row.file_name,
+		file_removed: fileRemoved,
+	});
 }
 
 export function purgeSoftDeletedAttachments(

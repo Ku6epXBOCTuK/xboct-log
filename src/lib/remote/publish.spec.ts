@@ -20,6 +20,7 @@ function command(name: string, kind: "query" | "command" = "command") {
 		kind,
 		input: z.object({}),
 		handler: async () => ({ ok: true }),
+		activity: null,
 	};
 	return op;
 }
