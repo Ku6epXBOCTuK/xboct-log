@@ -2,6 +2,16 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.6.0](https://github.com/Ku6epXBOCTuK/xboct-log/compare/addedbbbbc869f2ede3c85c87f74f82c3262d0e4..v0.6.0) - 2026-11-01
+#### Features
+- add soft delete and restore attachments flow - ([6b0f202](https://github.com/Ku6epXBOCTuK/xboct-log/commit/6b0f2028e73b40eaf803eb48f1d3dc32a2a04592)) - Ku6epXBOCTuK
+- update status flow, refactor filters - ([4047759](https://github.com/Ku6epXBOCTuK/xboct-log/commit/40477595e92ecec15d327a2b1ca688111ab3bf9b)) - Ku6epXBOCTuK
+- add links from tags page for search tasks - ([addedbb](https://github.com/Ku6epXBOCTuK/xboct-log/commit/addedbbbbc869f2ede3c85c87f74f82c3262d0e4)) - Ku6epXBOCTuK
+#### Refactoring
+- reduce props - use context, state - ([b89168e](https://github.com/Ku6epXBOCTuK/xboct-log/commit/b89168e72549b3f1bf53c7f3a186581505f593b8)) - Ku6epXBOCTuK
+
+- - -
+
 ## [v0.5.0](https://github.com/Ku6epXBOCTuK/xboct-log/compare/b4ab09406db9742b6eaade9a8b2fbd1ecb3eaddf..v0.5.0) - 2026-11-01
 #### Features
 - add tags page - ([03f60d8](https://github.com/Ku6epXBOCTuK/xboct-log/commit/03f60d88cf44eca9fe4a7dffcd9aec0493b71653)) - Ku6epXBOCTuK
