@@ -1,8 +1,36 @@
+import { messageOf } from "#lib/tasks/display.ts";
 import type { TaskAttachment } from "#lib/types.ts";
 
 export type AttachmentEntry =
 	| { kind: "file"; key: string; file: File }
 	| { kind: "saved"; key: string; attachment: TaskAttachment };
+
+export interface UploadFailure {
+	name: string;
+	message: string;
+}
+
+export interface UploadOutcome {
+	attached: string[];
+	failed: UploadFailure[];
+}
+
+export async function attachEach<T extends { key: string; file: File }>(
+	items: T[],
+	attach: (item: T) => Promise<void>,
+): Promise<UploadOutcome> {
+	const attached: string[] = [];
+	const failed: UploadFailure[] = [];
+	for (const item of items) {
+		try {
+			await attach(item);
+			attached.push(item.key);
+		} catch (error) {
+			failed.push({ name: item.file.name, message: messageOf(error) });
+		}
+	}
+	return { attached, failed };
+}
 
 export function fileToBase64(file: File): Promise<string> {
 	return new Promise((resolve, reject) => {

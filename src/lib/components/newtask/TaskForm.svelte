@@ -19,6 +19,7 @@
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
 	import type { UiStore } from "#lib/state/ui.svelte.ts";
 	import { ATTACHMENT_ACCEPT } from "#lib/tasks/attachment-kinds.ts";
+	import type { UploadFailure } from "#lib/tasks/attachments.ts";
 	import { messageOf } from "#lib/tasks/display.ts";
 	import {
 		draftHasContent,
@@ -124,6 +125,7 @@
 	let formElement = $state<HTMLFormElement | null>(null);
 	let dragging = $state(false);
 	let committed = $state(false);
+	let created = $state<{ id: string; title: string } | null>(null);
 	const attachmentsStore = createDraftAttachments();
 
 	untrack(() => {
@@ -208,6 +210,7 @@
 		failure = null;
 		invalidField = false;
 		committed = false;
+		created = null;
 	}
 
 	function pickFiles(event: Event) {
@@ -310,12 +313,68 @@
 		}
 	}
 
+	function uploadFailure(items: UploadFailure[]): string {
+		const names = items.map((item) => `${item.name}: ${item.message}`);
+		return `${items.length} ${items.length === 1 ? "file was" : "files were"} not attached: ${names.join("; ")}`;
+	}
+
+	async function sendAttachments(taskId: string): Promise<boolean> {
+		if (attachmentsStore.count === 0) return true;
+		const outcome = await attachmentsStore.upload(taskId);
+		if (outcome.attached.length > 0) {
+			tasks.bumpAttachments(taskId, outcome.attached.length);
+		}
+		if (outcome.failed.length === 0) return true;
+		failure = uploadFailure(outcome.failed);
+		return false;
+	}
+
+	async function finishCreated(taskId: string) {
+		if (hasLinks(links)) {
+			const linkFailure = await applyLinks(taskId);
+			if (linkFailure !== null) failure = linkFailure;
+		}
+
+		if (keepOpen) {
+			reset();
+		} else {
+			onclose();
+		}
+	}
+
+	async function retryUpload() {
+		if (created === null) return;
+		saving = true;
+		try {
+			if (!(await sendAttachments(created.id))) return;
+			await finishCreated(created.id);
+		} catch (error) {
+			failure = messageOf(error);
+		} finally {
+			saving = false;
+		}
+	}
+
+	function openCreated() {
+		if (created === null) return;
+		if (onopen === undefined) {
+			onclose();
+			return;
+		}
+		onopen(created.id);
+	}
+
 	async function submit(event: SubmitEvent) {
 		event.preventDefault();
 
-		if (invalidField) return;
+		if (invalidField || saving) return;
 
 		failure = null;
+
+		if (created !== null) {
+			await retryUpload();
+			return;
+		}
 
 		if (draft.project_id === "") {
 			failure = "create a project first";
@@ -336,7 +395,7 @@
 		saving = true;
 
 		try {
-			const created = await tasks.create({
+			const task = await tasks.create({
 				project_id: draft.project_id,
 				title: title.trim(),
 				description: draft.description,
@@ -352,31 +411,16 @@
 				due_at: draft.due_at,
 			});
 
-			draftStore.setLast({ id: created.id, title: created.title });
+			draftStore.setLast({ id: task.id, title: task.title });
 			draftStore.clearDraft();
+			created = { id: task.id, title: task.title };
 
-			if (attachmentsStore.count > 0) {
-				try {
-					await attachmentsStore.upload(created.id);
-				} catch (error) {
-					failure = messageOf(error);
-				}
-				attachmentsStore.clear();
-			}
+			if (!(await sendAttachments(task.id))) return;
 
-			if (hasLinks(links)) {
-				const linkFailure = await applyLinks(created.id);
-				if (linkFailure !== null) failure = linkFailure;
-			}
-
-			if (keepOpen) {
-				reset();
-			} else {
-				onclose();
-			}
+			await finishCreated(task.id);
 		} catch (error) {
 			failure = messageOf(error);
-			committed = false;
+			if (created === null) committed = false;
 		} finally {
 			saving = false;
 		}
@@ -432,50 +476,72 @@
 	{/snippet}
 
 	<ScrollArea class="panel-body">
-		<TaskEditorFields
-			bind:title
-			value={draft}
-			titleId="new-task-title"
-			{titleTrailing}
-			epics={epicOptions}
-			{projects}
-			scopes={scopeOptions}
-			repo={projectRepo}
-			{tagPicker}
-			linkFields={links}
-			{linkCandidates}
-			blockerCandidates={linkCandidates}
-			onlinkadd={addLink}
-			onlinkremove={removeLink}
-			{linkHref}
-			onlinkopen={onclose}
-			onlinksearch={finder.search}
-			{onfield}
-			{onproject}
-			{onnewscope}
-			{onunknowntag}
-			onerror={(message) => {
-				failure = message;
-				invalidField = true;
-			}}
-			status={draft.status}
-			onstatus={(status) => onfield({ status })}
-			statusWarn={draft.status !== "backlog"}
-			advancedOpen={ui.advanced}
-			onadvancedchange={(value) => ui.set(value)}
-			{attachments}
-		/>
+		{#if created !== null}
+			<div class="created">
+				<p class="created-id">{created.id} created</p>
+				<p class="created-task">{created.title}</p>
+				{#if attachmentsStore.count > 0}
+					<p class="created-hint">
+						These files did not reach the task. Retry, or add them to the task
+						later.
+					</p>
+					<AttachmentBody
+						items={attachmentsStore.entries}
+						busy={saving}
+						onremove={attachmentsStore.remove}
+					/>
+				{/if}
+			</div>
+		{:else}
+			<TaskEditorFields
+				bind:title
+				value={draft}
+				titleId="new-task-title"
+				{titleTrailing}
+				epics={epicOptions}
+				{projects}
+				scopes={scopeOptions}
+				repo={projectRepo}
+				{tagPicker}
+				linkFields={links}
+				{linkCandidates}
+				blockerCandidates={linkCandidates}
+				onlinkadd={addLink}
+				onlinkremove={removeLink}
+				{linkHref}
+				onlinkopen={onclose}
+				onlinksearch={finder.search}
+				{onfield}
+				{onproject}
+				{onnewscope}
+				{onunknowntag}
+				onerror={(message) => {
+					failure = message;
+					invalidField = true;
+				}}
+				status={draft.status}
+				onstatus={(status) => onfield({ status })}
+				statusWarn={draft.status !== "backlog"}
+				advancedOpen={ui.advanced}
+				onadvancedchange={(value) => ui.set(value)}
+				{attachments}
+			/>
+		{/if}
 	</ScrollArea>
 
 	<div class="modal-foot">
 		<ErrorNote message={failure} />
 
 		<div class="modal-actions">
-			<label class="modal-check">
-				<input type="checkbox" bind:checked={keepOpen} />
-				Create another
-				<kbd>Ctrl+Alt+C</kbd>
-			</label>
+			{#if created === null}
+				<label class="modal-check">
+					<input type="checkbox" bind:checked={keepOpen} />
+					Create another
+					<kbd>Ctrl+Alt+C</kbd>
+				</label>
+			{:else}
+				<span class="created-spacer"></span>
+			{/if}
 			{#if attachmentsStore.count > 0}
 				<span class="attach-chip" class:is-fresh={attachmentsStore.fresh}>
 					<Paperclip />
@@ -483,7 +549,7 @@
 					{attachmentsStore.count === 1 ? "file" : "files"}
 				</span>
 			{/if}
-			{#if draftStore.last}
+			{#if created === null && draftStore.last}
 				<button
 					class="back-button"
 					type="button"
@@ -494,10 +560,24 @@
 					{draftStore.last.id}
 				</button>
 			{/if}
-			<Button type="button" onclick={cancel}>Cancel</Button>
-			<Button variant="primary" type="submit" disabled={saving}>
-				{saving ? "creatingвЂ¦" : "Create task"}
-			</Button>
+			{#if created === null}
+				<Button type="button" onclick={cancel}>Cancel</Button>
+				<Button variant="primary" type="submit" disabled={saving}>
+					{saving ? "creating…" : "Create task"}
+				</Button>
+			{:else}
+				{#if onopen !== undefined}
+					<Button type="button" onclick={openCreated}>Open task</Button>
+				{/if}
+				<Button type="button" onclick={cancel}>Close</Button>
+				<Button variant="primary" type="submit" disabled={saving}>
+					{saving
+						? "uploading…"
+						: attachmentsStore.count > 0
+							? "Retry upload"
+							: "Done"}
+				</Button>
+			{/if}
 		</div>
 	</div>
 
@@ -574,6 +654,38 @@
 		padding: 0 var(--space-1);
 		font-size: var(--text-xs);
 		line-height: 1.35rem;
+	}
+
+	.created {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+		padding-top: var(--space-2);
+	}
+
+	.created-spacer {
+		flex: 1 1 auto;
+	}
+
+	.created-id {
+		margin: 0;
+		color: var(--accent-ink);
+		font-family: var(--font-mono);
+		font-size: var(--text-sm);
+	}
+
+	.created-task {
+		margin: 0;
+		color: var(--foreground);
+		font-size: var(--text-lg);
+		font-weight: 600;
+		line-height: 1.25;
+	}
+
+	.created-hint {
+		margin: var(--space-2) 0 0;
+		color: var(--text-secondary);
+		font-size: var(--text-sm);
 	}
 
 	.back-button {

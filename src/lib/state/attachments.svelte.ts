@@ -8,7 +8,12 @@ import { createAttachmentFlash } from "#lib/state/attachment-flash.svelte.ts";
 import { createAttachmentNotice } from "#lib/state/attachment-notice.svelte.ts";
 import type { TaskStore } from "#lib/state/tasks.svelte.ts";
 import { filterFiles, rejectionMessage } from "#lib/tasks/attachment-kinds.ts";
-import { fileToBase64, type AttachmentEntry } from "#lib/tasks/attachments.ts";
+import {
+	attachEach,
+	fileToBase64,
+	type AttachmentEntry,
+	type UploadOutcome,
+} from "#lib/tasks/attachments.ts";
 import { messageOf } from "#lib/tasks/display.ts";
 import type { Task, TaskAttachment } from "#lib/types.ts";
 
@@ -60,8 +65,8 @@ export function createDraftAttachments() {
 		files = [];
 	}
 
-	async function upload(taskId: string) {
-		for (const item of files) {
+	async function upload(taskId: string): Promise<UploadOutcome> {
+		const outcome = await attachEach(files, async (item) => {
 			const content = await fileToBase64(item.file);
 			await addTaskAttachment({
 				task_id: taskId,
@@ -69,7 +74,12 @@ export function createDraftAttachments() {
 				content_base64: content,
 				mime_type: item.file.type || undefined,
 			});
+		});
+		if (outcome.attached.length > 0) {
+			files = files.filter((item) => !outcome.attached.includes(item.key));
+			flash.mark();
 		}
+		return outcome;
 	}
 
 	function openPicker() {
