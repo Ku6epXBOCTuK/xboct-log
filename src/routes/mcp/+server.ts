@@ -39,18 +39,19 @@ function errorPayload(error: unknown): ToolError {
 
 function registerTools(server: McpServer): void {
 	for (const op of mcpOps()) {
+		const inputSchema = op.mcpInput ?? op.input;
 		server.registerTool(
 			op.name,
 			{
 				description: op.description,
-				inputSchema: op.input,
+				inputSchema,
 				outputSchema: op.output,
 			},
 			async (args, ctx) => {
 				try {
 					const value = await runOp(
 						op,
-						args,
+						op.mcpNormalize ? op.mcpNormalize(args) : args,
 						"mcp",
 						clientLabel(ctx.mcpReq.envelope),
 					);

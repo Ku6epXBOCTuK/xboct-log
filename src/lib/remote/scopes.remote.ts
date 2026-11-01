@@ -6,6 +6,7 @@ import * as scopes from "../server/scopes";
 import type { Scope } from "../types";
 import { idList, scopeDeleteReport, scopeList, scopeRef } from "./contracts";
 import { defineCommand, defineQuery } from "./define";
+import { flatPatch } from "./flat";
 import { SCOPE_FIELDS } from "./shape";
 import { strictObject } from "./strict";
 
@@ -93,18 +94,24 @@ export const createScope = defineCommand({
 		activityEntry("scope", scope.id, fieldNames(input)),
 });
 
+const updateScopeInput = strictObject({
+	scope_id: z.number().int(),
+	patch: strictObject({ name: z.string().min(1) }),
+});
+
+const flatUpdateScope = flatPatch(updateScopeInput);
+
 export const updateScope = defineCommand({
 	name: "scopes_update",
 	output: scopeRef,
 	description:
-		"Rename a scope by scope_id. Returns: the updated scope - " +
+		"Rename a scope by scope_id: pass the new name next to scope_id (e.g. {scope_id: 3, name: 'Design'}); a nested patch object {scope_id, patch: {name}} is accepted too. Returns: the updated scope - " +
 		SCOPE_FIELDS +
 		".",
 	kind: "command",
-	input: strictObject({
-		scope_id: z.number().int(),
-		patch: strictObject({ name: z.string().min(1) }),
-	}),
+	input: updateScopeInput,
+	mcpInput: flatUpdateScope.input,
+	mcpNormalize: flatUpdateScope.normalize,
 	handler: ({ scope_id, patch }) =>
 		scopes.updateScope(getDb(), scope_id, patch),
 	activity: (input, scope: Scope) =>

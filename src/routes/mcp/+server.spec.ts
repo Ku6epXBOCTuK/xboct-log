@@ -705,3 +705,129 @@ describe("output contracts", () => {
 		}
 	});
 });
+
+describe("flat update payloads", () => {
+	beforeAll(() => {
+		const project = createProject(getDb(), {
+			id: "flat",
+			name: "Flat",
+			prefix: "FLT",
+		});
+		expect(project.isOk()).toBe(true);
+	});
+
+	async function freshTask(title: string): Promise<string> {
+		const body = await rpc("tools/call", {
+			name: "tasks_create",
+			arguments: { project_id: "flat", title },
+		});
+		return String((body.result?.structuredContent as { id?: string }).id);
+	}
+
+	it("offers the patch fields next to the id and keeps patch optional", async () => {
+		const body = await rpc("tools/list", {});
+		const tool = body.result?.tools?.find(
+			(item) => item.name === "tasks_update",
+		) as unknown as {
+			inputSchema?: {
+				required?: string[];
+				properties?: Record<string, unknown>;
+			};
+		};
+		expect(tool.inputSchema?.required).toEqual(["task_id"]);
+		expect(Object.keys(tool.inputSchema?.properties ?? {})).toEqual(
+			expect.arrayContaining(["task_id", "status", "priority", "patch"]),
+		);
+	});
+
+	it("applies a flat tasks_update", async () => {
+		const id = await freshTask("Flat status");
+		const body = await rpc("tools/call", {
+			name: "tasks_update",
+			arguments: { task_id: id, status: "in-progress" },
+		});
+		expect(body.result?.isError).toBeUndefined();
+		expect((body.result?.structuredContent as { status?: string }).status).toBe(
+			"in-progress",
+		);
+	});
+
+	it("still accepts the nested patch", async () => {
+		const id = await freshTask("Nested status");
+		const body = await rpc("tools/call", {
+			name: "tasks_update",
+			arguments: { task_id: id, patch: { priority: "high" } },
+		});
+		expect(body.result?.isError).toBeUndefined();
+		expect(
+			(body.result?.structuredContent as { priority?: string }).priority,
+		).toBe("high");
+	});
+
+	it("explains a call that names no field", async () => {
+		const id = await freshTask("Nothing to change");
+		const body = await rpc("tools/call", {
+			name: "tasks_update",
+			arguments: { task_id: id },
+		});
+		expect(body.result?.isError).toBe(true);
+		expect(body.result?.content?.[0]?.text).toContain("nothing to update");
+	});
+
+	it("applies flat items in tasks_update_many", async () => {
+		const first = await freshTask("Many flat one");
+		const second = await freshTask("Many flat two");
+		const body = await rpc("tools/call", {
+			name: "tasks_update_many",
+			arguments: {
+				items: [
+					{ task_id: first, status: "done" },
+					{ task_id: second, priority: "low" },
+				],
+			},
+		});
+		const payload = body.result?.structuredContent as {
+			succeeded?: number;
+			failed?: number;
+		};
+		expect(payload.succeeded).toBe(2);
+		expect(payload.failed).toBe(0);
+	});
+
+	it("applies flat projects, scopes and tags updates", async () => {
+		const renamed = await rpc("tools/call", {
+			name: "projects_update",
+			arguments: { project_id: "flat", name: "Flat renamed" },
+		});
+		expect((renamed.result?.structuredContent as { name?: string }).name).toBe(
+			"Flat renamed",
+		);
+
+		const scope = await rpc("tools/call", {
+			name: "scopes_create",
+			arguments: { project_id: "flat", name: "Flat scope" },
+		});
+		const scopeId = Number(
+			(scope.result?.structuredContent as { id?: number }).id,
+		);
+		const renamedScope = await rpc("tools/call", {
+			name: "scopes_update",
+			arguments: { scope_id: scopeId, name: "Renamed scope" },
+		});
+		expect(
+			(renamedScope.result?.structuredContent as { name?: string }).name,
+		).toBe("Renamed scope");
+
+		await rpc("tools/call", {
+			name: "tags_create",
+			arguments: { name: "flat-tag" },
+		});
+		const archived = await rpc("tools/call", {
+			name: "tags_update",
+			arguments: { name: "flat-tag", archived: true },
+		});
+		expect(
+			(archived.result?.structuredContent as { archived?: boolean }).archived,
+		).toBe(true);
+	});
+});

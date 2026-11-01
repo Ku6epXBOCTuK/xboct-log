@@ -20,6 +20,8 @@ export interface OpSpec<TSchema extends ZodType = ZodType, TResult = unknown> {
 	description: string;
 	kind: OpKind;
 	input: TSchema;
+	mcpInput?: ZodType;
+	mcpNormalize?: (args: unknown) => unknown;
 	output?: ZodType;
 	mcp?: boolean;
 	handler: (

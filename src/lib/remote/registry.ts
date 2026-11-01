@@ -8,6 +8,8 @@ export interface OpDefinition {
 	description: string;
 	kind: OpKind;
 	input: ZodType;
+	mcpInput?: ZodType;
+	mcpNormalize?: (args: unknown) => unknown;
 	output?: ZodType;
 	mcp?: boolean;
 	// NOTE: `never` as parameter type makes every concrete handler assignable

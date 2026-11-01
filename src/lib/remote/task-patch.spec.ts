@@ -66,7 +66,7 @@ describe("tasks_update patch validation", () => {
 			status: 400,
 			body: {
 				message:
-					"patch is empty: name at least one field to change (a field set to undefined is not a value)",
+					"nothing to update: name at least one field next to task_id, e.g. {task_id: 'LOG-254', status: 'in-progress'}",
 			},
 		});
 	});

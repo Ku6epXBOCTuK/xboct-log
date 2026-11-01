@@ -12,6 +12,7 @@ import {
 import { STATUSES } from "../types";
 import { idList, tagList, tagRecord } from "./contracts";
 import { defineCommand, defineQuery } from "./define";
+import { flatPatch } from "./flat";
 import { oneOrList } from "./list";
 import { strictObject } from "./strict";
 
@@ -61,16 +62,22 @@ export const createTag = defineCommand({
 		activityEntry("tag", tag.name, fieldNames(input)),
 });
 
+const updateTagInput = strictObject({
+	name: z.string().min(1),
+	patch: strictObject({ archived: z.boolean() }),
+});
+
+const flatUpdateTag = flatPatch(updateTagInput);
+
 export const updateTag = defineCommand({
 	name: "tags_update",
 	output: tagRecord,
 	description:
-		"Archive or restore a tag by name. An archived tag keeps the tasks that already carry it, but it disappears from tags_list and cannot be assigned again. Returns: the tag - {name, archived, created_at}.",
+		"Archive or restore a tag by name: pass archived next to name (e.g. {name: 'design', archived: true}); a nested patch object is accepted too. An archived tag keeps the tasks that already carry it, but it disappears from tags_list and cannot be assigned again. Returns: the tag - {name, archived, created_at}.",
 	kind: "command",
-	input: strictObject({
-		name: z.string().min(1),
-		patch: strictObject({ archived: z.boolean() }),
-	}),
+	input: updateTagInput,
+	mcpInput: flatUpdateTag.input,
+	mcpNormalize: flatUpdateTag.normalize,
 	handler: ({ name, patch }) => setTagArchived(getDb(), name, patch.archived),
 	activity: (input, tag: TagRecord) =>
 		activityEntry("tag", tag.name, fieldNames(input.patch)),

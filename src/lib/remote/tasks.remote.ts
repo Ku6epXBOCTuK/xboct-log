@@ -8,6 +8,7 @@ import {
 	type ActivityEntry,
 } from "../server/activity";
 import { getDb } from "../server/db";
+import { invalid } from "../server/errors";
 import type {
 	BatchItem,
 	CreateBatchItem,
@@ -33,6 +34,7 @@ import {
 	taskRef,
 } from "./contracts";
 import { defineCommand, defineQuery } from "./define";
+import { flatPatch, flatPatchItems } from "./flat";
 import { resolveTaskOrThrow } from "./ids";
 import { TASK_FIELDS } from "./shape";
 import { strictObject } from "./strict";
@@ -317,19 +319,32 @@ export const createTasks = defineCommand({
 		),
 });
 
+const updateInput = strictObject({
+	task_id: taskIdSchema(ID_DESCRIPTION),
+	patch: taskPatch.optional(),
+});
+
+const flatUpdate = flatPatch(updateInput);
+
 export const updateTask = defineCommand({
 	name: "tasks_update",
 	output: taskRef,
 	description:
-		"Update fields of an existing task by task_id. Every field to change goes inside the patch object (e.g. {task_id: 'LOG-87', patch: {status: 'in-progress'}}); top-level fields other than task_id and patch are rejected. The task_id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). In patch, epic_id accepts a full epic id (e.g. 'LOG-5') of the task's current project, estimate takes the size of the task ('S', 'M' or 'L') or null to clear it, assignee takes the name of the responsible person or null to clear it, due_at takes the due date (YYYY-MM-DD) or null to clear it, and blocked_reason is one line of free text explaining a block outside the tracker, allowed only on a blocked task; leaving status 'blocked' clears it. The patch must name at least one field with a value: an empty patch, a field set to undefined, an unknown field or an epic id that does not exist is an error, the task is left untouched. Returns: the updated task - " +
+		"Update fields of an existing task by task_id. Pass the fields to change next to task_id (e.g. {task_id: 'LOG-87', status: 'in-progress'}); a nested patch object {task_id, patch: {status}} is accepted too. The task_id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). epic_id accepts a full epic id (e.g. 'LOG-5') of the task's current project, estimate takes the size of the task ('S', 'M' or 'L') or null to clear it, assignee takes the name of the responsible person or null to clear it, due_at takes the due date (YYYY-MM-DD) or null to clear it, and blocked_reason is one line of free text explaining a block outside the tracker, allowed only on a blocked task; leaving status 'blocked' clears it. The call must name at least one field with a value: no field, a field set to undefined, an unknown field or an epic id that does not exist is an error, the task is left untouched. Returns: the updated task - " +
 		TASK_FIELDS +
-		" with a changes array and a warnings array, which is not empty when the task is blocked with neither a blocker task nor a blocked_reason. An unknown tag in the patch is rejected: tags are a closed dictionary, see tags_list and tags_create.",
+		" with a changes array and a warnings array, which is not empty when the task is blocked with neither a blocker task nor a blocked_reason. An unknown tag is rejected: tags are a closed dictionary, see tags_list and tags_create.",
 	kind: "command",
-	input: strictObject({
-		task_id: taskIdSchema(ID_DESCRIPTION),
-		patch: taskPatch,
-	}),
+	input: updateInput,
+	mcpInput: flatUpdate.input,
+	mcpNormalize: flatUpdate.normalize,
 	handler: ({ task_id, patch }) => {
+		if (patch === undefined || Object.keys(patch).length === 0) {
+			return err(
+				invalid(
+					"nothing to update: name at least one field next to task_id, e.g. {task_id: 'LOG-254', status: 'in-progress'}",
+				),
+			);
+		}
 		const db = getDb();
 		const result = repo.updateTaskDetailed(db, task_id, patch);
 		if (result.isErr()) {
@@ -342,7 +357,13 @@ export const updateTask = defineCommand({
 		});
 	},
 	activity: (input, task: TaskWithChanges) =>
-		activityEntry("task", task.id, fieldNames(input.patch), null, task.changes),
+		activityEntry(
+			"task",
+			task.id,
+			fieldNames(input.patch ?? {}),
+			null,
+			task.changes,
+		),
 });
 
 function summarize<T extends { ok: boolean }>(items: T[]) {
@@ -376,23 +397,32 @@ function releasedEntries(released: ReleasedLink[]): ActivityEntry[] {
 	);
 }
 
+const manyUpdateInput = strictObject({
+	items: z
+		.array(
+			strictObject({
+				task_id: taskIdSchema("Full task id, e.g. 'LOG-82'."),
+				patch: taskPatch,
+			}),
+		)
+		.min(1)
+		.max(100),
+});
+
+const flatUpdateMany = flatPatchItems(manyUpdateInput, "items", {
+	min: 1,
+	max: 100,
+});
+
 export const updateTasks = defineCommand({
 	name: "tasks_update_many",
 	output: taskBatch,
 	description:
-		"Update several tasks in one call. Each item is applied independently and the response reports ok/error per item; a failing item does not cancel the others. Every task_id must use the full 'PREFIX-NUMBER' form. Every patch must name at least one field with a value: an empty patch, a field set to undefined, an unknown field or an epic id that does not exist is an error for that item, the task is left untouched and the item reports ok:false. Returns: {items, succeeded, failed} - every item is {index, id, ok, task, changes, released, warnings} when it worked and {index, id, ok:false, error:{kind, message}} when it failed, where index is the position in the request list and id is the id of the task. released is empty when nothing was released. Every successful item carries its own warnings array. An unknown tag fails that item only: tags are a closed dictionary, see tags_list and tags_create.",
+		"Update several tasks in one call. Each item is applied independently and the response reports ok/error per item; a failing item does not cancel the others. Every item carries task_id plus the fields to change next to it (e.g. {items: [{task_id: 'LOG-87', status: 'done'}]}); a nested patch object {task_id, patch: {...}} is accepted too. Every task_id must use the full 'PREFIX-NUMBER' form. Every item must name at least one field with a value: no field, a field set to undefined, an unknown field or an epic id that does not exist is an error for that item, the task is left untouched and the item reports ok:false. Returns: {items, succeeded, failed} - every item is {index, id, ok, task, changes, released, warnings} when it worked and {index, id, ok:false, error:{kind, message}} when it failed, where index is the position in the request list and id is the id of the task. released is empty when nothing was released. Every successful item carries its own warnings array. An unknown tag fails that item only: tags are a closed dictionary, see tags_list and tags_create.",
 	kind: "command",
-	input: strictObject({
-		items: z
-			.array(
-				strictObject({
-					task_id: taskIdSchema("Full task id, e.g. 'LOG-82'."),
-					patch: taskPatch,
-				}),
-			)
-			.min(1)
-			.max(100),
-	}),
+	input: manyUpdateInput,
+	mcpInput: flatUpdateMany.input,
+	mcpNormalize: flatUpdateMany.normalize,
 	handler: ({ items }) => {
 		const db = getDb();
 		const result = repo.updateTasksMany(

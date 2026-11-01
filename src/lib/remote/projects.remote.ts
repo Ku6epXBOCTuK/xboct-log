@@ -9,6 +9,7 @@ import { countEpicsByStatus, countTasksByStatus } from "../server/tasks";
 import type { Project } from "../types";
 import { projectList, projectRef } from "./contracts";
 import { defineCommand, defineQuery } from "./define";
+import { flatPatch } from "./flat";
 import { PROJECT_FIELDS } from "./shape";
 import { strictObject } from "./strict";
 
@@ -134,28 +135,34 @@ export const createProject = defineCommand({
 		activityEntry("project", project.id, fieldNames(input)),
 });
 
+const updateProjectInput = strictObject({
+	project_id: z.string().min(1),
+	patch: strictObject({
+		name: z.string().optional(),
+		archived: z.boolean().optional(),
+		repo: z
+			.string()
+			.nullable()
+			.optional()
+			.describe(
+				"Git repository as host/owner/name; a full URL or SSH form is normalized. null clears it.",
+			),
+	}),
+});
+
+const flatUpdateProject = flatPatch(updateProjectInput);
+
 export const updateProject = defineCommand({
 	name: "projects_update",
 	output: projectRef,
 	description:
-		"Rename a project, change its archived flag or set its repository. The prefix is immutable — it defines task ids. repo takes host/owner/name or a git URL and null clears it. Returns: the updated project - " +
+		"Rename a project, change its archived flag or set its repository. Pass the fields to change next to project_id (e.g. {project_id: 'spa', name: 'Shop'}); a nested patch object is accepted too. The prefix is immutable — it defines task ids. repo takes host/owner/name or a git URL and null clears it. Returns: the updated project - " +
 		PROJECT_FIELDS +
 		".",
 	kind: "command",
-	input: strictObject({
-		project_id: z.string().min(1),
-		patch: strictObject({
-			name: z.string().optional(),
-			archived: z.boolean().optional(),
-			repo: z
-				.string()
-				.nullable()
-				.optional()
-				.describe(
-					"Git repository as host/owner/name; a full URL or SSH form is normalized. null clears it.",
-				),
-		}),
-	}),
+	input: updateProjectInput,
+	mcpInput: flatUpdateProject.input,
+	mcpNormalize: flatUpdateProject.normalize,
 	handler: ({ project_id, patch }) =>
 		projects.updateProject(getDb(), project_id, patch),
 	activity: (input, project: Project) =>
