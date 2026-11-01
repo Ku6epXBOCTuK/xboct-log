@@ -51,10 +51,10 @@
 		{/if}
 		{#snippet end()}
 			{#if confirming}
-				<Button onclick={() => (confirming = false)}>Cancel</Button>
 				<Button variant="danger" onclick={ondelete} disabled={saving}>
 					Confirm delete
 				</Button>
+				<Button onclick={() => (confirming = false)}>Cancel</Button>
 			{:else}
 				<Button
 					variant="ghost"

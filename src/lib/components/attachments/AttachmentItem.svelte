@@ -1,5 +1,6 @@
 <script lang="ts">
 	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
+	import Button from "@ku6epxboctuk/ui-kit/components/Button";
 	import CopyImageButton from "#lib/components/ui/CopyImageButton.svelte";
 	import ImageViewer from "#lib/components/ui/ImageViewer.svelte";
 	import { openExternal, openMedia } from "#lib/host/embed.ts";
@@ -44,6 +45,13 @@
 	let preview = $state<string | undefined>();
 	let viewer = $state(false);
 	let previewImage = $state<HTMLImageElement>();
+	let confirming = $state(false);
+	let cancelButton = $state<HTMLButtonElement>();
+
+	$effect(() => {
+		if (!confirming) return;
+		cancelButton?.focus();
+	});
 
 	$effect(() => {
 		if (file === undefined || !file.type.startsWith("image/")) return;
@@ -63,6 +71,24 @@
 		if (href !== undefined) {
 			openExternal(new URL(href, location.href).href);
 		}
+	}
+
+	function requestRemove() {
+		if (entry.kind === "file") {
+			onremove();
+			return;
+		}
+		confirming = true;
+	}
+
+	function remove() {
+		confirming = false;
+		onremove();
+	}
+
+	function escape(event: KeyboardEvent) {
+		if (event.key !== "Escape") return;
+		confirming = false;
 	}
 </script>
 
@@ -96,22 +122,49 @@
 		<span class="attachment-icon"><Paperclip /></span>
 		<span class="attachment-name">{name}</span>
 	{/if}
-	<span class="attachment-size">{formatSize(size)}</span>
-	{#if image !== undefined && !missing}
+	<span class="attachment-size" class:is-hidden={confirming}>
+		{formatSize(size)}
+	</span>
+	{#if image !== undefined && !missing && !confirming}
 		<CopyImageButton
 			image={previewImage}
 			label="Copy the image"
 			onfail={() => src !== undefined && openMedia(src)}
 		/>
 	{/if}
-	<IconButton
-		label="Remove the attachment"
-		title="Remove the attachment"
-		disabled={busy}
-		onclick={onremove}
-	>
-		<Trash2 />
-	</IconButton>
+	<div class="attachment-actions">
+		{#if confirming}
+			<div class="attachment-confirm">
+				<span class="attachment-confirm-label">Remove?</span>
+				<Button
+					size="sm"
+					variant="danger"
+					disabled={busy}
+					onclick={remove}
+					onkeydown={escape}
+				>
+					Remove
+				</Button>
+				<Button
+					size="sm"
+					bind:element={cancelButton}
+					onclick={() => (confirming = false)}
+					onkeydown={escape}
+				>
+					Cancel
+				</Button>
+			</div>
+		{:else}
+			<IconButton
+				label="Remove the attachment"
+				title="Remove the attachment"
+				disabled={busy}
+				onclick={requestRemove}
+			>
+				<Trash2 />
+			</IconButton>
+		{/if}
+	</div>
 </li>
 
 {#if viewer && image !== undefined}
@@ -200,5 +253,38 @@
 		font-size: var(--text-xs);
 		font-variant-numeric: tabular-nums;
 		white-space: nowrap;
+	}
+
+	.attachment-confirm {
+		position: absolute;
+		top: 50%;
+		right: 0;
+		transform: translateY(-50%);
+		display: flex;
+		align-items: center;
+		gap: var(--space-1);
+		padding-left: var(--space-2);
+		background: var(--field);
+		z-index: 1;
+	}
+
+	.attachment-confirm-label {
+		color: var(--text-secondary);
+		font-size: var(--text-sm);
+		white-space: nowrap;
+	}
+
+	.attachment-actions {
+		position: relative;
+		flex: none;
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		width: var(--control-h);
+		height: var(--control-h);
+	}
+
+	.attachment-size.is-hidden {
+		visibility: hidden;
 	}
 </style>

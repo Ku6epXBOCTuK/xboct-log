@@ -47,7 +47,6 @@
 			<div class="comment-tools">
 				{#if confirming}
 					<span class="confirm-label">Delete comment?</span>
-					<Button size="sm" onclick={() => (confirming = false)}>Cancel</Button>
 					<Button
 						size="sm"
 						variant="danger"
@@ -59,6 +58,7 @@
 					>
 						Delete
 					</Button>
+					<Button size="sm" onclick={() => (confirming = false)}>Cancel</Button>
 				{:else}
 					<IconButton
 						label={raw ? "Show preview" : "Show raw markdown"}
