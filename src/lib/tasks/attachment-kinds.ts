@@ -50,12 +50,6 @@ export const ATTACHMENT_ACCEPT = Object.keys(ATTACHMENT_FORMATS)
 	.map((extension) => `.${extension}`)
 	.join(",");
 
-const FORMAT_BY_MIME: Record<string, AttachmentFormat> = {};
-for (const [extension, format] of Object.entries(ATTACHMENT_FORMATS)) {
-	if (FORMAT_BY_MIME[format.mime] !== undefined) continue;
-	FORMAT_BY_MIME[format.mime] = { extension, ...format };
-}
-
 export function extensionOf(name: string): string {
 	const dot = name.lastIndexOf(".");
 	if (dot < 0) return "";
@@ -63,23 +57,18 @@ export function extensionOf(name: string): string {
 	return /^[a-z0-9]{1,10}$/.test(extension) ? extension : "";
 }
 
-export function attachmentFormat(
-	fileName: string,
-	mimeType?: string | null,
-): AttachmentFormat | null {
+export function attachmentFormat(fileName: string): AttachmentFormat | null {
 	const extension = extensionOf(fileName);
 	const known = ATTACHMENT_FORMATS[extension];
-	if (known !== undefined) return { extension, ...known };
-	if (extension !== "") return null;
-	const declared = mimeType?.split(";")[0]?.trim().toLowerCase() ?? "";
-	return FORMAT_BY_MIME[declared] ?? null;
+	return known === undefined ? null : { extension, ...known };
 }
 
-export function attachmentKind(
-	fileName: string,
-	mimeType?: string | null,
-): AttachmentKind | "blocked" {
-	return attachmentFormat(fileName, mimeType)?.kind ?? "blocked";
+export function attachmentKind(fileName: string): AttachmentKind | "blocked" {
+	return attachmentFormat(fileName)?.kind ?? "blocked";
+}
+
+export function attachmentMime(fileName: string): string {
+	return attachmentFormat(fileName)?.mime ?? "application/octet-stream";
 }
 
 export function filterFiles(files: File[]): {
@@ -89,7 +78,7 @@ export function filterFiles(files: File[]): {
 	const accepted: File[] = [];
 	const rejected: File[] = [];
 	for (const file of files) {
-		if (attachmentFormat(file.name, file.type) === null) {
+		if (attachmentFormat(file.name) === null) {
 			rejected.push(file);
 		} else {
 			accepted.push(file);

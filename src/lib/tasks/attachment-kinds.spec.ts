@@ -45,22 +45,16 @@ describe("attachmentFormat", () => {
 		expect(attachmentFormat("build.bin")).toBeNull();
 	});
 
-	it("falls back to the declared mime type without an extension", () => {
-		expect(attachmentFormat("", "image/png")).toEqual({
-			extension: "png",
-			mime: "image/png",
-			kind: "image",
-		});
-		expect(attachmentFormat("screenshot", "image/jpeg")?.extension).toBe("jpg");
-		expect(attachmentFormat("", "image/svg+xml")).toBeNull();
-		expect(attachmentFormat("", "text/html")).toBeNull();
+	it("ignores the extensionless files and the declared mime type", () => {
+		expect(attachmentFormat("screenshot")).toBeNull();
+		expect(attachmentFormat("")).toBeNull();
 	});
 });
 
 describe("attachmentKind", () => {
 	it("names the preview class and blocks the rest", () => {
 		expect(attachmentKind("photo.webp")).toBe("image");
-		expect(attachmentKind("page.html", "text/html")).toBe("blocked");
+		expect(attachmentKind("page.html")).toBe("blocked");
 	});
 });
 

@@ -143,9 +143,8 @@ export function addAttachment(
 	taskId: string,
 	fileName: string,
 	data: Buffer,
-	mimeType?: string,
 ): Result<Attachment, AppError> {
-	const format = attachmentFormat(fileName, mimeType);
+	const format = attachmentFormat(fileName);
 	if (format === null) {
 		return err(invalid(`the file type of ${fileName} is not supported`));
 	}
@@ -206,19 +205,12 @@ export function addAttachmentFromBase64(
 	taskId: string,
 	fileName: string,
 	content: string,
-	mimeType?: string,
 ): Result<Attachment, AppError> {
 	const cleaned = content.replace(/\s+/g, "");
 	if (cleaned === "" || !/^[A-Za-z0-9+/]+={0,2}$/.test(cleaned)) {
 		return err(invalid("the content is not valid base64"));
 	}
-	return addAttachment(
-		db,
-		taskId,
-		fileName,
-		Buffer.from(cleaned, "base64"),
-		mimeType,
-	);
+	return addAttachment(db, taskId, fileName, Buffer.from(cleaned, "base64"));
 }
 
 export function deleteAttachment(

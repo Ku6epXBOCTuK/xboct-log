@@ -66,26 +66,15 @@ export const addTaskAttachment = defineCommand({
 			.min(1)
 			.optional()
 			.describe("The content of the file encoded as base64."),
-		mime_type: z
-			.string()
-			.min(1)
-			.optional()
-			.describe("The content type of the file, for example image/png."),
 	}),
-	handler: ({ task_id, filename, path, content_base64, mime_type }) => {
+	handler: ({ task_id, filename, path, content_base64 }) => {
 		const db = getDb();
 		const taskId = resolveTaskOrThrow(db, task_id);
 		const result =
 			path !== undefined
 				? addAttachmentFromPath(db, taskId, path)
 				: content_base64 !== undefined
-					? addAttachmentFromBase64(
-							db,
-							taskId,
-							filename,
-							content_base64,
-							mime_type,
-						)
+					? addAttachmentFromBase64(db, taskId, filename, content_base64)
 					: null;
 		if (result === null) {
 			return err(invalid("give either path or content_base64"));

@@ -72,7 +72,6 @@ export function createDraftAttachments() {
 				task_id: taskId,
 				filename: item.file.name,
 				content_base64: content,
-				mime_type: item.file.type || undefined,
 			});
 		});
 		if (outcome.attached.length > 0) {
@@ -175,7 +174,6 @@ export function createSavedAttachments(
 					task_id: task.id,
 					filename: file.name,
 					content_base64: content,
-					mime_type: file.type || undefined,
 				});
 				items = [...items, item];
 				getTasks().bumpAttachments(task.id, 1);

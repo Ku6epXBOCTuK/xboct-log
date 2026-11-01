@@ -14,6 +14,7 @@ import {
 } from "#lib/server/attachments.ts";
 import { getDb } from "#lib/server/db.ts";
 import { kindForStatus, type ErrorKind } from "#lib/server/errors.ts";
+import { attachmentMime } from "#lib/tasks/attachment-kinds.ts";
 import { version } from "../../../package.json";
 
 interface ToolError {
@@ -108,7 +109,7 @@ function registerAttachmentRead(server: McpServer): void {
 				};
 			}
 			const { attachment, data } = result.value;
-			const mime = attachment.mime_type ?? "application/octet-stream";
+			const mime = attachmentMime(attachment.file_name);
 			const body = mime.startsWith("image/")
 				? {
 						type: "image" as const,
@@ -173,7 +174,7 @@ function registerAttachmentResource(server: McpServer): void {
 					.map((item) => ({
 						uri: item.uri,
 						name: `${item.task_id} ${item.file_name}`,
-						mimeType: item.mime_type ?? "application/octet-stream",
+						mimeType: attachmentMime(item.file_name),
 					})),
 			}),
 		}),
@@ -195,7 +196,7 @@ function registerAttachmentResource(server: McpServer): void {
 				contents: [
 					{
 						uri: uri.href,
-						mimeType: attachment.mime_type ?? "application/octet-stream",
+						mimeType: attachmentMime(attachment.file_name),
 						blob: data.toString("base64"),
 					},
 				],

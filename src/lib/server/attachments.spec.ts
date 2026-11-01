@@ -123,29 +123,27 @@ describe("attachments", () => {
 		expect(listAttachments(db, taskId)).toHaveLength(0);
 	});
 
-	it("takes the mime type from the extension, not from the caller", async () => {
+	it("takes the mime type from the extension", async () => {
 		const { db, taskId } = await setup();
 		const item = addAttachment(
 			db,
 			taskId,
-			"photo.png",
+			"photo.JPEG",
 			Buffer.from("bytes"),
-			"text/html",
 		)._unsafeUnwrap();
-		expect(item.mime_type).toBe("image/png");
+		expect(item.mime_type).toBe("image/jpeg");
 	});
 
-	it("takes the extension of an unnamed file from the mime type", async () => {
+	it("rejects a file without an extension", async () => {
 		const { db, taskId } = await setup();
-		const item = addAttachment(
+		const result = addAttachment(
 			db,
 			taskId,
 			"screenshot",
 			Buffer.from("bytes"),
-			"image/png",
-		)._unsafeUnwrap();
-		expect(item.mime_type).toBe("image/png");
-		expect(existsSync(join(mediaDir(), taskId, `${item.id}.png`))).toBe(true);
+		);
+		expect(result.isErr()).toBe(true);
+		expect(result._unsafeUnwrapErr().message).toContain("not supported");
 	});
 
 	it("rejects an empty file", async () => {
