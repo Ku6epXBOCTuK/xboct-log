@@ -1,22 +1,25 @@
 <script lang="ts">
+	import MarkdownEditor from "#lib/components/markdown/MarkdownEditor.svelte";
 	import Button from "@ku6epxboctuk/ui-kit/components/Button";
 
 	interface Props {
 		value: string;
+		repo?: string | null;
 		busy: boolean;
 		onsubmit: () => void;
 	}
 
-	let { value = $bindable(""), busy, onsubmit }: Props = $props();
+	let { value = $bindable(""), repo = null, busy, onsubmit }: Props = $props();
 </script>
 
 <div class="comment-form">
-	<textarea
-		class="field-control"
+	<MarkdownEditor
 		bind:value
-		rows="3"
+		label="New comment"
 		placeholder="Add a comment…"
-		aria-label="New comment"></textarea>
+		{repo}
+		height="6rem"
+	/>
 	<div class="comment-actions">
 		<Button
 			variant="primary"

@@ -14,9 +14,10 @@
 	interface Props {
 		taskId: string;
 		comments: CommentsStore;
+		repo?: string | null;
 	}
 
-	let { taskId, comments }: Props = $props();
+	let { taskId, comments, repo = null }: Props = $props();
 
 	let items = $derived(comments.items(taskId));
 	let draft = $state("");
@@ -86,6 +87,7 @@
 	<ErrorNote message={failure} />
 	<CommentList
 		{items}
+		{repo}
 		{editingId}
 		{busy}
 		onstartedit={startEdit}
@@ -93,7 +95,7 @@
 		oncancel={cancelEdit}
 		onremove={remove}
 	/>
-	<CommentForm bind:value={draft} {busy} onsubmit={submit} />
+	<CommentForm bind:value={draft} {repo} {busy} onsubmit={submit} />
 </section>
 
 <style>

@@ -1,9 +1,11 @@
 import MarkdownIt from "markdown-it";
 
+// NOTE: breaks stays on because the text is typed in a plain textarea, where
+// Enter means a new line; the preview must not collapse what the editor shows.
 const md = new MarkdownIt({
 	html: false,
 	linkify: true,
-	breaks: false,
+	breaks: true,
 	typographer: false,
 });
 

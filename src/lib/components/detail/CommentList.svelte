@@ -4,6 +4,7 @@
 
 	interface Props {
 		items: Comment[];
+		repo?: string | null;
 		editingId: string | null;
 		busy: boolean;
 		onstartedit: (comment: Comment) => void;
@@ -14,6 +15,7 @@
 
 	let {
 		items,
+		repo = null,
 		editingId,
 		busy,
 		onstartedit,
@@ -30,6 +32,7 @@
 		{#each items as comment (comment.id)}
 			<CommentItem
 				{comment}
+				{repo}
 				editing={editingId === comment.id}
 				{busy}
 				onstartedit={() => onstartedit(comment)}

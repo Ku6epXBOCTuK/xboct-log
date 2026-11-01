@@ -28,29 +28,30 @@ export function messageOf(error: unknown): string {
 	return "Update failed";
 }
 
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+
+const pad = (value: number) => String(value).padStart(2, "0");
+
+// NOTE: timestamps are stored in UTC, so they are rendered in the local zone;
+// a date without a time is already a calendar day and is never shifted.
+export function formatDate(value: string): string {
+	if (DATE_ONLY.test(value)) {
+		const [year, month, day] = value.split("-");
+		return `${day}/${month}/${year.slice(-2)}`;
+	}
+
+	const date = new Date(value);
+	if (Number.isNaN(date.getTime())) return "";
+
+	return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${String(date.getFullYear()).slice(-2)}`;
+}
+
 export function formatDateTime(value: string): string {
 	const date = new Date(value);
 	if (Number.isNaN(date.getTime())) return "";
 
-	const hours = String(date.getUTCHours()).padStart(2, "0");
-	const minutes = String(date.getUTCMinutes()).padStart(2, "0");
-
-	return `${formatDate(value)} ${hours}:${minutes}`;
+	return `${formatDate(value)} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
-
-export function formatDate(value: string): string {
-	const date = new Date(value);
-	if (Number.isNaN(date.getTime())) return "";
-
-	const day = String(date.getUTCDate()).padStart(2, "0");
-	const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-	const year = String(date.getUTCFullYear()).slice(-2);
-
-	// TODO: why not to use Intl.formatDate?
-	return `${day}/${month}/${year}`;
-}
-
-const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 
 export function normalizeDueDate(
 	value: string | null | undefined,

@@ -58,6 +58,14 @@ describe("renderMarkdown", () => {
 		expect(html).not.toContain("target=");
 	});
 
+	it("keeps a single newline as a hard break", () => {
+		expect(renderMarkdown("first\nsecond")).toBe("<p>first<br>\nsecond</p>\n");
+	});
+
+	it("does not turn trailing newlines into breaks", () => {
+		expect(renderMarkdown("text\n\n\n")).toBe("<p>text</p>\n");
+	});
+
 	it("linkifies bare urls", () => {
 		expect(renderMarkdown("see https://example.com")).toContain(
 			'href="https://example.com"',

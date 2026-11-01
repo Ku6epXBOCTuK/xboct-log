@@ -1,11 +1,19 @@
 <script lang="ts">
-	import Button from "@ku6epxboctuk/ui-kit/components/Button";
+	import CommentEditor from "#lib/components/detail/CommentEditor.svelte";
+	import MarkdownView from "#lib/components/markdown/MarkdownView.svelte";
 	import CopyButton from "#lib/components/ui/CopyButton.svelte";
 	import { formatDateTime } from "#lib/tasks/display.ts";
 	import type { Comment } from "#lib/types.ts";
+	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
+	import Button from "@ku6epxboctuk/ui-kit/components/Button";
+	import Code from "~icons/lucide/code";
+	import Eye from "~icons/lucide/eye";
+	import Pencil from "~icons/lucide/pencil";
+	import Trash2 from "~icons/lucide/trash-2";
 
 	interface Props {
 		comment: Comment;
+		repo?: string | null;
 		editing: boolean;
 		busy: boolean;
 		onstartedit: () => void;
@@ -16,6 +24,7 @@
 
 	let {
 		comment,
+		repo = null,
 		editing,
 		busy,
 		onstartedit,
@@ -24,15 +33,8 @@
 		onremove,
 	}: Props = $props();
 
-	let draft = $state("");
-	let wasEditing = false;
-
-	$effect(() => {
-		if (editing && !wasEditing) {
-			draft = comment.body;
-		}
-		wasEditing = editing;
-	});
+	let raw = $state(false);
+	let confirming = $state(false);
 </script>
 
 <li class="comment">
@@ -42,29 +44,67 @@
 			<span class="edited">edited</span>
 		{/if}
 		{#if !editing}
-			<CopyButton text={comment.body} label="Copy comment" />
+			<div class="comment-tools">
+				{#if confirming}
+					<span class="confirm-label">Delete comment?</span>
+					<Button size="sm" onclick={() => (confirming = false)}>Cancel</Button>
+					<Button
+						size="sm"
+						variant="danger"
+						disabled={busy}
+						onclick={() => {
+							confirming = false;
+							onremove();
+						}}
+					>
+						Delete
+					</Button>
+				{:else}
+					<IconButton
+						label={raw ? "Show preview" : "Show raw markdown"}
+						title={raw ? "Show preview" : "Show raw markdown"}
+						size="sm"
+						active={raw}
+						onclick={() => (raw = !raw)}
+					>
+						{#if raw}
+							<Eye />
+						{:else}
+							<Code />
+						{/if}
+					</IconButton>
+					<CopyButton text={comment.body} label="Copy comment" size="sm" />
+					<IconButton
+						label="Edit comment"
+						title="Edit comment"
+						size="sm"
+						onclick={onstartedit}
+					>
+						<Pencil />
+					</IconButton>
+					<IconButton
+						label="Delete comment"
+						title="Delete comment"
+						variant="danger"
+						size="sm"
+						disabled={busy}
+						onclick={() => (confirming = true)}
+					>
+						<Trash2 />
+					</IconButton>
+				{/if}
+			</div>
 		{/if}
 	</div>
 	{#if editing}
-		<textarea
-			class="field-control edit-area"
-			bind:value={draft}
-			rows="3"
-			aria-label="Comment text"></textarea>
-		<div class="comment-actions">
-			<Button onclick={oncancel}>Cancel</Button>
-			<Button
-				onclick={() => onsave(draft.trim())}
-				disabled={busy || draft.trim() === ""}
-			>
-				Save
-			</Button>
-		</div>
+		<CommentEditor body={comment.body} {repo} {busy} {onsave} {oncancel} />
 	{:else}
-		<p class="comment-body">{comment.body}</p>
-		<div class="comment-actions">
-			<Button onclick={onstartedit}>Edit</Button>
-			<Button onclick={onremove} disabled={busy}>Delete</Button>
+		<div class="comment-body">
+			{#if raw}
+				<pre class="comment-raw">{comment.body}</pre>
+			{:else}
+				<MarkdownView text={comment.body} {repo} />
+			{/if}
 		</div>
 	{/if}
 </li>
@@ -84,12 +124,21 @@
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
-		color: var(--text-muted);
-		font-size: var(--text-xs);
+		padding-bottom: var(--space-2);
+		border-bottom: 1px solid var(--border);
+		color: var(--text-secondary);
+		font-size: var(--text-sm);
 	}
 
-	.comment-meta :global(.ui-icon-button) {
+	.comment-tools {
 		margin-left: auto;
+		display: flex;
+		align-items: center;
+		gap: var(--space-1);
+	}
+
+	.confirm-label {
+		color: var(--text-secondary);
 	}
 
 	.edited {
@@ -102,20 +151,16 @@
 	}
 
 	.comment-body {
+		min-width: 0;
+	}
+
+	.comment-raw {
 		margin: 0;
+		font-family: var(--font-mono);
 		font-size: var(--text-sm);
-		line-height: 1.5;
+		line-height: 1.55;
+		color: var(--text-secondary);
 		white-space: pre-wrap;
 		overflow-wrap: anywhere;
-	}
-
-	.comment-actions {
-		display: flex;
-		gap: var(--space-2);
-		justify-content: flex-end;
-	}
-
-	.edit-area {
-		min-height: 4.5rem;
 	}
 </style>

@@ -45,7 +45,7 @@
 			</div>
 		{/if}
 	</div>
-	<TaskComments taskId={task.id} {comments} />
+	<TaskComments taskId={task.id} {comments} {repo} />
 </PanelOverlay>
 
 <style>

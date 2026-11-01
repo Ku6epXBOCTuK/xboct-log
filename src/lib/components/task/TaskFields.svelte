@@ -1,10 +1,7 @@
 <script lang="ts">
-	import MarkdownView from "#lib/components/markdown/MarkdownView.svelte";
-	import CopyButton from "#lib/components/ui/CopyButton.svelte";
+	import DescriptionField from "#lib/components/task/DescriptionField.svelte";
 	import InfoPopover from "#lib/components/ui/InfoPopover.svelte";
 	import SingleSelect from "#lib/components/ui/select/SingleSelect.svelte";
-	import { appendMarkdown, markdownDrop } from "#lib/files/markdown-drop.ts";
-	import { matchesHotkey } from "#lib/hotkeys/hotkeys.ts";
 	import { STATUS_LABELS } from "#lib/tasks/display.ts";
 	import type { TaskFieldValues, TaskPatch } from "#lib/tasks/fields.ts";
 	import {
@@ -14,14 +11,10 @@
 		type Status,
 		type Task,
 	} from "#lib/types.ts";
-	import { untrack } from "svelte";
 	import Button from "@ku6epxboctuk/ui-kit/components/Button";
 	import TagInput from "@ku6epxboctuk/ui-kit/components/TagInput";
 	import CircleHelp from "~icons/lucide/circle-help";
-	import Eye from "~icons/lucide/eye";
-	import EyeOff from "~icons/lucide/eye-off";
 	import Plus from "~icons/lucide/plus";
-	import WrapText from "~icons/lucide/wrap-text";
 
 	interface EpicChoice {
 		key: string;
@@ -89,117 +82,6 @@
 			epicChoices[0],
 	);
 
-	let area: HTMLTextAreaElement | undefined = $state();
-	let preview = $state(false);
-	let wrap = $state(true);
-	let previewText = $state("");
-	let draftText = $state<string | null>(null);
-	let draftTask = $state<string | undefined>(undefined);
-	let text = $derived(
-		draftTask === taskId && draftText !== null ? draftText : value.description,
-	);
-	let previewTask: string | undefined;
-	let dirty = false;
-
-	$effect(() => {
-		if (taskId === undefined || taskId === previewTask) return;
-		previewTask = taskId;
-		preview = false;
-		dirty = false;
-	});
-
-	// NOTE: the parent may replace the description without a blur (form reset),
-	// so the local draft follows the value instead of outliving it.
-	$effect(() => {
-		const current = value.description;
-		untrack(() => {
-			if (draftText === null || draftText === current) return;
-			draftText = current;
-			preview = false;
-		});
-	});
-
-	function markDirty(event: Event) {
-		draftText = (event.currentTarget as HTMLTextAreaElement).value;
-		draftTask = taskId;
-		dirty = true;
-	}
-
-	function commitDescription() {
-		if (!dirty) return;
-		dirty = false;
-		const patch = { description: text };
-		if (ondraft !== undefined) {
-			ondraft(patch);
-			return;
-		}
-		onfield(patch);
-	}
-
-	function takeMarkdown(markdown: string) {
-		const next = appendMarkdown(text, markdown);
-		if (next === text) return;
-		draftText = next;
-		draftTask = taskId;
-		dirty = false;
-		preview = false;
-		oncanceldraft?.();
-		onfield({ description: next });
-	}
-
-	function togglePreview() {
-		if (preview) {
-			preview = false;
-			return;
-		}
-		previewText = text;
-		preview = true;
-	}
-
-	function indent(event: KeyboardEvent) {
-		if (event.key !== "Tab" || event.ctrlKey || event.altKey) return;
-		const element = area;
-		if (element === undefined) return;
-		event.preventDefault();
-
-		const start = element.selectionStart;
-		const end = element.selectionEnd;
-		const source = element.value;
-
-		if (event.shiftKey) {
-			const lineStart = source.lastIndexOf("\n", start - 1) + 1;
-			const line = source.slice(lineStart, end);
-			const trimmed = line.replace(/^ {1,2}/, "");
-			const removed = line.length - trimmed.length;
-			if (removed === 0) return;
-			element.value = source.slice(0, lineStart) + trimmed + source.slice(end);
-			element.setSelectionRange(
-				Math.max(lineStart, start - removed),
-				end - removed,
-			);
-		} else {
-			element.value = `${source.slice(0, start)}  ${source.slice(end)}`;
-			element.setSelectionRange(start + 2, start + 2);
-		}
-
-		draftText = element.value;
-		draftTask = taskId;
-		dirty = true;
-	}
-
-	function toggleWrap() {
-		wrap = !wrap;
-	}
-
-	function handleKeydown(event: KeyboardEvent) {
-		if (matchesHotkey(event, "alt+z")) {
-			event.preventDefault();
-			toggleWrap();
-			return;
-		}
-		indent(event);
-	}
-
 	function changeBlockedReason(event: Event) {
 		const input = event.currentTarget as HTMLInputElement;
 		const reason = input.value.trim();
@@ -255,76 +137,17 @@
 	</div>
 {/if}
 
-<div class="description detail-field">
-	<div class="description-box" use:markdownDrop={{ ontext: takeMarkdown }}>
-		{#if preview}
-			<div class="description-preview">
-				{#if previewText.trim() === ""}
-					<p class="description-empty">Nothing to preview</p>
-				{:else}
-					<MarkdownView text={previewText} {repo} />
-				{/if}
-			</div>
-		{:else}
-			<textarea
-				class="field-control description-input"
-				bind:this={area}
-				value={text}
-				wrap={wrap ? "soft" : "off"}
-				style:white-space={wrap ? "pre-wrap" : "pre"}
-				style:overflow-wrap={wrap ? "anywhere" : "normal"}
-				oninput={markDirty}
-				onfocus={() => oncanceldraft?.()}
-				onblur={commitDescription}
-				onkeydown={handleKeydown}
-				placeholder="Description"
-				aria-label="Description"></textarea>
-		{/if}
-	</div>
-	<div class="description-actions">
-		<button
-			class="description-toggle"
-			type="button"
-			onclick={togglePreview}
-			aria-pressed={preview}
-		>
-			{#if preview}
-				<EyeOff />
-				Edit
-			{:else}
-				<Eye />
-				Preview
-			{/if}
-		</button>
-		{#if !preview}
-			<button
-				class="description-toggle"
-				type="button"
-				onclick={toggleWrap}
-				aria-pressed={wrap}
-				aria-label="Wrap long lines"
-				title="Wrap long lines (Alt+Z)"
-			>
-				<WrapText />
-				Wrap
-			</button>
-		{/if}
-		{#if editing}
-			<CopyButton {text} label="Copy description" title="Copy description" />
-		{/if}
-		{#if commentsCount !== undefined}
-			<button
-				class="comments-count"
-				type="button"
-				onclick={() => oncomments?.()}
-				disabled={oncomments === undefined}
-			>
-				{commentsCount}
-				{commentsCount === 1 ? "comment" : "comments"}
-			</button>
-		{/if}
-	</div>
-</div>
+<DescriptionField
+	{value}
+	{taskId}
+	{repo}
+	{editing}
+	{commentsCount}
+	{oncomments}
+	{onfield}
+	{ondraft}
+	{oncanceldraft}
+/>
 
 <div class="detail-grid">
 	<div class="field">
@@ -405,93 +228,6 @@
 
 	.tags-field {
 		margin-bottom: var(--space-4);
-	}
-
-	.description {
-		color: var(--text-secondary);
-		font-size: var(--text-md);
-	}
-
-	.description-box {
-		height: 20rem;
-		min-height: 6rem;
-		resize: vertical;
-		overflow: hidden;
-	}
-
-	.description-box textarea {
-		height: 100%;
-		min-height: 0;
-		resize: none;
-	}
-
-	.description-input {
-		font-family: var(--font-mono);
-		font-size: var(--text-sm);
-	}
-
-	.description-preview {
-		height: 100%;
-		border: 1px solid var(--border-strong);
-		border-radius: var(--radius);
-		background: var(--field);
-		padding: var(--space-3);
-		overflow: auto;
-	}
-
-	.description-empty {
-		margin: 0;
-		color: var(--text-muted);
-		font-size: var(--text-sm);
-	}
-
-	.description-actions {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		margin-top: var(--space-2);
-	}
-
-	.description-toggle {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--space-1);
-		border: 1px solid var(--border);
-		border-radius: var(--radius-sm);
-		padding: 0 var(--space-2);
-		min-height: 1.5rem;
-		font-size: var(--text-xs);
-		color: var(--text-muted);
-	}
-
-	.description-toggle:hover {
-		border-color: var(--border-strong);
-		color: var(--foreground);
-	}
-
-	.description-toggle[aria-pressed="true"] {
-		background: var(--selected);
-		color: var(--foreground);
-	}
-
-	.description-toggle :global(svg) {
-		width: 0.9rem;
-		height: 0.9rem;
-	}
-
-	.comments-count {
-		margin-left: auto;
-		border: 1px solid var(--border);
-		border-radius: var(--radius-sm);
-		padding: 0 var(--space-2);
-		min-height: 1.5rem;
-		font-size: var(--text-xs);
-		color: var(--text-muted);
-	}
-
-	.comments-count:hover:not(:disabled) {
-		border-color: var(--border-strong);
-		color: var(--foreground);
 	}
 
 	.field-action {
