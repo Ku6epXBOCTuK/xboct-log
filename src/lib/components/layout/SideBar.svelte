@@ -43,7 +43,9 @@
 
 	let navOpen = $state(false);
 
-	const onBackups = $derived(page.url.pathname === "/backups");
+	const standalonePage = $derived(
+		page.url.pathname === "/backups" || page.url.pathname === "/tags",
+	);
 </script>
 
 <aside class="sidebar" class:rail={collapsed}>
@@ -88,7 +90,7 @@
 		inProgressCount={stats.inProgress}
 		onlyActive={!navOpen}
 	/>
-	{#if !onBackups}
+	{#if !standalonePage}
 		<div class="sidebar-scroll">
 			<ProjectSection
 				{projects}

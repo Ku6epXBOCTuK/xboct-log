@@ -43,7 +43,9 @@ export function appPath(pathname: string): string | null {
 	const category = CATEGORIES.find((item) => item === head);
 
 	if (segments.length === 1) {
-		if (category !== undefined || head === "backups") return pathname;
+		if (category !== undefined || head === "backups" || head === "tags") {
+			return pathname;
+		}
 		return null;
 	}
 

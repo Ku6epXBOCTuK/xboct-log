@@ -6,11 +6,12 @@ import {
 	renameTag,
 	setTagArchived,
 	listDictionary,
+	listTagInventory,
 	listTags,
 	type TagRecord,
 } from "../server/tasks";
 import { STATUSES } from "../types";
-import { idList, tagList, tagRecord } from "./contracts";
+import { idList, tagInventoryList, tagList, tagRecord } from "./contracts";
 import { defineCommand, defineQuery } from "./define";
 import { flatPatch } from "./flat";
 import { oneOrList } from "./list";
@@ -48,6 +49,20 @@ export const getTagDictionary = defineQuery({
 			.filter((tag) => !tag.archived)
 			.map((tag) => tag.name),
 	}),
+});
+
+export const listTagInventoryQuery = defineQuery({
+	name: "tags_inventory",
+	output: tagInventoryList,
+	description:
+		"The whole tag dictionary including the archived tags and the tags no task carries, with usage counts. Counts soft-deleted tasks out. Archived tags stay on the tasks that already carry them but cannot be assigned again. Returns: {items, total}, where each item is {name, archived, created_at, count, active}.",
+	kind: "query",
+	mcp: false,
+	input: strictObject({}),
+	handler: () => {
+		const items = listTagInventory(getDb());
+		return { items, total: items.length };
+	},
 });
 
 export const createTag = defineCommand({

@@ -7,6 +7,7 @@
 	import ClipBoardList from "~icons/lucide/clipboard-list";
 	import DatabaseBackup from "~icons/lucide/database-backup";
 	import FolderKanban from "~icons/lucide/folder-kanban";
+	import Tag from "~icons/lucide/tag";
 	import { listHref } from "#lib/navigation/href.ts";
 	import { parsePath } from "#lib/navigation/paths.ts";
 
@@ -27,6 +28,7 @@
 	const onActivity = $derived(location.category === "activity");
 	const onDeleted = $derived(location.category === "deleted");
 	const onBackups = $derived(page.url.pathname === "/backups");
+	const onTags = $derived(page.url.pathname === "/tags");
 </script>
 
 <nav
@@ -60,6 +62,10 @@
 	>
 		<ArchiveRestore /> Deleted
 	</a>
+	<a class="nav-item" class:active={onTags} href={resolve("/tags")}>
+		<Tag /> Tags
+	</a>
+
 	<a class="nav-item" class:active={onBackups} href={resolve("/backups")}>
 		<DatabaseBackup /> Backups
 	</a>

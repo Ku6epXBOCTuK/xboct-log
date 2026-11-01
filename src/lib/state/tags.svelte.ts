@@ -3,10 +3,21 @@ import {
 	createTag,
 	getTagDictionary,
 	getTags,
+	listTagInventoryQuery,
+	renameTagCommand,
+	updateTag,
 } from "#lib/remote/tags.remote.ts";
 
 export interface TagEntry {
 	tag: string;
+	count: number;
+	active: number;
+}
+
+export interface TagInventoryEntry {
+	name: string;
+	archived: boolean;
+	created_at: string;
 	count: number;
 	active: number;
 }
@@ -32,14 +43,17 @@ function byCount(
 export function createTagStore(initial: TagEntry[], initialNames: string[]) {
 	let entries = $state<TagEntry[]>(initial);
 	let names = $state<string[]>(initialNames);
+	let inventory = $state<TagInventoryEntry[]>([]);
 
 	async function load() {
-		const [ranked, dictionary] = await Promise.all([
+		const [ranked, dictionary, full] = await Promise.all([
 			fetchFresh(getTags({})),
 			fetchFresh(getTagDictionary({})),
+			fetchFresh(listTagInventoryQuery({})),
 		]);
 		entries = ranked.items;
 		names = dictionary.items;
+		inventory = full.items;
 	}
 
 	function ordered(scope: TagEntry[]): string[] {
@@ -75,11 +89,22 @@ export function createTagStore(initial: TagEntry[], initialNames: string[]) {
 		get dictionary() {
 			return names;
 		},
+		get inventory() {
+			return inventory;
+		},
 		async refresh() {
 			await load();
 		},
 		async create(name: string) {
 			await createTag({ name });
+			await load();
+		},
+		async setArchived(name: string, archived: boolean) {
+			await updateTag({ name, patch: { archived } });
+			await load();
+		},
+		async rename(name: string, newName: string) {
+			await renameTagCommand({ name, new_name: newName });
 			await load();
 		},
 		picker,

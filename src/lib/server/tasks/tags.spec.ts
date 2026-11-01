@@ -10,6 +10,7 @@ import {
 	ensureTag,
 	getTask,
 	listDictionary,
+	listTagInventory,
 	listTags,
 	renameTag,
 	setTagArchived,
@@ -136,6 +137,88 @@ describe("listTags", () => {
 		unwrap(deleteTask(db, task.id));
 
 		expect(listTags(db)).toEqual([]);
+	});
+});
+
+describe("listTagInventory", () => {
+	it("lists the whole dictionary with counts, active tags first", async () => {
+		const db = await setup();
+		unwrap(ensureTag(db, "idle"));
+		unwrap(setTagArchived(db, "idle", true));
+		unwrap(
+			createTask(db, {
+				status: "open",
+				project_id: "spa",
+				title: "One",
+				tags: ["mcp", "ui"],
+			}),
+		);
+		unwrap(
+			createTask(db, {
+				status: "open",
+				project_id: "spa",
+				title: "Two",
+				tags: ["mcp"],
+			}),
+		);
+
+		expect(listTagInventory(db)).toEqual([
+			{
+				name: "mcp",
+				archived: false,
+				created_at: expect.any(String),
+				count: 2,
+				active: 2,
+			},
+			{
+				name: "ui",
+				archived: false,
+				created_at: expect.any(String),
+				count: 1,
+				active: 1,
+			},
+			{
+				name: "idle",
+				archived: true,
+				created_at: expect.any(String),
+				count: 0,
+				active: 0,
+			},
+		]);
+	});
+
+	it("keeps a tag whose tasks are all soft-deleted, at zero", async () => {
+		const db = await setup();
+		const task = unwrap(
+			createTask(db, { project_id: "spa", title: "One", tags: ["mcp"] }),
+		);
+		unwrap(deleteTask(db, task.id));
+
+		expect(listTagInventory(db)).toEqual([
+			{
+				name: "mcp",
+				archived: false,
+				created_at: expect.any(String),
+				count: 0,
+				active: 0,
+			},
+			{
+				name: "ui",
+				archived: false,
+				created_at: expect.any(String),
+				count: 0,
+				active: 0,
+			},
+		]);
+	});
+
+	it("counts backlog tasks as inactive and follows a rename", async () => {
+		const db = await setup();
+		unwrap(createTask(db, { project_id: "spa", title: "One", tags: ["mcp"] }));
+		unwrap(renameTag(db, "mcp", "agent"));
+
+		const entry = listTagInventory(db).find((item) => item.name === "agent");
+		expect(entry).toMatchObject({ count: 1, active: 0, archived: false });
 	});
 });
 

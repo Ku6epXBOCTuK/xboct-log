@@ -63,6 +63,14 @@ export const tagRecord = z.looseObject({
 	created_at: z.string(),
 });
 
+export const tagInventory = z.looseObject({
+	name: z.string(),
+	archived: z.boolean(),
+	created_at: z.string(),
+	count: z.number().int(),
+	active: z.number().int(),
+});
+
 export const backupRef = z.looseObject({
 	kind: z.enum(["auto", "daily", "weekly", "manual"]),
 	name: z.string(),
@@ -199,6 +207,11 @@ export const revisionList = z.looseObject({
 
 export const tagList = z.looseObject({
 	items: z.array(tagRef),
+	total: z.number().int(),
+});
+
+export const tagInventoryList = z.looseObject({
+	items: z.array(tagInventory),
 	total: z.number().int(),
 });
 

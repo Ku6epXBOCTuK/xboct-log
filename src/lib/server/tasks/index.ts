@@ -24,13 +24,14 @@ export {
 	ensureTag,
 	getTag,
 	listDictionary,
+	listTagInventory,
 	listTags,
 	normalizeTagName,
 	renameTag,
 	setTagArchived,
 	validateTags,
 } from "./tags";
-export type { TagCount, TagQuery, TagRecord } from "./tags";
+export type { TagCount, TagInventoryEntry, TagQuery, TagRecord } from "./tags";
 export type {
 	BatchError,
 	BatchItem,

@@ -97,6 +97,8 @@ describe("appPath", () => {
 		expect(appPath("/activity")).toBe("/activity");
 		expect(appPath("/deleted")).toBe("/deleted");
 		expect(appPath("/backups")).toBe("/backups");
+		expect(appPath("/tags")).toBe("/tags");
+		expect(appPath("/tags/x")).toBeNull();
 	});
 
 	it("accepts project and task routes", () => {

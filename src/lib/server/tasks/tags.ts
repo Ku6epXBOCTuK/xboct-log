@@ -65,6 +65,11 @@ export interface TagRecord {
 	created_at: string;
 }
 
+export interface TagInventoryEntry extends TagRecord {
+	count: number;
+	active: number;
+}
+
 const TAG_NAME_MAX_LENGTH = 20;
 
 export function normalizeTagName(raw: string): string {
@@ -100,6 +105,37 @@ export function listDictionary(db: DatabaseSync): TagRecord[] {
 		created_at: string;
 	}[];
 	return rows.map(mapTag);
+}
+
+export function listTagInventory(db: DatabaseSync): TagInventoryEntry[] {
+	const activeSlots = ACTIVE_STATUSES.map(() => "?").join(", ");
+	const rows = db
+		.prepare(
+			`SELECT tags.name AS name, tags.archived AS archived,
+					tags.created_at AS created_at,
+					(SELECT COUNT(*) FROM task_tags tt
+						JOIN tasks ON tasks.id = tt.task_id
+						WHERE tt.tag = tags.name AND tasks.deleted_at IS NULL) AS count,
+					(SELECT COUNT(*) FROM task_tags tt
+						JOIN tasks ON tasks.id = tt.task_id
+						WHERE tt.tag = tags.name AND tasks.deleted_at IS NULL
+							AND tasks.status IN (${activeSlots})) AS active
+				FROM tags
+				ORDER BY tags.archived ASC, count DESC, tags.name ASC`,
+		)
+		.all(...ACTIVE_STATUSES) as unknown as {
+		name: string;
+		archived: number;
+		created_at: string;
+		count: number;
+		active: number;
+	}[];
+
+	return rows.map((row) => ({
+		...mapTag(row),
+		count: Number(row.count),
+		active: Number(row.active),
+	}));
 }
 
 function tagNameError(name: string): AppError | null {

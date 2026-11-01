@@ -140,6 +140,47 @@ describe("tags_list", () => {
 	});
 });
 
+describe("tags_inventory", () => {
+	it("stays off the MCP surface", () => {
+		expect(op("tags_inventory").mcp).toBe(false);
+	});
+
+	it("lists archived tags and unused tags with counts", async () => {
+		const db = getDb();
+		expect(setTagArchived(db, "ui", true).isOk()).toBe(true);
+
+		const result = (await runOp(op("tags_inventory"), {}, "mcp")) as {
+			items: {
+				name: string;
+				archived: boolean;
+				count: number;
+				active: number;
+			}[];
+			total: number;
+		};
+
+		expect(result.total).toBe(3);
+		expect(
+			result.items.map(({ name, archived, count, active }) => ({
+				name,
+				archived,
+				count,
+				active,
+			})),
+		).toEqual([
+			{ name: "mcp", archived: false, count: 2, active: 2 },
+			{ name: "db", archived: false, count: 0, active: 0 },
+			{ name: "ui", archived: true, count: 1, active: 1 },
+		]);
+	});
+
+	it("rejects an unknown parameter", async () => {
+		await expect(
+			runOp(op("tags_inventory"), { include_archived: true }, "mcp"),
+		).rejects.toThrow();
+	});
+});
+
 describe("tags_dictionary", () => {
 	it("lists the tags no task carries and leaves out the archived ones", async () => {
 		const db = getDb();
