@@ -10,11 +10,13 @@
 		status: Status | "all";
 		priority: Priority | "all";
 		hideClosed: boolean;
+		hideBacklog: boolean;
 		statusChanged: boolean;
 		priorityChanged: boolean;
 		onstatus: (value: Status | "all") => void;
 		onpriority: (value: Priority | "all") => void;
 		ontoggleclosed: () => void;
+		ontogglebacklog: () => void;
 		onresetstatus: () => void;
 		onresetpriority: () => void;
 		onclear: () => void;
@@ -24,11 +26,13 @@
 		status,
 		priority,
 		hideClosed,
+		hideBacklog,
 		statusChanged,
 		priorityChanged,
 		onstatus,
 		onpriority,
 		ontoggleclosed,
+		ontogglebacklog,
 		onresetstatus,
 		onresetpriority,
 		onclear,
@@ -42,6 +46,8 @@
 			onselect={onstatus}
 			{hideClosed}
 			{ontoggleclosed}
+			{hideBacklog}
+			{ontogglebacklog}
 		/>
 	</FilterBlock>
 	<FilterBlock

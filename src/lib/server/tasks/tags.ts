@@ -68,6 +68,7 @@ export interface TagRecord {
 export interface TagInventoryEntry extends TagRecord {
 	count: number;
 	active: number;
+	backlog: number;
 }
 
 const TAG_NAME_MAX_LENGTH = 20;
@@ -119,7 +120,11 @@ export function listTagInventory(db: DatabaseSync): TagInventoryEntry[] {
 					(SELECT COUNT(*) FROM task_tags tt
 						JOIN tasks ON tasks.id = tt.task_id
 						WHERE tt.tag = tags.name AND tasks.deleted_at IS NULL
-							AND tasks.status IN (${activeSlots})) AS active
+							AND tasks.status IN (${activeSlots})) AS active,
+					(SELECT COUNT(*) FROM task_tags tt
+						JOIN tasks ON tasks.id = tt.task_id
+						WHERE tt.tag = tags.name AND tasks.deleted_at IS NULL
+							AND tasks.status = 'backlog') AS backlog
 				FROM tags
 				ORDER BY tags.archived ASC, count DESC, tags.name ASC`,
 		)
@@ -129,12 +134,14 @@ export function listTagInventory(db: DatabaseSync): TagInventoryEntry[] {
 		created_at: string;
 		count: number;
 		active: number;
+		backlog: number;
 	}[];
 
 	return rows.map((row) => ({
 		...mapTag(row),
 		count: Number(row.count),
 		active: Number(row.active),
+		backlog: Number(row.backlog),
 	}));
 }
 

@@ -1,8 +1,14 @@
 import { goto } from "$app/navigation";
+import { resolve } from "$app/paths";
 import { page } from "$app/state";
 import { getContext, setContext } from "svelte";
 import { listHref } from "#lib/navigation/href.ts";
 import { parsePath } from "#lib/navigation/paths.ts";
+import {
+	hasListSearch,
+	parseListSearch,
+	withoutListSearch,
+} from "#lib/navigation/search.ts";
 import { fetchFresh } from "#lib/remote/fresh.ts";
 import { getScopedProjectIds, getScopes } from "#lib/remote/scopes.remote.ts";
 import { createCommentsStore } from "#lib/state/comments.svelte.ts";
@@ -63,6 +69,20 @@ export function createBoard(input: BoardInput) {
 	});
 
 	$effect.root(() => {
+		$effect(() => {
+			const state = parseListSearch(page.url.searchParams);
+			if (!hasListSearch(state)) return;
+			if (state.tags !== null) filters.setTags(state.tags);
+			if (state.status !== null) filters.status = state.status;
+			if (state.hideClosed !== null) filters.setClosed(state.hideClosed);
+			if (state.hideBacklog !== null) filters.setBacklog(state.hideBacklog);
+			const search = withoutListSearch(page.url.search);
+			if (search !== page.url.search) {
+				const target = resolve(`${page.url.pathname}${search}` as "/tasks");
+				void goto(target, { replace: true });
+			}
+		});
+
 		$effect(() => {
 			const { project } = parsePath(page.url.pathname);
 			if (filters.activeProject === project) return;

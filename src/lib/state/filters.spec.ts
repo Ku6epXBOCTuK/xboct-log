@@ -50,3 +50,55 @@ describe("closed tasks filter", () => {
 		expect(filters.page).toBe(1);
 	});
 });
+
+describe("backlog filter", () => {
+	it("starts with the backlog visible", () => {
+		const filters = createFilters(null);
+
+		expect(filters.hideBacklog).toBe(false);
+		expect(filters.statusChanged).toBe(false);
+	});
+
+	it("drops an explicit backlog status when the backlog is hidden", () => {
+		const filters = createFilters(null);
+		filters.status = "backlog";
+
+		filters.toggleBacklog();
+
+		expect(filters.hideBacklog).toBe(true);
+		expect(filters.status).toBe("all");
+	});
+
+	it("shows the backlog again when its status is picked", () => {
+		const filters = createFilters(null);
+		filters.toggleBacklog();
+
+		filters.status = "backlog";
+
+		expect(filters.hideBacklog).toBe(false);
+	});
+
+	it("is cleared by the status reset and by clear", () => {
+		const filters = createFilters(null);
+		filters.toggleBacklog();
+		filters.resetStatus();
+		expect(filters.hideBacklog).toBe(false);
+
+		filters.toggleBacklog();
+		filters.clear();
+		expect(filters.hideBacklog).toBe(false);
+	});
+});
+
+describe("tag seeding", () => {
+	it("replaces the tags and returns to the first page", () => {
+		const filters = createFilters(null);
+		filters.toggleTag("ui");
+		filters.setPage(3);
+
+		filters.setTags(["mcp", "agent", "mcp"]);
+
+		expect(filters.selectedTags).toEqual(["mcp", "agent"]);
+		expect(filters.page).toBe(1);
+	});
+});

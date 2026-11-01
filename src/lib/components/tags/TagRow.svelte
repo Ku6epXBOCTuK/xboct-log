@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { TagInventoryEntry } from "#lib/state/tags.svelte.ts";
+	import { tagHref } from "#lib/navigation/href.ts";
 	import TagEditField from "#lib/components/tags/TagEditField.svelte";
 	import Badge from "@ku6epxboctuk/ui-kit/components/Badge";
 	import Button from "@ku6epxboctuk/ui-kit/components/Button";
@@ -55,9 +56,23 @@
 			<Badge tone="neutral" variant="outline">archived</Badge>
 		{/if}
 	</div>
-	<span class="tag-active">{entry.active}<span class="unit"> active</span></span
-	>
-	<span class="tag-all">{entry.count}<span class="unit"> all</span></span>
+	<span class="tag-active">
+		<a
+			href={tagHref(entry.name, "active")}
+			title="Tasks that are open, in progress or blocked"
+			>{entry.active}<span class="unit"> active</span></a
+		>
+	</span>
+	<span class="tag-backlog">
+		<a href={tagHref(entry.name, "backlog")} title="Tasks still in the backlog"
+			>{entry.backlog}<span class="unit"> backlog</span></a
+		>
+	</span>
+	<span class="tag-all">
+		<a href={tagHref(entry.name, "all")} title="Every task that carries the tag"
+			>{entry.count}<span class="unit"> all</span></a
+		>
+	</span>
 	<span class="tag-action">
 		{#if entry.archived}
 			<Button
@@ -88,7 +103,10 @@
 <style>
 	.tag-row {
 		display: grid;
-		grid-template-columns: var(--tag-cols, minmax(0, 1fr) 5rem 4rem 6.5rem);
+		grid-template-columns: var(
+			--tag-cols,
+			minmax(0, 1fr) 5rem 5rem 4rem 6.5rem
+		);
 		align-items: center;
 		gap: var(--space-3);
 		padding: var(--space-2) var(--space-2);
@@ -131,11 +149,34 @@
 	}
 
 	.tag-active,
+	.tag-backlog,
 	.tag-all {
 		font-size: var(--text-xs);
 		font-variant-numeric: tabular-nums;
 		text-align: right;
 		white-space: nowrap;
+	}
+
+	.tag-active a,
+	.tag-backlog a,
+	.tag-all a {
+		color: inherit;
+		text-decoration: none;
+		border-radius: var(--radius-sm, 3px);
+	}
+
+	.tag-active a:hover,
+	.tag-backlog a:hover,
+	.tag-all a:hover {
+		color: var(--foreground);
+		text-decoration: underline;
+	}
+
+	.tag-active a:focus-visible,
+	.tag-backlog a:focus-visible,
+	.tag-all a:focus-visible {
+		outline: 2px solid var(--focus, var(--border-strong));
+		outline-offset: 2px;
 	}
 
 	.tag-all {
@@ -152,6 +193,7 @@
 
 	@media (max-width: 820px) {
 		.tag-row {
+			grid-template-columns: minmax(0, 1fr) auto auto;
 			row-gap: var(--space-1);
 		}
 
@@ -159,17 +201,25 @@
 			display: inline;
 		}
 
+		.tag-name {
+			grid-area: 1 / 1 / 2 / 3;
+		}
+
 		.tag-active {
 			grid-area: 2 / 1 / 3 / 2;
 			text-align: left;
 		}
 
-		.tag-all {
+		.tag-backlog {
 			grid-area: 2 / 2 / 3 / 3;
 		}
 
+		.tag-all {
+			grid-area: 2 / 3 / 3 / 4;
+		}
+
 		.tag-action {
-			grid-area: 1 / 3 / 3 / 4;
+			grid-area: 1 / 3 / 2 / 4;
 			align-self: center;
 		}
 	}

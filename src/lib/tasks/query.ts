@@ -49,8 +49,14 @@ export interface TaskQueryArgs {
 
 function statuses(filters: Filters): Status[] | undefined {
 	if (filters.status !== "all") return [filters.status];
-	if (!filters.hideClosed) return undefined;
-	return STATUSES.filter((status) => !CLOSED_STATUSES.includes(status));
+	if (!filters.hideClosed && !filters.hideBacklog) return undefined;
+	return STATUSES.filter(
+		(status) =>
+			!(
+				(filters.hideClosed && CLOSED_STATUSES.includes(status)) ||
+				(filters.hideBacklog && status === "backlog")
+			),
+	);
 }
 
 function isExactOnly(input: string): boolean {

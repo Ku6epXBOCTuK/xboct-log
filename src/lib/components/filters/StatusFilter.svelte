@@ -10,9 +10,18 @@
 		onselect: (value: Status | "all") => void;
 		hideClosed: boolean;
 		ontoggleclosed: () => void;
+		hideBacklog: boolean;
+		ontogglebacklog: () => void;
 	}
 
-	let { value, onselect, hideClosed, ontoggleclosed }: Props = $props();
+	let {
+		value,
+		onselect,
+		hideClosed,
+		ontoggleclosed,
+		hideBacklog,
+		ontogglebacklog,
+	}: Props = $props();
 </script>
 
 <div class="filter-group">
@@ -27,7 +36,7 @@
 		</button>
 	{/each}
 	<button
-		class="filter-chip closed-chip"
+		class="filter-chip hide-chip"
 		class:on={hideClosed}
 		aria-pressed={hideClosed}
 		title={hideClosed ? "Closed tasks are hidden" : "Closed tasks are visible"}
@@ -40,23 +49,39 @@
 		{/if}
 		closed
 	</button>
+	<button
+		class="filter-chip hide-chip"
+		class:on={hideBacklog}
+		aria-pressed={hideBacklog}
+		title={hideBacklog
+			? "Backlog tasks are hidden"
+			: "Backlog tasks are visible"}
+		onclick={ontogglebacklog}
+	>
+		{#if hideBacklog}
+			<EyeOff />
+		{:else}
+			<Eye />
+		{/if}
+		backlog
+	</button>
 </div>
 
 <style>
-	.closed-chip :global(svg) {
+	.hide-chip :global(svg) {
 		width: 0.875rem;
 		height: 0.875rem;
 		flex: none;
 	}
 
-	.filter-group .closed-chip.on {
+	.filter-group .hide-chip.on {
 		border-style: dashed;
 		border-color: var(--border);
 		background: transparent;
 		color: var(--text-muted);
 	}
 
-	.filter-group .closed-chip.on:hover {
+	.filter-group .hide-chip.on:hover {
 		border-color: var(--border-strong);
 		background: var(--hover);
 		color: var(--text-secondary);

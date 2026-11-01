@@ -69,6 +69,7 @@ export const tagInventory = z.looseObject({
 	created_at: z.string(),
 	count: z.number().int(),
 	active: z.number().int(),
+	backlog: z.number().int(),
 });
 
 export const backupRef = z.looseObject({

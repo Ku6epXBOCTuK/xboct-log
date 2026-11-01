@@ -20,6 +20,7 @@ export interface TagInventoryEntry {
 	created_at: string;
 	count: number;
 	active: number;
+	backlog: number;
 }
 
 export interface TagPicker {

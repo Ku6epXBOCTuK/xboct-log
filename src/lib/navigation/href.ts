@@ -2,6 +2,7 @@ import { resolve } from "$app/paths";
 import { page } from "$app/state";
 import type { ResolvedPathname } from "$app/types";
 import { listPath, type Category } from "#lib/navigation/paths.ts";
+import { withoutListSearch } from "#lib/navigation/search.ts";
 import type { Task } from "#lib/types.ts";
 
 export function listHref(
@@ -11,6 +12,17 @@ export function listHref(
 	return resolve(
 		`${listPath(category, project)}${page.url.search}` as "/tasks",
 	);
+}
+
+export type TagLink = "active" | "backlog" | "all";
+
+export function tagHref(name: string, link: TagLink): ResolvedPathname {
+	const params = new URLSearchParams(withoutListSearch(page.url.search));
+	params.set("tags", name);
+	if (link === "active") params.set("backlog", "0");
+	if (link === "backlog") params.set("status", "backlog");
+	if (link === "all") params.set("closed", "1");
+	return resolve(`/tasks?${params.toString()}` as "/tasks");
 }
 
 export function appHref(url: URL): ResolvedPathname {

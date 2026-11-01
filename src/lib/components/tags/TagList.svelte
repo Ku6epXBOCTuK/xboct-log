@@ -33,6 +33,7 @@
 	<div class="tag-head" aria-hidden="true">
 		<span>Tag</span>
 		<span>Active</span>
+		<span>Backlog</span>
 		<span>All</span>
 		<span></span>
 	</div>
@@ -77,7 +78,7 @@
 	.tag-table {
 		display: flex;
 		flex-direction: column;
-		--tag-cols: minmax(0, 1fr) 5rem 4rem 6.5rem;
+		--tag-cols: minmax(0, 1fr) 5rem 5rem 4rem 6.5rem;
 	}
 
 	.tag-head {
@@ -94,7 +95,8 @@
 	}
 
 	.tag-head span:nth-child(2),
-	.tag-head span:nth-child(3) {
+	.tag-head span:nth-child(3),
+	.tag-head span:nth-child(4) {
 		text-align: right;
 	}
 
@@ -125,7 +127,7 @@
 
 	@media (max-width: 820px) {
 		.tag-table {
-			--tag-cols: minmax(0, 1fr) 4rem 6.5rem;
+			--tag-cols: minmax(0, 1fr) 4rem 4rem 6.5rem;
 		}
 
 		.tag-head {

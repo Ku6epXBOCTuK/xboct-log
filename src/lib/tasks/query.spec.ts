@@ -13,6 +13,7 @@ function filters(overrides: Partial<Filters> = {}): Filters {
 		query: "",
 		selectedTags: [],
 		hideClosed: true,
+		hideBacklog: false,
 		sortKey: "updated",
 		sortOrder: "desc",
 		page: 1,
@@ -28,6 +29,24 @@ describe("task query", () => {
 		expect(
 			buildTaskQuery(filters({ hideClosed: false })).status,
 		).toBeUndefined();
+	});
+
+	it("drops the backlog alone when only the backlog is hidden", () => {
+		expect(
+			buildTaskQuery(filters({ hideBacklog: true, hideClosed: false })).status,
+		).toEqual(STATUSES.filter((status) => status !== "backlog"));
+	});
+
+	it("sends the active statuses when both backlog and closed are hidden", () => {
+		expect(
+			buildTaskQuery(filters({ hideBacklog: true, hideClosed: true })).status,
+		).toEqual(["open", "in-progress", "blocked"]);
+	});
+
+	it("keeps an explicit status ahead of the hide switches", () => {
+		expect(
+			buildTaskQuery(filters({ status: "backlog", hideBacklog: true })).status,
+		).toEqual(["backlog"]);
 	});
 
 	it("splits the search into text, number and id terms", () => {

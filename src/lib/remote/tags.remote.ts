@@ -55,7 +55,7 @@ export const listTagInventoryQuery = defineQuery({
 	name: "tags_inventory",
 	output: tagInventoryList,
 	description:
-		"The whole tag dictionary including the archived tags and the tags no task carries, with usage counts. Counts soft-deleted tasks out. Archived tags stay on the tasks that already carry them but cannot be assigned again. Returns: {items, total}, where each item is {name, archived, created_at, count, active}.",
+		"The whole tag dictionary including the archived tags and the tags no task carries, with usage counts. Counts soft-deleted tasks out. Archived tags stay on the tasks that already carry them but cannot be assigned again. `active` counts open, in-progress and blocked tasks, `backlog` counts the backlog ones. Returns: {items, total}, where each item is {name, archived, created_at, count, active, backlog}.",
 	kind: "query",
 	mcp: false,
 	input: strictObject({}),

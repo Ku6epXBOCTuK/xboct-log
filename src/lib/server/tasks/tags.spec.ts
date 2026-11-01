@@ -169,6 +169,7 @@ describe("listTagInventory", () => {
 				created_at: expect.any(String),
 				count: 2,
 				active: 2,
+				backlog: 0,
 			},
 			{
 				name: "ui",
@@ -176,6 +177,7 @@ describe("listTagInventory", () => {
 				created_at: expect.any(String),
 				count: 1,
 				active: 1,
+				backlog: 0,
 			},
 			{
 				name: "idle",
@@ -183,6 +185,7 @@ describe("listTagInventory", () => {
 				created_at: expect.any(String),
 				count: 0,
 				active: 0,
+				backlog: 0,
 			},
 		]);
 	});
@@ -201,6 +204,7 @@ describe("listTagInventory", () => {
 				created_at: expect.any(String),
 				count: 0,
 				active: 0,
+				backlog: 0,
 			},
 			{
 				name: "ui",
@@ -208,6 +212,7 @@ describe("listTagInventory", () => {
 				created_at: expect.any(String),
 				count: 0,
 				active: 0,
+				backlog: 0,
 			},
 		]);
 	});
@@ -218,7 +223,36 @@ describe("listTagInventory", () => {
 		unwrap(renameTag(db, "mcp", "agent"));
 
 		const entry = listTagInventory(db).find((item) => item.name === "agent");
-		expect(entry).toMatchObject({ count: 1, active: 0, archived: false });
+		expect(entry).toMatchObject({
+			count: 1,
+			active: 0,
+			backlog: 1,
+			archived: false,
+		});
+	});
+
+	it("splits active, backlog and closed tasks", async () => {
+		const db = await setup();
+		for (const status of [
+			"open",
+			"in-progress",
+			"blocked",
+			"backlog",
+			"done",
+			"cancelled",
+		] as const) {
+			unwrap(
+				createTask(db, {
+					status,
+					project_id: "spa",
+					title: status,
+					tags: ["mcp"],
+				}),
+			);
+		}
+
+		const entry = listTagInventory(db).find((item) => item.name === "mcp");
+		expect(entry).toMatchObject({ count: 6, active: 3, backlog: 1 });
 	});
 });
 
