@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.6.1](https://github.com/Ku6epXBOCTuK/xboct-log/compare/4371fea1da0bf5f9a6d3d49ceeeba141d673df00..v0.6.1) - 2026-11-01
+#### Bug Fixes
+- add activity record to task attachments, update tools for required activity - ([4371fea](https://github.com/Ku6epXBOCTuK/xboct-log/commit/4371fea1da0bf5f9a6d3d49ceeeba141d673df00)) - Ku6epXBOCTuK
+
+- - -
+
 ## [v0.6.0](https://github.com/Ku6epXBOCTuK/xboct-log/compare/addedbbbbc869f2ede3c85c87f74f82c3262d0e4..v0.6.0) - 2026-11-01
 #### Features
 - add soft delete and restore attachments flow - ([6b0f202](https://github.com/Ku6epXBOCTuK/xboct-log/commit/6b0f2028e73b40eaf803eb48f1d3dc32a2a04592)) - Ku6epXBOCTuK
