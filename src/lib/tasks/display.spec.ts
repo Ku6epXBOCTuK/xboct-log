@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDate, formatDateTime } from "./display.ts";
+import { formatDate, formatDateTime, localToday } from "./display.ts";
 
 const pad = (value: number) => String(value).padStart(2, "0");
 
@@ -15,5 +15,12 @@ describe("formatDateTime", () => {
 		const date = new Date(iso);
 		const expected = `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${String(date.getFullYear()).slice(-2)} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 		expect(formatDateTime(iso)).toBe(expected);
+	});
+});
+
+describe("localToday", () => {
+	it("uses the local calendar day, not the UTC one", () => {
+		const now = new Date(2026, 10, 1, 23, 30);
+		expect(localToday(now)).toBe("2026-11-01");
 	});
 });

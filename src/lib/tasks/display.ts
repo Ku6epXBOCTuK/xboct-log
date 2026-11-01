@@ -69,3 +69,9 @@ export function normalizeDueDate(
 export function isOverdue(dueAt: string | null, today: string): boolean {
 	return dueAt !== null && dueAt < today;
 }
+
+// NOTE: due dates are calendar days in the local zone, so the comparison day
+// must come from local getters; toISOString() would give the UTC day.
+export function localToday(now: Date = new Date()): string {
+	return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
