@@ -61,16 +61,14 @@
 		onclear={() => filters.resetQuery()}
 	/>
 	<FilterRow
-		status={filters.status}
+		statuses={filters.statuses}
 		priority={filters.priority}
-		hideClosed={filters.hideClosed}
-		hideBacklog={filters.hideBacklog}
 		statusChanged={filters.statusChanged}
 		priorityChanged={filters.priorityChanged}
-		onstatus={(value) => (filters.status = value)}
+		onpick={(value) => filters.pickStatus(value)}
+		onadd={(value) => filters.toggleStatus(value)}
+		onpreset={(value) => filters.setStatuses(value)}
 		onpriority={(value) => (filters.priority = value)}
-		ontoggleclosed={() => filters.toggleClosed()}
-		ontogglebacklog={() => filters.toggleBacklog()}
 		onresetstatus={() => filters.resetStatus()}
 		onresetpriority={() => filters.resetPriority()}
 		onclear={() => filters.clear()}

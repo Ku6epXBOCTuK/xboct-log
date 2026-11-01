@@ -1,17 +1,10 @@
 import { STATUSES, type Status } from "#lib/types.ts";
 
-export const LIST_SEARCH_KEYS = [
-	"tags",
-	"status",
-	"closed",
-	"backlog",
-] as const;
+export const LIST_SEARCH_KEYS = ["tags", "status"] as const;
 
 export interface ListSearch {
 	tags: string[] | null;
-	status: Status | null;
-	hideClosed: boolean | null;
-	hideBacklog: boolean | null;
+	statuses: Status[] | null;
 }
 
 export interface QueryParams {
@@ -19,15 +12,13 @@ export interface QueryParams {
 	getAll(name: string): string[];
 }
 
-function flag(params: QueryParams, name: string): boolean | null {
-	const raw = params.get(name);
-	if (raw === "1") return true;
-	if (raw === "0") return false;
-	return null;
-}
-
-function statusOf(raw: string | null): Status | null {
-	return STATUSES.find((status) => status === raw) ?? null;
+function statusesOf(params: QueryParams): Status[] | null {
+	const values = params
+		.getAll("status")
+		.flatMap((value) => value.split(","))
+		.map((value) => value.trim().toLowerCase());
+	const known = STATUSES.filter((status) => values.includes(status));
+	return known.length > 0 ? known : null;
 }
 
 export function parseListSearch(params: QueryParams): ListSearch {
@@ -40,24 +31,15 @@ export function parseListSearch(params: QueryParams): ListSearch {
 				.filter((value) => value !== ""),
 		),
 	];
-	const shown = flag(params, "closed");
-	const backlog = flag(params, "backlog");
 
 	return {
 		tags: tags.length > 0 ? tags : null,
-		status: statusOf(params.get("status")),
-		hideClosed: shown === null ? null : !shown,
-		hideBacklog: backlog === null ? null : !backlog,
+		statuses: statusesOf(params),
 	};
 }
 
 export function hasListSearch(state: ListSearch): boolean {
-	return (
-		state.tags !== null ||
-		state.status !== null ||
-		state.hideClosed !== null ||
-		state.hideBacklog !== null
-	);
+	return state.tags !== null || state.statuses !== null;
 }
 
 export function withoutListSearch(search: string): string {

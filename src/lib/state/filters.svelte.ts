@@ -6,18 +6,28 @@ import {
 	type TaskSortKey,
 } from "#lib/tasks/sort.ts";
 import {
-	CLOSED_STATUSES,
+	DEFAULT_STATUSES,
+	STATUSES,
 	type Priority,
 	type ProjectFilter,
 	type Status,
 } from "#lib/types.ts";
 
+function ordered(statuses: readonly Status[]): Status[] {
+	return STATUSES.filter((status) => statuses.includes(status));
+}
+
+function sameSet(left: readonly Status[], right: readonly Status[]): boolean {
+	return (
+		left.length === right.length &&
+		left.every((status) => right.includes(status))
+	);
+}
+
 export function createFilters(initialProject: ProjectFilter) {
 	let activeProject = $state<ProjectFilter>(initialProject);
-	let status = $state<Status | "all">("all");
+	let statuses = $state<Status[]>([...DEFAULT_STATUSES]);
 	let priority = $state<Priority | "all">("all");
-	let hideClosed = $state(true);
-	let hideBacklog = $state(false);
 	let epic = $state("any");
 	let scope = $state<"any" | "none" | number>("any");
 	let query = $state("");
@@ -38,60 +48,34 @@ export function createFilters(initialProject: ProjectFilter) {
 			activeProject = value;
 			firstPage();
 		},
-		get status() {
-			return status;
+		get statuses() {
+			return statuses;
 		},
-		set status(value: Status | "all") {
-			status = value;
-			if (value !== "all" && CLOSED_STATUSES.includes(value)) {
-				hideClosed = false;
-			}
-			if (value === "backlog") {
-				hideBacklog = false;
-			}
+		setStatuses(value: Status[]) {
+			const next = ordered(value);
+			statuses = next.length > 0 ? next : [...DEFAULT_STATUSES];
 			firstPage();
 		},
-		get hideClosed() {
-			return hideClosed;
-		},
-		setClosed(hidden: boolean) {
-			hideClosed = hidden;
-			if (hidden && status !== "all" && CLOSED_STATUSES.includes(status)) {
-				status = "all";
-			}
+		pickStatus(value: Status) {
+			statuses =
+				statuses.length === 1 && statuses[0] === value
+					? [...DEFAULT_STATUSES]
+					: [value];
 			firstPage();
 		},
-		toggleClosed() {
-			hideClosed = !hideClosed;
-			if (hideClosed && status !== "all" && CLOSED_STATUSES.includes(status)) {
-				status = "all";
-			}
-			firstPage();
-		},
-		get hideBacklog() {
-			return hideBacklog;
-		},
-		setBacklog(hidden: boolean) {
-			hideBacklog = hidden;
-			if (hidden && status === "backlog") {
-				status = "all";
-			}
-			firstPage();
-		},
-		toggleBacklog() {
-			hideBacklog = !hideBacklog;
-			if (hideBacklog && status === "backlog") {
-				status = "all";
-			}
+		toggleStatus(value: Status) {
+			const next = statuses.includes(value)
+				? statuses.filter((status) => status !== value)
+				: [...statuses, value];
+			if (next.length === 0) return;
+			statuses = ordered(next);
 			firstPage();
 		},
 		get statusChanged() {
-			return status !== "all" || !hideClosed || hideBacklog;
+			return !sameSet(statuses, DEFAULT_STATUSES);
 		},
 		resetStatus() {
-			status = "all";
-			hideClosed = true;
-			hideBacklog = false;
+			statuses = [...DEFAULT_STATUSES];
 			firstPage();
 		},
 		get priority() {
@@ -194,10 +178,8 @@ export function createFilters(initialProject: ProjectFilter) {
 			page = Math.max(1, value);
 		},
 		clear() {
-			status = "all";
+			statuses = [...DEFAULT_STATUSES];
 			priority = "all";
-			hideClosed = true;
-			hideBacklog = false;
 			epic = "any";
 			scope = "any";
 			query = "";

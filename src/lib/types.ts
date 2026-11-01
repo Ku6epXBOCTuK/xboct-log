@@ -26,6 +26,11 @@ export const ACTIVE_STATUSES: readonly Status[] = [
 	"blocked",
 ];
 
+export const DEFAULT_STATUSES: readonly Status[] = [
+	"backlog",
+	...ACTIVE_STATUSES,
+];
+
 export const CLOSED_REASONS = [
 	"fixed",
 	"wontfix",

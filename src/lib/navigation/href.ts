@@ -3,7 +3,12 @@ import { page } from "$app/state";
 import type { ResolvedPathname } from "$app/types";
 import { listPath, type Category } from "#lib/navigation/paths.ts";
 import { withoutListSearch } from "#lib/navigation/search.ts";
-import type { Task } from "#lib/types.ts";
+import {
+	ACTIVE_STATUSES,
+	STATUSES,
+	type Status,
+	type Task,
+} from "#lib/types.ts";
 
 export function listHref(
 	category: Category,
@@ -16,12 +21,16 @@ export function listHref(
 
 export type TagLink = "active" | "backlog" | "all";
 
+const TAG_LINK_STATUSES: Record<TagLink, readonly Status[]> = {
+	active: ACTIVE_STATUSES,
+	backlog: ["backlog"],
+	all: STATUSES,
+};
+
 export function tagHref(name: string, link: TagLink): ResolvedPathname {
 	const params = new URLSearchParams(withoutListSearch(page.url.search));
 	params.set("tags", name);
-	if (link === "active") params.set("backlog", "0");
-	if (link === "backlog") params.set("status", "backlog");
-	if (link === "all") params.set("closed", "1");
+	params.set("status", TAG_LINK_STATUSES[link].join(","));
 	return resolve(`/tasks?${params.toString()}` as "/tasks");
 }
 

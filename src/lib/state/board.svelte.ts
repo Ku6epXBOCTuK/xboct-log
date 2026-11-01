@@ -73,9 +73,7 @@ export function createBoard(input: BoardInput) {
 			const state = parseListSearch(page.url.searchParams);
 			if (!hasListSearch(state)) return;
 			if (state.tags !== null) filters.setTags(state.tags);
-			if (state.status !== null) filters.status = state.status;
-			if (state.hideClosed !== null) filters.setClosed(state.hideClosed);
-			if (state.hideBacklog !== null) filters.setBacklog(state.hideBacklog);
+			if (state.statuses !== null) filters.setStatuses(state.statuses);
 			const search = withoutListSearch(page.url.search);
 			if (search !== page.url.search) {
 				const target = resolve(`${page.url.pathname}${search}` as "/tasks");

@@ -1,92 +1,128 @@
 import { describe, expect, it } from "vitest";
+import { ACTIVE_STATUSES, DEFAULT_STATUSES } from "#lib/types.ts";
 import { createFilters } from "./filters.svelte.ts";
 
-describe("closed tasks filter", () => {
-	it("hides closed statuses by default", () => {
+describe("status filter", () => {
+	it("starts from everything but the closed statuses", () => {
 		const filters = createFilters(null);
 
-		expect(filters.hideClosed).toBe(true);
-		expect(filters.status).toBe("all");
+		expect(filters.statuses).toEqual([
+			"backlog",
+			"open",
+			"in-progress",
+			"blocked",
+		]);
 		expect(filters.statusChanged).toBe(false);
 	});
 
-	it("shows closed tasks as soon as a closed status is picked", () => {
+	it("adds a status and drops it on the second toggle", () => {
 		const filters = createFilters(null);
 
-		filters.status = "done";
+		filters.toggleStatus("done");
+		expect(filters.statuses).toContain("done");
 
-		expect(filters.hideClosed).toBe(false);
-		expect(filters.status).toBe("done");
+		filters.toggleStatus("done");
+		expect(filters.statuses).toEqual([...DEFAULT_STATUSES]);
 	});
 
-	it("drops a closed status when closed tasks are hidden again", () => {
+	it("keeps the workflow order whatever the toggle order", () => {
 		const filters = createFilters(null);
-		filters.status = "cancelled";
 
-		filters.toggleClosed();
+		filters.toggleStatus("done");
+		filters.toggleStatus("backlog");
 
-		expect(filters.hideClosed).toBe(true);
-		expect(filters.status).toBe("all");
+		expect(filters.statuses).toEqual([
+			"open",
+			"in-progress",
+			"blocked",
+			"done",
+		]);
+	});
+
+	it("does not let the last status be toggled off", () => {
+		const filters = createFilters(null);
+		filters.setStatuses(["blocked"]);
+
+		filters.toggleStatus("blocked");
+
+		expect(filters.statuses).toEqual(["blocked"]);
+	});
+
+	it("narrows the set to the picked status", () => {
+		const filters = createFilters(null);
+		filters.setPage(3);
+
+		filters.pickStatus("done");
+
+		expect(filters.statuses).toEqual(["done"]);
+		expect(filters.statusChanged).toBe(true);
+		expect(filters.page).toBe(1);
+	});
+
+	it("returns to the default set when the only status is picked again", () => {
+		const filters = createFilters(null);
+		filters.pickStatus("blocked");
+
+		filters.pickStatus("blocked");
+
+		expect(filters.statuses).toEqual([...DEFAULT_STATUSES]);
 		expect(filters.statusChanged).toBe(false);
 	});
 
-	it("keeps an open status when closed tasks are hidden again", () => {
+	it("replaces the single status with another pick", () => {
 		const filters = createFilters(null);
-		filters.toggleClosed();
-		filters.status = "in-progress";
+		filters.pickStatus("blocked");
 
-		filters.toggleClosed();
+		filters.pickStatus("done");
 
-		expect(filters.hideClosed).toBe(true);
-		expect(filters.status).toBe("in-progress");
+		expect(filters.statuses).toEqual(["done"]);
 	});
 
-	it("returns to the first page after the toggle", () => {
+	it("falls back to the default set for an empty list", () => {
+		const filters = createFilters(null);
+		filters.setStatuses(["done"]);
+
+		filters.setStatuses([]);
+
+		expect(filters.statuses).toEqual([...DEFAULT_STATUSES]);
+	});
+
+	it("recognizes the default set in any order", () => {
+		const filters = createFilters(null);
+
+		filters.setStatuses([...DEFAULT_STATUSES].reverse());
+
+		expect(filters.statusChanged).toBe(false);
+	});
+
+	it("reports a changed set and resets it", () => {
+		const filters = createFilters(null);
+		filters.setStatuses([...ACTIVE_STATUSES, "done"]);
+
+		expect(filters.statusChanged).toBe(true);
+
+		filters.resetStatus();
+
+		expect(filters.statuses).toEqual([...DEFAULT_STATUSES]);
+		expect(filters.statusChanged).toBe(false);
+	});
+
+	it("returns to the first page after a change", () => {
 		const filters = createFilters(null);
 		filters.setPage(4);
 
-		filters.toggleClosed();
+		filters.toggleStatus("done");
 
 		expect(filters.page).toBe(1);
 	});
-});
 
-describe("backlog filter", () => {
-	it("starts with the backlog visible", () => {
+	it("restores the default set on clear", () => {
 		const filters = createFilters(null);
+		filters.toggleStatus("done");
 
-		expect(filters.hideBacklog).toBe(false);
-		expect(filters.statusChanged).toBe(false);
-	});
-
-	it("drops an explicit backlog status when the backlog is hidden", () => {
-		const filters = createFilters(null);
-		filters.status = "backlog";
-
-		filters.toggleBacklog();
-
-		expect(filters.hideBacklog).toBe(true);
-		expect(filters.status).toBe("all");
-	});
-
-	it("shows the backlog again when its status is picked", () => {
-		const filters = createFilters(null);
-		filters.toggleBacklog();
-
-		filters.status = "backlog";
-
-		expect(filters.hideBacklog).toBe(false);
-	});
-
-	it("is cleared by the status reset and by clear", () => {
-		const filters = createFilters(null);
-		filters.toggleBacklog();
-		filters.resetStatus();
-		expect(filters.hideBacklog).toBe(false);
-
-		filters.toggleBacklog();
 		filters.clear();
-		expect(filters.hideBacklog).toBe(false);
+
+		expect(filters.statuses).toEqual([...DEFAULT_STATUSES]);
 	});
 });
 

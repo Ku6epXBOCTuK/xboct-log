@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ToggleChip from "@ku6epxboctuk/ui-kit/components/ToggleChip";
 	import { PRIORITIES, type Priority } from "#lib/types.ts";
 
 	interface Props {
@@ -12,26 +13,17 @@
 <div class="filter-group priority-group">
 	<span class="filter-label">Priority</span>
 	{#each PRIORITIES as option (option)}
-		<button
+		<ToggleChip
+			active={value === option}
 			onclick={() => onselect(value === option ? "all" : option)}
-			class={`filter-chip priority-${option} ${value === option ? "active" : ""}`}
+			class={`priority-${option}`}
 		>
 			{option}
-		</button>
+		</ToggleChip>
 	{/each}
 </div>
 
 <style>
-	.priority-critical {
-		color: var(--priority-critical);
-		font-weight: 600;
-	}
-
-	.priority-high {
-		color: var(--priority-high);
-		font-weight: 600;
-	}
-
 	@media (max-width: 820px) {
 		.priority-group {
 			display: none;

@@ -204,6 +204,7 @@ textarea:focus-visible {
 
 .filter-group {
 	display: flex;
+	flex-wrap: wrap;
 	align-items: center;
 	gap: var(--space-2);
 }
@@ -216,25 +217,16 @@ textarea:focus-visible {
 	padding-left: var(--space-2);
 }
 
-.filter-chip {
-	display: inline-flex;
-	align-items: center;
-	gap: var(--space-2);
-	border: 1px solid var(--border);
-	background: var(--panel);
-	color: var(--text-secondary);
-	border-radius: var(--radius-sm);
-	padding: var(--space-1) var(--space-2);
-	font-size: var(--text-sm);
-	white-space: nowrap;
-	flex: none;
+.ui-toggle-chip[data-ui="toggle-chip"].priority-critical,
+.ui-toggle-chip[data-ui="toggle-chip"].priority-critical[data-active] {
+	color: var(--priority-critical);
+	font-weight: 600;
 }
 
-.filter-chip:hover,
-.filter-chip.active {
-	background: var(--hover);
-	color: var(--foreground);
-	border-color: var(--border-strong);
+.ui-toggle-chip[data-ui="toggle-chip"].priority-high,
+.ui-toggle-chip[data-ui="toggle-chip"].priority-high[data-active] {
+	color: var(--priority-high);
+	font-weight: 600;
 }
 
 .detail-grid {

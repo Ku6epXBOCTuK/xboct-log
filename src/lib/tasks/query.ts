@@ -2,12 +2,7 @@ import type { Filters } from "#lib/state/filters.svelte.ts";
 import { TASK_PAGE_SIZE } from "#lib/tasks/paging.ts";
 import { isExactTerm, parseSearchQuery } from "#lib/tasks/search.ts";
 import type { TaskSortKey } from "#lib/tasks/sort.ts";
-import {
-	CLOSED_STATUSES,
-	STATUSES,
-	type Priority,
-	type Status,
-} from "#lib/types.ts";
+import type { Priority, Status } from "#lib/types.ts";
 
 type ServerSort =
 	| "updated_at"
@@ -45,18 +40,6 @@ export interface TaskQueryArgs {
 	limit: number;
 	offset: number;
 	include_description: true;
-}
-
-function statuses(filters: Filters): Status[] | undefined {
-	if (filters.status !== "all") return [filters.status];
-	if (!filters.hideClosed && !filters.hideBacklog) return undefined;
-	return STATUSES.filter(
-		(status) =>
-			!(
-				(filters.hideClosed && CLOSED_STATUSES.includes(status)) ||
-				(filters.hideBacklog && status === "backlog")
-			),
-	);
 }
 
 function isExactOnly(input: string): boolean {
@@ -110,10 +93,7 @@ export function buildTaskQuery(
 			args.project_id = filters.activeProject;
 		}
 
-		const status = statuses(filters);
-		if (status !== undefined) {
-			args.status = status;
-		}
+		args.status = [...filters.statuses];
 
 		if (filters.priority !== "all") {
 			args.priority = [filters.priority];

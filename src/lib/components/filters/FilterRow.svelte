@@ -7,32 +7,28 @@
 	import X from "~icons/lucide/x";
 
 	interface Props {
-		status: Status | "all";
+		statuses: Status[];
 		priority: Priority | "all";
-		hideClosed: boolean;
-		hideBacklog: boolean;
 		statusChanged: boolean;
 		priorityChanged: boolean;
-		onstatus: (value: Status | "all") => void;
+		onpick: (value: Status) => void;
+		onadd: (value: Status) => void;
+		onpreset: (value: Status[]) => void;
 		onpriority: (value: Priority | "all") => void;
-		ontoggleclosed: () => void;
-		ontogglebacklog: () => void;
 		onresetstatus: () => void;
 		onresetpriority: () => void;
 		onclear: () => void;
 	}
 
 	let {
-		status,
+		statuses,
 		priority,
-		hideClosed,
-		hideBacklog,
 		statusChanged,
 		priorityChanged,
-		onstatus,
+		onpick,
+		onadd,
+		onpreset,
 		onpriority,
-		ontoggleclosed,
-		ontogglebacklog,
 		onresetstatus,
 		onresetpriority,
 		onclear,
@@ -41,14 +37,7 @@
 
 <div class="filter-row">
 	<FilterBlock label="status" active={statusChanged} onreset={onresetstatus}>
-		<StatusFilter
-			value={status}
-			onselect={onstatus}
-			{hideClosed}
-			{ontoggleclosed}
-			{hideBacklog}
-			{ontogglebacklog}
-		/>
+		<StatusFilter {statuses} {onpick} {onadd} {onpreset} />
 	</FilterBlock>
 	<FilterBlock
 		label="priority"

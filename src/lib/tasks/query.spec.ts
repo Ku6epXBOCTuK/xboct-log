@@ -1,19 +1,17 @@
 import { describe, expect, it } from "vitest";
 import type { Filters } from "#lib/state/filters.svelte.ts";
-import { CLOSED_STATUSES, STATUSES } from "#lib/types.ts";
+import { DEFAULT_STATUSES, STATUSES } from "#lib/types.ts";
 import { buildTaskQuery } from "./query.ts";
 
 function filters(overrides: Partial<Filters> = {}): Filters {
 	return {
 		activeProject: null,
-		status: "all",
+		statuses: [...DEFAULT_STATUSES],
 		priority: "all",
 		epic: "any",
 		scope: "any",
 		query: "",
 		selectedTags: [],
-		hideClosed: true,
-		hideBacklog: false,
 		sortKey: "updated",
 		sortOrder: "desc",
 		page: 1,
@@ -22,31 +20,20 @@ function filters(overrides: Partial<Filters> = {}): Filters {
 }
 
 describe("task query", () => {
-	it("sends only the active statuses while closed tasks are hidden", () => {
-		expect(buildTaskQuery(filters()).status).toEqual(
-			STATUSES.filter((status) => !CLOSED_STATUSES.includes(status)),
+	it("sends the default status set", () => {
+		expect(buildTaskQuery(filters()).status).toEqual([...DEFAULT_STATUSES]);
+	});
+
+	it("sends an arbitrary status set as is", () => {
+		expect(
+			buildTaskQuery(filters({ statuses: ["open", "blocked"] })).status,
+		).toEqual(["open", "blocked"]);
+	});
+
+	it("sends every status when none is hidden", () => {
+		expect(buildTaskQuery(filters({ statuses: [...STATUSES] })).status).toEqual(
+			[...STATUSES],
 		);
-		expect(
-			buildTaskQuery(filters({ hideClosed: false })).status,
-		).toBeUndefined();
-	});
-
-	it("drops the backlog alone when only the backlog is hidden", () => {
-		expect(
-			buildTaskQuery(filters({ hideBacklog: true, hideClosed: false })).status,
-		).toEqual(STATUSES.filter((status) => status !== "backlog"));
-	});
-
-	it("sends the active statuses when both backlog and closed are hidden", () => {
-		expect(
-			buildTaskQuery(filters({ hideBacklog: true, hideClosed: true })).status,
-		).toEqual(["open", "in-progress", "blocked"]);
-	});
-
-	it("keeps an explicit status ahead of the hide switches", () => {
-		expect(
-			buildTaskQuery(filters({ status: "backlog", hideBacklog: true })).status,
-		).toEqual(["backlog"]);
 	});
 
 	it("splits the search into text, number and id terms", () => {
@@ -69,7 +56,7 @@ describe("task query", () => {
 		const query = buildTaskQuery(
 			filters({
 				activeProject: "spa",
-				status: "open",
+				statuses: ["open"],
 				priority: "high",
 				epic: "SPA-1",
 				scope: 3,
@@ -96,7 +83,7 @@ describe("task query", () => {
 		const query = buildTaskQuery(
 			filters({
 				activeProject: "spa",
-				status: "open",
+				statuses: ["open"],
 				query: "=LOG-42",
 			}),
 			1,
@@ -111,7 +98,7 @@ describe("task query", () => {
 
 	it("keeps exact numbers global when the project prefix is unknown", () => {
 		const query = buildTaskQuery(
-			filters({ activeProject: "spa", status: "open", query: "=29" }),
+			filters({ activeProject: "spa", statuses: ["open"], query: "=29" }),
 			1,
 			50,
 		);
@@ -124,7 +111,7 @@ describe("task query", () => {
 
 	it("keeps the filters when an exact term is mixed with text", () => {
 		const query = buildTaskQuery(
-			filters({ activeProject: "spa", status: "open", query: "login =29" }),
+			filters({ activeProject: "spa", statuses: ["open"], query: "login =29" }),
 			1,
 			50,
 			"SPA",

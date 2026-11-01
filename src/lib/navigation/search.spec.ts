@@ -21,30 +21,30 @@ describe("list search", () => {
 		expect(hasListSearch(state)).toBe(false);
 	});
 
-	it("maps the flags to the hide switches", () => {
-		expect(parse("?closed=1&backlog=0")).toMatchObject({
-			hideClosed: false,
-			hideBacklog: true,
-		});
-		expect(parse("?closed=0&backlog=1")).toMatchObject({
-			hideClosed: true,
-			hideBacklog: false,
-		});
-		expect(parse("")).toMatchObject({
-			hideClosed: null,
-			hideBacklog: null,
-		});
+	it("reads the statuses in the workflow order", () => {
+		expect(parse("?status=done,open").statuses).toEqual(["open", "done"]);
+		expect(parse("?status=open&status=blocked").statuses).toEqual([
+			"open",
+			"blocked",
+		]);
 	});
 
 	it("ignores a status that is not in the workflow", () => {
-		expect(parse("?status=done").status).toBe("done");
-		expect(parse("?status=archived").status).toBeNull();
+		expect(parse("?status=archived,open").statuses).toEqual(["open"]);
+		expect(parse("?status=archived").statuses).toBeNull();
+	});
+
+	it("treats an empty status value as no filter", () => {
+		const state = parse("?status=,%20,");
+
+		expect(state.statuses).toBeNull();
+		expect(hasListSearch(state)).toBe(false);
 	});
 
 	it("drops the list keys and keeps the rest of the search", () => {
-		expect(
-			withoutListSearch("?theme=dark&tags=mcp&closed=1&backlog=0&status=open"),
-		).toBe("?theme=dark");
+		expect(withoutListSearch("?theme=dark&tags=mcp&status=open,blocked")).toBe(
+			"?theme=dark",
+		);
 		expect(withoutListSearch("?tags=mcp")).toBe("");
 	});
 });
