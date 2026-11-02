@@ -43,13 +43,16 @@ import { taskFilters } from "./tasks.filters";
 const EPIC_ID_DESCRIPTION =
 	"Epic id in the full 'PREFIX-NUMBER' form (e.g. 'LOG-5'); a bare number such as '5' is unique only inside a project. The epic belongs to the same project as the task. Epics are flat: only a non-epic task carries epic_id, and an epic itself never has one.";
 
+const DESCRIPTION_HINT =
+	"Task description as Markdown: headings, lists, tables, quotes, links and fenced code blocks are rendered in the UI, so use them. A short log, config or command output is welcome in a fenced block when it carries the point; raw dumps go to an attachment instead. Keep source code in the repository - name the file and describe the algorithm. Stay short, no walls of text, and keep the first line a plain sentence: it becomes the one-line preview in lists.";
+
 const BLOCKED_REASON_DESCRIPTION =
 	"Why the task is blocked, one line of free text. Use it when the blocker is outside the tracker (waiting for a release, an answer, an access). Only allowed on a task with status 'blocked'; null clears it.";
 
 const newTask = strictObject({
 	project_id: z.string().min(1),
 	title: z.string().min(1),
-	description: z.string().optional(),
+	description: z.string().optional().describe(DESCRIPTION_HINT),
 	status: z.enum(STATUSES).default("backlog"),
 	priority: z.enum(PRIORITIES).optional(),
 	is_epic: z.boolean().optional(),
@@ -106,7 +109,7 @@ const newTask = strictObject({
 
 const taskPatch = strictObject({
 	title: z.string().min(1).optional(),
-	description: z.string().optional(),
+	description: z.string().optional().describe(DESCRIPTION_HINT),
 	status: z.enum(STATUSES).optional(),
 	priority: z.enum(PRIORITIES).optional(),
 	is_epic: z.boolean().optional(),
@@ -266,7 +269,7 @@ export const createTask = defineCommand({
 	name: "tasks_create",
 	output: taskCreated,
 	description:
-		"Create a task. Requires project_id and title; status, priority, estimate, assignee, due_at, blocked_reason, epic, scope, tags are optional. status defaults to 'backlog', where the task waits for a later session, even if the work looks small. Pass 'open' only when you start on it right away, in this same session; 'later' from the user always means backlog. estimate is the size of the task: 'S', 'M' or 'L'. assignee is the person responsible for the task, due_at is its due date (YYYY-MM-DD). blocked_reason is one line of free text explaining a block outside the tracker and is only allowed when status is 'blocked'. epic_id accepts a full epic id (e.g. 'LOG-5') of the same project. scope_id is optional: a task without it sits outside the project's scopes, and scopes_create {project_id, name} adds a scope. Tags are optional too, but they come from a closed dictionary: an unknown tag is rejected with the list of existing ones, and tags_create {name} adds a genuinely new tag. source_file names the document or file the task came from; it is provenance only, it is never verified and several tasks may share it. Returns: the created task - " +
+		"Create a task. Requires project_id and title; description, status, priority, estimate, assignee, due_at, blocked_reason, epic, scope, tags are optional. description is Markdown and formatting is rendered: a short log or config in a fenced block is welcome, source code belongs in the repository. status defaults to 'backlog', where the task waits for a later session, even if the work looks small. Pass 'open' only when you start on it right away, in this same session; 'later' from the user always means backlog. estimate is the size of the task: 'S', 'M' or 'L'. assignee is the person responsible for the task, due_at is its due date (YYYY-MM-DD). blocked_reason is one line of free text explaining a block outside the tracker and is only allowed when status is 'blocked'. epic_id accepts a full epic id (e.g. 'LOG-5') of the same project. scope_id is optional: a task without it sits outside the project's scopes, and scopes_create {project_id, name} adds a scope. Tags are optional too, but they come from a closed dictionary: an unknown tag is rejected with the list of existing ones, and tags_create {name} adds a genuinely new tag. source_file names the document or file the task came from; it is provenance only, it is never verified and several tasks may share it. Returns: the created task - " +
 		TASK_FIELDS +
 		" with a warnings array.",
 	kind: "command",
@@ -330,7 +333,7 @@ export const updateTask = defineCommand({
 	name: "tasks_update",
 	output: taskRef,
 	description:
-		"Update fields of an existing task by task_id. Pass the fields to change next to task_id (e.g. {task_id: 'LOG-87', status: 'in-progress'}); a nested patch object {task_id, patch: {status}} is accepted too. The task_id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). epic_id accepts a full epic id (e.g. 'LOG-5') of the task's current project, estimate takes the size of the task ('S', 'M' or 'L') or null to clear it, assignee takes the name of the responsible person or null to clear it, due_at takes the due date (YYYY-MM-DD) or null to clear it, and blocked_reason is one line of free text explaining a block outside the tracker, allowed only on a blocked task; leaving status 'blocked' clears it. The call must name at least one field with a value: no field, a field set to undefined, an unknown field or an epic id that does not exist is an error, the task is left untouched. Returns: the updated task - " +
+		"Update fields of an existing task by task_id. Pass the fields to change next to task_id (e.g. {task_id: 'LOG-87', status: 'in-progress'}); a nested patch object {task_id, patch: {status}} is accepted too. description is Markdown and formatting is rendered: a short log or config in a fenced block is welcome, source code belongs in the repository. The task_id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). epic_id accepts a full epic id (e.g. 'LOG-5') of the task's current project, estimate takes the size of the task ('S', 'M' or 'L') or null to clear it, assignee takes the name of the responsible person or null to clear it, due_at takes the due date (YYYY-MM-DD) or null to clear it, and blocked_reason is one line of free text explaining a block outside the tracker, allowed only on a blocked task; leaving status 'blocked' clears it. The call must name at least one field with a value: no field, a field set to undefined, an unknown field or an epic id that does not exist is an error, the task is left untouched. Returns: the updated task - " +
 		TASK_FIELDS +
 		" with a changes array and a warnings array, which is not empty when the task is blocked with neither a blocker task nor a blocked_reason. An unknown tag is rejected: tags are a closed dictionary, see tags_list and tags_create.",
 	kind: "command",

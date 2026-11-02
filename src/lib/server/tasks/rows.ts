@@ -114,11 +114,40 @@ export function pickFields(task: Task, fields: string[]): Task {
 
 export const SHORT_DESCRIPTION_LENGTH = 120;
 
+// NOTE: the description is Markdown, and a heading or a fence as the first line
+// would otherwise show its markers in every task list.
+function plainLine(line: string): string {
+	return line
+		.replace(/^#{1,6}\s+/, "")
+		.replace(/^>\s*/, "")
+		.replace(/^(?:[-*+]|\d+[.)])\s+/, "")
+		.replace(/^\[[ xX]\]\s+/, "")
+		.replace(/\*\*(.+?)\*\*/g, "$1")
+		.replace(/__(.+?)__/g, "$1")
+		.replace(/`([^`]+)`/g, "$1")
+		.replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
+		.trim();
+}
+
+function firstProseLine(description: string): string {
+	let fence = false;
+	for (const raw of description.split("\n")) {
+		const line = raw.trim();
+		if (line === "") continue;
+		if (line.startsWith("```")) {
+			fence = !fence;
+			continue;
+		}
+		if (!fence) return line;
+	}
+	return "";
+}
+
 function shortDescription(description: string): string {
-	const firstLine = description.split("\n")[0].trim();
-	return firstLine.length > SHORT_DESCRIPTION_LENGTH
-		? `${firstLine.slice(0, SHORT_DESCRIPTION_LENGTH)}…`
-		: firstLine;
+	const plain = plainLine(firstProseLine(description));
+	return plain.length > SHORT_DESCRIPTION_LENGTH
+		? `${plain.slice(0, SHORT_DESCRIPTION_LENGTH)}…`
+		: plain;
 }
 
 export function taskWithShortDescription(

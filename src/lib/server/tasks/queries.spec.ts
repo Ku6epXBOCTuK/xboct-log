@@ -294,6 +294,39 @@ describe("task queries", () => {
 		expect(emptyTask.short_description).toBe("");
 	});
 
+	it("strips markdown markers from short_description", async () => {
+		const db = await setup();
+		unwrap(
+			createTask(db, {
+				project_id: "spa",
+				title: "Heading",
+				description: "## What breaks\nthe rest",
+			}),
+		);
+		unwrap(
+			createTask(db, {
+				project_id: "spa",
+				title: "Bold",
+				description: "- **First** step",
+			}),
+		);
+		unwrap(
+			createTask(db, {
+				project_id: "spa",
+				title: "Fence",
+				description: "```ts\nconst a = 1;\n```",
+			}),
+		);
+
+		const [heading] = listTasks(db, { title: "Heading" });
+		const [bold] = listTasks(db, { title: "Bold" });
+		const [fence] = listTasks(db, { title: "Fence" });
+
+		expect(heading.short_description).toBe("What breaks");
+		expect(bold.short_description).toBe("First step");
+		expect(fence.short_description).toBe("");
+	});
+
 	it("sorts by priority severity, most severe first", async () => {
 		const db = await setup();
 		unwrap(

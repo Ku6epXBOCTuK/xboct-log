@@ -75,7 +75,7 @@ export const addTaskAttachment = defineCommand({
 	name: "attachments_add",
 	output: attachmentCreated,
 	description:
-		"Attach a file to a task. The file is stored in the media folder of the app, the task keeps only a reference to it. Give either path (a file on the machine where the app runs) or content_base64 (the file content encoded as base64) together with filename. Returns: {item} - the created attachment - " +
+		"Attach a file to a task. The file is stored in the media folder of the app, the task keeps only a reference to it. Use it for a raw log, a dump, a config or a dataset that the task needs and that is too big or too volatile for the text. Give either path (a file on the machine where the app runs) or content_base64 (the file content encoded as base64) together with filename. Returns: {item} - the created attachment - " +
 		ATTACHMENT_FIELDS +
 		".",
 	kind: "command",

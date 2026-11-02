@@ -10,6 +10,9 @@ import { resolveTaskOrThrow } from "./ids";
 import { COMMENT_FIELDS } from "./shape";
 import { strictObject } from "./strict";
 
+const COMMENT_BODY_HINT =
+	"Comment text as Markdown for the human reader of the task: what changed and why, in a few sentences. Markdown is rendered, so format it; a short log, config or command output is welcome in a fenced code block when it carries the point. Keep source code in the repository - name the file and describe the algorithm. A raw dump goes to an attachment, and walls of text stay out.";
+
 export const listComments = defineQuery({
 	name: "tasks_comments_list",
 	output: commentList,
@@ -33,18 +36,13 @@ export const addComment = defineCommand({
 	name: "tasks_comments_add",
 	output: commentRef,
 	description:
-		"Add a comment to a task. The task id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). Returns: the created comment - " +
+		"Add a comment to a task. The task id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). The body is Markdown and formatting is rendered: a short log or config in a fenced block is welcome, source code belongs in the repository. Returns: the created comment - " +
 		COMMENT_FIELDS +
 		". Editing a comment later keeps its previous text as a revision.",
 	kind: "command",
 	input: strictObject({
 		task_id: taskIdSchema(ID_DESCRIPTION),
-		body: z
-			.string()
-			.min(1)
-			.describe(
-				"Comment text for the human reader of the task: what changed and why, in a few sentences. No raw output, logs, file lists or details that go stale; keep only what is needed to follow the task.",
-			),
+		body: z.string().min(1).describe(COMMENT_BODY_HINT),
 	}),
 	handler: ({ task_id, body }) =>
 		comments.addComment(getDb(), { task_id, body }),
@@ -56,7 +54,7 @@ export const editComment = defineCommand({
 	name: "tasks_comments_edit",
 	output: commentRef,
 	description:
-		"Edit the text of a comment by comment_id, the `id` field of an item from tasks_comments_list. The previous text is kept as a revision, so nothing is lost. Returns: the updated comment - " +
+		"Edit the text of a comment by comment_id, the `id` field of an item from tasks_comments_list. The body is Markdown and formatting is rendered, as in tasks_comments_add. The previous text is kept as a revision, so nothing is lost. Returns: the updated comment - " +
 		COMMENT_FIELDS +
 		" with edited_at set.",
 	kind: "command",
@@ -65,12 +63,7 @@ export const editComment = defineCommand({
 			.string()
 			.min(1)
 			.describe("The `id` of a comment from tasks_comments_list."),
-		body: z
-			.string()
-			.min(1)
-			.describe(
-				"New comment text for the human reader of the task: what changed and why, in a few sentences. No raw output, logs, file lists or details that go stale.",
-			),
+		body: z.string().min(1).describe(COMMENT_BODY_HINT),
 	}),
 	handler: ({ comment_id, body }) =>
 		comments.editComment(getDb(), comment_id, body),

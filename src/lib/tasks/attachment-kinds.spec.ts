@@ -34,6 +34,10 @@ describe("attachmentFormat", () => {
 		});
 		expect(attachmentFormat("report.pdf")?.kind).toBe("pdf");
 		expect(attachmentFormat("notes.md")?.kind).toBe("text");
+		expect(attachmentFormat("config.json")?.kind).toBe("text");
+		expect(attachmentFormat("compose.yml")?.kind).toBe("text");
+		expect(attachmentFormat("Cargo.toml")?.kind).toBe("text");
+		expect(attachmentFormat(".env")?.kind).toBe("text");
 		expect(attachmentFormat("dump.zip")?.kind).toBe("file");
 	});
 

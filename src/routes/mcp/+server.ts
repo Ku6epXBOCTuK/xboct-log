@@ -224,8 +224,12 @@ const handler = createMcpHandler(registerTools, {
 		"with resources/read to get its bytes, take the uri from " +
 		"attachments_list. The resource xboct-log://attachments lists them " +
 		"all. " +
-		"Comments are written for a human: short, " +
-		"factual, no dumps and no volatile details. " +
+		"Descriptions and comments are Markdown and formatting is rendered: " +
+		"format them, and put a short log, config or command output in a " +
+		"fenced code block. Keep source code in the repository and describe " +
+		"the algorithm instead, and stay short - no walls of text. A raw log " +
+		"or dump that is really needed belongs in an attachment, not pasted " +
+		"into the text. " +
 		"backup_create makes a manual database backup, " +
 		"backup_list shows the existing snapshots. Restoring a backup is " +
 		"not part of these tools: the user restores a snapshot on the " +
