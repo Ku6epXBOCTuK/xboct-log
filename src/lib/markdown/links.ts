@@ -1,7 +1,12 @@
 import { appPath, parsePath } from "#lib/navigation/paths.ts";
 
 export type LinkKind =
-	"external" | "media" | "task" | "app" | "file" | "ignore";
+	| "external"
+	| "media"
+	| "task"
+	| "app"
+	| "file"
+	| "ignore";
 
 export function classifyLink(href: string, base: string): LinkKind {
 	const value = href.trim();

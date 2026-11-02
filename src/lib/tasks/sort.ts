@@ -1,7 +1,13 @@
 import { PRIORITY_RANK, STATUS_RANK, type Task } from "#lib/types.ts";
 
 export type TaskSortKey =
-	"priority" | "status" | "created" | "updated" | "closed" | "project" | "id";
+	| "priority"
+	| "status"
+	| "created"
+	| "updated"
+	| "closed"
+	| "project"
+	| "id";
 export type SortOrder = "asc" | "desc";
 
 export const DEFAULT_SORT_KEY: TaskSortKey = "priority";

@@ -1,6 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import { err, ok, type Result } from "neverthrow";
-import { conflict, invalid, notFound, type AppError } from "./errors";
+import { type AppError, conflict, invalid, notFound } from "./errors";
 
 export const LINK_TYPES = ["blocks", "relates_to", "duplicates"] as const;
 export type LinkType = (typeof LINK_TYPES)[number];
@@ -210,7 +210,8 @@ export function releaseBlockedStatus(
 				"SELECT status, blocked_from_status FROM tasks WHERE id = ? AND deleted_at IS NULL",
 			)
 			.get(taskId) as
-			{ status: string; blocked_from_status: string | null } | undefined;
+			| { status: string; blocked_from_status: string | null }
+			| undefined;
 		if (!task || task.status !== "blocked") {
 			continue;
 		}

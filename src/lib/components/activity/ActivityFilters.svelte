@@ -166,7 +166,9 @@
 		</label>
 	</FilterBlock>
 	<Button variant="ghost" class="clear-filters" onclick={clear}>
-		{#snippet icon()}<X />{/snippet}
+		{#snippet icon()}
+			<X />
+		{/snippet}
 		Clear
 	</Button>
 </div>

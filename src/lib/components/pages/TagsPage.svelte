@@ -1,7 +1,7 @@
 <script lang="ts">
-	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import TagCreateForm from "#lib/components/tags/TagCreateForm.svelte";
 	import TagList from "#lib/components/tags/TagList.svelte";
+	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import { useBoard } from "#lib/state/board.svelte.ts";
 	import { createTagPage, provideTagPage } from "#lib/state/tag-page.svelte.ts";
 
@@ -18,9 +18,10 @@
 <section class="tags-page">
 	<header class="page-head">
 		<h1>Tags</h1>
-		<span class="muted"
-			>{page.activeTotal} active · {page.archivedTotal} archived</span
-		>
+		<span class="muted">
+			{page.activeTotal}
+			active · {page.archivedTotal} archived
+		</span>
 	</header>
 
 	<div class="toolbar">

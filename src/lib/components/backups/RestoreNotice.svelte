@@ -14,9 +14,7 @@
 		Restored {outcome.snapshot.tasks} tasks from {outcome.snapshot.projects}
 		projects.
 	</p>
-	<p class="path">
-		The database it replaced is saved as {outcome.safetyPath}.
-	</p>
+	<p class="path">The database it replaced is saved as {outcome.safetyPath}.</p>
 	<button type="button" onclick={ondismiss}>Dismiss</button>
 </div>
 

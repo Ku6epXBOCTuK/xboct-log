@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { goto } from "$app/navigation";
 	import type { Attachment } from "svelte/attachments";
 	import ImageViewer from "#lib/components/ui/ImageViewer.svelte";
 	import { openExternal, openRepoFile } from "#lib/host/embed.ts";
-	import { appHref } from "#lib/navigation/href.ts";
 	import { classifyLink, repoPath } from "#lib/markdown/links.ts";
 	import { renderMarkdown } from "#lib/markdown/render.ts";
+	import { appHref } from "#lib/navigation/href.ts";
+	import { goto } from "$app/navigation";
 
 	interface Props {
 		text: string;
@@ -91,11 +91,11 @@
 		overflow-wrap: anywhere;
 	}
 
-	.markdown-body :global(> :first-child) {
+	.markdown-body > :global(:first-child) {
 		margin-top: 0;
 	}
 
-	.markdown-body :global(> :last-child) {
+	.markdown-body > :global(:last-child) {
 		margin-bottom: 0;
 	}
 

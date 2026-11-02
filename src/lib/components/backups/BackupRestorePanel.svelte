@@ -73,7 +73,8 @@
 		{:else if invalid}
 			This backup cannot be used, see the error above.
 		{:else if inspection !== null}
-			{inspection.tasks} tasks from {inspection.projects} projects ·
+			{inspection.tasks}
+			tasks from {inspection.projects} projects ·
 		{/if}
 		{#if !invalid}
 			the current database is saved into the manual folder first.

@@ -39,7 +39,9 @@
 		disabled={busy || name.trim() === ""}
 		title="Add the tag to the dictionary"
 	>
-		{#snippet icon()}<Plus />{/snippet}
+		{#snippet icon()}
+			<Plus />
+		{/snippet}
 		Add
 	</Button>
 </form>

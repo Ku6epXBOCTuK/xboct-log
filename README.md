@@ -183,8 +183,8 @@ cannot restore anything: it only reports which snapshots exist.
 | `pnpm run deploy`  | Build and deploy the local `HEAD` to the service   |
 | `pnpm build:ext`   | Compile and package the VS Code extension          |
 | `pnpm check`       | Type-check with `svelte-check`                     |
-| `pnpm lint`        | Prettier check and ESLint                          |
-| `pnpm format`      | Format with Prettier                               |
+| `pnpm lint`        | Biome check and ESLint                             |
+| `pnpm format`      | Format with Biome                                  |
 | `pnpm test`        | Run unit tests with Vitest                         |
 | `pnpm migrate`     | Apply pending database migrations                  |
 | `pnpm restore`     | List snapshots or restore one (`list`, `restore`)  |

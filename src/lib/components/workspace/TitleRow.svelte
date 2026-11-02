@@ -41,7 +41,9 @@
 			<RefreshCw />
 		</IconButton>
 		<Button variant="primary" onclick={onnew}>
-			{#snippet icon()}<Plus />{/snippet}
+			{#snippet icon()}
+				<Plus />
+			{/snippet}
 			New task
 		</Button>
 	</div>

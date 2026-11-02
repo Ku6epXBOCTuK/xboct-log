@@ -1,6 +1,6 @@
 <script lang="ts">
-	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton.svelte";
+	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import { useBoard } from "#lib/state/board.svelte.ts";
 	import { messageOf } from "#lib/tasks/display.ts";
 	import type { Project } from "#lib/types.ts";
@@ -74,7 +74,8 @@
 	{#if open}
 		<div class="project-list">
 			<p class="project-hint">
-				{projects.active.length} active · {projects.archived.length} archived
+				{projects.active.length}
+				active · {projects.archived.length} archived
 			</p>
 			<ErrorNote message={failure} class="project-error" />
 			<ProjectList

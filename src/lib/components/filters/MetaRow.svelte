@@ -4,13 +4,13 @@
 	import ScopeFilter from "#lib/components/filters/ScopeFilter.svelte";
 	import TagFilterSelect from "#lib/components/ui/select/TagFilterSelect.svelte";
 	import type { Filters } from "#lib/state/filters.svelte.ts";
-	import type { TagCount } from "#lib/tasks/filter.ts";
 	import {
 		activeCount,
 		scopeActive,
 		scopeTotal,
 		totalCount,
 	} from "#lib/tasks/counts.ts";
+	import type { TagCount } from "#lib/tasks/filter.ts";
 	import type { Scope, Task } from "#lib/types.ts";
 
 	interface Props {
@@ -91,9 +91,7 @@
 			onclear={() => filters.clearTags()}
 		/>
 	</FilterBlock>
-	<span class="result-count">
-		{visibleCount} of {total}
-	</span>
+	<span class="result-count"> {visibleCount} of {total} </span>
 </div>
 
 <style>

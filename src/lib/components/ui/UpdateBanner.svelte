@@ -9,7 +9,7 @@
 {#if available}
 	<div class="update-banner">
 		<span role="status">New version available</span>
-		<button class="reload" onclick={() => location.reload()}> Reload </button>
+		<button class="reload" onclick={() => location.reload()}>Reload</button>
 		<button
 			class="dismiss"
 			aria-label="Dismiss"

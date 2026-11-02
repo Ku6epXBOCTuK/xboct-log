@@ -136,7 +136,8 @@
 				onblur={() => onblur?.()}
 				onkeydown={handleKeydown}
 				{placeholder}
-				aria-label={label}></textarea>
+				aria-label={label}
+			></textarea>
 		{/if}
 	</div>
 	<div class="md-actions">

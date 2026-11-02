@@ -1,14 +1,14 @@
 <script lang="ts">
-	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
 	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton.svelte";
 	import Modal from "@ku6epxboctuk/ui-kit/components/Modal.svelte";
 	import ScopeCreateDialog from "#lib/components/task/ScopeCreateDialog.svelte";
+	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
 	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
 	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
-	import { messageOf } from "#lib/tasks/display.ts";
 	import { scopeTotal } from "#lib/tasks/counts.ts";
+	import { messageOf } from "#lib/tasks/display.ts";
 	import { INBOX_PROJECT_ID, type Project } from "#lib/types.ts";
 	import Plus from "~icons/lucide/plus";
 	import Trash2 from "~icons/lucide/trash-2";
@@ -179,7 +179,8 @@
 						</span>
 						{#if confirmingId === scope.id}
 							<span class="scope-warning">
-								{scopeTotal(scope)} tasks will become unassigned
+								{scopeTotal(scope)}
+								tasks will become unassigned
 							</span>
 							<Button
 								variant="danger"
@@ -209,7 +210,9 @@
 				onclick={() => (creatingScope = true)}
 				aria-label="Add scope"
 			>
-				{#snippet icon()}<Plus />{/snippet}
+				{#snippet icon()}
+					<Plus />
+				{/snippet}
 				Add scope
 			</Button>
 		</section>

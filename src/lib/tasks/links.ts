@@ -1,7 +1,11 @@
 import { messageOf } from "#lib/tasks/display.ts";
 
 export type LinkField =
-	"relates_to" | "duplicates" | "duplicated_by" | "blocked_by" | "blocks";
+	| "relates_to"
+	| "duplicates"
+	| "duplicated_by"
+	| "blocked_by"
+	| "blocks";
 
 export interface TaskLinkDraft {
 	blocked_by: string[];

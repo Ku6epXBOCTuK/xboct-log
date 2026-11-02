@@ -1,0 +1,54 @@
+{
+	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+	"files": {
+		"includes": [
+			"**",
+			"!node_modules",
+			"!build",
+			"!dist",
+			"!.svelte-kit",
+			"!.dev",
+			"!.zcode",
+			"!**/*.yaml",
+			"!**/*.yml",
+			"!CHANGELOG.md",
+			"!vscode-extension/CHANGELOG.md"
+		]
+	},
+	"formatter": {
+		"indentStyle": "tab",
+		"indentWidth": 2,
+		"lineWidth": 80
+	},
+	"javascript": {
+		"formatter": {
+			"quoteStyle": "double",
+			"trailingCommas": "all"
+		}
+	},
+	"css": {
+		"formatter": {
+			"quoteStyle": "double"
+		}
+	},
+	"html": {
+		"experimentalFullSupportEnabled": true,
+		"formatter": {
+			"enabled": true,
+			"indentScriptAndStyle": true,
+			"selfCloseVoidElements": "always"
+		}
+	},
+	"markdown": {
+		"formatter": {
+			"proseWrap": "preserve",
+			"indentStyle": "space",
+			"indentWidth": 2
+		}
+	},
+	"vcs": {
+		"enabled": true,
+		"clientKind": "git",
+		"useIgnoreFile": true
+	}
+}

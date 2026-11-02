@@ -52,7 +52,8 @@
 						<Chip unavailable={hint !== null} hint={hint ?? undefined}>
 							{#if target !== null}
 								<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- href comes from taskHref(), which resolves the task route -->
-								<a href={target} onclick={() => editor.onlinkopen?.(id)}>{id}</a
+								<a href={target} onclick={() => editor.onlinkopen?.(id)}
+									>{id}</a
 								>
 							{:else}
 								{id}

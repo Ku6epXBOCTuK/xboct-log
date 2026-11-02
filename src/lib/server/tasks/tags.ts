@@ -93,7 +93,8 @@ export function getTag(db: DatabaseSync, name: string): TagRecord | undefined {
 	const row = db
 		.prepare("SELECT * FROM tags WHERE name = ?")
 		.get(normalizeTagName(name)) as
-		{ name: string; archived: number; created_at: string } | undefined;
+		| { name: string; archived: number; created_at: string }
+		| undefined;
 	return row ? mapTag(row) : undefined;
 }
 

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { listHref } from "#lib/navigation/href.ts";
+	import { parsePath } from "#lib/navigation/paths.ts";
 	import { resolve } from "$app/paths";
 	import { page } from "$app/state";
 	import Activity from "~icons/lucide/activity";
@@ -8,8 +10,6 @@
 	import DatabaseBackup from "~icons/lucide/database-backup";
 	import FolderKanban from "~icons/lucide/folder-kanban";
 	import Tag from "~icons/lucide/tag";
-	import { listHref } from "#lib/navigation/href.ts";
-	import { parsePath } from "#lib/navigation/paths.ts";
 
 	interface Props {
 		taskCount: number;
@@ -37,7 +37,8 @@
 	aria-label="Primary navigation"
 >
 	<a class="nav-item" class:active={onTasks} href={listHref("tasks", project)}>
-		<ClipBoardList /> Tasks
+		<ClipBoardList />
+		Tasks
 		<span class="nav-count">{taskCount}</span>
 	</a>
 	<a
@@ -45,7 +46,8 @@
 		class:active={onKanban}
 		href={listHref("kanban", project)}
 	>
-		<FolderKanban /> Kanban
+		<FolderKanban />
+		Kanban
 		<span class="nav-count">{inProgressCount}</span>
 	</a>
 	<a
@@ -53,25 +55,27 @@
 		class:active={onActivity}
 		href={listHref("activity", project)}
 	>
-		<Activity /> Activity
+		<Activity />
+		Activity
 	</a>
 	<a
 		class="nav-item"
 		class:active={onDeleted}
 		href={listHref("deleted", project)}
 	>
-		<ArchiveRestore /> Deleted
+		<ArchiveRestore />
+		Deleted
 	</a>
 	<a class="nav-item" class:active={onTags} href={resolve("/tags")}>
-		<Tag /> Tags
+		<Tag />
+		Tags
 	</a>
 
 	<a class="nav-item" class:active={onBackups} href={resolve("/backups")}>
-		<DatabaseBackup /> Backups
+		<DatabaseBackup />
+		Backups
 	</a>
-	<button class="nav-item">
-		<BarChart3 /> Statistics
-	</button>
+	<button class="nav-item"><BarChart3 /> Statistics</button>
 </nav>
 
 <style>

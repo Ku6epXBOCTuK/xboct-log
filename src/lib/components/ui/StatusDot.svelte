@@ -8,8 +8,10 @@
 	let { status }: Props = $props();
 </script>
 
-<span class={`status-dot ${status.replace(" ", "-")}`} aria-hidden="true">
-</span>
+<span
+	class={`status-dot ${status.replace(" ", "-")}`}
+	aria-hidden="true"
+> </span>
 
 <style>
 	.status-dot {

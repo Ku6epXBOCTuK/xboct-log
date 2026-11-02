@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
+	import TagInput from "@ku6epxboctuk/ui-kit/components/TagInput.svelte";
 	import DescriptionField from "#lib/components/task/DescriptionField.svelte";
 	import InfoPopover from "#lib/components/ui/InfoPopover.svelte";
 	import SingleSelect from "#lib/components/ui/select/SingleSelect.svelte";
@@ -9,8 +11,6 @@
 		PRIORITIES,
 		STATUSES,
 	} from "#lib/types.ts";
-	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
-	import TagInput from "@ku6epxboctuk/ui-kit/components/TagInput.svelte";
 	import CircleHelp from "~icons/lucide/circle-help";
 	import Plus from "~icons/lucide/plus";
 
@@ -115,7 +115,9 @@
 		{#if editor.editing && editor.oncreatechild !== undefined}
 			<div class="field-action">
 				<Button onclick={() => editor.oncreatechild?.()}>
-					{#snippet icon()}<Plus />{/snippet}
+					{#snippet icon()}
+						<Plus />
+					{/snippet}
 					Create child task
 				</Button>
 			</div>

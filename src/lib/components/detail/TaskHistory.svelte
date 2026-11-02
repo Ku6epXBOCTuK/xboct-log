@@ -49,9 +49,7 @@
 			<ActivityTable {items} />
 		</div>
 		{#if total > items.length}
-			<p class="history-note">
-				Showing {items.length} of {total} entries
-			</p>
+			<p class="history-note">Showing {items.length} of {total} entries</p>
 		{/if}
 	{/if}
 </div>

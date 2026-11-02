@@ -38,7 +38,8 @@ export function recordRevision(
 			 ORDER BY id DESC LIMIT 1`,
 		)
 		.get(revision.task_id, revision.field, refId) as
-		{ created_at: string } | undefined;
+		| { created_at: string }
+		| undefined;
 
 	if (latest !== undefined) {
 		const elapsed = now.getTime() - Date.parse(latest.created_at);

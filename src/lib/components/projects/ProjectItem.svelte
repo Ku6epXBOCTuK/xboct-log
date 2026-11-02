@@ -1,7 +1,7 @@
 <script lang="ts">
+	import type { Snippet } from "svelte";
 	import InfoPopover from "#lib/components/ui/InfoPopover.svelte";
 	import type { CountGroups } from "#lib/tasks/counts.ts";
-	import type { Snippet } from "svelte";
 
 	interface Props {
 		active: boolean;
@@ -34,9 +34,7 @@
 	onclick={onselect}
 >
 	<span class="project-mark"></span>
-	<span class="project-name">
-		{@render children()}
-	</span>
+	<span class="project-name"> {@render children()} </span>
 	<span class="project-count-wrap">
 		<InfoPopover label="Project statistics">
 			{#snippet trigger({ open })}

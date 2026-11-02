@@ -1,11 +1,11 @@
 <script lang="ts">
-	import type { TagInventoryEntry } from "#lib/state/tags.svelte.ts";
-	import { useTagPage } from "#lib/state/tag-page.svelte.ts";
-	import { tagHref } from "#lib/navigation/href.ts";
-	import TagEditField from "#lib/components/tags/TagEditField.svelte";
 	import Badge from "@ku6epxboctuk/ui-kit/components/Badge.svelte";
 	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
 	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton.svelte";
+	import TagEditField from "#lib/components/tags/TagEditField.svelte";
+	import { tagHref } from "#lib/navigation/href.ts";
+	import { useTagPage } from "#lib/state/tag-page.svelte.ts";
+	import type { TagInventoryEntry } from "#lib/state/tags.svelte.ts";
 	import Archive from "~icons/lucide/archive";
 	import ArchiveRestore from "~icons/lucide/archive-restore";
 	import Pencil from "~icons/lucide/pencil";
@@ -78,7 +78,9 @@
 				title="Put the tag back into suggestions"
 				onclick={() => page.archive(entry.name, false)}
 			>
-				{#snippet icon()}<ArchiveRestore />{/snippet}
+				{#snippet icon()}
+					<ArchiveRestore />
+				{/snippet}
 				Restore
 			</Button>
 		{:else}
@@ -89,7 +91,9 @@
 				title={archiveTitle}
 				onclick={() => page.archive(entry.name, true)}
 			>
-				{#snippet icon()}<Archive />{/snippet}
+				{#snippet icon()}
+					<Archive />
+				{/snippet}
 				Archive
 			</Button>
 		{/if}
@@ -100,9 +104,9 @@
 	.tag-row {
 		display: grid;
 		grid-template-columns: var(
-			--tag-cols,
-			minmax(0, 1fr) 5rem 5rem 4rem 6.5rem
-		);
+				--tag-cols,
+				minmax(0, 1fr) 5rem 5rem 4rem 6.5rem
+			);
 		align-items: center;
 		gap: var(--space-3);
 		padding: var(--space-2) var(--space-2);

@@ -1,5 +1,5 @@
-import { err, ok, type Result } from "neverthrow";
 import type { DatabaseSync } from "node:sqlite";
+import { err, ok, type Result } from "neverthrow";
 import {
 	normalizeProjectPrefix,
 	normalizeRepo,
@@ -8,7 +8,7 @@ import {
 	repoError,
 } from "../projects/create";
 import { INBOX_PROJECT_ID, INBOX_PROJECT_PREFIX, type Project } from "../types";
-import { AppError, conflict, guard, invalid, notFound } from "./errors";
+import { type AppError, conflict, guard, invalid, notFound } from "./errors";
 
 interface ProjectRow {
 	id: string;
@@ -112,7 +112,8 @@ export function ensureInbox(db: DatabaseSync): Project {
 	const clash = db
 		.prepare("SELECT id, name FROM projects WHERE prefix = ? COLLATE NOCASE")
 		.get(INBOX_PROJECT_PREFIX) as unknown as
-		{ id: string; name: string } | undefined;
+		| { id: string; name: string }
+		| undefined;
 	if (clash) {
 		throw new Error(
 			`cannot create Inbox: prefix ${INBOX_PROJECT_PREFIX} is taken by project "${clash.name}" (${clash.id})`,
