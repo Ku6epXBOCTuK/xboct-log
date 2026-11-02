@@ -2,6 +2,13 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.6.2](https://github.com/Ku6epXBOCTuK/xboct-log/compare/784a83b7d3ddf5fcde8e7a7e487207b162ae642f..v0.6.2) - 2026-11-02
+#### Bug Fixes
+- update descriptions about use markdonw, expand attachments file types - ([46e2664](https://github.com/Ku6epXBOCTuK/xboct-log/commit/46e26648932e36effa05bc9693cbb6a779136b0e)) - Ku6epXBOCTuK
+- update to new ui-kit - ([784a83b](https://github.com/Ku6epXBOCTuK/xboct-log/commit/784a83b7d3ddf5fcde8e7a7e487207b162ae642f)) - Ku6epXBOCTuK
+
+- - -
+
 ## [v0.6.1](https://github.com/Ku6epXBOCTuK/xboct-log/compare/4371fea1da0bf5f9a6d3d49ceeeba141d673df00..v0.6.1) - 2026-11-01
 #### Bug Fixes
 - add activity record to task attachments, update tools for required activity - ([4371fea](https://github.com/Ku6epXBOCTuK/xboct-log/commit/4371fea1da0bf5f9a6d3d49ceeeba141d673df00)) - Ku6epXBOCTuK
