@@ -9,7 +9,7 @@
 		formatDateTime,
 	} from "#lib/tasks/display.ts";
 	import type { Task } from "#lib/types.ts";
-	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
+	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton.svelte";
 	import Clock3 from "~icons/lucide/clock-3";
 	import MessageSquare from "~icons/lucide/message-square";
 	import X from "~icons/lucide/x";

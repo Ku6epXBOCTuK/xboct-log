@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Modal from "@ku6epxboctuk/ui-kit/components/Modal";
+	import Modal from "@ku6epxboctuk/ui-kit/components/Modal.svelte";
 	import CopyImageButton from "#lib/components/ui/CopyImageButton.svelte";
 	import { openMedia } from "#lib/host/embed.ts";
 

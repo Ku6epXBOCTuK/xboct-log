@@ -2,7 +2,7 @@
 	import ActivityChanges from "#lib/components/activity/ActivityChanges.svelte";
 	import { activityFieldLabel } from "#lib/activity/labels.ts";
 	import type { ActivityChange } from "#lib/types.ts";
-	import Badge from "@ku6epxboctuk/ui-kit/components/Badge";
+	import Badge from "@ku6epxboctuk/ui-kit/components/Badge.svelte";
 
 	interface Props {
 		changes: ActivityChange[];

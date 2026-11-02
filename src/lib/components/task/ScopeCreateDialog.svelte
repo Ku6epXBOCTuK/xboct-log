@@ -1,7 +1,7 @@
 <script lang="ts">
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
-	import Button from "@ku6epxboctuk/ui-kit/components/Button";
-	import Modal from "@ku6epxboctuk/ui-kit/components/Modal";
+	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
+	import Modal from "@ku6epxboctuk/ui-kit/components/Modal.svelte";
 	import { messageOf } from "#lib/tasks/display.ts";
 	import { scopeNameError } from "#lib/tasks/scopes.ts";
 

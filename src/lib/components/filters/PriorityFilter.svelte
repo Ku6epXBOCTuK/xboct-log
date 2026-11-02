@@ -1,5 +1,5 @@
 <script lang="ts">
-	import ToggleChip from "@ku6epxboctuk/ui-kit/components/ToggleChip";
+	import ToggleChip from "@ku6epxboctuk/ui-kit/components/ToggleChip.svelte";
 	import { PRIORITIES, type Priority } from "#lib/types.ts";
 
 	interface Props {

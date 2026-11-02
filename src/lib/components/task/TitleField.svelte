@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from "svelte";
-	import ControlRow from "@ku6epxboctuk/ui-kit/components/ControlRow";
-	import TextInput from "@ku6epxboctuk/ui-kit/components/TextInput";
+	import ControlRow from "@ku6epxboctuk/ui-kit/components/ControlRow.svelte";
+	import TextInput from "@ku6epxboctuk/ui-kit/components/TextInput.svelte";
 
 	interface Props {
 		value: string;

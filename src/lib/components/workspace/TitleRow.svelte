@@ -1,6 +1,6 @@
 <script lang="ts">
-	import Button from "@ku6epxboctuk/ui-kit/components/Button";
-	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
+	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
+	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton.svelte";
 	import SearchHelp from "#lib/components/workspace/SearchHelp.svelte";
 	import Moon from "~icons/lucide/moon";
 	import Plus from "~icons/lucide/plus";

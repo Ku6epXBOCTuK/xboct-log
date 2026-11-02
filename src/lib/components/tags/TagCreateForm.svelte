@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Button from "@ku6epxboctuk/ui-kit/components/Button";
+	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
 	import Plus from "~icons/lucide/plus";
 
 	interface Props {

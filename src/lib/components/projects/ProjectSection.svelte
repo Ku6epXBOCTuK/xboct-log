@@ -1,6 +1,6 @@
 <script lang="ts">
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
-	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
+	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton.svelte";
 	import { useBoard } from "#lib/state/board.svelte.ts";
 	import { messageOf } from "#lib/tasks/display.ts";
 	import type { Project } from "#lib/types.ts";

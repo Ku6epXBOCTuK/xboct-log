@@ -8,8 +8,8 @@
 	import { STATUS_LABELS, formatDate, localToday } from "#lib/tasks/display.ts";
 	import type { EpicProgress } from "#lib/tasks/filter.ts";
 	import { CLOSED_STATUSES, type Scope, type Task } from "#lib/types.ts";
-	import Badge from "@ku6epxboctuk/ui-kit/components/Badge";
-	import Chip from "@ku6epxboctuk/ui-kit/components/Chip";
+	import Badge from "@ku6epxboctuk/ui-kit/components/Badge.svelte";
+	import Chip from "@ku6epxboctuk/ui-kit/components/Chip.svelte";
 	import type { Snippet } from "svelte";
 	import Paperclip from "~icons/lucide/paperclip";
 

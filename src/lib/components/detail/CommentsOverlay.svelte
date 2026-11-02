@@ -6,7 +6,7 @@
 	import { useBoard } from "#lib/state/board.svelte.ts";
 	import { useTaskPanel } from "#lib/state/task-panel.ts";
 	import { STATUS_LABELS } from "#lib/tasks/display.ts";
-	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
+	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton.svelte";
 	import RefreshCw from "~icons/lucide/refresh-cw";
 
 	const { comments } = useBoard();

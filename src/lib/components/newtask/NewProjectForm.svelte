@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Button from "@ku6epxboctuk/ui-kit/components/Button";
+	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
 	import { messageOf } from "#lib/tasks/display.ts";

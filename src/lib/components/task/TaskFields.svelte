@@ -9,8 +9,8 @@
 		PRIORITIES,
 		STATUSES,
 	} from "#lib/types.ts";
-	import Button from "@ku6epxboctuk/ui-kit/components/Button";
-	import TagInput from "@ku6epxboctuk/ui-kit/components/TagInput";
+	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
+	import TagInput from "@ku6epxboctuk/ui-kit/components/TagInput.svelte";
 	import CircleHelp from "~icons/lucide/circle-help";
 	import Plus from "~icons/lucide/plus";
 

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import MarkdownEditor from "#lib/components/markdown/MarkdownEditor.svelte";
 	import { untrack } from "svelte";
-	import Button from "@ku6epxboctuk/ui-kit/components/Button";
+	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
 
 	interface Props {
 		body: string;

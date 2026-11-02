@@ -1,6 +1,6 @@
 <script lang="ts">
-	import Button from "@ku6epxboctuk/ui-kit/components/Button";
-	import ControlRow from "@ku6epxboctuk/ui-kit/components/ControlRow";
+	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
+	import ControlRow from "@ku6epxboctuk/ui-kit/components/ControlRow.svelte";
 	import { useTaskPanel } from "#lib/state/task-panel.ts";
 	import SingleSelect from "#lib/components/ui/select/SingleSelect.svelte";
 	import {

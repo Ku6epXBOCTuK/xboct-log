@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Button from "@ku6epxboctuk/ui-kit/components/Button";
+	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
 	import FilterBlock from "#lib/components/filters/FilterBlock.svelte";
 	import SingleSelect from "#lib/components/ui/select/SingleSelect.svelte";
 	import type { Project } from "#lib/types.ts";

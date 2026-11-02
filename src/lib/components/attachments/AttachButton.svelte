@@ -1,5 +1,5 @@
 <script lang="ts">
-	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
+	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton.svelte";
 	import Paperclip from "~icons/lucide/paperclip";
 	import Upload from "~icons/lucide/upload";
 	import Ban from "~icons/lucide/ban";

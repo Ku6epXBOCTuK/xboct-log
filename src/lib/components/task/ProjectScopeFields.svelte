@@ -1,5 +1,5 @@
 <script lang="ts">
-	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
+	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton.svelte";
 	import SingleSelect from "#lib/components/ui/select/SingleSelect.svelte";
 	import { useTaskEditorSlot } from "#lib/state/task-editor.ts";
 	import {

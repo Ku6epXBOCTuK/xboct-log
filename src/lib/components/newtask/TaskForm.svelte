@@ -35,8 +35,8 @@
 		type TaskLinkDraft,
 	} from "#lib/tasks/links.ts";
 	import { CLOSED_STATUSES, INBOX_PROJECT_ID, type Task } from "#lib/types.ts";
-	import Button from "@ku6epxboctuk/ui-kit/components/Button";
-	import ScrollArea from "@ku6epxboctuk/ui-kit/components/ScrollArea";
+	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
+	import ScrollArea from "@ku6epxboctuk/ui-kit/components/ScrollArea.svelte";
 	import { untrack } from "svelte";
 	import ArrowLeft from "~icons/lucide/arrow-left";
 	import Paperclip from "~icons/lucide/paperclip";

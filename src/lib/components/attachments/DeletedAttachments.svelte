@@ -1,5 +1,5 @@
 <script lang="ts">
-	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
+	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import ImageViewer from "#lib/components/ui/ImageViewer.svelte";
 	import { openExternal } from "#lib/host/embed.ts";

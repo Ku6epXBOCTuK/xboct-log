@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from "$app/state";
 	import ProjectSection from "#lib/components/projects/ProjectSection.svelte";
-	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
+	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton.svelte";
 	import { useBoard } from "#lib/state/board.svelte.ts";
 	import ChevronDown from "~icons/lucide/chevron-down";
 	import ChevronUp from "~icons/lucide/chevron-up";

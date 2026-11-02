@@ -1,6 +1,6 @@
 <script lang="ts">
-	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
-	import Button from "@ku6epxboctuk/ui-kit/components/Button";
+	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton.svelte";
+	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
 	import CopyImageButton from "#lib/components/ui/CopyImageButton.svelte";
 	import ImageViewer from "#lib/components/ui/ImageViewer.svelte";
 	import { openExternal, openMedia } from "#lib/host/embed.ts";

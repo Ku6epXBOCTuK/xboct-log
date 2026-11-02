@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Button from "@ku6epxboctuk/ui-kit/components/Button";
+	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
 	import FilterBlock from "#lib/components/filters/FilterBlock.svelte";
 	import PriorityFilter from "#lib/components/filters/PriorityFilter.svelte";
 	import StatusFilter from "#lib/components/filters/StatusFilter.svelte";

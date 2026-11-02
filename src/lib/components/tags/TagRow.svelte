@@ -3,9 +3,9 @@
 	import { useTagPage } from "#lib/state/tag-page.svelte.ts";
 	import { tagHref } from "#lib/navigation/href.ts";
 	import TagEditField from "#lib/components/tags/TagEditField.svelte";
-	import Badge from "@ku6epxboctuk/ui-kit/components/Badge";
-	import Button from "@ku6epxboctuk/ui-kit/components/Button";
-	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
+	import Badge from "@ku6epxboctuk/ui-kit/components/Badge.svelte";
+	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
+	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton.svelte";
 	import Archive from "~icons/lucide/archive";
 	import ArchiveRestore from "~icons/lucide/archive-restore";
 	import Pencil from "~icons/lucide/pencil";

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from "svelte";
-	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
+	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton.svelte";
 	import ChevronDown from "~icons/lucide/chevron-down";
 	import InfoPopover from "#lib/components/ui/InfoPopover.svelte";
 

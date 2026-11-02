@@ -1,7 +1,7 @@
 <script lang="ts">
 	import NewProjectForm from "#lib/components/newtask/NewProjectForm.svelte";
 	import TaskForm from "#lib/components/newtask/TaskForm.svelte";
-	import Modal from "@ku6epxboctuk/ui-kit/components/Modal";
+	import Modal from "@ku6epxboctuk/ui-kit/components/Modal.svelte";
 	import { useBoard } from "#lib/state/board.svelte.ts";
 
 	interface Props {

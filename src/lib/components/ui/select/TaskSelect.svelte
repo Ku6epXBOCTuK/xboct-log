@@ -5,9 +5,9 @@
 		parseSearchQuery,
 	} from "#lib/tasks/search.ts";
 	import type { Task } from "#lib/types.ts";
-	import Chip from "@ku6epxboctuk/ui-kit/components/Chip";
-	import Select from "@ku6epxboctuk/ui-kit/components/Select";
-	import { createSelect } from "@ku6epxboctuk/ui-kit/headless/select";
+	import Chip from "@ku6epxboctuk/ui-kit/components/Chip.svelte";
+	import Select from "@ku6epxboctuk/ui-kit/components/Select.svelte";
+	import { createSelect } from "@ku6epxboctuk/ui-kit/headless/select.svelte.ts";
 	import Plus from "~icons/lucide/plus";
 
 	interface Props {

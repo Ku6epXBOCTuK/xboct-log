@@ -5,8 +5,8 @@
 	import { formatDateTime } from "#lib/tasks/display.ts";
 	import { useCommentRow } from "#lib/state/comment-row.ts";
 	import type { Comment } from "#lib/types.ts";
-	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
-	import Button from "@ku6epxboctuk/ui-kit/components/Button";
+	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton.svelte";
+	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
 	import Code from "~icons/lucide/code";
 	import Eye from "~icons/lucide/eye";
 	import Pencil from "~icons/lucide/pencil";

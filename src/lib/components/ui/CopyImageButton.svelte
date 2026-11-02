@@ -4,7 +4,7 @@
 	import CircleX from "~icons/lucide/circle-x";
 	import Copy from "~icons/lucide/copy";
 	import LoaderCircle from "~icons/lucide/loader-circle";
-	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
+	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton.svelte";
 
 	interface Props {
 		image: HTMLImageElement | undefined;

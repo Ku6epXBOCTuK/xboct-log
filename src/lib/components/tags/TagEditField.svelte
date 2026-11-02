@@ -1,5 +1,5 @@
 <script lang="ts">
-	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton";
+	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton.svelte";
 	import Check from "~icons/lucide/check";
 	import X from "~icons/lucide/x";
 	import { onMount, untrack } from "svelte";
