@@ -2,6 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { err, ok, type Result } from "neverthrow";
 import { invalid, notFound, type AppError } from "../errors";
 import { resolveProjectRef } from "../projects";
+import { findScopeByName, listScopes } from "../scopes";
 
 interface EpicRow {
 	id: string;
@@ -124,6 +125,70 @@ export function validateScope(
 		return invalid("scope must belong to the same project");
 	}
 	return null;
+}
+
+export interface ScopeRef {
+	scope_id?: number | null;
+	scope?: string | null;
+}
+
+function scopeChoices(db: DatabaseSync, projectId: string): string {
+	const scopes = listScopes(db, projectId);
+	if (scopes.length === 0) {
+		return `project ${projectId} has no scopes: create one with scopes_create {project_id: "${projectId}", name}.`;
+	}
+	const choices = scopes
+		.map((scope) => `${scope.name} (${scope.id})`)
+		.join(", ");
+	return `Scopes of ${projectId}: ${choices}. See scopes_list {project_id: "${projectId}"} or create one with scopes_create {project_id, name}.`;
+}
+
+export function resolveScopeRef(
+	db: DatabaseSync,
+	input: ScopeRef,
+	projectId: string,
+): Result<number | null, AppError> {
+	const id = input.scope_id;
+	if (id !== undefined && id !== null) {
+		const scopeError = validateScope(db, id, projectId);
+		if (scopeError) {
+			return err(scopeError);
+		}
+	}
+	if (input.scope === undefined) {
+		return ok(id ?? null);
+	}
+
+	const raw = input.scope;
+	const name = raw === null ? "" : raw.trim();
+	if (raw !== null && name === "") {
+		return err(
+			invalid(
+				"scope name is empty: pass null to clear the scope, or the name of a scope of the project",
+			),
+		);
+	}
+	const found = raw === null ? undefined : findScopeByName(db, projectId, name);
+	if (raw !== null && !found) {
+		return err(
+			invalid(
+				`unknown scope "${name}" in project ${projectId}. ${scopeChoices(db, projectId)}`,
+			),
+		);
+	}
+
+	const resolved = found ? found.id : null;
+	if (id !== undefined && id !== resolved) {
+		const described = found
+			? `scope "${found.name}" is scope ${found.id}`
+			: "scope is null";
+		return err(
+			invalid(
+				`scope and scope_id disagree: ${described}, scope_id is ${id === null ? "null" : id}`,
+			),
+		);
+	}
+	return ok(resolved);
 }
 
 export function idsByNumber(

@@ -8,6 +8,7 @@ import {
 	countTasksByScope,
 	createScope,
 	deleteScope,
+	findScopeByName,
 	getScope,
 	listScopes,
 	scopedProjectIds,
@@ -269,6 +270,18 @@ describe("scopes", () => {
 
 		expect(getScope(db, scope.id)?.name).toBe("frontend");
 		expect(getScope(db, 999)).toBeUndefined();
+	});
+
+	it("finds a scope by name inside its project, ignoring case and padding", async () => {
+		const db = await setup();
+		unwrap(createProject(db, { id: "bil", name: "Billing", prefix: "BIL" }));
+		const frontend = unwrap(
+			createScope(db, { project_id: "spa", name: "frontend" }),
+		);
+		unwrap(createScope(db, { project_id: "bil", name: "billing" }));
+
+		expect(findScopeByName(db, "spa", "  FrontEnd ")?.id).toBe(frontend.id);
+		expect(findScopeByName(db, "spa", "billing")).toBeUndefined();
 	});
 
 	it("counts tasks by scope across projects", async () => {

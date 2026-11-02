@@ -18,7 +18,7 @@ import {
 	normalizeTags,
 	taskById,
 } from "./rows";
-import { resolveEpicId, validateScope } from "./resolve";
+import { resolveEpicId, resolveScopeRef } from "./resolve";
 import { validateTags } from "./tags";
 import type { NewTask } from "./types";
 
@@ -95,13 +95,15 @@ export function createTask(
 		);
 	}
 
-	const scopeId = input.scope_id ?? null;
-	if (scopeId !== null) {
-		const scopeError = validateScope(db, scopeId, project.id);
-		if (scopeError) {
-			return err(scopeError);
-		}
+	const resolvedScope = resolveScopeRef(
+		db,
+		{ scope_id: input.scope_id, scope: input.scope },
+		project.id,
+	);
+	if (resolvedScope.isErr()) {
+		return err(resolvedScope.error);
 	}
+	const scopeId = resolvedScope.value;
 
 	const blockedReason = emptyToNull(input.blocked_reason);
 	if (

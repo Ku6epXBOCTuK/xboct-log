@@ -79,7 +79,10 @@ export function creationFields(input: object | undefined): string[] {
 	if (text("epic_id") !== null) {
 		fields.push("epic_id");
 	}
-	if (value.scope_id !== undefined && value.scope_id !== null) {
+	if (
+		(value.scope_id !== undefined && value.scope_id !== null) ||
+		(typeof value.scope === "string" && value.scope.trim() !== "")
+	) {
 		fields.push("scope_id");
 	}
 	if (text("source_file") !== null) {

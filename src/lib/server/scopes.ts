@@ -50,6 +50,19 @@ export function listScopes(db: DatabaseSync, projectId?: string): Scope[] {
 	return rows.map(mapScope);
 }
 
+export function findScopeByName(
+	db: DatabaseSync,
+	projectId: string,
+	name: string,
+): Scope | undefined {
+	const row = db
+		.prepare(
+			"SELECT * FROM scopes WHERE project_id = ? AND lower(name) = lower(?) ORDER BY id LIMIT 1",
+		)
+		.get(projectId, name.trim()) as unknown as ScopeRow | undefined;
+	return row ? mapScope(row) : undefined;
+}
+
 export function scopedProjectIds(db: DatabaseSync): string[] {
 	const rows = db
 		.prepare("SELECT DISTINCT project_id FROM scopes")

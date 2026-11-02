@@ -22,7 +22,7 @@ import {
 	normalizeTags,
 	taskById,
 } from "./rows";
-import { resolveEpicId, resolveTaskId, validateScope } from "./resolve";
+import { resolveEpicId, resolveScopeRef, resolveTaskId } from "./resolve";
 import { validateTags } from "./tags";
 import type {
 	ReleasedLink,
@@ -39,6 +39,7 @@ const PATCH_FIELDS = [
 	"is_epic",
 	"epic_id",
 	"scope_id",
+	"scope",
 	"source_file",
 	"tags",
 	"estimate",
@@ -313,14 +314,16 @@ export function updateTaskDetailed(
 		);
 	}
 
-	if (patch.scope_id !== undefined) {
-		const scopeId = patch.scope_id;
-		if (scopeId !== null) {
-			const scopeError = validateScope(db, scopeId, current.project_id);
-			if (scopeError) {
-				return err(scopeError);
-			}
+	if (patch.scope_id !== undefined || patch.scope !== undefined) {
+		const resolvedScope = resolveScopeRef(
+			db,
+			{ scope_id: patch.scope_id, scope: patch.scope },
+			current.project_id,
+		);
+		if (resolvedScope.isErr()) {
+			return err(resolvedScope.error);
 		}
+		const scopeId = resolvedScope.value;
 		sets.push("scope_id = ?");
 		params.push(scopeId);
 		if (scopeId !== current.scope_id) {

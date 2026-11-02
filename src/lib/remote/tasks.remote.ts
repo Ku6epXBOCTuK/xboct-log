@@ -63,7 +63,14 @@ const newTask = strictObject({
 		.nullable()
 		.optional()
 		.describe(
-			"Scope id; it must belong to the same project as the task. List the scopes of a project with scopes_list {project_id}, create one with scopes_create {project_id, name}.",
+			"Scope id; it must belong to the same project as the task. Prefer scope (the name) when you know it; scopes_list {project_id} lists the ids.",
+		),
+	scope: z
+		.string()
+		.nullable()
+		.optional()
+		.describe(
+			"Scope name inside the task's project, e.g. 'ui'. Prefer it over scope_id when you know the name: it is matched case-insensitively, and an unknown name fails with the list of the project's scopes instead of creating one. Passing both scope and scope_id is allowed only when they name the same scope.",
 		),
 	source_file: z
 		.string()
@@ -120,7 +127,14 @@ const taskPatch = strictObject({
 		.nullable()
 		.optional()
 		.describe(
-			"Scope id; it must belong to the same project as the task. null clears the scope.",
+			"Scope id; it must belong to the same project as the task. Prefer scope (the name) when you know it. null clears the scope.",
+		),
+	scope: z
+		.string()
+		.nullable()
+		.optional()
+		.describe(
+			"Scope name inside the task's project, e.g. 'ui'; matched case-insensitively. null clears the scope. Prefer it over scope_id when you know the name; passing both is allowed only when they name the same scope.",
 		),
 	source_file: z
 		.string()
@@ -269,7 +283,7 @@ export const createTask = defineCommand({
 	name: "tasks_create",
 	output: taskCreated,
 	description:
-		"Create a task. Requires project_id and title; description, status, priority, estimate, assignee, due_at, blocked_reason, epic, scope, tags are optional. description is Markdown and formatting is rendered: a short log or config in a fenced block is welcome, source code belongs in the repository. status defaults to 'backlog', where the task waits for a later session, even if the work looks small. Pass 'open' only when you start on it right away, in this same session; 'later' from the user always means backlog. estimate is the size of the task: 'S', 'M' or 'L'. assignee is the person responsible for the task, due_at is its due date (YYYY-MM-DD). blocked_reason is one line of free text explaining a block outside the tracker and is only allowed when status is 'blocked'. epic_id accepts a full epic id (e.g. 'LOG-5') of the same project. scope_id is optional: a task without it sits outside the project's scopes, and scopes_create {project_id, name} adds a scope. Tags are optional too, but they come from a closed dictionary: an unknown tag is rejected with the list of existing ones, and tags_create {name} adds a genuinely new tag. source_file names the document or file the task came from; it is provenance only, it is never verified and several tasks may share it. Returns: the created task - " +
+		"Create a task. Requires project_id and title; description, status, priority, estimate, assignee, due_at, blocked_reason, epic, scope, tags are optional. description is Markdown and formatting is rendered: a short log or config in a fenced block is welcome, source code belongs in the repository. status defaults to 'backlog', where the task waits for a later session, even if the work looks small. Pass 'open' only when you start on it right away, in this same session; 'later' from the user always means backlog. estimate is the size of the task: 'S', 'M' or 'L'. assignee is the person responsible for the task, due_at is its due date (YYYY-MM-DD). blocked_reason is one line of free text explaining a block outside the tracker and is only allowed when status is 'blocked'. epic_id accepts a full epic id (e.g. 'LOG-5') of the same project. scope is optional: pass the scope name (e.g. 'site') or its id as scope_id; a task with neither sits outside the project's scopes, and scopes_create {project_id, name} adds a scope. Tags are optional too, but they come from a closed dictionary: an unknown tag is rejected with the list of existing ones, and tags_create {name} adds a genuinely new tag. source_file names the document or file the task came from; it is provenance only, it is never verified and several tasks may share it. Returns: the created task - " +
 		TASK_FIELDS +
 		" with a warnings array.",
 	kind: "command",
@@ -333,7 +347,7 @@ export const updateTask = defineCommand({
 	name: "tasks_update",
 	output: taskRef,
 	description:
-		"Update fields of an existing task by task_id. Pass the fields to change next to task_id (e.g. {task_id: 'LOG-87', status: 'in-progress'}); a nested patch object {task_id, patch: {status}} is accepted too. description is Markdown and formatting is rendered: a short log or config in a fenced block is welcome, source code belongs in the repository. The task_id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). epic_id accepts a full epic id (e.g. 'LOG-5') of the task's current project, estimate takes the size of the task ('S', 'M' or 'L') or null to clear it, assignee takes the name of the responsible person or null to clear it, due_at takes the due date (YYYY-MM-DD) or null to clear it, and blocked_reason is one line of free text explaining a block outside the tracker, allowed only on a blocked task; leaving status 'blocked' clears it. The call must name at least one field with a value: no field, a field set to undefined, an unknown field or an epic id that does not exist is an error, the task is left untouched. Returns: the updated task - " +
+		"Update fields of an existing task by task_id. Pass the fields to change next to task_id (e.g. {task_id: 'LOG-87', status: 'in-progress'}); a nested patch object {task_id, patch: {status}} is accepted too. description is Markdown and formatting is rendered: a short log or config in a fenced block is welcome, source code belongs in the repository. The task_id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). epic_id accepts a full epic id (e.g. 'LOG-5') of the task's current project, scope takes the name of a scope of that project (case-insensitive; scope_id takes the id) and scope: null clears it, estimate takes the size of the task ('S', 'M' or 'L') or null to clear it, assignee takes the name of the responsible person or null to clear it, due_at takes the due date (YYYY-MM-DD) or null to clear it, and blocked_reason is one line of free text explaining a block outside the tracker, allowed only on a blocked task; leaving status 'blocked' clears it. The call must name at least one field with a value: no field, a field set to undefined, an unknown field or an epic id that does not exist is an error, the task is left untouched. Returns: the updated task - " +
 		TASK_FIELDS +
 		" with a changes array and a warnings array, which is not empty when the task is blocked with neither a blocker task nor a blocked_reason. An unknown tag is rejected: tags are a closed dictionary, see tags_list and tags_create.",
 	kind: "command",

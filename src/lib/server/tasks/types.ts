@@ -43,6 +43,7 @@ export interface NewTask {
 	is_epic?: boolean;
 	epic_id?: string | null;
 	scope_id?: number | null;
+	scope?: string | null;
 	source_file?: string | null;
 	tags?: string[];
 	estimate?: Estimate | null;
@@ -59,6 +60,7 @@ export interface TaskPatch {
 	is_epic?: boolean;
 	epic_id?: string | null;
 	scope_id?: number | null;
+	scope?: string | null;
 	source_file?: string | null;
 	tags?: string[];
 	estimate?: Estimate | null;
