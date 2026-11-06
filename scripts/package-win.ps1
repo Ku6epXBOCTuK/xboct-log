@@ -2,6 +2,7 @@ param(
 	[string]$Version = "",
 	[switch]$SkipBuild,
 	[switch]$Installer,
+	[switch]$NoArchive,
 	[string]$NodeDist = "latest-v26.x"
 )
 
@@ -82,9 +83,11 @@ $readme = @(
 Set-Content (Join-Path $stage "README.txt") ($readme + "`r`n") -Encoding utf8
 
 $zip = Join-Path $dist "xboct-log-$Version-win-x64.zip"
-if (Test-Path $zip) { Remove-Item -Force $zip }
-Compress-Archive -Path (Join-Path $stage "*") -DestinationPath $zip
-Write-Host "archive: $zip"
+if (-not $NoArchive) {
+	if (Test-Path $zip) { Remove-Item -Force $zip }
+	Compress-Archive -Path (Join-Path $stage "*") -DestinationPath $zip
+	Write-Host "archive: $zip"
+}
 
 if ($Installer) {
 	$iscc = Get-Command iscc -ErrorAction SilentlyContinue
