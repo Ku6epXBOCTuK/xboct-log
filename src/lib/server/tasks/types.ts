@@ -78,6 +78,7 @@ export interface TaskUpdateOutcome {
 	changes: TaskChange[];
 	released?: ReleasedLink[];
 	closed_epic?: Task;
+	reopened_epic?: Task;
 }
 
 export interface TaskQuery {
@@ -157,6 +158,7 @@ export type BatchItem =
 			changes: TaskChange[];
 			released: ReleasedLink[];
 			closed_epic?: Task;
+			reopened_epic?: Task;
 	  }
 	| { index: number; id: string; ok: false; error: BatchError };
 

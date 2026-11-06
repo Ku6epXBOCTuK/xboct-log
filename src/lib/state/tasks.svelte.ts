@@ -229,6 +229,9 @@ export function createTaskStore(
 			if (updated.closed_epic) {
 				put(updated.closed_epic);
 			}
+			if (updated.reopened_epic) {
+				put(updated.reopened_epic);
+			}
 			onMutate?.();
 			return updated;
 		},

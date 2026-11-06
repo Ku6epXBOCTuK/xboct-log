@@ -100,10 +100,35 @@ function autoCloseEpic(
 	}
 	db.prepare(
 		`UPDATE tasks
-		 SET status = 'done', closed_at = ?, closed_reason = 'fixed', updated_at = ?
+		 SET status = 'done', closed_at = ?, closed_reason = 'fixed',
+		     auto_closed = 1, updated_at = ?
 		 WHERE key = ?`,
 	).run(now, now, epic.id);
 	return withBlockingInfo(db, [taskById(db, epic.id)!])[0];
+}
+
+function reopenAutoClosedEpic(
+	db: DatabaseSync,
+	childKey: string,
+	now: string,
+): Task | null {
+	const child = db
+		.prepare(
+			`SELECT epic.key AS epic_key
+			 FROM tasks child JOIN tasks epic ON epic.id = child.epic_id
+			 WHERE child.key = ? AND epic.auto_closed = 1`,
+		)
+		.get(childKey) as { epic_key: string } | undefined;
+	if (!child) {
+		return null;
+	}
+	db.prepare(
+		`UPDATE tasks
+		 SET status = 'open', closed_at = NULL, closed_reason = NULL,
+		     auto_closed = 0, updated_at = ?
+		 WHERE key = ?`,
+	).run(now, child.epic_key);
+	return withBlockingInfo(db, [taskById(db, child.epic_key)!])[0];
 }
 
 export function updateTaskDetailed(
@@ -149,6 +174,7 @@ export function updateTaskDetailed(
 		sets.push("status = ?");
 		params.push(patch.status);
 		if (patch.status !== current.status) {
+			sets.push("auto_closed = 0");
 			changes.push({
 				field: "status",
 				from: current.status,
@@ -379,6 +405,10 @@ export function updateTaskDetailed(
 		patch.status !== undefined &&
 		CLOSED_STATUSES.includes(patch.status) &&
 		!CLOSED_STATUSES.includes(current.status);
+	const reopenedNow =
+		patch.status !== undefined &&
+		!CLOSED_STATUSES.includes(patch.status) &&
+		CLOSED_STATUSES.includes(current.status);
 
 	return guard(() =>
 		withTransaction(db, () => {
@@ -408,11 +438,15 @@ export function updateTaskDetailed(
 					insertTag.run(tag, targetId);
 				}
 			}
-			const epic = closedNow ? autoCloseEpic(db, targetId, now) : null;
+			const closedEpic = closedNow ? autoCloseEpic(db, targetId, now) : null;
+			const reopenedEpic = reopenedNow
+				? reopenAutoClosedEpic(db, targetId, now)
+				: null;
 			return {
 				task: withBlockingInfo(db, [taskById(db, targetId)!])[0],
 				changes,
-				...(epic ? { closed_epic: epic } : {}),
+				...(closedEpic ? { closed_epic: closedEpic } : {}),
+				...(reopenedEpic ? { reopened_epic: reopenedEpic } : {}),
 			};
 		}),
 	);
@@ -453,7 +487,8 @@ export function closeTaskDetailed(
 		withTransaction(db, () => {
 			db.prepare(
 				`UPDATE tasks
-				 SET status = ?, closed_at = ?, closed_reason = ?, updated_at = ?
+				 SET status = ?, closed_at = ?, closed_reason = ?, auto_closed = 0,
+				     updated_at = ?
 				 WHERE key = ?`,
 			).run(status, now, reason, now, targetId);
 			const releasedIds = releaseBlockedStatus(db, listBlocks(db, targetId));

@@ -198,4 +198,39 @@ describe("epic auto-close", () => {
 
 		expect(getTask(db, epic.id)?.status).toBe("blocked");
 	});
+
+	it("reopens an automatically closed epic when a child reopens", async () => {
+		const db = await setup();
+		const epic = unwrap(
+			createTask(db, { project_id: "spa", title: "Root", is_epic: true }),
+		);
+		const child = unwrap(
+			createTask(db, { project_id: "spa", title: "Only", epic_id: epic.id }),
+		);
+		unwrap(closeTask(db, child.id, "fixed"));
+
+		unwrap(updateTask(db, child.id, { status: "open" }));
+
+		const reopened = getTask(db, epic.id);
+		expect(reopened?.status).toBe("open");
+		expect(reopened?.closed_at).toBeNull();
+		expect(reopened?.closed_reason).toBeNull();
+	});
+
+	it("does not reopen an epic that was closed by hand", async () => {
+		const db = await setup();
+		const epic = unwrap(
+			createTask(db, { project_id: "spa", title: "Root", is_epic: true }),
+		);
+		const child = unwrap(
+			createTask(db, { project_id: "spa", title: "Only", epic_id: epic.id }),
+		);
+		unwrap(closeTask(db, epic.id, "wontfix"));
+		unwrap(closeTask(db, child.id, "fixed"));
+
+		unwrap(updateTask(db, child.id, { status: "open" }));
+
+		expect(getTask(db, epic.id)?.status).toBe("cancelled");
+		expect(getTask(db, epic.id)?.closed_reason).toBe("wontfix");
+	});
 });

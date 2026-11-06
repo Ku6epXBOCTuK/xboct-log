@@ -52,6 +52,9 @@ function batchItem(
 				...(result.value.closed_epic
 					? { closed_epic: result.value.closed_epic }
 					: {}),
+				...(result.value.reopened_epic
+					? { reopened_epic: result.value.reopened_epic }
+					: {}),
 			}
 		: {
 				index,
