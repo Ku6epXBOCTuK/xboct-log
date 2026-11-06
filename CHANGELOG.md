@@ -2,6 +2,13 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.7.1](https://github.com/Ku6epXBOCTuK/xboct-log/compare/1c500fee11ec3548a3b9bcee10026bfeadee1cf1..v0.7.1) - 2026-11-06
+#### Bug Fixes
+- limit max coalesce timer - ([9198a84](https://github.com/Ku6epXBOCTuK/xboct-log/commit/9198a845a8b5ae8925ad0343e3aba48a80e5b6c0)) - Ku6epXBOCTuK
+- creating new project update layout data - ([1c500fe](https://github.com/Ku6epXBOCTuK/xboct-log/commit/1c500fee11ec3548a3b9bcee10026bfeadee1cf1)) - Ku6epXBOCTuK
+
+- - -
+
 ## [v0.7.0](https://github.com/Ku6epXBOCTuK/xboct-log/compare/1545e0a00a38322342c83eefa1e19bfd0ad26213..v0.7.0) - 2026-11-06
 #### Features
 - move activity to new task constant id id - ([0a7b05c](https://github.com/Ku6epXBOCTuK/xboct-log/commit/0a7b05cc2b0e3be4946374053dd6a56c98ef8cfc)) - Ku6epXBOCTuK
