@@ -80,7 +80,7 @@ function defineLinkOp(options: {
 			return { ...after, changes: linkChanges(link_type, before, after) };
 		},
 		activity: (input, task: TaskWithChanges) =>
-			activityEntry("task", task.id, [input.link_type], null, task.changes),
+			activityEntry("task", task.id, [input.link_type], task.changes),
 	});
 }
 

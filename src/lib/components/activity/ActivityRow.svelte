@@ -20,17 +20,11 @@
 	</td>
 	<td class="op">
 		{activityOpLabel(item.op)}
-		{#if !showEntity && item.old_id !== null}
-			<span class="was">was {item.old_id}</span>
-		{/if}
 	</td>
 	{#if showEntity}
 		<td class="entity">
 			<span class="entity-type">{item.entity}</span>
 			<span class="entity-id">{item.entity_id}</span>
-			{#if item.old_id !== null}
-				<span class="was">was {item.old_id}</span>
-			{/if}
 		</td>
 	{/if}
 	<td class="fields">
@@ -70,12 +64,6 @@
 
 	.entity-id {
 		font-family: var(--font-mono);
-		font-size: var(--text-xs);
-	}
-
-	.was {
-		display: block;
-		color: var(--text-muted);
 		font-size: var(--text-xs);
 	}
 

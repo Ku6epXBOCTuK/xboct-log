@@ -74,26 +74,34 @@ describe("activity", () => {
 			op: "tasks_close",
 			fields: ["status", "closed_reason"],
 			changes: [],
-			old_id: null,
 		});
 	});
 
-	it("keeps the history of a task that was moved", async () => {
+	it("keeps the history of a task across a key change", async () => {
 		const db = await setup();
+		const stamp = "2026-10-01T00:00:00.000Z";
 		db.prepare(
-			`INSERT INTO activity (created_at, source, op, entity, entity_id, old_id, fields)
-			 VALUES (?, 'ui', 'tasks_move', 'task', 'BIL-1', 'SPA-1', '["project_id"]')`,
+			`INSERT INTO projects (id, name, prefix, created_at)
+			 VALUES ('bil', 'Billing', 'BIL', ?)`,
+		).run(stamp);
+		db.prepare(
+			`INSERT INTO tasks (id, key, project_id, number, title, status, priority, created_at, updated_at)
+			 VALUES ('t1', 'BIL-1', 'bil', 1, 'a', 'open', 'low', ?, ?)`,
+		).run(stamp, stamp);
+		db.prepare(
+			`INSERT INTO activity (created_at, source, op, entity, entity_id, entity_task_id, fields)
+			 VALUES (?, 'ui', 'tasks_move', 'task', 'BIL-1', 't1', '["project_id"]')`,
 		).run("2026-10-20T12:00:00.000Z");
 		db.prepare(
-			`INSERT INTO activity (created_at, source, op, entity, entity_id, fields)
-			 VALUES (?, 'ui', 'tasks_update', 'task', 'SPA-1', '["status"]')`,
+			`INSERT INTO activity (created_at, source, op, entity, entity_id, entity_task_id, fields)
+			 VALUES (?, 'ui', 'tasks_update', 'task', 'SPA-1', 't1', '["status"]')`,
 		).run("2026-10-19T12:00:00.000Z");
 
 		expect(listActivity(db, { entity: "task", entity_id: "BIL-1" }).total).toBe(
-			1,
+			2,
 		);
 		expect(listActivity(db, { entity: "task", entity_id: "SPA-1" }).total).toBe(
-			2,
+			1,
 		);
 	});
 

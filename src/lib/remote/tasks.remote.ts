@@ -374,13 +374,7 @@ export const updateTask = defineCommand({
 		});
 	},
 	activity: (input, task: TaskWithChanges) =>
-		activityEntry(
-			"task",
-			task.id,
-			fieldNames(input.patch ?? {}),
-			null,
-			task.changes,
-		),
+		activityEntry("task", task.id, fieldNames(input.patch ?? {}), task.changes),
 });
 
 function summarize<T extends { ok: boolean }>(items: T[]) {
@@ -408,7 +402,6 @@ function releasedEntries(released: ReleasedLink[]): ActivityEntry[] {
 			"task",
 			link.task_id,
 			link.changes.map((change) => change.field),
-			null,
 			link.changes,
 		),
 	);
@@ -461,7 +454,6 @@ export const updateTasks = defineCommand({
 							"task",
 							item.task.id,
 							fieldNames(input.items[index].patch),
-							null,
 							item.changes,
 						),
 					]
@@ -493,13 +485,7 @@ export const closeTask = defineCommand({
 		});
 	},
 	activity: (_input, task: TaskWithChanges & { released?: ReleasedLink[] }) => [
-		activityEntry(
-			"task",
-			task.id,
-			["status", "closed_reason"],
-			null,
-			task.changes,
-		),
+		activityEntry("task", task.id, ["status", "closed_reason"], task.changes),
 		...releasedEntries(task.released ?? []),
 	],
 });
@@ -542,7 +528,6 @@ export const closeTasks = defineCommand({
 							"task",
 							item.task.id,
 							["status", "closed_reason"],
-							null,
 							item.changes,
 						),
 						...releasedEntries(item.released ?? []),
@@ -568,7 +553,7 @@ export const deleteTask = defineCommand({
 		return ok(result.value);
 	},
 	activity: (_input, result: DeleteTaskOutcome) => [
-		activityEntry("task", result.id, ["deleted_at"], null, result.changes),
+		activityEntry("task", result.id, ["deleted_at"], result.changes),
 		...releasedEntries(result.released),
 	],
 });
@@ -605,5 +590,5 @@ export const moveTask = defineCommand({
 	handler: ({ task_id, project_id }) =>
 		repo.moveTask(getDb(), task_id, project_id),
 	activity: (input, task: Task) =>
-		activityEntry("task", task.id, ["project_id"], input.task_id),
+		activityEntry("task", task.id, ["project_id"]),
 });

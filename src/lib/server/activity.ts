@@ -17,7 +17,6 @@ export interface ActivityEntry {
 	entity: ActivityEntity;
 	entity_id: string;
 	entity_task_id?: string | null;
-	old_id?: string | null;
 	fields: string[];
 	changes?: ActivityChange[];
 }
@@ -26,13 +25,11 @@ export function activityEntry(
 	entity: ActivityEntity,
 	entityId: string | number,
 	fields: string[],
-	oldId?: string | null,
 	changes?: ActivityChange[],
 ): ActivityEntry {
 	return {
 		entity,
 		entity_id: String(entityId),
-		old_id: oldId ?? null,
 		fields,
 		changes: changes ?? [],
 	};
@@ -120,8 +117,8 @@ export function recordActivity(
 		return 0;
 	}
 	const insert = db.prepare(
-		`INSERT INTO activity (created_at, source, client, op, entity, entity_id, entity_task_id, old_id, fields, changes)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO activity (created_at, source, client, op, entity, entity_id, entity_task_id, fields, changes)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 	);
 	const createdAt = (options.now ?? new Date()).toISOString();
 	const client = options.client ?? null;
@@ -135,7 +132,6 @@ export function recordActivity(
 			entry.entity,
 			entry.entity_id,
 			entry.entity_task_id ?? taskIds.get(entry.entity_id) ?? null,
-			entry.old_id ?? null,
 			JSON.stringify(entry.fields),
 			JSON.stringify(entry.changes ?? []),
 		);
@@ -265,7 +261,7 @@ export function searchActivity(
 
 	const rows = db
 		.prepare(
-			`SELECT created_at, source, client, op, entity, entity_id, old_id, fields, changes
+			`SELECT created_at, source, client, op, entity, entity_id, fields, changes
 			 FROM activity ${where}
 			 ORDER BY id DESC LIMIT ? OFFSET ?`,
 		)
@@ -276,7 +272,6 @@ export function searchActivity(
 		op: string;
 		entity: string;
 		entity_id: string;
-		old_id: string | null;
 		fields: string;
 		changes: string | null;
 	}[];
@@ -293,7 +288,6 @@ export function searchActivity(
 			op: row.op,
 			entity: row.entity,
 			entity_id: row.entity_id,
-			old_id: row.old_id,
 			fields: parseFields(row.fields),
 			changes: parseChanges(row.changes),
 		})),
@@ -355,12 +349,12 @@ export function listActivity(
 	// identity and the key of the moment are both matched.
 	const where =
 		query.entity === "task"
-			? "entity = ? AND (entity_id = ? OR old_id = ? OR entity_task_id = (SELECT id FROM tasks WHERE key = ?))"
-			: "entity = ? AND (entity_id = ? OR old_id = ?)";
+			? "entity = ? AND (entity_id = ? OR entity_task_id = (SELECT id FROM tasks WHERE key = ?))"
+			: "entity = ? AND entity_id = ?";
 	const params =
 		query.entity === "task"
-			? [query.entity, query.entity_id, query.entity_id, query.entity_id]
-			: [query.entity, query.entity_id, query.entity_id];
+			? [query.entity, query.entity_id, query.entity_id]
+			: [query.entity, query.entity_id];
 
 	const count = db
 		.prepare(`SELECT COUNT(*) AS count FROM activity WHERE ${where}`)
@@ -371,7 +365,7 @@ export function listActivity(
 
 	const rows = db
 		.prepare(
-			`SELECT created_at, source, client, op, fields, old_id, changes
+			`SELECT created_at, source, client, op, fields, changes
 			 FROM activity WHERE ${where}
 			 ORDER BY id DESC LIMIT ? OFFSET ?`,
 		)
@@ -381,7 +375,6 @@ export function listActivity(
 		client: string | null;
 		op: string;
 		fields: string;
-		old_id: string | null;
 		changes: string | null;
 	}[];
 
@@ -393,7 +386,6 @@ export function listActivity(
 			op: row.op,
 			fields: parseFields(row.fields),
 			changes: parseChanges(row.changes),
-			old_id: row.old_id,
 		})),
 		total: count.count,
 	};

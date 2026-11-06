@@ -7,14 +7,19 @@ function attachmentEntry(
 	attachment: AttachedFile,
 	present: boolean,
 ): ActivityEntry {
-	return activityEntry("task", attachment.task_id, ["attachments"], null, [
-		{
-			field: "attachments",
-			from: present ? null : attachment.file_name,
-			to: present ? attachment.file_name : null,
-			ref_id: attachment.id,
-		},
-	]);
+	return activityEntry(
+		"task",
+		attachment.task_id,
+		["attachments"],
+		[
+			{
+				field: "attachments",
+				from: present ? null : attachment.file_name,
+				to: present ? attachment.file_name : null,
+				ref_id: attachment.id,
+			},
+		],
+	);
 }
 
 export const attachmentActivity = {

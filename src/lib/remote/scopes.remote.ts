@@ -143,9 +143,12 @@ export const deleteScope = defineCommand({
 			: [
 					activityEntry("scope", input.scope_id, []),
 					...[...result.task_ids, ...result.epic_ids].map((taskId) =>
-						activityEntry("task", taskId, ["scope_id"], null, [
-							{ field: "scope_id", from: input.scope_id, to: null },
-						]),
+						activityEntry(
+							"task",
+							taskId,
+							["scope_id"],
+							[{ field: "scope_id", from: input.scope_id, to: null }],
+						),
 					),
 				],
 });

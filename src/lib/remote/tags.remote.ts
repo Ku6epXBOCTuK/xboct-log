@@ -110,7 +110,10 @@ export const renameTagCommand = defineCommand({
 	}),
 	handler: ({ name, new_name }) => renameTag(getDb(), name, new_name),
 	activity: (input, tag: TagRecord) =>
-		activityEntry("tag", tag.name, ["name"], input.name, [
-			{ field: "name", from: input.name, to: tag.name },
-		]),
+		activityEntry(
+			"tag",
+			tag.name,
+			["name"],
+			[{ field: "name", from: input.name, to: tag.name }],
+		),
 });

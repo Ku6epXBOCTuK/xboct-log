@@ -11,7 +11,7 @@ export const getTaskHistory = defineQuery({
 	name: "tasks_history",
 	output: activityList,
 	description:
-		"Show the change log of one task: when it was changed, from which surface (source: 'ui' or 'mcp'), which MCP client did it (client: the name/version the client declared, null when it declared none) and which fields were touched. Returns: {items, total}, newest first; each item is { ts, source, client, op, fields, changes, old_id }. A changed field keeps the old and the new value, a creation lists only the fields set beyond the defaults; an attachment event carries the file name as the value and the attachment id as ref_id. Reads are not logged themselves. The history of a task follows it after a move to another project.",
+		"Show the change log of one task: when it was changed, from which surface (source: 'ui' or 'mcp'), which MCP client did it (client: the name/version the client declared, null when it declared none) and which fields were touched. Returns: {items, total}, newest first; each item is { ts, source, client, op, fields, changes }. A changed field keeps the old and the new value, a creation lists only the fields set beyond the defaults; an attachment event carries the file name as the value and the attachment id as ref_id. Reads are not logged themselves. The history of a task follows it after a move to another project.",
 	kind: "query",
 	input: strictObject({
 		task_id: taskIdSchema(ID_DESCRIPTION),

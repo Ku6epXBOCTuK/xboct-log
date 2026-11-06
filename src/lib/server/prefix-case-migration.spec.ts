@@ -52,8 +52,8 @@ VALUES ('leg-2', 'legacy', 2, 'Child', '', 'open', 'medium', 0, 'leg-1', '${STAM
 INSERT INTO task_blocked_by (blocked_task_id, blocked_by_task_id, created_at)
 VALUES ('leg-1', 'leg-2', '${STAMP}');
 
-INSERT INTO activity (created_at, source, op, entity, entity_id, old_id)
-VALUES ('${STAMP}', 'test', 'move', 'task', 'leg-2', 'leg-1');
+INSERT INTO activity (created_at, source, op, entity, entity_id)
+VALUES ('${STAMP}', 'test', 'move', 'task', 'leg-2');
 `);
 	return db;
 }
@@ -130,10 +130,8 @@ describe("prefix case migration", () => {
 				.get(),
 		).toEqual({ blocked_task_id: "LEG-1", blocked_by_task_id: "LEG-2" });
 		expect(
-			db
-				.prepare("SELECT entity_id, old_id FROM activity WHERE entity = 'task'")
-				.get(),
-		).toEqual({ entity_id: "LEG-2", old_id: "LEG-1" });
+			db.prepare("SELECT entity_id FROM activity WHERE entity = 'task'").get(),
+		).toEqual({ entity_id: "LEG-2" });
 	});
 
 	it("leaves the migrated tasks resolvable by their new id", async () => {

@@ -25,7 +25,6 @@ interface ActivityRow {
 	op: string;
 	entity: string;
 	entity_id: string;
-	old_id: string | null;
 	fields: string[];
 }
 
@@ -62,7 +61,7 @@ async function call(
 function rows(): ActivityRow[] {
 	const found = getDb()
 		.prepare(
-			"SELECT source, op, entity, entity_id, old_id, fields FROM activity ORDER BY id",
+			"SELECT source, op, entity, entity_id, fields FROM activity ORDER BY id",
 		)
 		.all() as unknown as (Omit<ActivityRow, "fields"> & { fields: string })[];
 	return found.map((row) => ({ ...row, fields: JSON.parse(row.fields) }));
@@ -95,7 +94,6 @@ describe("activity log", () => {
 				op: "tasks_update",
 				entity: "task",
 				entity_id: task.id,
-				old_id: null,
 				fields: ["status"],
 			},
 			{
@@ -103,7 +101,6 @@ describe("activity log", () => {
 				op: "tasks_update",
 				entity: "task",
 				entity_id: task.id,
-				old_id: null,
 				fields: ["status"],
 			},
 		]);
@@ -134,7 +131,6 @@ describe("activity log", () => {
 				op: "tasks_create",
 				entity: "task",
 				entity_id: task.id,
-				old_id: null,
 				fields: ["priority"],
 			},
 		]);
@@ -190,7 +186,6 @@ describe("activity log", () => {
 				op: "tasks_create_many",
 				entity: "task",
 				entity_id: ids[0],
-				old_id: null,
 				fields: [],
 			},
 			{
@@ -198,7 +193,6 @@ describe("activity log", () => {
 				op: "tasks_create_many",
 				entity: "task",
 				entity_id: ids[1],
-				old_id: null,
 				fields: ["priority"],
 			},
 		]);
@@ -256,7 +250,6 @@ describe("activity log", () => {
 		expect(rows()[0]).toMatchObject({
 			entity: "task",
 			entity_id: moved.id,
-			old_id: task.id,
 			fields: ["project_id"],
 		});
 	});
@@ -335,7 +328,6 @@ describe("activity log", () => {
 			source: "mcp",
 			op: "tasks_update",
 			fields: ["status"],
-			old_id: null,
 		});
 		expect(rows()).toHaveLength(1);
 	});
@@ -357,7 +349,6 @@ describe("activity log", () => {
 		expect(history.items[0]).toMatchObject({
 			op: "tasks_move",
 			fields: ["project_id"],
-			old_id: task.id,
 		});
 	});
 

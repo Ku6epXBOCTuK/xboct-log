@@ -69,7 +69,7 @@ function defineBlockerLinkOp(options: {
 			return { ...after, changes: linkChanges(before, after) };
 		},
 		activity: (_input, task: TaskWithChanges) =>
-			activityEntry("task", task.id, ["blocked_by"], null, task.changes),
+			activityEntry("task", task.id, ["blocked_by"], task.changes),
 	});
 }
 

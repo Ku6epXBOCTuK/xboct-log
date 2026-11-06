@@ -118,7 +118,6 @@ export interface ActivityItem {
 	op: string;
 	fields: string[];
 	changes: ActivityChange[];
-	old_id: string | null;
 }
 
 export interface ActivityLogItem extends ActivityItem {
