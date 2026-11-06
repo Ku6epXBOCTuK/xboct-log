@@ -1,9 +1,9 @@
 import { execFile, spawn, type ChildProcess } from "node:child_process";
-import { randomBytes } from "node:crypto";
+import { randomBytes, createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { isAbsolute, join, resolve } from "node:path";
 import * as vscode from "vscode";
 
 const VIEW_TYPE = "xboctLog";
@@ -19,6 +19,7 @@ const PNG_SIGNATURE = "89504e470d0a1a0a";
 let current: vscode.WebviewPanel | undefined;
 let serverProcess: ChildProcess | undefined;
 let serverFailure: string | undefined;
+let dataMismatch = false;
 
 export function activate(context: vscode.ExtensionContext): void {
 	context.subscriptions.push(
@@ -183,6 +184,8 @@ function startFailureReason(started: boolean): string {
 	if (started) return "Сервис не ответил вовремя.";
 	if (serverFailure !== undefined)
 		return `Сервис не запустился: ${serverFailure}`;
+	if (dataMismatch)
+		return `Порт ${portFromUrl()} занят другим Xboct Log с другой папкой данных.`;
 	return "Не удалось запустить сервис.";
 }
 
@@ -631,11 +634,37 @@ async function isServerUp(): Promise<boolean> {
 		});
 
 		if (!response.ok) return false;
-		const body = (await response.json()) as { app?: unknown };
-		return body?.app === APP_NAME;
+		const body = (await response.json()) as {
+			app?: unknown;
+			data?: unknown;
+		};
+		if (body?.app !== APP_NAME) return false;
+
+		const expected = configuredDataId();
+		dataMismatch =
+			expected !== undefined &&
+			typeof body.data === "string" &&
+			body.data !== expected;
+		return !dataMismatch;
 	} catch {
+		dataMismatch = false;
 		return false;
 	}
+}
+
+function configuredDataId(): string | undefined {
+	const dataDir = configuration().get<string>("dataDir", "").trim();
+	if (dataDir === "" || !isAbsolute(dataDir)) return undefined;
+
+	return fingerprintPath(dataDir);
+}
+
+function fingerprintPath(path: string): string {
+	const absolute = resolve(path).replace(/\\/g, "/");
+	const normalized =
+		process.platform === "win32" ? absolute.toLowerCase() : absolute;
+
+	return createHash("sha256").update(normalized).digest("hex").slice(0, 16);
 }
 
 function currentTheme(): "light" | "dark" {

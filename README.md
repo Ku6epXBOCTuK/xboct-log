@@ -41,7 +41,8 @@ Three ways, pick one:
 
 The launcher opens the board in the browser and keeps the database, media, and
 backups in one data folder. Port `45881` is the default; when it is taken the
-launcher stops with an error, and `--port 0` picks any free port instead. Flags:
+launcher stops with an error, and `--port 0` picks any free port instead. An
+instance of the same port that serves another data folder counts as taken. Flags:
 `--data <dir>`, `--port <port>`, `--host <host>`, `--no-open`, `--portable`.
 
 ## Requirements

@@ -8,6 +8,7 @@ import {
 	rmSync,
 	writeFileSync,
 } from "node:fs";
+import { createHash } from "node:crypto";
 import { createServer } from "node:http";
 import { createServer as createProbe } from "node:net";
 import { homedir, platform } from "node:os";
@@ -126,6 +127,12 @@ function readVersion() {
 	}
 }
 
+function fingerprintPath(path) {
+	const absolute = resolve(path).replace(/\\/g, "/");
+	const normalized = platform() === "win32" ? absolute.toLowerCase() : absolute;
+	return createHash("sha256").update(normalized).digest("hex").slice(0, 16);
+}
+
 function help() {
 	console.log(`usage: ${APP_NAME} [options]
 
@@ -162,8 +169,14 @@ function log(line) {
 	if (process.stdout.isTTY) console.log(line);
 }
 
+const dataId = fingerprintPath(dataDir);
 const running = await health(options.port);
 if (running) {
+	if (running.data !== undefined && running.data !== dataId) {
+		fail(
+			`port ${options.port} on ${options.host} is used by another ${APP_NAME} with a different data folder; stop it or pick another port with --port <n>`,
+		);
+	}
 	const url = `http://${options.host}:${options.port}/`;
 	log(`already running at ${url}`);
 	if (options.open) openBrowser(url);
