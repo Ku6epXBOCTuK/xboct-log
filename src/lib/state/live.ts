@@ -3,6 +3,7 @@ import { reloadApp } from "#lib/reload.ts";
 import { ENTITIES, type Entity } from "#lib/types.ts";
 
 const COALESCE_MS = 300;
+const COALESCE_MAX_MS = 1000;
 
 const COUNTERS = "counters" as const;
 const NAVIGATION = "navigation" as const;
@@ -30,6 +31,7 @@ export function createFreshness(): Freshness {
 	const pending = new Set<Target>();
 	const waiters: Array<() => void> = [];
 	let timer: ReturnType<typeof setTimeout> | undefined;
+	let maxTimer: ReturnType<typeof setTimeout> | undefined;
 	let queue: Promise<void> = Promise.resolve();
 
 	function expand(targets: Iterable<Target>): Set<Target> {
@@ -67,7 +69,19 @@ export function createFreshness(): Freshness {
 		}
 	}
 
+	function clearTimers(): void {
+		if (timer !== undefined) {
+			clearTimeout(timer);
+			timer = undefined;
+		}
+		if (maxTimer !== undefined) {
+			clearTimeout(maxTimer);
+			maxTimer = undefined;
+		}
+	}
+
 	function flush(): void {
+		clearTimers();
 		const done = waiters.splice(0);
 		if (pending.size === 0) {
 			settle(done);
@@ -99,6 +113,12 @@ export function createFreshness(): Freshness {
 			timer = undefined;
 			flush();
 		}, COALESCE_MS);
+		if (maxTimer === undefined) {
+			maxTimer = setTimeout(() => {
+				maxTimer = undefined;
+				flush();
+			}, COALESCE_MAX_MS);
+		}
 		return done;
 	}
 
@@ -142,10 +162,7 @@ export function createFreshness(): Freshness {
 		return () => {
 			source.close();
 			document.removeEventListener("visibilitychange", handleVisibility);
-			if (timer !== undefined) {
-				clearTimeout(timer);
-				timer = undefined;
-			}
+			clearTimers();
 			pending.clear();
 			settle(waiters.splice(0));
 		};

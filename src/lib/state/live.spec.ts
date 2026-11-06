@@ -123,6 +123,34 @@ describe("createFreshness", () => {
 		expect(handlers.tasks).toHaveBeenCalledTimes(1);
 	});
 
+	it("flushes a continuous burst when the max wait expires", async () => {
+		const fresh = createFreshness();
+		const handlers = wire(fresh);
+
+		for (let i = 0; i < 12; i++) {
+			fresh.invalidate(["tasks"]);
+			await vi.advanceTimersByTimeAsync(100);
+		}
+
+		expect(handlers.tasks).toHaveBeenCalledTimes(1);
+	});
+
+	it("re-arms the max wait after a flush", async () => {
+		const fresh = createFreshness();
+		const handlers = wire(fresh);
+
+		fresh.invalidate(["tasks"]);
+		await vi.advanceTimersByTimeAsync(300);
+		expect(handlers.tasks).toHaveBeenCalledTimes(1);
+
+		for (let i = 0; i < 12; i++) {
+			fresh.invalidate(["tasks"]);
+			await vi.advanceTimersByTimeAsync(100);
+		}
+
+		expect(handlers.tasks).toHaveBeenCalledTimes(2);
+	});
+
 	it("expands the dependencies of a streamed entity", async () => {
 		const fresh = createFreshness();
 		const handlers = wire(fresh);
