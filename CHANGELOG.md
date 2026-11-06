@@ -2,6 +2,16 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.8.0](https://github.com/Ku6epXBOCTuK/xboct-log/compare/8961a3dc646ee5deb29f95b0624ef62fc4c73bf2..v0.8.0) - 2026-11-06
+#### Features
+- add auto open epic flow - if auto-closed - ([18d611a](https://github.com/Ku6epXBOCTuK/xboct-log/commit/18d611a3f70ef1ce18f234473c4178e391d8d54e)) - Ku6epXBOCTuK
+- add epics progress in details page - ([47fa177](https://github.com/Ku6epXBOCTuK/xboct-log/commit/47fa1775866dddaa6db8052faf52f42736680d8d)) - Ku6epXBOCTuK
+#### Bug Fixes
+- closing child task also auto-close epic - ([58845a2](https://github.com/Ku6epXBOCTuK/xboct-log/commit/58845a224c8b76b8a9c3e0021e2a16e02cdb571d)) - Ku6epXBOCTuK
+- epic shown as opened, while have opened chidren - ([35565e1](https://github.com/Ku6epXBOCTuK/xboct-log/commit/35565e166deaec73d0d0a3ba804ac0a03e332da6)) - Ku6epXBOCTuK
+
+- - -
+
 ## [v0.7.1](https://github.com/Ku6epXBOCTuK/xboct-log/compare/1c500fee11ec3548a3b9bcee10026bfeadee1cf1..v0.7.1) - 2026-11-06
 #### Bug Fixes
 - limit max coalesce timer - ([9198a84](https://github.com/Ku6epXBOCTuK/xboct-log/commit/9198a845a8b5ae8925ad0343e3aba48a80e5b6c0)) - Ku6epXBOCTuK
