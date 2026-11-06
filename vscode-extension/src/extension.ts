@@ -7,6 +7,7 @@ import { join } from "node:path";
 import * as vscode from "vscode";
 
 const VIEW_TYPE = "xboctLog";
+const APP_NAME = "xboct-log";
 const DEFAULT_SERVER_URL = "http://127.0.0.1:45881";
 const HEALTH_TIMEOUT_MS = 1500;
 const START_TIMEOUT_MS = 20_000;
@@ -17,6 +18,7 @@ const PNG_SIGNATURE = "89504e470d0a1a0a";
 
 let current: vscode.WebviewPanel | undefined;
 let serverProcess: ChildProcess | undefined;
+let serverFailure: string | undefined;
 
 export function activate(context: vscode.ExtensionContext): void {
 	context.subscriptions.push(
@@ -174,9 +176,14 @@ async function render(panel: vscode.WebviewPanel): Promise<void> {
 		return;
 	}
 
-	panel.webview.html = offlineHtml(
-		started ? "Сервис не ответил вовремя." : "Не удалось запустить сервис.",
-	);
+	panel.webview.html = offlineHtml(startFailureReason(started));
+}
+
+function startFailureReason(started: boolean): string {
+	if (started) return "Сервис не ответил вовремя.";
+	if (serverFailure !== undefined)
+		return `Сервис не запустился: ${serverFailure}`;
+	return "Не удалось запустить сервис.";
 }
 
 function ensureStarted(): Thenable<boolean> {
@@ -198,6 +205,8 @@ async function waitForServer(): Promise<boolean> {
 
 	while (Date.now() < deadline) {
 		if (await isServerUp()) return true;
+		if (serverFailure !== undefined && serverProcess === undefined)
+			return false;
 		await new Promise((done) => setTimeout(done, POLL_INTERVAL_MS));
 	}
 
@@ -215,24 +224,45 @@ async function startServer(): Promise<void> {
 
 	if (dataDir) args.push("--data", dataDir);
 
+	serverFailure = undefined;
+
 	try {
 		const child = spawn(quote(command), args.map(quote), {
 			shell: true,
 			windowsHide: true,
-			stdio: "ignore",
+			stdio: ["ignore", "ignore", "pipe"],
 		});
 
-		child.on("exit", () => {
-			if (serverProcess === child) serverProcess = undefined;
+		let stderr = "";
+		child.stderr?.setEncoding("utf8");
+		child.stderr?.on("data", (chunk: string) => {
+			stderr = (stderr + chunk).slice(-2000);
 		});
-		child.on("error", () => {
+
+		child.on("exit", (code) => {
 			if (serverProcess === child) serverProcess = undefined;
+			if (code !== 0 && code !== null)
+				serverFailure = lastLine(stderr) ?? `код ${code}`;
+		});
+		child.on("error", (error) => {
+			if (serverProcess === child) serverProcess = undefined;
+			serverFailure = error.message;
 		});
 
 		serverProcess = child;
-	} catch {
+	} catch (error) {
 		serverProcess = undefined;
+		serverFailure = error instanceof Error ? error.message : String(error);
 	}
+}
+
+function lastLine(output: string): string | undefined {
+	const lines = output
+		.split(/\r?\n/)
+		.map((line) => line.trim())
+		.filter((line) => line !== "");
+
+	return lines.at(-1);
 }
 
 function stopServer(): void {
@@ -600,7 +630,9 @@ async function isServerUp(): Promise<boolean> {
 			signal: AbortSignal.timeout(HEALTH_TIMEOUT_MS),
 		});
 
-		return response.ok;
+		if (!response.ok) return false;
+		const body = (await response.json()) as { app?: unknown };
+		return body?.app === APP_NAME;
 	} catch {
 		return false;
 	}
@@ -638,6 +670,14 @@ function frameOrigin(): string {
 	} catch {
 		return serverUrl();
 	}
+}
+
+function escapeHtml(value: string): string {
+	return value
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;");
 }
 
 function page(body: string, script: string): string {
@@ -803,7 +843,7 @@ function offlineHtml(reason: string): string {
 	return page(
 		`
 			<h1>Xboct Log не отвечает</h1>
-			<p>${reason} Адрес: <code>${serverUrl()}</code></p>
+			<p>${escapeHtml(reason)} Адрес: <code>${escapeHtml(serverUrl())}</code></p>
 			<div class="actions">
 				<button id="start">Запустить</button>
 				<button id="retry" class="secondary">Проверить снова</button>

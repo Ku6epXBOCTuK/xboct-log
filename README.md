@@ -40,9 +40,9 @@ Three ways, pick one:
   ```
 
 The launcher opens the board in the browser and keeps the database, media, and
-backups in one data folder. Port `45881` is the default; if it is taken, the
-next free one is used. Flags: `--data <dir>`, `--port <port>`, `--host <host>`,
-`--no-open`, `--portable`.
+backups in one data folder. Port `45881` is the default; when it is taken the
+launcher stops with an error, and `--port 0` picks any free port instead. Flags:
+`--data <dir>`, `--port <port>`, `--host <host>`, `--no-open`, `--portable`.
 
 ## Requirements
 

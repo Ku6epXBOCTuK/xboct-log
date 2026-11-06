@@ -43,8 +43,8 @@ function parseArgs(argv) {
 		else if (arg === "--version" || arg === "-v") options.version = true;
 		else fail(`unknown argument: ${arg}`);
 	}
-	if (!Number.isInteger(options.port) || options.port <= 0) {
-		fail("--port must be a positive integer");
+	if (!Number.isInteger(options.port) || options.port < 0) {
+		fail("--port must be zero or a positive integer");
 	}
 	return options;
 }
@@ -130,7 +130,7 @@ function help() {
 	console.log(`usage: ${APP_NAME} [options]
 
   --data <dir>   folder for the database, media and backups
-  --port <port>  port to listen on (default ${DEFAULT_PORT})
+  --port <port>  port to listen on, 0 picks a free one (default ${DEFAULT_PORT})
   --host <host>  address to bind (default ${DEFAULT_HOST})
   --no-open      do not open the browser
   --portable     keep the data next to the application
@@ -190,9 +190,12 @@ mkdirSync(join(dataDir, "backups"), { recursive: true });
 const migrations = join(appRoot, "migrations");
 if (!existsSync(migrations)) fail(`missing migrations folder at ${migrations}`);
 
-const port = (await isFree(options.port, options.host))
-	? options.port
-	: await freePort(options.host);
+const port = options.port === 0 ? await freePort(options.host) : options.port;
+if (!(await isFree(port, options.host))) {
+	fail(
+		`port ${port} on ${options.host} is busy; pick another with --port <n>, or --port 0 for any free port`,
+	);
+}
 
 process.env.XBOCT_LOG_DB = join(dataDir, `${APP_NAME}.db`);
 process.env.XBOCT_LOG_MEDIA_DIR = join(dataDir, "media");
