@@ -262,37 +262,6 @@ textarea:focus-visible {
 	font-weight: 600;
 }
 
-.field-control {
-	width: 100%;
-	border: 1px solid var(--border-strong);
-	background: var(--field);
-	color: var(--foreground);
-	border-radius: var(--radius);
-	padding: 0 var(--space-3);
-	height: var(--control-h);
-	outline: none;
-	font-size: var(--text-md);
-	font-weight: 400;
-}
-
-textarea.field-control {
-	height: auto;
-	padding: var(--space-3);
-	resize: vertical;
-	min-height: 8rem;
-	line-height: 1.55;
-}
-
-.field-control:focus {
-	border-color: var(--accent);
-}
-
-input.field-control:read-only {
-	background: var(--hover);
-	border-color: var(--border);
-	color: var(--text-secondary);
-}
-
 .epic-badge {
 	display: inline-block;
 	background: var(--violet-surface);

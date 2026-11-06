@@ -2,6 +2,7 @@
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
 	import Modal from "@ku6epxboctuk/ui-kit/components/Modal.svelte";
+	import TextInput from "@ku6epxboctuk/ui-kit/components/TextInput.svelte";
 	import {
 		projectIdError,
 		projectPrefixError,
@@ -133,9 +134,8 @@
 	<form class="project-create" onsubmit={submit}>
 		<label class="field">
 			Name
-			<input
-				bind:this={nameInput}
-				class="field-control"
+			<TextInput
+				bind:element={nameInput}
 				value={name}
 				placeholder="My best project"
 				aria-label="Project name"
@@ -146,8 +146,7 @@
 
 		<label class="field">
 			Id
-			<input
-				class="field-control"
+			<TextInput
 				value={id}
 				placeholder="my-project"
 				aria-label="Project id"
@@ -160,11 +159,10 @@
 
 		<label class="field">
 			Prefix
-			<input
-				class="field-control"
+			<TextInput
 				value={prefix}
 				placeholder="MYPROJ"
-				maxlength="6"
+				maxlength={6}
 				aria-label="Project prefix"
 				oninput={(event) => onPrefixInput(event.currentTarget.value)}
 			/>
@@ -177,8 +175,7 @@
 
 		<label class="field">
 			Repository
-			<input
-				class="field-control"
+			<TextInput
 				value={repo}
 				placeholder="github.com/owner/repo"
 				aria-label="Project repository"

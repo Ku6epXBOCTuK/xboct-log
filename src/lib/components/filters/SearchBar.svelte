@@ -1,4 +1,5 @@
 <script lang="ts">
+	import TextInput from "@ku6epxboctuk/ui-kit/components/TextInput.svelte";
 	import { isTypingTarget, matchesHotkey } from "#lib/hotkeys/hotkeys.ts";
 	import { createDebouncedValue } from "#lib/state/debounce.svelte.ts";
 	import Search from "~icons/lucide/search";
@@ -52,8 +53,10 @@
 
 <div class="search-wrap">
 	<Search />
-	<input
-		bind:this={input}
+	<TextInput
+		class="search-input"
+		size="lg"
+		bind:element={input}
 		value={search.value}
 		oninput={(event) => search.set(event.currentTarget.value)}
 		placeholder="Search: text, ID, =29, =LOG-29"
@@ -83,21 +86,9 @@
 		pointer-events: none;
 	}
 
-	.search-wrap input {
-		width: 100%;
-		min-height: var(--control-h-lg);
-		background: var(--field);
-		color: var(--foreground);
-		border: 1px solid var(--border-strong);
-		border-radius: var(--radius);
-		outline: none;
-		padding: 0 2.75rem 0 2.375rem;
+	:global(.search-input) {
 		font-size: var(--text-md);
-	}
-
-	.search-wrap input:focus {
-		border-color: var(--accent);
-		box-shadow: inset 0 0 0 1px var(--accent);
+		padding: 0 2.75rem 0 2.375rem;
 	}
 
 	.search-wrap kbd {

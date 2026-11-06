@@ -2,6 +2,7 @@
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
 	import Modal from "@ku6epxboctuk/ui-kit/components/Modal.svelte";
+	import TextInput from "@ku6epxboctuk/ui-kit/components/TextInput.svelte";
 	import { messageOf } from "#lib/tasks/display.ts";
 	import { scopeNameError } from "#lib/tasks/scopes.ts";
 
@@ -59,9 +60,8 @@
 	<form class="scope-create" onsubmit={submit}>
 		<label class="field">
 			Name
-			<input
-				bind:this={nameInput}
-				class="field-control"
+			<TextInput
+				bind:element={nameInput}
 				value={name}
 				placeholder="Backend"
 				aria-label="Scope name"

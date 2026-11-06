@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
+	import TextInput from "@ku6epxboctuk/ui-kit/components/TextInput.svelte";
 	import FilterBlock from "#lib/components/filters/FilterBlock.svelte";
 	import SingleSelect from "#lib/components/ui/select/SingleSelect.svelte";
 	import type { Project } from "#lib/types.ts";
@@ -156,13 +157,13 @@
 	<FilterBlock label="from" active={from !== ""} onreset={() => (from = "")}>
 		<label class="date-field">
 			<span>From</span>
-			<input class="date-input" type="date" bind:value={from} />
+			<TextInput class="date-input" type="date" bind:value={from} />
 		</label>
 	</FilterBlock>
 	<FilterBlock label="to" active={to !== ""} onreset={() => (to = "")}>
 		<label class="date-field">
 			<span>To</span>
-			<input class="date-input" type="date" bind:value={to} />
+			<TextInput class="date-input" type="date" bind:value={to} />
 		</label>
 	</FilterBlock>
 	<Button variant="ghost" class="clear-filters" onclick={clear}>
@@ -187,29 +188,12 @@
 		display: inline-flex;
 		align-items: center;
 		gap: var(--space-2);
-		min-height: var(--control-h);
-		padding: 0 var(--space-3);
-		border: 1px solid var(--border-strong);
-		border-radius: var(--radius);
 		color: var(--text-secondary);
 		font-size: var(--text-sm);
 	}
 
-	.date-field:hover {
-		background: var(--hover);
-	}
-
-	.date-field:focus-within {
-		border-color: var(--accent);
-	}
-
-	.date-input {
-		border: 0;
-		background: transparent;
-		color: var(--foreground);
-		font-family: inherit;
-		font-size: var(--text-sm);
-		outline: none;
+	.date-field :global(.date-input) {
+		width: 9.5rem;
 	}
 
 	:global(.ui-button.clear-filters) {

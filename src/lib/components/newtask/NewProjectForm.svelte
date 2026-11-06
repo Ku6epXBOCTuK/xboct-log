@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
+	import TextInput from "@ku6epxboctuk/ui-kit/components/TextInput.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
 	import { messageOf } from "#lib/tasks/display.ts";
@@ -51,16 +52,16 @@
 <div class="detail-grid">
 	<label>
 		Project id
-		<input bind:value={id} placeholder="shop-web" />
+		<TextInput bind:value={id} placeholder="shop-web" />
 	</label>
 	<label>
 		Prefix
-		<input bind:value={prefix} placeholder="SHOP" />
+		<TextInput bind:value={prefix} placeholder="SHOP" />
 	</label>
 </div>
 <label class="detail-field">
 	Project name
-	<input bind:value={name} placeholder="Shop web" />
+	<TextInput bind:value={name} placeholder="Shop web" />
 </label>
 <ErrorNote message={failure} />
 <Button type="button" onclick={submit} disabled={creating}>
@@ -76,23 +77,6 @@
 		flex-direction: column;
 		gap: var(--space-2);
 		min-width: 0;
-	}
-
-	input {
-		width: 100%;
-		border: 1px solid var(--border-strong);
-		background: var(--field);
-		color: var(--foreground);
-		border-radius: var(--radius);
-		padding: var(--space-2) var(--space-3);
-		min-height: var(--control-h);
-		outline: none;
-		font-size: var(--text-md);
-		font-weight: 400;
-	}
-
-	input:focus {
-		border-color: var(--accent);
 	}
 
 	.modal-hint {

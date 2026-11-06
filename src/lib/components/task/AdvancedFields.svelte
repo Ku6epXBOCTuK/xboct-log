@@ -1,4 +1,5 @@
 <script lang="ts">
+	import TextInput from "@ku6epxboctuk/ui-kit/components/TextInput.svelte";
 	import SingleSelect from "#lib/components/ui/select/SingleSelect.svelte";
 	import { useTaskEditorSlot } from "#lib/state/task-editor.ts";
 	import { toSourceFile, validateTaskDraft } from "#lib/tasks/fields.ts";
@@ -54,8 +55,7 @@
 <div class="detail-grid">
 	<label class="field">
 		Due
-		<input
-			class="field-control"
+		<TextInput
 			type="date"
 			value={editor.value.due_at ?? ""}
 			onchange={changeDueAt}
@@ -76,8 +76,7 @@
 	</div>
 	<div class="field">
 		Assignee
-		<input
-			class="field-control"
+		<TextInput
 			value={editor.value.assignee ?? ""}
 			onchange={changeAssignee}
 			placeholder="nobody"
@@ -85,8 +84,7 @@
 	</div>
 	<label class="field">
 		Source file
-		<input
-			class="field-control"
+		<TextInput
 			value={editor.value.source_file ?? ""}
 			onchange={changeSourceFile}
 		/>

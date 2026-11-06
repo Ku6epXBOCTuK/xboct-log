@@ -1,4 +1,5 @@
 <script lang="ts">
+	import TextInput from "@ku6epxboctuk/ui-kit/components/TextInput.svelte";
 	import TagCreateForm from "#lib/components/tags/TagCreateForm.svelte";
 	import TagList from "#lib/components/tags/TagList.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
@@ -25,8 +26,8 @@
 	</header>
 
 	<div class="toolbar">
-		<input
-			class="field-control search"
+		<TextInput
+			class="tag-filter"
 			placeholder="Filter by name"
 			aria-label="Filter tags by name"
 			title="Filter the list by a part of the tag name"
@@ -115,7 +116,7 @@
 		padding: 0 var(--edge-pad) var(--space-2);
 	}
 
-	.search {
+	:global(.tag-filter) {
 		flex: 1 1 14rem;
 		max-width: 22rem;
 	}

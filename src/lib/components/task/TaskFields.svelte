@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
 	import TagInput from "@ku6epxboctuk/ui-kit/components/TagInput.svelte";
+	import TextInput from "@ku6epxboctuk/ui-kit/components/TextInput.svelte";
 	import DescriptionField from "#lib/components/task/DescriptionField.svelte";
 	import InfoPopover from "#lib/components/ui/InfoPopover.svelte";
 	import SingleSelect from "#lib/components/ui/select/SingleSelect.svelte";
@@ -85,8 +86,7 @@
 {#if editor.status === "blocked" && editor.onblockedreason !== undefined}
 	<div class="field detail-field">
 		Waiting for
-		<input
-			class="field-control"
+		<TextInput
 			value={editor.blockedReason}
 			maxlength={BLOCKED_REASON_MAX_LENGTH}
 			onchange={changeBlockedReason}

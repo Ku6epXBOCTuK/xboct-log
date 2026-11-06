@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from "svelte";
+	import TextArea from "@ku6epxboctuk/ui-kit/components/TextArea.svelte";
 	import MarkdownView from "#lib/components/markdown/MarkdownView.svelte";
 	import { appendMarkdown, markdownDrop } from "#lib/files/markdown-drop.ts";
 	import { matchesHotkey } from "#lib/hotkeys/hotkeys.ts";
@@ -123,21 +124,22 @@
 				{/if}
 			</div>
 		{:else}
-			<textarea
-				class="field-control md-input"
-				bind:this={area}
+			<TextArea
+				class="md-input"
+				bind:element={area}
 				{value}
 				{rows}
 				wrap={wrap ? "soft" : "off"}
-				style:white-space={wrap ? "pre-wrap" : "pre"}
-				style:overflow-wrap={wrap ? "anywhere" : "normal"}
+				style="white-space: {wrap ? "pre-wrap" : "pre"}; overflow-wrap: {wrap
+					? "anywhere"
+					: "normal"}"
 				oninput={change}
 				onfocus={() => onfocus?.()}
 				onblur={() => onblur?.()}
 				onkeydown={handleKeydown}
 				{placeholder}
 				aria-label={label}
-			></textarea>
+			/>
 		{/if}
 	</div>
 	<div class="md-actions">
@@ -184,7 +186,7 @@
 		overflow: hidden;
 	}
 
-	.md-box textarea {
+	.md-box :global(textarea) {
 		height: 100%;
 		min-height: 0;
 		resize: none;

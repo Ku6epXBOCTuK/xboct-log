@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
+	import TextInput from "@ku6epxboctuk/ui-kit/components/TextInput.svelte";
 	import Plus from "~icons/lucide/plus";
 
 	interface Props {
@@ -25,8 +26,8 @@
 		void submit();
 	}}
 >
-	<input
-		class="field-control"
+	<TextInput
+		class="create-input"
 		placeholder="New tag"
 		aria-label="New tag name"
 		title="Lowercase ascii, dash and underscore only"
@@ -53,7 +54,7 @@
 		margin-left: auto;
 	}
 
-	.create .field-control {
+	.create :global(.create-input) {
 		width: 12rem;
 	}
 
@@ -63,7 +64,7 @@
 			flex: 1 1 100%;
 		}
 
-		.create .field-control {
+		.create :global(.create-input) {
 			flex: 1 1 auto;
 			width: auto;
 		}

@@ -2,6 +2,7 @@
 	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
 	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton.svelte";
 	import Modal from "@ku6epxboctuk/ui-kit/components/Modal.svelte";
+	import TextInput from "@ku6epxboctuk/ui-kit/components/TextInput.svelte";
 	import ScopeCreateDialog from "#lib/components/task/ScopeCreateDialog.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
@@ -115,7 +116,7 @@
 			<label class="field">
 				Name
 				<div class="inline">
-					<input bind:value={name} aria-label="Project name" />
+					<TextInput bind:value={name} aria-label="Project name" />
 					<Button
 						type="button"
 						onclick={renameProject}
@@ -131,7 +132,7 @@
 				<label class="field">
 					Repository
 					<div class="inline">
-						<input
+						<TextInput
 							bind:value={repo}
 							aria-label="Project repository"
 							placeholder="github.com/owner/repo"
@@ -169,7 +170,7 @@
 			<ul class="scope-list">
 				{#each projectScopes as scope (scope.id)}
 					<li class="scope-item">
-						<input
+						<TextInput
 							value={scope.name}
 							aria-label={`Rename ${scope.name}`}
 							onchange={(event) => renameScope(scope.id, event)}
@@ -267,24 +268,9 @@
 		justify-content: center;
 	}
 
-	.field input,
-	.scope-item input {
+	.inline :global(.ui-input),
+	.scope-item :global(.ui-input) {
 		flex: 1;
-		min-width: 0;
-		border: 1px solid var(--border-strong);
-		background: var(--field);
-		color: var(--foreground);
-		border-radius: var(--radius);
-		padding: var(--space-2) var(--space-3);
-		min-height: var(--control-h);
-		outline: none;
-		font-size: var(--text-md);
-	}
-
-	.field input:focus,
-	.scope-item input:focus {
-		border-color: var(--accent);
-		box-shadow: inset 0 0 0 1px var(--accent);
 	}
 
 	:global(.ui-button.archive-toggle) {
