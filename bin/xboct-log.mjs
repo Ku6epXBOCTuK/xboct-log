@@ -196,6 +196,7 @@ process.env.XBOCT_LOG_BACKUP_DIR = join(dataDir, "backups");
 process.env.XBOCT_LOG_MIGRATIONS = migrations;
 process.env.HOST = options.host;
 process.env.PORT = String(port);
+process.env.PROTOCOL_HEADER = "x-forwarded-proto";
 process.env.ORIGIN = `http://${options.host === "0.0.0.0" ? "127.0.0.1" : options.host}:${port}`;
 
 let handler;
@@ -209,7 +210,12 @@ try {
 	);
 }
 
-const server = createServer(handler);
+// NOTE: adapter-node assumes `https` when PROTOCOL_HEADER is unset, so a
+// plain-http request looks cross-site and SvelteKit rejects every non-GET.
+const server = createServer((request, response) => {
+	request.headers["x-forwarded-proto"] ??= "http";
+	handler(request, response);
+});
 const url = process.env.ORIGIN + "/";
 
 server.on("error", (error) => {
