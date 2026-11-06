@@ -2,6 +2,12 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import {
+	activityEntry,
+	listActivity,
+	recordActivity,
+	searchActivity,
+} from "../activity";
 import { failure, setup, unwrap } from "../app-test-kit";
 import { addAttachment, listAttachments } from "../attachments";
 import { addComment, listComments } from "../comments";
@@ -80,6 +86,22 @@ describe("task moves", () => {
 			}
 			rmSync(media, { recursive: true, force: true });
 		}
+	});
+
+	it("keeps the activity history of a moved task", async () => {
+		const db = await setup();
+		unwrap(createProject(db, { id: "bil", name: "Billing", prefix: "BIL" }));
+		const task = unwrap(createTask(db, { project_id: "spa", title: "Move" }));
+		recordActivity(db, "ui", "tasks_update", [
+			activityEntry("task", task.id, ["status"]),
+		]);
+
+		const moved = unwrap(moveTask(db, task.id, "bil"));
+
+		expect(
+			listActivity(db, { entity: "task", entity_id: moved.id }).total,
+		).toBe(1);
+		expect(searchActivity(db, { project_id: "bil" }).total).toBe(1);
 	});
 
 	it("moves an epic with its tasks and rewires the links", async () => {

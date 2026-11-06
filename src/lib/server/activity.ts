@@ -16,6 +16,7 @@ export type { ActivityEntity, ActivitySource } from "../types";
 export interface ActivityEntry {
 	entity: ActivityEntity;
 	entity_id: string;
+	entity_task_id?: string | null;
 	old_id?: string | null;
 	fields: string[];
 	changes?: ActivityChange[];
@@ -119,11 +120,12 @@ export function recordActivity(
 		return 0;
 	}
 	const insert = db.prepare(
-		`INSERT INTO activity (created_at, source, client, op, entity, entity_id, old_id, fields, changes)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO activity (created_at, source, client, op, entity, entity_id, entity_task_id, old_id, fields, changes)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 	);
 	const createdAt = (options.now ?? new Date()).toISOString();
 	const client = options.client ?? null;
+	const taskIds = taskIdByKey(db, entries);
 	for (const entry of entries) {
 		insert.run(
 			createdAt,
@@ -132,12 +134,39 @@ export function recordActivity(
 			op,
 			entry.entity,
 			entry.entity_id,
+			entry.entity_task_id ?? taskIds.get(entry.entity_id) ?? null,
 			entry.old_id ?? null,
 			JSON.stringify(entry.fields),
 			JSON.stringify(entry.changes ?? []),
 		);
 	}
 	return entries.length;
+}
+
+function taskIdByKey(
+	db: DatabaseSync,
+	entries: ActivityEntry[],
+): Map<string, string> {
+	const keys = [
+		...new Set(
+			entries
+				.filter((entry) => entry.entity === "task")
+				.map((entry) => entry.entity_id),
+		),
+	];
+	const ids = new Map<string, string>();
+	if (keys.length === 0) {
+		return ids;
+	}
+	const rows = db
+		.prepare(
+			`SELECT key, id FROM tasks WHERE key IN (${keys.map(() => "?").join(", ")})`,
+		)
+		.all(...keys) as unknown as { key: string; id: string }[];
+	for (const row of rows) {
+		ids.set(row.key, row.id);
+	}
+	return ids;
 }
 
 export function activityTableExists(db: DatabaseSync): boolean {
@@ -201,14 +230,20 @@ export function searchActivity(
 	if (search.project_id) {
 		clauses.push(`(
 			(entity = 'project' AND entity_id = ?)
-			OR (entity = 'task' AND entity_id IN (
-				SELECT key FROM tasks WHERE project_id = ?
+			OR (entity = 'task' AND (
+				entity_id IN (SELECT key FROM tasks WHERE project_id = ?)
+				OR entity_task_id IN (SELECT id FROM tasks WHERE project_id = ?)
 			))
 			OR (entity = 'scope' AND entity_id IN (
 				SELECT CAST(id AS TEXT) FROM scopes WHERE project_id = ?
 			))
 		)`);
-		params.push(search.project_id, search.project_id, search.project_id);
+		params.push(
+			search.project_id,
+			search.project_id,
+			search.project_id,
+			search.project_id,
+		);
 	}
 	if (search.from) {
 		clauses.push("created_at >= ?");
@@ -316,10 +351,16 @@ export function listActivity(
 		return { items: [], total: 0 };
 	}
 
-	// NOTE: a moved task keeps its old rows under the previous id, so the old
-	// id is matched as well - the history of a task follows it across projects.
-	const where = "entity = ? AND (entity_id = ? OR old_id = ?)";
-	const params = [query.entity, query.entity_id, query.entity_id];
+	// NOTE: a moved task keeps its old rows under the previous key, so the
+	// identity and the key of the moment are both matched.
+	const where =
+		query.entity === "task"
+			? "entity = ? AND (entity_id = ? OR old_id = ? OR entity_task_id = (SELECT id FROM tasks WHERE key = ?))"
+			: "entity = ? AND (entity_id = ? OR old_id = ?)";
+	const params =
+		query.entity === "task"
+			? [query.entity, query.entity_id, query.entity_id, query.entity_id]
+			: [query.entity, query.entity_id, query.entity_id];
 
 	const count = db
 		.prepare(`SELECT COUNT(*) AS count FROM activity WHERE ${where}`)
