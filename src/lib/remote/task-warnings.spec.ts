@@ -4,11 +4,11 @@ import { join } from "node:path";
 import type { Result } from "neverthrow";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "../server/db";
-import { type AppError } from "../server/errors";
+import type { AppError } from "../server/errors";
 import { migrateDatabase } from "../server/migrations";
 import { createProject } from "../server/projects";
 import { createScope } from "../server/scopes";
-import { createTask } from "../server/tasks";
+import { closeTask as closeTaskRepo, createTask } from "../server/tasks";
 import { runOp } from "./define";
 import { getOps } from "./index.js";
 
@@ -154,5 +154,59 @@ describe("tag handling", () => {
 		expect(result.succeeded).toBe(2);
 		expect(result.items[0].warnings ?? []).toEqual([]);
 		expect(result.items[1].warnings ?? []).toEqual([]);
+	});
+});
+
+describe("epic completion", () => {
+	it("warns when an epic is closed with open subtasks", async () => {
+		const db = getDb();
+		const epic = unwrap(
+			createTask(db, {
+				project_id: "bare",
+				title: "Epic with open child",
+				is_epic: true,
+			}),
+		);
+		unwrap(
+			createTask(db, {
+				project_id: "bare",
+				title: "Still open",
+				epic_id: epic.id,
+			}),
+		);
+
+		const closed = (await call("tasks_close", {
+			task_id: epic.id,
+			reason: "fixed",
+		})) as { warnings: string[] };
+
+		expect(closed.warnings).toHaveLength(1);
+		expect(closed.warnings[0]).toContain("1 of 1 subtasks are still open");
+	});
+
+	it("does not warn when every subtask is closed", async () => {
+		const db = getDb();
+		const epic = unwrap(
+			createTask(db, {
+				project_id: "bare",
+				title: "Epic with closed child",
+				is_epic: true,
+			}),
+		);
+		const child = unwrap(
+			createTask(db, {
+				project_id: "bare",
+				title: "Already done",
+				epic_id: epic.id,
+			}),
+		);
+		unwrap(closeTaskRepo(db, child.id, "fixed"));
+
+		const closed = (await call("tasks_close", {
+			task_id: epic.id,
+			reason: "fixed",
+		})) as { warnings: string[] };
+
+		expect(closed.warnings).toEqual([]);
 	});
 });

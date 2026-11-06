@@ -1,6 +1,8 @@
 <script lang="ts">
-	import TaskAttachments from "#lib/components/attachments/TaskAttachments.svelte";
+	import { untrack } from "svelte";
+	import { cubicOut } from "svelte/easing";
 	import AttachButton from "#lib/components/attachments/AttachButton.svelte";
+	import TaskAttachments from "#lib/components/attachments/TaskAttachments.svelte";
 	import CommentsOverlay from "#lib/components/detail/CommentsOverlay.svelte";
 	import DetailActions from "#lib/components/detail/DetailActions.svelte";
 	import DetailHeader from "#lib/components/detail/DetailHeader.svelte";
@@ -10,14 +12,14 @@
 	import TaskEditorFields from "#lib/components/task/TaskEditorFields.svelte";
 	import CopyButton from "#lib/components/ui/CopyButton.svelte";
 	import DropOverlay from "#lib/components/ui/DropOverlay.svelte";
-	import { fieldNavigation } from "#lib/hotkeys/fields.ts";
 	import { fileDrop } from "#lib/files/drop.ts";
+	import { fieldNavigation } from "#lib/hotkeys/fields.ts";
 	import { taskHrefFor } from "#lib/navigation/href.ts";
 	import { createSavedAttachments } from "#lib/state/attachments.svelte.ts";
 	import { useBoard } from "#lib/state/board.svelte.ts";
 	import { createTaskDraft } from "#lib/state/task-draft.ts";
-	import { createTaskFinder } from "#lib/state/task-finder.svelte.ts";
 	import type { TaskEditor } from "#lib/state/task-editor.ts";
+	import { createTaskFinder } from "#lib/state/task-finder.svelte.ts";
 	import { provideTaskPanel, type TaskPanel } from "#lib/state/task-panel.ts";
 	import { blockingIds } from "#lib/tasks/blocking.ts";
 	import {
@@ -28,13 +30,16 @@
 	import { messageOf } from "#lib/tasks/display.ts";
 	import {
 		siblingEpics,
-		validateTaskDraft,
 		type TaskPatch,
+		validateTaskDraft,
 	} from "#lib/tasks/fields.ts";
 	import type { LinkField } from "#lib/tasks/links.ts";
-	import type { ClosedReason, Status, Task } from "#lib/types.ts";
-	import { untrack } from "svelte";
-	import { cubicOut } from "svelte/easing";
+	import {
+		CLOSED_STATUSES,
+		type ClosedReason,
+		type Status,
+		type Task,
+	} from "#lib/types.ts";
 
 	interface Props {
 		task: Task;
@@ -63,6 +68,18 @@
 			null,
 	);
 	let tagPicker = $derived(tags.picker(projectData?.tags ?? []));
+	let epicProgress = $derived.by(() => {
+		if (!task.is_epic) return null;
+		const children = (projectData?.tasks ?? []).filter(
+			(child) => child.epic_id === task.id,
+		);
+		if (children.length === 0) return null;
+		return {
+			closed: children.filter((child) => CLOSED_STATUSES.includes(child.status))
+				.length,
+			total: children.length,
+		};
+	});
 
 	async function onunknowntag(name: string) {
 		await tags.create(name);
@@ -273,6 +290,9 @@
 	const panel: TaskPanel = {
 		get task() {
 			return task;
+		},
+		get epicProgress() {
+			return epicProgress;
 		},
 		get saving() {
 			return saving;

@@ -18,7 +18,7 @@
 	);
 	const title = $derived(
 		progress !== null && progress.total > 0
-			? `${progress.closed}/${progress.total} closed; click to show these tasks`
+			? `${progress.closed}/${progress.total} closed${onfilter ? "; click to show these tasks" : ""}`
 			: "No tasks yet",
 	);
 </script>
@@ -26,7 +26,7 @@
 <span class="epic-marker-wrap">
 	<InfoPopover
 		text={title}
-		class={`epic-badge epic-marker${empty ? " epic-marker-empty" : ""}`}
+		class={`epic-badge epic-marker${empty ? " epic-marker-empty" : ""}${onfilter ? "" : " epic-marker-static"}`}
 		style={`--epic-fill: ${fill}%`}
 		onclick={() => onfilter?.(id)}
 	>
@@ -55,12 +55,18 @@
 		line-height: 1.25;
 	}
 
-	.epic-marker-wrap :global(.info-popover-trigger.epic-marker:hover) {
+	.epic-marker-wrap
+		:global(.info-popover-trigger.epic-marker:not(.epic-marker-static):hover) {
 		background: linear-gradient(
 			to right,
 			color-mix(in oklch, var(--violet) 52%, transparent) var(--epic-fill, 0%),
 			color-mix(in oklch, var(--violet) 12%, transparent) var(--epic-fill, 0%)
 		);
+	}
+
+	.epic-marker-wrap
+		:global(.info-popover-trigger.epic-marker.epic-marker-static) {
+		cursor: default;
 	}
 
 	.epic-marker-wrap :global(.info-popover-trigger.epic-marker-empty) {

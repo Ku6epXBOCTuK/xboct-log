@@ -1,8 +1,10 @@
 import { getContext, setContext } from "svelte";
+import type { EpicProgress } from "#lib/tasks/filter.ts";
 import type { ClosedReason, Task } from "#lib/types.ts";
 
 export interface TaskPanel {
 	readonly task: Task;
+	readonly epicProgress: EpicProgress | null;
 	readonly saving: boolean;
 	readonly failure: string | null;
 	readonly repo: string | null;

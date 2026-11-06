@@ -1,15 +1,16 @@
 <script lang="ts">
+	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton.svelte";
 	import CopyButton from "#lib/components/ui/CopyButton.svelte";
+	import EpicBadge from "#lib/components/table/EpicBadge.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import StatusDot from "#lib/components/ui/StatusDot.svelte";
 	import { useTaskPanel } from "#lib/state/task-panel.ts";
 	import {
 		CLOSED_REASON_LABELS,
-		STATUS_LABELS,
 		formatDateTime,
+		STATUS_LABELS,
 	} from "#lib/tasks/display.ts";
 	import type { Task } from "#lib/types.ts";
-	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton.svelte";
 	import Clock3 from "~icons/lucide/clock-3";
 	import MessageSquare from "~icons/lucide/message-square";
 	import X from "~icons/lucide/x";
@@ -36,6 +37,9 @@
 					title="Copy task id"
 				/>
 			</span>
+			{#if task.is_epic}
+				<EpicBadge id={task.id} progress={panel.epicProgress} />
+			{/if}
 			<StatusDot status={task.status} />
 			<span>{STATUS_LABELS[task.status]}</span>
 			{#if task.closed_reason !== null}

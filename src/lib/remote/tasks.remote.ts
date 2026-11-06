@@ -1,11 +1,12 @@
-import { ID_DESCRIPTION, taskIdSchema } from "#lib/tasks/ids.ts";
+import type { DatabaseSync } from "node:sqlite";
 import { err, ok } from "neverthrow";
 import { z } from "zod";
+import { ID_DESCRIPTION, taskIdSchema } from "#lib/tasks/ids.ts";
 import {
+	type ActivityEntry,
 	activityEntry,
 	creationFields,
 	fieldNames,
-	type ActivityEntry,
 } from "../server/activity";
 import { getDb } from "../server/db";
 import { invalid } from "../server/errors";
@@ -19,6 +20,7 @@ import * as repo from "../server/tasks";
 import {
 	BLOCKED_REASON_MAX_LENGTH,
 	CLOSED_REASONS,
+	CLOSED_STATUSES,
 	ESTIMATES,
 	PRIORITIES,
 	STATUSES,
@@ -296,7 +298,7 @@ export const createTask = defineCommand({
 		}
 		return ok({
 			...result.value,
-			warnings: warningsFor(result.value),
+			warnings: warningsFor(db, result.value),
 		});
 	},
 	activity: (input, task: Task) =>
@@ -318,7 +320,7 @@ export const createTasks = defineCommand({
 		return {
 			...summarize(items),
 			items: items.map((item) =>
-				item.ok ? { ...item, warnings: warningsFor(item.task) } : item,
+				item.ok ? { ...item, warnings: warningsFor(db, item.task) } : item,
 			),
 		};
 	},
@@ -349,7 +351,7 @@ export const updateTask = defineCommand({
 	description:
 		"Update fields of an existing task by task_id. Pass the fields to change next to task_id (e.g. {task_id: 'LOG-87', status: 'in-progress'}); a nested patch object {task_id, patch: {status}} is accepted too. description is Markdown and formatting is rendered: a short log or config in a fenced block is welcome, source code belongs in the repository. The task_id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). epic_id accepts a full epic id (e.g. 'LOG-5') of the task's current project, scope takes the name of a scope of that project (case-insensitive; scope_id takes the id) and scope: null clears it, estimate takes the size of the task ('S', 'M' or 'L') or null to clear it, assignee takes the name of the responsible person or null to clear it, due_at takes the due date (YYYY-MM-DD) or null to clear it, and blocked_reason is one line of free text explaining a block outside the tracker, allowed only on a blocked task; leaving status 'blocked' clears it. The call must name at least one field with a value: no field, a field set to undefined, an unknown field or an epic id that does not exist is an error, the task is left untouched. Returns: the updated task - " +
 		TASK_FIELDS +
-		" with a changes array and a warnings array, which is not empty when the task is blocked with neither a blocker task nor a blocked_reason. An unknown tag is rejected: tags are a closed dictionary, see tags_list and tags_create.",
+		" with a changes array and a warnings array, which is not empty when the task is blocked with neither a blocker task nor a blocked_reason, or when an epic is closed while some of its subtasks are still open. An unknown tag is rejected: tags are a closed dictionary, see tags_list and tags_create.",
 	kind: "command",
 	input: updateInput,
 	mcpInput: flatUpdate.input,
@@ -370,7 +372,7 @@ export const updateTask = defineCommand({
 		return ok({
 			...result.value.task,
 			changes: result.value.changes,
-			warnings: warningsFor(result.value.task),
+			warnings: warningsFor(db, result.value.task),
 		});
 	},
 	activity: (input, task: TaskWithChanges) =>
@@ -382,7 +384,7 @@ function summarize<T extends { ok: boolean }>(items: T[]) {
 	return { items, succeeded, failed: items.length - succeeded };
 }
 
-function warningsFor(task: Task): string[] {
+function warningsFor(db: DatabaseSync, task: Task): string[] {
 	const warnings: string[] = [];
 	if (
 		task.status === "blocked" &&
@@ -392,6 +394,15 @@ function warningsFor(task: Task): string[] {
 		warnings.push(
 			"task is blocked with no blocker task and no blocked_reason: say what or who it waits for, or add a blocker",
 		);
+	}
+	if (task.is_epic && CLOSED_STATUSES.includes(task.status)) {
+		const counts = repo.countEpicChildrenByStatus(db, task.id);
+		const open = counts.total - counts.done - counts.cancelled;
+		if (open > 0) {
+			warnings.push(
+				`epic is ${task.status} while ${open} of ${counts.total} subtasks are still open: close them too or reopen the epic`,
+			);
+		}
 	}
 	return warnings;
 }
@@ -442,7 +453,7 @@ export const updateTasks = defineCommand({
 		return {
 			...summarize(result),
 			items: result.map((item) =>
-				item.ok ? { ...item, warnings: warningsFor(item.task) } : item,
+				item.ok ? { ...item, warnings: warningsFor(db, item.task) } : item,
 			),
 		};
 	},
@@ -467,14 +478,15 @@ export const closeTask = defineCommand({
 	description:
 		"Close a task by task_id with a reason: 'fixed' → done, 'wontfix' | 'obsolete' | 'duplicate' | 'not-reproduced' → cancelled. 'not-reproduced' marks a report that could not be reproduced. The task_id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). Closing a task that blocks others releases them from status 'blocked' - every released task returns to the status it had before it was blocked ('open' when that status is unknown), and those tasks are listed in released. The blocking links stay in place as history, so do not remove them afterwards. Returns: the closed task - " +
 		TASK_FIELDS +
-		" with a changes array and a released array.",
+		" with a changes array, a released array and a warnings array, which is not empty when an epic is closed while some of its subtasks are still open.",
 	kind: "command",
 	input: strictObject({
 		task_id: taskIdSchema(ID_DESCRIPTION),
 		reason: z.enum(CLOSED_REASONS),
 	}),
 	handler: ({ task_id, reason }) => {
-		const result = repo.closeTaskDetailed(getDb(), task_id, reason);
+		const db = getDb();
+		const result = repo.closeTaskDetailed(db, task_id, reason);
 		if (result.isErr()) {
 			return err(result.error);
 		}
@@ -482,6 +494,7 @@ export const closeTask = defineCommand({
 			...result.value.task,
 			changes: result.value.changes,
 			released: result.value.released ?? [],
+			warnings: warningsFor(db, result.value.task),
 		});
 	},
 	activity: (_input, task: TaskWithChanges & { released?: ReleasedLink[] }) => [
@@ -516,7 +529,7 @@ export const closeTasks = defineCommand({
 		return {
 			...summarize(result),
 			items: result.map((item) =>
-				item.ok ? { ...item, warnings: warningsFor(item.task) } : item,
+				item.ok ? { ...item, warnings: warningsFor(db, item.task) } : item,
 			),
 		};
 	},
