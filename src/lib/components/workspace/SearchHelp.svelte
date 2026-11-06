@@ -1,5 +1,5 @@
 <script lang="ts">
-	import InfoPopover from "#lib/components/ui/InfoPopover.svelte";
+	import InfoPopover from "@ku6epxboctuk/ui-kit/components/InfoPopover.svelte";
 	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton.svelte";
 	import CircleHelp from "~icons/lucide/circle-help";
 </script>
@@ -38,7 +38,7 @@
 		display: inline-flex;
 	}
 
-	.search-help :global(.info-popover-panel) {
+	.search-help :global(.ui-info-popover-panel) {
 		width: min(21rem, calc(100vw - 2rem));
 		max-width: calc(100vw - 2rem);
 		padding: var(--space-3) var(--space-4);
@@ -66,7 +66,7 @@
 	}
 
 	@media (max-width: 560px) {
-		.search-help :global(.info-popover-panel) {
+		.search-help :global(.ui-info-popover-panel) {
 			width: calc(100vw - 2rem);
 		}
 	}

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import InfoPopover from "#lib/components/ui/InfoPopover.svelte";
+	import InfoPopover from "@ku6epxboctuk/ui-kit/components/InfoPopover.svelte";
 	import ArrowUpRight from "~icons/lucide/arrow-up-right";
 
 	interface Props {
@@ -28,7 +28,7 @@
 		flex: none;
 	}
 
-	.blocking-badge :global(.info-popover-trigger.blocking-icon) {
+	.blocking-badge :global(.ui-info-popover-trigger.blocking-icon) {
 		padding: var(--space-1);
 		color: var(--priority-high);
 	}

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import InfoPopover from "#lib/components/ui/InfoPopover.svelte";
+	import InfoPopover from "@ku6epxboctuk/ui-kit/components/InfoPopover.svelte";
 	import type { EpicProgress } from "#lib/tasks/filter.ts";
 
 	interface Props {
@@ -40,7 +40,7 @@
 		flex: none;
 	}
 
-	.epic-marker-wrap :global(.info-popover-trigger.epic-marker) {
+	.epic-marker-wrap :global(.ui-info-popover-trigger.epic-marker) {
 		padding: var(--space-1) var(--space-2);
 		margin-left: var(--space-2);
 		background: linear-gradient(
@@ -56,7 +56,9 @@
 	}
 
 	.epic-marker-wrap
-		:global(.info-popover-trigger.epic-marker:not(.epic-marker-static):hover) {
+		:global(
+			.ui-info-popover-trigger.epic-marker:not(.epic-marker-static):hover
+		) {
 		background: linear-gradient(
 			to right,
 			color-mix(in oklch, var(--violet) 52%, transparent) var(--epic-fill, 0%),
@@ -65,17 +67,17 @@
 	}
 
 	.epic-marker-wrap
-		:global(.info-popover-trigger.epic-marker.epic-marker-static) {
+		:global(.ui-info-popover-trigger.epic-marker.epic-marker-static) {
 		cursor: default;
 	}
 
-	.epic-marker-wrap :global(.info-popover-trigger.epic-marker-empty) {
+	.epic-marker-wrap :global(.ui-info-popover-trigger.epic-marker-empty) {
 		border: 1px solid color-mix(in oklch, var(--violet) 45%, transparent);
 		background: transparent;
 		color: var(--violet-ink);
 	}
 
-	.epic-marker-wrap :global(.info-popover-trigger.epic-marker-empty:hover) {
+	.epic-marker-wrap :global(.ui-info-popover-trigger.epic-marker-empty:hover) {
 		background: var(--violet-surface);
 	}
 </style>

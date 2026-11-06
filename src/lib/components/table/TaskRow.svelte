@@ -3,7 +3,7 @@
 	import BlockingBadge from "#lib/components/table/BlockingBadge.svelte";
 	import EpicBadge from "#lib/components/table/EpicBadge.svelte";
 	import CopyButton from "#lib/components/ui/CopyButton.svelte";
-	import InfoPopover from "#lib/components/ui/InfoPopover.svelte";
+	import InfoPopover from "@ku6epxboctuk/ui-kit/components/InfoPopover.svelte";
 	import StatusDot from "#lib/components/ui/StatusDot.svelte";
 	import { STATUS_LABELS, formatDate, localToday } from "#lib/tasks/display.ts";
 	import type { EpicProgress } from "#lib/tasks/filter.ts";
@@ -240,7 +240,7 @@
 		white-space: nowrap;
 	}
 
-	.title-row :global(.info-popover-trigger.epic-filter) {
+	.title-row :global(.ui-info-popover-trigger.epic-filter) {
 		padding: var(--space-1) var(--space-2);
 		margin-left: var(--space-2);
 		border: 0;
@@ -250,7 +250,7 @@
 		line-height: 1.25;
 	}
 
-	.title-row :global(.info-popover-trigger.epic-filter:hover) {
+	.title-row :global(.ui-info-popover-trigger.epic-filter:hover) {
 		background: color-mix(in oklch, var(--green) 28%, var(--green-surface));
 	}
 

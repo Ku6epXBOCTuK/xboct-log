@@ -1,5 +1,5 @@
 <script lang="ts">
-	import InfoPopover from "#lib/components/ui/InfoPopover.svelte";
+	import InfoPopover from "@ku6epxboctuk/ui-kit/components/InfoPopover.svelte";
 	import Ban from "~icons/lucide/ban";
 	import Clock from "~icons/lucide/clock";
 	import TriangleAlert from "~icons/lucide/triangle-alert";
@@ -49,12 +49,12 @@
 		flex: none;
 	}
 
-	.blocked-badge :global(.info-popover-trigger.blocker-icon) {
+	.blocked-badge :global(.ui-info-popover-trigger.blocker-icon) {
 		padding: var(--space-1);
 		color: var(--accent-ink);
 	}
 
-	.blocked-badge :global(.info-popover-trigger.blocker-empty) {
+	.blocked-badge :global(.ui-info-popover-trigger.blocker-empty) {
 		gap: 0;
 		color: var(--status-blocked);
 		background: color-mix(in oklch, var(--status-blocked) 40%, transparent);

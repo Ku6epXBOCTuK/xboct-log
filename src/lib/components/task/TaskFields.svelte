@@ -3,7 +3,7 @@
 	import TagInput from "@ku6epxboctuk/ui-kit/components/TagInput.svelte";
 	import TextInput from "@ku6epxboctuk/ui-kit/components/TextInput.svelte";
 	import DescriptionField from "#lib/components/task/DescriptionField.svelte";
-	import InfoPopover from "#lib/components/ui/InfoPopover.svelte";
+	import InfoPopover from "@ku6epxboctuk/ui-kit/components/InfoPopover.svelte";
 	import SingleSelect from "#lib/components/ui/select/SingleSelect.svelte";
 	import { useTaskEditorSlot } from "#lib/state/task-editor.ts";
 	import { STATUS_LABELS } from "#lib/tasks/display.ts";

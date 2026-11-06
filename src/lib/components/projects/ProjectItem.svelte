@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from "svelte";
-	import InfoPopover from "#lib/components/ui/InfoPopover.svelte";
+	import InfoPopover from "@ku6epxboctuk/ui-kit/components/InfoPopover.svelte";
 	import type { CountGroups } from "#lib/tasks/counts.ts";
 
 	interface Props {
@@ -37,11 +37,23 @@
 	<span class="project-name"> {@render children()} </span>
 	<span class="project-count-wrap">
 		<InfoPopover label="Project statistics">
-			{#snippet trigger({ open })}
+			{#snippet trigger({ open, toggle })}
 				<span
 					class="project-count"
 					class:zero={counts.active === 0}
+					role="button"
+					tabindex="-1"
 					aria-expanded={open}
+					onclick={(event) => {
+						event.stopPropagation();
+						toggle();
+					}}
+					onkeydown={(event) => {
+						if (event.key !== "Enter" && event.key !== " ") return;
+						event.preventDefault();
+						event.stopPropagation();
+						toggle();
+					}}
 				>
 					{counts.active}
 				</span>

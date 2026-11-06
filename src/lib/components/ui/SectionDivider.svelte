@@ -2,7 +2,7 @@
 	import type { Snippet } from "svelte";
 	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton.svelte";
 	import ChevronDown from "~icons/lucide/chevron-down";
-	import InfoPopover from "#lib/components/ui/InfoPopover.svelte";
+	import InfoPopover from "@ku6epxboctuk/ui-kit/components/InfoPopover.svelte";
 
 	interface Props {
 		title: string;
@@ -96,7 +96,7 @@
 		transform: rotate(0deg);
 	}
 
-	.section-divider :global(.info-popover-trigger.section-count) {
+	.section-divider :global(.ui-info-popover-trigger.section-count) {
 		color: var(--priority-high);
 		font-family: inherit;
 		font-weight: 600;
