@@ -2,6 +2,15 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.9.0](https://github.com/Ku6epXBOCTuK/xboct-log/compare/7f3af8b45955c6cec11c0add0adaf8f8d0049f73..v0.9.0) - 2026-11-06
+#### Features
+- move attachments flow - ([6543e16](https://github.com/Ku6epXBOCTuK/xboct-log/commit/6543e166acddf7061292b7ea144f080191ab9683)) - Ku6epXBOCTuK
+#### Refactoring
+- move to ui-kit InfoPopover components - ([130fa42](https://github.com/Ku6epXBOCTuK/xboct-log/commit/130fa42348178c1660496c66bf6285a140538461)) - Ku6epXBOCTuK
+- fields use ui-kit components - ([5bf905e](https://github.com/Ku6epXBOCTuK/xboct-log/commit/5bf905e68b0b85cc5e9ad49a06fea0e66fb0bcce)) - Ku6epXBOCTuK
+
+- - -
+
 ## [v0.8.0](https://github.com/Ku6epXBOCTuK/xboct-log/compare/8961a3dc646ee5deb29f95b0624ef62fc4c73bf2..v0.8.0) - 2026-11-06
 #### Features
 - add auto open epic flow - if auto-closed - ([18d611a](https://github.com/Ku6epXBOCTuK/xboct-log/commit/18d611a3f70ef1ce18f234473c4178e391d8d54e)) - Ku6epXBOCTuK
