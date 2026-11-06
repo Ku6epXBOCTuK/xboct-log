@@ -43,7 +43,8 @@ $minimal = [ordered]@{
 	type    = "module"
 	dependencies = $manifest.dependencies
 }
-$minimal | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $app "package.json") -Encoding utf8
+$manifestJson = $minimal | ConvertTo-Json -Depth 5
+[IO.File]::WriteAllText((Join-Path $app "package.json"), $manifestJson, [Text.UTF8Encoding]::new($false))
 
 Push-Location $app
 try {

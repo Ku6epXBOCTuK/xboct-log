@@ -115,8 +115,12 @@ function openBrowser(url) {
 
 function readVersion() {
 	try {
-		return JSON.parse(readFileSync(join(appRoot, "package.json"), "utf8"))
-			.version;
+		return JSON.parse(
+			readFileSync(join(appRoot, "package.json"), "utf8").replace(
+				/^\uFEFF/,
+				"",
+			),
+		).version;
 	} catch {
 		return "unknown";
 	}
