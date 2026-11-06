@@ -124,11 +124,18 @@ export function epicsForProject(
 	projectId: ProjectFilter,
 	keepId: string | null = null,
 ): Task[] {
-	return epics.filter(
-		(epic) =>
-			(projectId === null || epic.project_id === projectId) &&
-			(!CLOSED_STATUSES.includes(epic.status) || epic.id === keepId),
-	);
+	return epics.filter((epic) => {
+		if (projectId !== null && epic.project_id !== projectId) return false;
+		if (epic.id === keepId) return true;
+		if (!CLOSED_STATUSES.includes(epic.status)) return true;
+		return openChildren(epic) > 0;
+	});
+}
+
+function openChildren(epic: Task): number {
+	const counts = epic.children_counts;
+	if (counts === undefined) return 0;
+	return (counts.total ?? 0) - (counts.done ?? 0) - (counts.cancelled ?? 0);
 }
 
 export function siblingEpics(epics: Task[], selected: Task | null): Task[] {

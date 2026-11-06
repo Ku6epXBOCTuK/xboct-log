@@ -37,7 +37,7 @@
 		<p class="close-warning" role="alert">
 			{openChildren}
 			of {panel.epicProgress?.total ?? 0} tasks are still open. Closing the epic
-			now hides it from the epic filter until it is reopened.
+			marks it done before its tasks are finished.
 		</p>
 	{/if}
 	<ControlRow>

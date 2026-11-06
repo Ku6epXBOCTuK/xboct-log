@@ -81,6 +81,39 @@ describe("epicsForProject", () => {
 		expect(options.map((epic) => epic.id)).toEqual(["E-1"]);
 	});
 
+	it("keeps a closed epic whose children are still open", () => {
+		const epics = [
+			task({
+				id: "E-1",
+				status: "done",
+				children_counts: { open: 2, done: 1, total: 3 },
+			}),
+			task({
+				id: "E-2",
+				status: "cancelled",
+				children_counts: { open: 1, cancelled: 1, total: 2 },
+			}),
+		];
+
+		const options = epicsForProject(epics, "inbox");
+
+		expect(options.map((epic) => epic.id)).toEqual(["E-1", "E-2"]);
+	});
+
+	it("drops a closed epic whose children are all closed", () => {
+		const epics = [
+			task({
+				id: "E-1",
+				status: "done",
+				children_counts: { done: 2, cancelled: 1, total: 3 },
+			}),
+		];
+
+		const options = epicsForProject(epics, "inbox");
+
+		expect(options).toEqual([]);
+	});
+
 	it("drops epics from other projects", () => {
 		const epics = [
 			task({ id: "E-1", project_id: "inbox" }),

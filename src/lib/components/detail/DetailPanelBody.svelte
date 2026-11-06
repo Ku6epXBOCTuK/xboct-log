@@ -51,7 +51,8 @@
 
 	let { task, onclear, ondelete, oncreatechild, onmoved }: Props = $props();
 
-	const { tasks, projects, scopes, tags, data, comments, ui } = useBoard();
+	const { tasks, projects, scopes, tags, data, comments, stats, ui } =
+		useBoard();
 
 	let saving = $state(false);
 	let failure = $state<string | null>(null);
@@ -334,7 +335,7 @@
 		editing: true,
 		taskId: task.id,
 		repo: projectRepo,
-		epics: siblingEpics(tasks.epics, task),
+		epics: siblingEpics(stats.epics, task),
 		projects: projects.all,
 		scopes: scopes.listFor(task.project_id),
 		tagPicker,
