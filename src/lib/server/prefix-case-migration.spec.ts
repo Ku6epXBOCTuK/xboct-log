@@ -139,7 +139,7 @@ describe("prefix case migration", () => {
 	it("leaves the migrated tasks resolvable by their new id", async () => {
 		const db = await legacyDatabase();
 
-		await applyMigrations(db, THROUGH);
+		await applyMigrations(db, NAMES);
 
 		const resolved = resolveTaskId(db, "LEG-1");
 		expect(resolved.isOk()).toBe(true);

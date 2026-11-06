@@ -1,4 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
+import { randomUUID } from "node:crypto";
 import { err, type Result } from "neverthrow";
 import {
 	CLOSED_STATUSES,
@@ -126,16 +127,18 @@ export function createTask(
 	return guard(() =>
 		withTransaction(db, () => {
 			const n = allocateNumber(db, project.id);
-			const id = `${project.prefix}-${n}`;
+			const id = randomUUID();
+			const key = `${project.prefix}-${n}`;
 
 			db.prepare(
 				`INSERT INTO tasks (
-					id, project_id, number, title, description, status, priority, is_epic,
+					id, key, project_id, number, title, description, status, priority, is_epic,
 					epic_id, scope_id, source_file, estimate, assignee, due_at,
 					blocked_reason, created_at, updated_at, closed_at
-				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, (SELECT id FROM tasks WHERE key = ?), ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			).run(
 				id,
+				key,
 				project.id,
 				n,
 				title,
@@ -160,7 +163,7 @@ export function createTask(
 			for (const tag of tags) {
 				insertTag.run(id, tag);
 			}
-			return withBlockingInfo(db, [taskById(db, id)!])[0];
+			return withBlockingInfo(db, [taskById(db, key)!])[0];
 		}),
 	);
 }

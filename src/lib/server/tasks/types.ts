@@ -9,6 +9,7 @@ import type { ErrorKind } from "../errors";
 
 export interface TaskRow {
 	id: string;
+	key: string;
 	project_id: string;
 	number: number;
 	title: string;
@@ -17,6 +18,7 @@ export interface TaskRow {
 	priority: string;
 	is_epic: number;
 	epic_id: string | null;
+	epic_key?: string | null;
 	scope_id: number | null;
 	source_file: string | null;
 	tags: string;

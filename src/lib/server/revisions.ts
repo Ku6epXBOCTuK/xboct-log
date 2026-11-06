@@ -34,7 +34,7 @@ export function recordRevision(
 	const latest = db
 		.prepare(
 			`SELECT created_at FROM task_revisions
-			 WHERE task_id = ? AND field = ? AND ref_id IS ?
+			 WHERE task_id = (SELECT id FROM tasks WHERE key = ?) AND field = ? AND ref_id IS ?
 			 ORDER BY id DESC LIMIT 1`,
 		)
 		.get(revision.task_id, revision.field, refId) as
@@ -48,7 +48,7 @@ export function recordRevision(
 
 	db.prepare(
 		`INSERT INTO task_revisions (task_id, field, ref_id, body, created_at)
-		 VALUES (?, ?, ?, ?, ?)`,
+		 VALUES ((SELECT id FROM tasks WHERE key = ?), ?, ?, ?, ?)`,
 	).run(
 		revision.task_id,
 		revision.field,
@@ -61,10 +61,10 @@ export function recordRevision(
 export function listRevisions(db: DatabaseSync, taskId: string): Revision[] {
 	const rows = db
 		.prepare(
-			`SELECT id, task_id, field, ref_id, body, created_at
-			 FROM task_revisions
-			 WHERE task_id = ?
-			 ORDER BY id ASC`,
+			`SELECT r.id, tasks.key AS task_id, r.field, r.ref_id, r.body, r.created_at
+			 FROM task_revisions r JOIN tasks ON tasks.id = r.task_id
+			 WHERE tasks.key = ?
+			 ORDER BY r.id ASC`,
 		)
 		.all(taskId) as unknown as {
 		id: number;

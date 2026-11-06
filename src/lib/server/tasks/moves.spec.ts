@@ -1,6 +1,11 @@
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { failure, setup, unwrap } from "../app-test-kit";
-import { addLink } from "../links";
+import { addAttachment, listAttachments } from "../attachments";
+import { addComment, listComments } from "../comments";
+import { addLink, listBlockedBy } from "../links";
 import { createProject } from "../projects";
 import { createTask, deleteTask, getTask, moveTask } from "../tasks";
 
@@ -36,6 +41,45 @@ describe("task moves", () => {
 
 		expect(moved.id).toBe("BIL-1");
 		expect(moved.epic_id).toBeNull();
+	});
+
+	it("keeps tags, comments, attachments and links on a moved task", async () => {
+		const savedMedia = process.env.XBOCT_LOG_MEDIA_DIR;
+		const media = mkdtempSync(join(tmpdir(), "xboct-move-"));
+		process.env.XBOCT_LOG_MEDIA_DIR = media;
+		try {
+			const db = await setup();
+			unwrap(createProject(db, { id: "bil", name: "Billing", prefix: "BIL" }));
+			const blocker = unwrap(
+				createTask(db, { project_id: "bil", title: "Blocker" }),
+			);
+			const task = unwrap(
+				createTask(db, {
+					project_id: "spa",
+					title: "Move",
+					tags: ["perf", "a11y"],
+				}),
+			);
+			unwrap(addComment(db, { task_id: task.id, body: "note" }));
+			unwrap(addAttachment(db, task.id, "note.txt", Buffer.from("hello")));
+			unwrap(addLink(db, "blocks", blocker.id, task.id));
+
+			const moved = unwrap(moveTask(db, task.id, "bil"));
+
+			expect(moved.id).toBe("BIL-2");
+			expect(moved.tags).toEqual(["a11y", "perf"]);
+			expect(listComments(db, moved.id)).toHaveLength(1);
+			expect(listAttachments(db, moved.id)).toHaveLength(1);
+			expect(listBlockedBy(db, moved.id)).toEqual(["BIL-1"]);
+			expect(db.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+		} finally {
+			if (savedMedia === undefined) {
+				delete process.env.XBOCT_LOG_MEDIA_DIR;
+			} else {
+				process.env.XBOCT_LOG_MEDIA_DIR = savedMedia;
+			}
+			rmSync(media, { recursive: true, force: true });
+		}
 	});
 
 	it("moves an epic with its tasks and rewires the links", async () => {

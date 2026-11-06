@@ -32,11 +32,11 @@ describe("purge", () => {
 
 		unwrap(deleteTask(db, old.id));
 		unwrap(deleteTask(db, fresh.id));
-		db.prepare("UPDATE tasks SET deleted_at = ? WHERE id = ?").run(
+		db.prepare("UPDATE tasks SET deleted_at = ? WHERE key = ?").run(
 			daysAgo(120),
 			old.id,
 		);
-		db.prepare("UPDATE tasks SET deleted_at = ? WHERE id = ?").run(
+		db.prepare("UPDATE tasks SET deleted_at = ? WHERE key = ?").run(
 			daysAgo(10),
 			fresh.id,
 		);
@@ -45,13 +45,13 @@ describe("purge", () => {
 
 		expect(getTask(db, old.id)).toBeUndefined();
 		expect(
-			db.prepare("SELECT COUNT(*) AS c FROM tasks WHERE id = ?").get(old.id),
+			db.prepare("SELECT COUNT(*) AS c FROM tasks WHERE key = ?").get(old.id),
 		).toEqual({ c: 0 });
 		expect(
-			db.prepare("SELECT COUNT(*) AS c FROM tasks WHERE id = ?").get(fresh.id),
+			db.prepare("SELECT COUNT(*) AS c FROM tasks WHERE key = ?").get(fresh.id),
 		).toEqual({ c: 1 });
 		expect(
-			db.prepare("SELECT COUNT(*) AS c FROM tasks WHERE id = ?").get(alive.id),
+			db.prepare("SELECT COUNT(*) AS c FROM tasks WHERE key = ?").get(alive.id),
 		).toEqual({ c: 1 });
 	});
 
@@ -60,7 +60,7 @@ describe("purge", () => {
 		const task = unwrap(createTask(db, { project_id: "spa", title: "A" }));
 		unwrap(addComment(db, { task_id: task.id, body: "note" }));
 		unwrap(deleteTask(db, task.id));
-		db.prepare("UPDATE tasks SET deleted_at = ? WHERE id = ?").run(
+		db.prepare("UPDATE tasks SET deleted_at = ? WHERE key = ?").run(
 			daysAgo(120),
 			task.id,
 		);
@@ -80,7 +80,7 @@ describe("purge", () => {
 		const db = await setup();
 		const task = unwrap(createTask(db, { project_id: "spa", title: "A" }));
 		unwrap(deleteTask(db, task.id));
-		db.prepare("UPDATE tasks SET deleted_at = ? WHERE id = ?").run(
+		db.prepare("UPDATE tasks SET deleted_at = ? WHERE key = ?").run(
 			daysAgo(120),
 			task.id,
 		);

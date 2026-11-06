@@ -14,7 +14,7 @@ import type { TaskRow } from "./types";
 
 export function mapTask(row: TaskRow): Task {
 	return {
-		id: row.id,
+		id: row.key,
 		project_id: row.project_id,
 		number: row.number,
 		title: row.title,
@@ -22,7 +22,7 @@ export function mapTask(row: TaskRow): Task {
 		status: row.status as Status,
 		priority: row.priority as Priority,
 		is_epic: row.is_epic === 1,
-		epic_id: row.epic_id,
+		epic_id: row.epic_key ?? null,
 		scope_id: row.scope_id,
 		source_file: row.source_file,
 		tags: [],
@@ -43,23 +43,26 @@ export function mapTask(row: TaskRow): Task {
 
 export function tagsForTasks(
 	db: DatabaseSync,
-	ids: string[],
+	keys: string[],
 ): Map<string, string[]> {
 	const tags = new Map<string, string[]>();
-	if (ids.length === 0) {
+	if (keys.length === 0) {
 		return tags;
 	}
 	const rows = db
 		.prepare(
-			`SELECT task_id, tag FROM task_tags WHERE task_id IN (${ids.map(() => "?").join(", ")}) ORDER BY tag`,
+			`SELECT tasks.key AS task_key, task_tags.tag AS tag
+			 FROM task_tags JOIN tasks ON tasks.id = task_tags.task_id
+			 WHERE tasks.key IN (${keys.map(() => "?").join(", ")})
+			 ORDER BY task_tags.tag`,
 		)
-		.all(...ids) as unknown as { task_id: string; tag: string }[];
+		.all(...keys) as unknown as { task_key: string; tag: string }[];
 	for (const row of rows) {
-		const list = tags.get(row.task_id);
+		const list = tags.get(row.task_key);
 		if (list) {
 			list.push(row.tag);
 		} else {
-			tags.set(row.task_id, [row.tag]);
+			tags.set(row.task_key, [row.tag]);
 		}
 	}
 	return tags;
@@ -203,11 +206,11 @@ export function normalizeTags(tags: string[] | undefined): string[] {
 	return [...seen];
 }
 
-export function taskById(db: DatabaseSync, id: string): Task | undefined {
+export function taskById(db: DatabaseSync, key: string): Task | undefined {
 	const row = db
 		.prepare(
-			"SELECT tasks.*, (SELECT COUNT(*) FROM task_attachments a WHERE a.task_id = tasks.id AND a.deleted_at IS NULL) AS attachments_count FROM tasks WHERE tasks.id = ?",
+			"SELECT tasks.*, (SELECT key FROM tasks epic WHERE epic.id = tasks.epic_id) AS epic_key, (SELECT COUNT(*) FROM task_attachments a WHERE a.task_id = tasks.id AND a.deleted_at IS NULL) AS attachments_count FROM tasks WHERE tasks.key = ?",
 		)
-		.get(id) as unknown as TaskRow | undefined;
+		.get(key) as unknown as TaskRow | undefined;
 	return row ? attachTags(db, [mapTask(row)])[0] : undefined;
 }

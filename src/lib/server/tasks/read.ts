@@ -71,7 +71,7 @@ export function getTasksByIds(db: DatabaseSync, ids: string[]): TasksByIds {
 		}
 		const found = lookupTask(db, trimmed);
 		if (found) {
-			resolvedInput.set(id, found.id);
+			resolvedInput.set(id, found.key);
 		}
 	}
 
@@ -80,7 +80,7 @@ export function getTasksByIds(db: DatabaseSync, ids: string[]): TasksByIds {
 		resolvedIds.length > 0
 			? (db
 					.prepare(
-						`SELECT * FROM tasks WHERE id IN (${resolvedIds.map(() => "?").join(", ")}) AND deleted_at IS NULL`,
+						`SELECT *, (SELECT key FROM tasks epic WHERE epic.id = tasks.epic_id) AS epic_key FROM tasks WHERE key IN (${resolvedIds.map(() => "?").join(", ")}) AND deleted_at IS NULL`,
 					)
 					.all(...resolvedIds) as unknown as TaskRow[])
 			: [];
@@ -110,6 +110,7 @@ export function listTasks(db: DatabaseSync, query: TaskQuery = {}): Task[] {
 
 	const columns = [
 		"tasks.*",
+		"(SELECT key FROM tasks epic WHERE epic.id = tasks.epic_id) AS epic_key",
 		"(SELECT COUNT(*) FROM task_attachments a WHERE a.task_id = tasks.id AND a.deleted_at IS NULL) AS attachments_count",
 	];
 	if (query.include_project) {
@@ -140,22 +141,22 @@ export function listTasks(db: DatabaseSync, query: TaskQuery = {}): Task[] {
 		const rank = PRIORITIES.map(
 			(p) => `WHEN '${p}' THEN ${PRIORITY_RANK[p]}`,
 		).join(" ");
-		orderBy = `CASE tasks.priority ${rank} ELSE 99 END ${order}, tasks.updated_at DESC, tasks.id ASC`;
+		orderBy = `CASE tasks.priority ${rank} ELSE 99 END ${order}, tasks.updated_at DESC, tasks.key ASC`;
 	} else if (sort === "status") {
 		const rank = STATUSES.map(
 			(status) => `WHEN '${status}' THEN ${STATUS_RANK[status]}`,
 		).join(" ");
-		orderBy = `CASE tasks.status ${rank} ELSE 99 END ${order}, tasks.id ASC`;
+		orderBy = `CASE tasks.status ${rank} ELSE 99 END ${order}, tasks.key ASC`;
 	} else if (sort === "project") {
-		orderBy = `(SELECT name FROM projects WHERE id = tasks.project_id) ${order}, tasks.number ASC, tasks.id ASC`;
+		orderBy = `(SELECT name FROM projects WHERE id = tasks.project_id) ${order}, tasks.number ASC, tasks.key ASC`;
 	} else if (sort === "number") {
-		orderBy = `tasks.number ${order}, tasks.project_id ASC, tasks.id ASC`;
+		orderBy = `tasks.number ${order}, tasks.project_id ASC, tasks.key ASC`;
 	} else if (sort === "title") {
-		orderBy = `ULOWER(tasks.title) ${order}, tasks.id ASC`;
+		orderBy = `ULOWER(tasks.title) ${order}, tasks.key ASC`;
 	} else if (sort === "closed_at") {
-		orderBy = `(tasks.closed_at IS NULL) ASC, tasks.closed_at ${order}, tasks.id ASC`;
+		orderBy = `(tasks.closed_at IS NULL) ASC, tasks.closed_at ${order}, tasks.key ASC`;
 	} else {
-		orderBy = `tasks.${sort} ${order}, tasks.id ASC`;
+		orderBy = `tasks.${sort} ${order}, tasks.key ASC`;
 	}
 
 	const exact = exactMatchClauses(query);
@@ -253,14 +254,16 @@ export type EpicChildCounts = Record<Status, number> & {
 
 export function countEpicChildrenByStatus(
 	db: DatabaseSync,
-	epicId: string,
+	epicKey: string,
 ): EpicChildCounts {
 	const counts = emptyStatusCounts();
 	const rows = db
 		.prepare(
-			"SELECT status, COUNT(*) AS count FROM tasks WHERE epic_id = ? AND deleted_at IS NULL GROUP BY status",
+			`SELECT status, COUNT(*) AS count FROM tasks
+			 WHERE epic_id = (SELECT id FROM tasks epic WHERE epic.key = ?) AND deleted_at IS NULL
+			 GROUP BY status`,
 		)
-		.all(epicId) as { status: string; count: number }[];
+		.all(epicKey) as { status: string; count: number }[];
 
 	let total = 0;
 	for (const row of rows) {
@@ -275,13 +278,16 @@ export function countChildrenByEpic(
 ): Record<string, EpicChildCounts> {
 	const rows = db
 		.prepare(
-			"SELECT epic_id, status, COUNT(*) AS count FROM tasks WHERE epic_id IS NOT NULL AND deleted_at IS NULL GROUP BY epic_id, status",
+			`SELECT epic.key AS epic_key, tasks.status, COUNT(*) AS count
+			 FROM tasks JOIN tasks epic ON epic.id = tasks.epic_id
+			 WHERE tasks.deleted_at IS NULL
+			 GROUP BY epic.key, tasks.status`,
 		)
-		.all() as { epic_id: string; status: Status; count: number }[];
+		.all() as { epic_key: string; status: Status; count: number }[];
 
 	const counts: Record<string, EpicChildCounts> = {};
 	for (const row of rows) {
-		const entry = (counts[row.epic_id] ??= {
+		const entry = (counts[row.epic_key] ??= {
 			...emptyStatusCounts(),
 			total: 0,
 		});

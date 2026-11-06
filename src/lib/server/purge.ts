@@ -16,17 +16,17 @@ export function purgeSoftDeletedTasks(
 	const ids = (
 		db
 			.prepare(
-				`SELECT id FROM tasks
+				`SELECT key FROM tasks
 				 WHERE deleted_at IS NOT NULL AND deleted_at < ?`,
 			)
-			.all(cutoff) as { id: string }[]
-	).map((row) => row.id);
+			.all(cutoff) as { key: string }[]
+	).map((row) => row.key);
 
 	if (ids.length === 0) {
 		return 0;
 	}
 
-	const remove = db.prepare("DELETE FROM tasks WHERE id = ?");
+	const remove = db.prepare("DELETE FROM tasks WHERE key = ?");
 	return withTransaction(db, () => {
 		let purged = 0;
 		for (const id of ids) {

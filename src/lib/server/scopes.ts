@@ -196,12 +196,12 @@ function scopeMembers(
 ): { task_ids: string[]; epic_ids: string[] } {
 	const rows = db
 		.prepare(
-			"SELECT id, is_epic FROM tasks WHERE scope_id = ? AND deleted_at IS NULL ORDER BY id",
+			"SELECT key, is_epic FROM tasks WHERE scope_id = ? AND deleted_at IS NULL ORDER BY key",
 		)
-		.all(scopeId) as unknown as { id: string; is_epic: number }[];
+		.all(scopeId) as unknown as { key: string; is_epic: number }[];
 	return {
-		task_ids: rows.filter((row) => row.is_epic === 0).map((row) => row.id),
-		epic_ids: rows.filter((row) => row.is_epic === 1).map((row) => row.id),
+		task_ids: rows.filter((row) => row.is_epic === 0).map((row) => row.key),
+		epic_ids: rows.filter((row) => row.is_epic === 1).map((row) => row.key),
 	};
 }
 

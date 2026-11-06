@@ -13,7 +13,7 @@ export function blockingIdMatch(value: string): {
 } {
 	const trimmed = normalizeTaskIdInput(value.trim());
 	return {
-		sql: "(SELECT id FROM tasks WHERE id = ? AND deleted_at IS NULL)",
+		sql: "(SELECT id FROM tasks WHERE key = ? AND deleted_at IS NULL)",
 		params: [trimmed],
 	};
 }
@@ -29,8 +29,8 @@ function toNumberList(value: number | number[]): number[] {
 const SEARCH_COLUMNS = [
 	"ULOWER(tasks.title) LIKE ?",
 	"ULOWER(tasks.description) LIKE ?",
-	"ULOWER(tasks.id) LIKE ?",
-	"ULOWER(tasks.epic_id) LIKE ?",
+	"ULOWER(tasks.key) LIKE ?",
+	"ULOWER((SELECT key FROM tasks epic WHERE epic.id = tasks.epic_id)) LIKE ?",
 	"EXISTS (SELECT 1 FROM task_tags tt WHERE tt.task_id = tasks.id AND ULOWER(tt.tag) LIKE ?)",
 ];
 
@@ -49,7 +49,7 @@ export function exactMatchClauses(query: TaskQuery): {
 		.map((id) => normalizeTaskIdInput(id.trim()).toLowerCase())
 		.filter((id) => id !== "");
 	if (ids.length > 0) {
-		clauses.push(`ULOWER(tasks.id) IN (${ids.map(() => "?").join(", ")})`);
+		clauses.push(`ULOWER(tasks.key) IN (${ids.map(() => "?").join(", ")})`);
 		params.push(...ids);
 	}
 	return { clauses, params };
@@ -124,7 +124,9 @@ export function buildTaskFilter(query: TaskQuery): TaskFilterSql {
 			const clauses: string[] = [];
 			for (const ref of epicRefs) {
 				const trimmed = normalizeTaskIdInput(ref.trim());
-				clauses.push("tasks.epic_id = ?");
+				clauses.push(
+					"tasks.epic_id = (SELECT id FROM tasks epic WHERE epic.key = ?)",
+				);
 				params.push(trimmed);
 			}
 			if (clauses.length) {
@@ -163,14 +165,16 @@ export function buildTaskFilter(query: TaskQuery): TaskFilterSql {
 	if (query.blocked_by !== undefined) {
 		const match = blockingIdMatch(query.blocked_by);
 		where.push(
-			`tasks.id IN (SELECT target_task_id FROM task_links WHERE link_type = 'blocks' AND source_task_id IN ${match.sql})`,
+			`tasks.key IN (SELECT t.key FROM tasks t WHERE t.id IN
+				(SELECT target_task_id FROM task_links WHERE link_type = 'blocks' AND source_task_id IN ${match.sql}))`,
 		);
 		params.push(...match.params);
 	}
 	if (query.blocks !== undefined) {
 		const match = blockingIdMatch(query.blocks);
 		where.push(
-			`tasks.id IN (SELECT source_task_id FROM task_links WHERE link_type = 'blocks' AND target_task_id IN ${match.sql})`,
+			`tasks.key IN (SELECT t.key FROM tasks t WHERE t.id IN
+				(SELECT source_task_id FROM task_links WHERE link_type = 'blocks' AND target_task_id IN ${match.sql}))`,
 		);
 		params.push(...match.params);
 	}

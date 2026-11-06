@@ -32,18 +32,20 @@ export function deleteTaskDetailed(
 		blockedBefore.set(blockedId, listBlockedBy(db, blockedId));
 	}
 	const children = db
-		.prepare("SELECT id FROM tasks WHERE epic_id = ? AND deleted_at IS NULL")
-		.all(targetId) as unknown as { id: string }[];
+		.prepare(
+			"SELECT key FROM tasks WHERE epic_id = (SELECT id FROM tasks epic WHERE epic.key = ?) AND deleted_at IS NULL",
+		)
+		.all(targetId) as unknown as { key: string }[];
 
 	const now = new Date().toISOString();
 
 	return guard(() =>
 		withTransaction(db, () => {
 			db.prepare(
-				"UPDATE tasks SET epic_id = NULL, updated_at = ? WHERE epic_id = ?",
+				"UPDATE tasks SET epic_id = NULL, updated_at = ? WHERE epic_id = (SELECT id FROM tasks epic WHERE epic.key = ?)",
 			).run(now, targetId);
 			db.prepare(
-				"UPDATE tasks SET deleted_at = ?, updated_at = ? WHERE id = ?",
+				"UPDATE tasks SET deleted_at = ?, updated_at = ? WHERE key = ?",
 			).run(now, now, targetId);
 			deleteLinksForTask(db, targetId);
 			const releasedIds = releaseBlockedStatus(db, blockedIds);
@@ -66,7 +68,7 @@ export function deleteTaskDetailed(
 			}
 			for (const child of children) {
 				released.push({
-					task_id: child.id,
+					task_id: child.key,
 					changes: [{ field: "epic_id", from: targetId, to: null }],
 				});
 			}
@@ -117,7 +119,7 @@ export function restoreTask(
 	return guard(() => {
 		withTransaction(db, () => {
 			db.prepare(
-				"UPDATE tasks SET deleted_at = NULL, updated_at = ? WHERE id = ?",
+				"UPDATE tasks SET deleted_at = NULL, updated_at = ? WHERE key = ?",
 			).run(now, targetId);
 		});
 		return withBlockingInfo(db, [taskById(db, targetId)!])[0];

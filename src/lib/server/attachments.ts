@@ -84,9 +84,14 @@ function toAttachment(row: AttachmentRow): Attachment {
 	};
 }
 
+const ATTACHMENT_COLUMNS =
+	"a.id, t.key AS task_id, a.file_name, a.mime_type, a.size, a.stored_name, a.created_at, a.deleted_at";
+
 function rowById(db: DatabaseSync, id: string): AttachmentRow | undefined {
 	return db
-		.prepare("SELECT * FROM task_attachments WHERE id = ?")
+		.prepare(
+			`SELECT ${ATTACHMENT_COLUMNS} FROM task_attachments a JOIN tasks t ON t.id = a.task_id WHERE a.id = ?`,
+		)
 		.get(id) as unknown as AttachmentRow | undefined;
 }
 
@@ -94,17 +99,19 @@ function rowsOf(db: DatabaseSync, taskId?: string): AttachmentRow[] {
 	if (taskId === undefined) {
 		return db
 			.prepare(
-				`SELECT * FROM task_attachments
-				 WHERE deleted_at IS NULL
-				 ORDER BY task_id ASC, created_at ASC`,
+				`SELECT ${ATTACHMENT_COLUMNS} FROM task_attachments a
+				 JOIN tasks t ON t.id = a.task_id
+				 WHERE a.deleted_at IS NULL
+				 ORDER BY t.key ASC, a.created_at ASC`,
 			)
 			.all() as unknown as AttachmentRow[];
 	}
 	return db
 		.prepare(
-			`SELECT * FROM task_attachments
-			 WHERE task_id = ? AND deleted_at IS NULL
-			 ORDER BY created_at ASC, id ASC`,
+			`SELECT ${ATTACHMENT_COLUMNS} FROM task_attachments a
+			 JOIN tasks t ON t.id = a.task_id
+			 WHERE t.key = ? AND a.deleted_at IS NULL
+			 ORDER BY a.created_at ASC, a.id ASC`,
 		)
 		.all(taskId) as unknown as AttachmentRow[];
 }
@@ -113,9 +120,9 @@ function deletedRowsOf(db: DatabaseSync, taskId?: string): DeletedRow[] {
 	if (taskId === undefined) {
 		return db
 			.prepare(
-				`SELECT a.*, t.title AS task_title
+				`SELECT ${ATTACHMENT_COLUMNS}, t.title AS task_title
 				 FROM task_attachments a
-				 LEFT JOIN tasks t ON t.id = a.task_id
+				 JOIN tasks t ON t.id = a.task_id
 				 WHERE a.deleted_at IS NOT NULL
 				 ORDER BY a.deleted_at DESC, a.id ASC`,
 			)
@@ -123,10 +130,10 @@ function deletedRowsOf(db: DatabaseSync, taskId?: string): DeletedRow[] {
 	}
 	return db
 		.prepare(
-			`SELECT a.*, t.title AS task_title
+			`SELECT ${ATTACHMENT_COLUMNS}, t.title AS task_title
 			 FROM task_attachments a
-			 LEFT JOIN tasks t ON t.id = a.task_id
-			 WHERE a.task_id = ? AND a.deleted_at IS NOT NULL
+			 JOIN tasks t ON t.id = a.task_id
+			 WHERE t.key = ? AND a.deleted_at IS NOT NULL
 			 ORDER BY a.deleted_at DESC, a.id ASC`,
 		)
 		.all(taskId) as unknown as DeletedRow[];
@@ -220,7 +227,7 @@ export function addAttachment(
 	const createdAt = new Date().toISOString();
 	db.prepare(
 		`INSERT INTO task_attachments (id, task_id, file_name, mime_type, size, stored_name, created_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		 VALUES (?, (SELECT id FROM tasks WHERE key = ?), ?, ?, ?, ?, ?)`,
 	).run(id, taskId, name, mime, data.byteLength, storedName, createdAt);
 	return ok({
 		id,
@@ -287,7 +294,7 @@ export function restoreAttachment(
 		return err(notFound(`no deleted attachment with the id ${id}`));
 	}
 	const task = db
-		.prepare("SELECT deleted_at FROM tasks WHERE id = ?")
+		.prepare("SELECT deleted_at FROM tasks WHERE key = ?")
 		.get(row.task_id) as { deleted_at: string | null } | undefined;
 	if (task === undefined) {
 		return err(
@@ -354,8 +361,9 @@ export function purgeSoftDeletedAttachments(
 	const cutoff = new Date(now.getTime() - keepDays * 86_400_000).toISOString();
 	const rows = db
 		.prepare(
-			`SELECT * FROM task_attachments
-			 WHERE deleted_at IS NOT NULL AND deleted_at < ?`,
+			`SELECT ${ATTACHMENT_COLUMNS} FROM task_attachments a
+			 JOIN tasks t ON t.id = a.task_id
+			 WHERE a.deleted_at IS NOT NULL AND a.deleted_at < ?`,
 		)
 		.all(cutoff) as unknown as AttachmentRow[];
 	const remove = db.prepare("DELETE FROM task_attachments WHERE id = ?");
@@ -422,7 +430,10 @@ export function readDeletedAttachmentFile(
 
 export function removeTaskAttachments(db: DatabaseSync, taskId: string): void {
 	const rows = db
-		.prepare("SELECT * FROM task_attachments WHERE task_id = ?")
+		.prepare(
+			`SELECT ${ATTACHMENT_COLUMNS} FROM task_attachments a
+			 JOIN tasks t ON t.id = a.task_id WHERE t.key = ?`,
+		)
 		.all(taskId) as unknown as AttachmentRow[];
 	for (const row of rows) {
 		try {

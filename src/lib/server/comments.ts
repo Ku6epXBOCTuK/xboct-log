@@ -47,9 +47,12 @@ function normalizeBody(body: string): Result<string, AppError> {
 	return ok(trimmed);
 }
 
+const SELECT_COMMENT =
+	"SELECT c.id, tasks.key AS task_id, c.body, c.created_at, c.edited_at, c.deleted_at FROM task_comments c JOIN tasks ON tasks.id = c.task_id";
+
 export function getComment(db: DatabaseSync, id: string): Comment | undefined {
 	const row = db
-		.prepare("SELECT * FROM task_comments WHERE id = ?")
+		.prepare(`${SELECT_COMMENT} WHERE c.id = ?`)
 		.get(id) as unknown as CommentRow | undefined;
 	return row ? mapComment(row) : undefined;
 }
@@ -59,9 +62,9 @@ export function listComments(db: DatabaseSync, taskId: string): Comment[] {
 		.prepare(
 			// NOTE: created_at has millisecond precision, so rowid decides the
 			// order of the comments written in the same millisecond.
-			`SELECT * FROM task_comments
-			 WHERE task_id = ? AND deleted_at IS NULL
-			 ORDER BY created_at ASC, rowid ASC`,
+			`${SELECT_COMMENT}
+			 WHERE tasks.key = ? AND c.deleted_at IS NULL
+			 ORDER BY c.created_at ASC, c.rowid ASC`,
 		)
 		.all(taskId) as unknown as CommentRow[];
 	return rows.map(mapComment);
@@ -86,7 +89,7 @@ export function addComment(
 	return guard(() => {
 		db.prepare(
 			`INSERT INTO task_comments (id, task_id, body, created_at)
-			 VALUES (?, ?, ?, ?)`,
+			 VALUES (?, (SELECT id FROM tasks WHERE key = ?), ?, ?)`,
 		).run(id, resolved.value, body.value, now);
 		return getComment(db, id)!;
 	});

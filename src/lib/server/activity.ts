@@ -202,7 +202,7 @@ export function searchActivity(
 		clauses.push(`(
 			(entity = 'project' AND entity_id = ?)
 			OR (entity = 'task' AND entity_id IN (
-				SELECT id FROM tasks WHERE project_id = ?
+				SELECT key FROM tasks WHERE project_id = ?
 			))
 			OR (entity = 'scope' AND entity_id IN (
 				SELECT CAST(id AS TEXT) FROM scopes WHERE project_id = ?

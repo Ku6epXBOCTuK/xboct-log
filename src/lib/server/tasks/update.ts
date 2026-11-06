@@ -236,7 +236,7 @@ export function updateTaskDetailed(
 		if (current.is_epic && !patch.is_epic) {
 			const children = db
 				.prepare(
-					"SELECT COUNT(*) AS count FROM tasks WHERE epic_id = ? AND deleted_at IS NULL",
+					"SELECT COUNT(*) AS count FROM tasks WHERE epic_id = (SELECT id FROM tasks epic WHERE epic.key = ?) AND deleted_at IS NULL",
 				)
 				.get(targetId) as { count: number };
 			if (children.count > 0) {
@@ -292,7 +292,7 @@ export function updateTaskDetailed(
 			}
 			resolvedEpicId = resolved.value;
 		}
-		sets.push("epic_id = ?");
+		sets.push("epic_id = (SELECT id FROM tasks WHERE key = ?)");
 		params.push(resolvedEpicId);
 		if (resolvedEpicId !== current.epic_id) {
 			changes.push({
@@ -355,17 +355,19 @@ export function updateTaskDetailed(
 					new Date(now),
 				);
 			}
-			db.prepare(`UPDATE tasks SET ${sets.join(", ")} WHERE id = ?`).run(
+			db.prepare(`UPDATE tasks SET ${sets.join(", ")} WHERE key = ?`).run(
 				...params,
 				targetId,
 			);
 			if (nextTags !== null) {
-				db.prepare("DELETE FROM task_tags WHERE task_id = ?").run(targetId);
+				db.prepare(
+					"DELETE FROM task_tags WHERE task_id = (SELECT id FROM tasks WHERE key = ?)",
+				).run(targetId);
 				const insertTag = db.prepare(
-					"INSERT INTO task_tags (task_id, tag) VALUES (?, ?)",
+					"INSERT INTO task_tags (task_id, tag) SELECT id, ? FROM tasks WHERE key = ?",
 				);
 				for (const tag of nextTags) {
-					insertTag.run(targetId, tag);
+					insertTag.run(tag, targetId);
 				}
 			}
 			return {
@@ -412,7 +414,7 @@ export function closeTaskDetailed(
 			db.prepare(
 				`UPDATE tasks
 				 SET status = ?, closed_at = ?, closed_reason = ?, updated_at = ?
-				 WHERE id = ?`,
+				 WHERE key = ?`,
 			).run(status, now, reason, now, targetId);
 			const releasedIds = releaseBlockedStatus(db, listBlocks(db, targetId));
 			const released: ReleasedLink[] = releasedIds.map((item) => ({

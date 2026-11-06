@@ -187,9 +187,9 @@ describe("searchActivity", () => {
 			        ('beta', 'Beta', 'BET', '2026-10-01T00:00:00.000Z')`,
 		).run();
 		db.prepare(
-			`INSERT INTO tasks (id, project_id, number, title, status, priority, created_at, updated_at)
-			 VALUES ('ALP-1', 'alpha', 1, 'a', 'open', 'low', '2026-10-01T00:00:00.000Z', '2026-10-01T00:00:00.000Z'),
-			        ('BET-1', 'beta', 1, 'b', 'open', 'low', '2026-10-01T00:00:00.000Z', '2026-10-01T00:00:00.000Z')`,
+			`INSERT INTO tasks (id, key, project_id, number, title, status, priority, created_at, updated_at)
+			 VALUES ('t1', 'ALP-1', 'alpha', 1, 'a', 'open', 'low', '2026-10-01T00:00:00.000Z', '2026-10-01T00:00:00.000Z'),
+			        ('t2', 'BET-1', 'beta', 1, 'b', 'open', 'low', '2026-10-01T00:00:00.000Z', '2026-10-01T00:00:00.000Z')`,
 		).run();
 		db.prepare(
 			`INSERT INTO scopes (id, project_id, name, created_at)

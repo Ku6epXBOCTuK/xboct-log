@@ -6,6 +6,7 @@ import { findScopeByName, listScopes } from "../scopes";
 
 interface EpicRow {
 	id: string;
+	key: string;
 	project_id: string;
 	is_epic: number;
 	deleted_at: string | null;
@@ -61,17 +62,17 @@ export function resolveEpicId(
 	db: DatabaseSync,
 	input: string,
 	projectId: string,
-	selfId?: string,
+	selfKey?: string,
 ): Result<string, AppError> {
 	const trimmed = input.trim();
 	if (TASK_NUMBER_PATTERN.test(trimmed)) {
 		const candidates = (
 			db
 				.prepare(
-					"SELECT id FROM tasks WHERE number = ? AND project_id = ? AND is_epic = 1 AND deleted_at IS NULL ORDER BY id",
+					"SELECT key FROM tasks WHERE number = ? AND project_id = ? AND is_epic = 1 AND deleted_at IS NULL ORDER BY key",
 				)
-				.all(Number(trimmed), projectId) as { id: string }[]
-		).map((row) => row.id);
+				.all(Number(trimmed), projectId) as { key: string }[]
+		).map((row) => row.key);
 		return err(
 			invalid(
 				candidates.length > 0
@@ -84,7 +85,7 @@ export function resolveEpicId(
 	for (const candidate of taskIdCandidates(trimmed)) {
 		const found = db
 			.prepare(
-				"SELECT id, project_id, is_epic, deleted_at FROM tasks WHERE id = ?",
+				"SELECT id, key, project_id, is_epic, deleted_at FROM tasks WHERE key = ?",
 			)
 			.get(candidate) as EpicRow | undefined;
 		if (found && found.deleted_at === null) {
@@ -95,19 +96,24 @@ export function resolveEpicId(
 	if (!row) {
 		return err(notFound(`epic ${trimmed} not found`));
 	}
-	if (selfId !== undefined && row.id === selfId) {
-		return err(invalid("a task cannot be its own epic"));
-	}
-	if (selfId !== undefined && hasEpicAncestor(db, row.id, selfId)) {
-		return err(invalid("setting this epic would create a cycle"));
+	if (selfKey !== undefined) {
+		const self = db
+			.prepare("SELECT id FROM tasks WHERE key = ?")
+			.get(selfKey) as { id: string } | undefined;
+		if (self?.id === row.id) {
+			return err(invalid("a task cannot be its own epic"));
+		}
+		if (self && hasEpicAncestor(db, row.id, self.id)) {
+			return err(invalid("setting this epic would create a cycle"));
+		}
 	}
 	if (row.is_epic !== 1) {
-		return err(invalid(`${row.id} is not an epic`));
+		return err(invalid(`${row.key} is not an epic`));
 	}
 	if (row.project_id !== projectId) {
 		return err(invalid("epic must belong to the same project"));
 	}
-	return ok(row.id);
+	return ok(row.key);
 }
 
 export function validateScope(
@@ -199,14 +205,14 @@ export function idsByNumber(
 	const alive = includeDeleted ? "" : " AND deleted_at IS NULL";
 	const rows = db
 		.prepare(
-			`SELECT id FROM tasks WHERE number = ?${alive} ORDER BY project_id, id`,
+			`SELECT key FROM tasks WHERE number = ?${alive} ORDER BY project_id, key`,
 		)
-		.all(number) as { id: string }[];
-	return rows.map((row) => row.id);
+		.all(number) as { key: string }[];
+	return rows.map((row) => row.key);
 }
 
 interface TaskRefRow {
-	id: string;
+	key: string;
 	project_id: string;
 }
 
@@ -218,7 +224,7 @@ export function lookupTask(
 	const alive = includeDeleted ? "" : " AND deleted_at IS NULL";
 	for (const candidate of taskIdCandidates(id)) {
 		const found = db
-			.prepare(`SELECT id, project_id FROM tasks WHERE id = ?${alive}`)
+			.prepare(`SELECT key, project_id FROM tasks WHERE key = ?${alive}`)
 			.get(candidate) as TaskRefRow | undefined;
 		if (found) {
 			return found;
@@ -227,19 +233,19 @@ export function lookupTask(
 	return undefined;
 }
 
-function nearTaskIds(
+function nearTaskKeys(
 	db: DatabaseSync,
 	projectId: string,
 	number: number,
 ): string[] {
 	const rows = db
 		.prepare(
-			`SELECT id FROM tasks
+			`SELECT key FROM tasks
 			 WHERE project_id = ? AND number BETWEEN ? AND ? AND deleted_at IS NULL
 			 ORDER BY ABS(number - ?) LIMIT 3`,
 		)
-		.all(projectId, number - 3, number + 3, number) as { id: string }[];
-	return rows.map((row) => row.id);
+		.all(projectId, number - 3, number + 3, number) as { key: string }[];
+	return rows.map((row) => row.key);
 }
 
 function hintForFullId(db: DatabaseSync, id: string): string | undefined {
@@ -263,7 +269,7 @@ function hintForFullId(db: DatabaseSync, id: string): string | undefined {
 			? `unknown project prefix '${prefix}' (known: ${prefixes.join(", ")})`
 			: undefined;
 	}
-	const near = nearTaskIds(db, project.id, Number(number));
+	const near = nearTaskKeys(db, project.id, Number(number));
 	return near.length > 0 ? `did you mean ${near.join(" or ")}?` : undefined;
 }
 
@@ -297,5 +303,5 @@ export function resolveTaskIdInternal(
 			notFound(`task ${trimmed} not found${hint ? ` — ${hint}` : ""}`),
 		);
 	}
-	return ok(found.id);
+	return ok(found.key);
 }

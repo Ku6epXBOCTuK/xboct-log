@@ -1,4 +1,4 @@
-import { dataFingerprint } from "#lib/server/paths";
+import { dataFingerprint } from "#lib/server/paths.ts";
 import { version } from "../../../../package.json";
 
 const APP_NAME = "xboct-log";
