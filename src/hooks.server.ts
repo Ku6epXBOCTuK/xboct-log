@@ -1,5 +1,9 @@
 import { pruneActivity } from "#lib/server/activity.ts";
-import { purgeSoftDeletedAttachments } from "#lib/server/attachments.ts";
+import {
+	mediaDir,
+	purgeSoftDeletedAttachments,
+	relocateMediaFiles,
+} from "#lib/server/attachments.ts";
 import { getDb } from "#lib/server/db.ts";
 import { migrateDatabase } from "#lib/server/migrations.ts";
 import { defaultDbPath } from "#lib/server/paths.ts";
@@ -11,6 +15,16 @@ import type { ServerInit } from "@sveltejs/kit/hooks";
 export const init: ServerInit = async () => {
 	const db = getDb();
 	await migrateDatabase(db);
+	try {
+		const relocated = relocateMediaFiles(db);
+		if (relocated.moved > 0) {
+			console.log(
+				`media: moved ${relocated.moved} files to the id layout in ${mediaDir()}`,
+			);
+		}
+	} catch (error) {
+		console.warn(`media: cannot relocate the files in ${mediaDir()}:`, error);
+	}
 	pruneActivity(db);
 	purgeSoftDeletedTasks(db);
 	purgeSoftDeletedAttachments(db);

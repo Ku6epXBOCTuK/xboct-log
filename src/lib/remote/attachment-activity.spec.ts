@@ -147,4 +147,66 @@ describe("attachment activity details", () => {
 		expect(ids).toEqual([second.id, first.id]);
 		expect(new Set(ids).size).toBe(2);
 	});
+
+	it("records a move on both tasks under the same ref_id", async () => {
+		const source = freshTask();
+		const target = freshTask();
+		const item = await attach(source, "photo.png");
+
+		const moved = (await call("attachments_move", {
+			attachment_id: item.id,
+			task_id: target,
+		})) as { previous_task_id: string; was_deleted: boolean };
+		expect(moved.previous_task_id).toBe(source);
+		expect(moved.was_deleted).toBe(false);
+		expect(history(source)[0]?.changes).toEqual([
+			{ field: "attachments", from: "photo.png", to: null, ref_id: item.id },
+		]);
+		expect(history(target)[0]?.changes).toEqual([
+			{ field: "attachments", from: null, to: "photo.png", ref_id: item.id },
+		]);
+	});
+
+	it("records only the arrival when a deleted file is moved", async () => {
+		const source = freshTask();
+		const target = freshTask();
+		const item = await attach(source, "photo.png");
+		await call("attachments_delete", { attachment_id: item.id });
+
+		await call("attachments_move", {
+			attachment_id: item.id,
+			task_id: target,
+		});
+
+		expect(history(source).map((entry) => entry.op)).toEqual([
+			"attachments_delete",
+			"attachments_add",
+		]);
+		expect(history(target).map((entry) => entry.op)).toEqual([
+			"attachments_move",
+		]);
+		expect(history(target)[0]?.changes).toEqual([
+			{ field: "attachments", from: null, to: "photo.png", ref_id: item.id },
+		]);
+	});
+
+	it("records a copy as a new file with its own ref_id", async () => {
+		const source = freshTask();
+		const target = freshTask();
+		const item = await attach(source, "photo.png");
+
+		const copied = (await call("attachments_copy", {
+			attachment_id: item.id,
+			task_id: target,
+		})) as { item: { id: string } };
+		expect(copied.item.id).not.toBe(item.id);
+		expect(history(target)[0]?.changes).toEqual([
+			{
+				field: "attachments",
+				from: null,
+				to: "photo.png",
+				ref_id: copied.item.id,
+			},
+		]);
+	});
 });

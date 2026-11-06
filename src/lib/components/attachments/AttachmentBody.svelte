@@ -11,6 +11,7 @@
 		failed?: boolean;
 		empty?: string;
 		onremove: (key: string) => void;
+		onmove?: (key: string) => void;
 		onretry?: () => void;
 	}
 
@@ -21,6 +22,7 @@
 		failed = false,
 		empty = "No files",
 		onremove,
+		onmove,
 		onretry,
 	}: Props = $props();
 </script>
@@ -41,7 +43,12 @@
 {:else}
 	<AttachmentList>
 		{#each items as entry (entry.key)}
-			<AttachmentItem {entry} {busy} onremove={() => onremove(entry.key)} />
+			<AttachmentItem
+				{entry}
+				{busy}
+				onremove={() => onremove(entry.key)}
+				onmove={onmove === undefined ? undefined : () => onmove(entry.key)}
+			/>
 		{/each}
 	</AttachmentList>
 {/if}

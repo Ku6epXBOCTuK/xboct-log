@@ -42,6 +42,8 @@ const OP_LABELS: Record<string, string> = {
 	attachments_delete: "Attachment deleted",
 	attachments_restore: "Attachment restored",
 	attachments_purge: "Attachment removed",
+	attachments_move: "Attachment moved",
+	attachments_copy: "Attachment copied",
 };
 
 const ENTITY_LABELS: Record<string, string> = {

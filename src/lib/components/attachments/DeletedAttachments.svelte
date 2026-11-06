@@ -2,9 +2,12 @@
 	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import ImageViewer from "#lib/components/ui/ImageViewer.svelte";
+	import MoveAttachmentDialog from "#lib/components/attachments/MoveAttachmentDialog.svelte";
 	import { openExternal } from "#lib/host/embed.ts";
 	import {
+		copyTaskAttachment,
 		getDeletedAttachments,
+		moveTaskAttachment,
 		purgeTaskAttachment,
 		restoreTaskAttachment,
 	} from "#lib/remote/attachments.remote.ts";
@@ -15,6 +18,7 @@
 	import type { DeletedAttachment } from "#lib/types.ts";
 	import { resolve } from "$app/paths";
 	import ArchiveRestore from "~icons/lucide/archive-restore";
+	import ArrowRightLeft from "~icons/lucide/arrow-right-left";
 	import Paperclip from "~icons/lucide/paperclip";
 	import Trash2 from "~icons/lucide/trash-2";
 
@@ -26,7 +30,11 @@
 	let error = $state("");
 	let busy = $state("");
 	let viewing = $state<DeletedAttachment>();
-	let done = $state<Record<string, "restored" | "purged">>({});
+	let moving = $state<DeletedAttachment>();
+	let done = $state<Record<string, "restored" | "purged" | "moved" | "copied">>(
+		{},
+	);
+	let doneTo = $state<Record<string, string>>({});
 
 	function fileUrl(item: DeletedAttachment): string {
 		return resolve("/deleted/media/[id]", { id: item.id });
@@ -92,6 +100,28 @@
 			done = { ...done, [id]: "purged" };
 		} catch (cause) {
 			error = messageOf(cause);
+		} finally {
+			busy = "";
+		}
+	}
+
+	async function moveTo(target: string, copy: boolean): Promise<string | null> {
+		const item = moving;
+		if (item === undefined) return "no attachment chosen";
+		error = "";
+		busy = item.id;
+		try {
+			if (copy) {
+				await copyTaskAttachment({ attachment_id: item.id, task_id: target });
+				done = { ...done, [item.id]: "copied" };
+			} else {
+				await moveTaskAttachment({ attachment_id: item.id, task_id: target });
+				done = { ...done, [item.id]: "moved" };
+			}
+			doneTo = { ...doneTo, [item.id]: target };
+			return null;
+		} catch (cause) {
+			return messageOf(cause);
 		} finally {
 			busy = "";
 		}
@@ -165,7 +195,19 @@
 						<span class="state">Restored</span>
 					{:else if done[item.id] === "purged"}
 						<span class="state">Removed</span>
+					{:else if done[item.id] === "moved"}
+						<span class="state">Moved to {doneTo[item.id]}</span>
+					{:else if done[item.id] === "copied"}
+						<span class="state">Copied to {doneTo[item.id]}</span>
 					{:else}
+						<IconButton
+							label="Move to another task"
+							title="Move to another task"
+							disabled={busy !== ""}
+							onclick={() => (moving = item)}
+						>
+							<ArrowRightLeft />
+						</IconButton>
 						<IconButton
 							label="Restore attachment"
 							title={item.missing
@@ -198,6 +240,16 @@
 		/>
 	{/if}
 {/if}
+
+<MoveAttachmentDialog
+	open={moving !== undefined}
+	fileName={moving?.file_name ?? ""}
+	sourceTaskId={moving?.task_id ?? ""}
+	sourceDeleted={true}
+	copyable={moving !== undefined && !moving.missing}
+	onsubmit={moveTo}
+	onclose={() => (moving = undefined)}
+/>
 
 <style>
 	.list {

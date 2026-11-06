@@ -3,7 +3,10 @@ import { randomUUID } from "node:crypto";
 import {
 	existsSync,
 	mkdirSync,
+	readdirSync,
 	readFileSync,
+	renameSync,
+	rmdirSync,
 	rmSync,
 	writeFileSync,
 } from "node:fs";
@@ -56,8 +59,27 @@ export function mediaDir(): string {
 		: join(dirname(defaultDbPath()), "media");
 }
 
+export function mediaFile(id: string, storedName: string): string {
+	return join(mediaDir(), id.slice(0, 2), storedName);
+}
+
 export function storedPath(row: AttachmentRow): string {
-	return join(mediaDir(), row.task_id, row.stored_name);
+	return mediaFile(row.id, row.stored_name);
+}
+
+function writeStoredFile(id: string, storedName: string, data: Buffer): void {
+	const path = mediaFile(id, storedName);
+	mkdirSync(dirname(path), { recursive: true });
+	writeFileSync(path, data);
+}
+
+function taskState(
+	db: DatabaseSync,
+	taskId: string,
+): { deleted_at: string | null } | undefined {
+	return db.prepare("SELECT deleted_at FROM tasks WHERE key = ?").get(taskId) as
+		| { deleted_at: string | null }
+		| undefined;
 }
 
 function safeName(name: string): string {
@@ -216,10 +238,8 @@ export function addAttachment(
 	}
 	const id = randomUUID();
 	const storedName = `${id}.${format.extension}`;
-	const directory = join(mediaDir(), taskId);
 	try {
-		mkdirSync(directory, { recursive: true });
-		writeFileSync(join(directory, storedName), data);
+		writeStoredFile(id, storedName, data);
 	} catch (error) {
 		return err(unexpected(error));
 	}
@@ -317,6 +337,171 @@ export function restoreAttachment(
 		id,
 	);
 	return ok({ ...toAttachment(row), deleted_at: null });
+}
+
+export interface MovedAttachment {
+	item: Attachment;
+	previous_task_id: string;
+	was_deleted: boolean;
+}
+
+export function moveAttachment(
+	db: DatabaseSync,
+	id: string,
+	targetTaskId: string,
+): Result<MovedAttachment, AppError> {
+	const row = rowById(db, id);
+	if (!row) {
+		return err(notFound(`no attachment with the id ${id}`));
+	}
+	if (row.task_id === targetTaskId) {
+		return err(
+			invalid(`the attachment ${id} is already on the task ${targetTaskId}`),
+		);
+	}
+	const target = taskState(db, targetTaskId);
+	if (target === undefined) {
+		return err(notFound(`the task ${targetTaskId} not found`));
+	}
+	if (target.deleted_at !== null) {
+		return err(
+			invalid(`the task ${targetTaskId} is deleted: restore the task first`),
+		);
+	}
+	db.prepare(
+		`UPDATE task_attachments SET task_id = (SELECT id FROM tasks WHERE key = ?), deleted_at = NULL
+		 WHERE id = ?`,
+	).run(targetTaskId, id);
+	return ok({
+		item: {
+			...toAttachment(row),
+			task_id: targetTaskId,
+			deleted_at: null,
+			missing: !existsSync(storedPath(row)),
+		},
+		previous_task_id: row.task_id,
+		was_deleted: row.deleted_at !== null,
+	});
+}
+
+export function copyAttachment(
+	db: DatabaseSync,
+	id: string,
+	targetTaskId: string,
+): Result<Attachment, AppError> {
+	const row = rowById(db, id);
+	if (!row) {
+		return err(notFound(`no attachment with the id ${id}`));
+	}
+	if (row.task_id === targetTaskId) {
+		return err(
+			invalid(`the attachment ${id} is already on the task ${targetTaskId}`),
+		);
+	}
+	const target = taskState(db, targetTaskId);
+	if (target === undefined) {
+		return err(notFound(`the task ${targetTaskId} not found`));
+	}
+	if (target.deleted_at !== null) {
+		return err(
+			invalid(`the task ${targetTaskId} is deleted: restore the task first`),
+		);
+	}
+	const source = storedPath(row);
+	if (!existsSync(source)) {
+		return err(
+			notFound(
+				`the file ${row.file_name} of the attachment ${id} is gone from the media folder, there is nothing to copy`,
+			),
+		);
+	}
+	let data: Buffer;
+	try {
+		data = readFileSync(source);
+	} catch (error) {
+		return err(unexpected(error));
+	}
+	const newId = randomUUID();
+	const dot = row.stored_name.lastIndexOf(".");
+	const extension = dot >= 0 ? row.stored_name.slice(dot + 1) : "";
+	const storedName = extension === "" ? newId : `${newId}.${extension}`;
+	try {
+		writeStoredFile(newId, storedName, data);
+	} catch (error) {
+		return err(unexpected(error));
+	}
+	const createdAt = new Date().toISOString();
+	try {
+		db.prepare(
+			`INSERT INTO task_attachments (id, task_id, file_name, mime_type, size, stored_name, created_at)
+			 VALUES (?, (SELECT id FROM tasks WHERE key = ?), ?, ?, ?, ?, ?)`,
+		).run(
+			newId,
+			targetTaskId,
+			row.file_name,
+			row.mime_type,
+			row.size,
+			storedName,
+			createdAt,
+		);
+	} catch (error) {
+		rmSync(mediaFile(newId, storedName), { force: true });
+		return err(unexpected(error));
+	}
+	return ok({
+		id: newId,
+		task_id: targetTaskId,
+		file_name: row.file_name,
+		mime_type: row.mime_type,
+		size: row.size,
+		created_at: createdAt,
+		uri: attachmentUri(newId),
+		missing: false,
+		deleted_at: null,
+	});
+}
+
+export function relocateMediaFiles(db: DatabaseSync): {
+	moved: number;
+	missing: number;
+} {
+	const root = mediaDir();
+	if (!existsSync(root)) return { moved: 0, missing: 0 };
+	const legacy = new Map<string, string>();
+	for (const entry of readdirSync(root, { withFileTypes: true })) {
+		if (!entry.isDirectory() || /^[0-9a-f]{2}$/.test(entry.name)) continue;
+		const directory = join(root, entry.name);
+		for (const name of readdirSync(directory)) {
+			if (!legacy.has(name)) legacy.set(name, join(directory, name));
+		}
+	}
+	const rows = db
+		.prepare("SELECT id, stored_name FROM task_attachments")
+		.all() as unknown as Array<{ id: string; stored_name: string }>;
+	const emptied = new Set<string>();
+	let moved = 0;
+	let missing = 0;
+	for (const row of rows) {
+		const target = mediaFile(row.id, row.stored_name);
+		if (existsSync(target)) continue;
+		const source = legacy.get(row.stored_name);
+		if (source === undefined) {
+			missing += 1;
+			continue;
+		}
+		mkdirSync(dirname(target), { recursive: true });
+		renameSync(source, target);
+		emptied.add(dirname(source));
+		moved += 1;
+	}
+	for (const directory of emptied) {
+		try {
+			rmdirSync(directory);
+		} catch {
+			// NOTE: a folder keeps files of rows that are gone, that costs only disk
+		}
+	}
+	return { moved, missing };
 }
 
 export function purgeAttachment(

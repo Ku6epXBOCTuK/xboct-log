@@ -1,4 +1,11 @@
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+	existsSync,
+	mkdirSync,
+	mkdtempSync,
+	renameSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { DatabaseSync } from "node:sqlite";
@@ -8,15 +15,19 @@ import {
 	addAttachment,
 	addAttachmentFromBase64,
 	addAttachmentFromPath,
+	copyAttachment,
 	deleteAttachment,
 	listAttachments,
 	listDeletedAttachments,
 	MAX_ATTACHMENT_SIZE,
 	mediaDir,
+	mediaFile,
+	moveAttachment,
 	purgeAttachment,
 	purgeSoftDeletedAttachments,
 	readAttachmentFile,
 	readDeletedAttachmentFile,
+	relocateMediaFiles,
 	restoreAttachment,
 	verifyAttachments,
 } from "./attachments";
@@ -73,7 +84,7 @@ describe("attachments", () => {
 		const items = listAttachments(db, taskId);
 		expect(items).toHaveLength(1);
 		expect(items[0].id).toBe(item.id);
-		expect(existsSync(join(mediaDir(), taskId))).toBe(true);
+		expect(existsSync(mediaFile(item.id, `${item.id}.png`))).toBe(true);
 	});
 
 	it("reads the content back", async () => {
@@ -206,7 +217,10 @@ describe("attachments", () => {
 			"gone.png",
 			Buffer.from("bytes"),
 		)._unsafeUnwrap();
-		rmSync(join(mediaDir(), taskId), { recursive: true, force: true });
+		rmSync(join(mediaDir(), item.id.slice(0, 2)), {
+			recursive: true,
+			force: true,
+		});
 
 		const items = listAttachments(db, taskId);
 		expect(items[0].missing).toBe(true);
@@ -235,7 +249,7 @@ describe("attachments", () => {
 		expect(listDeletedAttachments(db, taskId)[0]?.task_title).toBe(
 			"With a picture",
 		);
-		expect(existsSync(join(mediaDir(), taskId, `${item.id}.png`))).toBe(true);
+		expect(existsSync(mediaFile(item.id, `${item.id}.png`))).toBe(true);
 		expect(deleteAttachment(db, item.id).isErr()).toBe(true);
 	});
 
@@ -270,7 +284,10 @@ describe("attachments", () => {
 		expect(readDeletedAttachmentFile(db, item.id).isErr()).toBe(true);
 
 		deleteAttachment(db, item.id)._unsafeUnwrap();
-		rmSync(join(mediaDir(), taskId), { recursive: true, force: true });
+		rmSync(join(mediaDir(), item.id.slice(0, 2)), {
+			recursive: true,
+			force: true,
+		});
 		expect(readDeletedAttachmentFile(db, item.id).isErr()).toBe(true);
 	});
 
@@ -319,7 +336,10 @@ describe("attachments", () => {
 			Buffer.from("bytes"),
 		)._unsafeUnwrap();
 		deleteAttachment(db, item.id);
-		rmSync(join(mediaDir(), taskId), { recursive: true, force: true });
+		rmSync(join(mediaDir(), item.id.slice(0, 2)), {
+			recursive: true,
+			force: true,
+		});
 
 		expect(listDeletedAttachments(db, taskId)[0].missing).toBe(true);
 		const result = restoreAttachment(db, item.id);
@@ -340,7 +360,7 @@ describe("attachments", () => {
 		const purged = purgeAttachment(db, item.id)._unsafeUnwrap();
 		expect(purged.file_removed).toBe(true);
 		expect(listDeletedAttachments(db)).toHaveLength(0);
-		expect(existsSync(join(mediaDir(), taskId, `${item.id}.png`))).toBe(false);
+		expect(existsSync(mediaFile(item.id, `${item.id}.png`))).toBe(false);
 		expect(purgeAttachment(db, item.id).isErr()).toBe(true);
 	});
 
@@ -397,7 +417,10 @@ describe("attachments", () => {
 			Buffer.from("bytes"),
 		)._unsafeUnwrap();
 		deleteAttachment(db, item.id);
-		rmSync(join(mediaDir(), taskId), { recursive: true, force: true });
+		rmSync(join(mediaDir(), item.id.slice(0, 2)), {
+			recursive: true,
+			force: true,
+		});
 		db.prepare("UPDATE task_attachments SET deleted_at = ? WHERE id = ?").run(
 			"2020-01-01T00:00:00.000Z",
 			item.id,
@@ -406,5 +429,167 @@ describe("attachments", () => {
 		const outcome = purgeSoftDeletedAttachments(db);
 		expect(outcome).toEqual({ purged: 0, gone: 1 });
 		expect(listDeletedAttachments(db)).toHaveLength(0);
+	});
+
+	it("moves an attachment to another task under the same id", async () => {
+		const { db, taskId } = await setup();
+		const target = createTask(db, {
+			project_id: "spa",
+			title: "Target",
+		})._unsafeUnwrap().id;
+		const item = addAttachment(
+			db,
+			taskId,
+			"photo.png",
+			Buffer.from("bytes"),
+		)._unsafeUnwrap();
+
+		const moved = moveAttachment(db, item.id, target)._unsafeUnwrap();
+		expect(moved.item.id).toBe(item.id);
+		expect(moved.item.uri).toBe(item.uri);
+		expect(moved.item.task_id).toBe(target);
+		expect(moved.previous_task_id).toBe(taskId);
+		expect(moved.was_deleted).toBe(false);
+		expect(listAttachments(db, taskId)).toHaveLength(0);
+		expect(listAttachments(db, target).map((each) => each.id)).toEqual([
+			item.id,
+		]);
+		expect(existsSync(mediaFile(item.id, `${item.id}.png`))).toBe(true);
+		expect(
+			readAttachmentFile(db, item.id)._unsafeUnwrap().data.toString(),
+		).toBe("bytes");
+		expect(moveAttachment(db, item.id, target).isErr()).toBe(true);
+	});
+
+	it("moves a deleted attachment and restores it on the target", async () => {
+		const { db, taskId } = await setup();
+		const target = createTask(db, {
+			project_id: "spa",
+			title: "Target",
+		})._unsafeUnwrap().id;
+		const item = addAttachment(
+			db,
+			taskId,
+			"photo.png",
+			Buffer.from("bytes"),
+		)._unsafeUnwrap();
+		deleteAttachment(db, item.id);
+
+		const moved = moveAttachment(db, item.id, target)._unsafeUnwrap();
+		expect(moved.was_deleted).toBe(true);
+		expect(moved.item.deleted_at).toBeNull();
+		expect(listDeletedAttachments(db)).toHaveLength(0);
+		expect(listAttachments(db, target)).toHaveLength(1);
+	});
+
+	it("refuses to move into a deleted task", async () => {
+		const { db, taskId } = await setup();
+		const target = createTask(db, {
+			project_id: "spa",
+			title: "Target",
+		})._unsafeUnwrap().id;
+		const item = addAttachment(
+			db,
+			taskId,
+			"photo.png",
+			Buffer.from("bytes"),
+		)._unsafeUnwrap();
+		unwrap(deleteTask(db, target));
+
+		const result = moveAttachment(db, item.id, target);
+		expect(result.isErr()).toBe(true);
+		expect(result._unsafeUnwrapErr().message).toContain("restore the task");
+	});
+
+	it("moves an attachment whose file is gone", async () => {
+		const { db, taskId } = await setup();
+		const target = createTask(db, {
+			project_id: "spa",
+			title: "Target",
+		})._unsafeUnwrap().id;
+		const item = addAttachment(
+			db,
+			taskId,
+			"photo.png",
+			Buffer.from("bytes"),
+		)._unsafeUnwrap();
+		rmSync(join(mediaDir(), item.id.slice(0, 2)), {
+			recursive: true,
+			force: true,
+		});
+
+		const moved = moveAttachment(db, item.id, target)._unsafeUnwrap();
+		expect(moved.item.missing).toBe(true);
+		expect(listAttachments(db, target)[0]?.missing).toBe(true);
+	});
+
+	it("copies an attachment as an independent file", async () => {
+		const { db, taskId } = await setup();
+		const target = createTask(db, {
+			project_id: "spa",
+			title: "Target",
+		})._unsafeUnwrap().id;
+		const item = addAttachment(
+			db,
+			taskId,
+			"photo.png",
+			Buffer.from("bytes"),
+		)._unsafeUnwrap();
+
+		const copy = copyAttachment(db, item.id, target)._unsafeUnwrap();
+		expect(copy.id).not.toBe(item.id);
+		expect(copy.uri).toBe(`xboct-log://attachment/${copy.id}`);
+		expect(copy.task_id).toBe(target);
+		expect(copy.file_name).toBe("photo.png");
+		expect(copy.mime_type).toBe("image/png");
+		expect(copy.size).toBe(5);
+		expect(existsSync(mediaFile(copy.id, `${copy.id}.png`))).toBe(true);
+		expect(listAttachments(db, taskId)).toHaveLength(1);
+		expect(
+			readAttachmentFile(db, copy.id)._unsafeUnwrap().data.toString(),
+		).toBe("bytes");
+
+		deleteAttachment(db, copy.id);
+		expect(readAttachmentFile(db, item.id).isOk()).toBe(true);
+	});
+
+	it("refuses to copy an attachment whose file is gone", async () => {
+		const { db, taskId } = await setup();
+		const target = createTask(db, {
+			project_id: "spa",
+			title: "Target",
+		})._unsafeUnwrap().id;
+		const item = addAttachment(
+			db,
+			taskId,
+			"photo.png",
+			Buffer.from("bytes"),
+		)._unsafeUnwrap();
+		rmSync(join(mediaDir(), item.id.slice(0, 2)), {
+			recursive: true,
+			force: true,
+		});
+
+		const result = copyAttachment(db, item.id, target);
+		expect(result.isErr()).toBe(true);
+		expect(result._unsafeUnwrapErr().message).toContain("gone");
+	});
+
+	it("relocates files from the task folders to the id folders", async () => {
+		const { db, taskId } = await setup();
+		const item = addAttachment(
+			db,
+			taskId,
+			"photo.png",
+			Buffer.from("bytes"),
+		)._unsafeUnwrap();
+		const legacy = join(mediaDir(), "SPA-1", `${item.id}.png`);
+		mkdirSync(join(mediaDir(), "SPA-1"), { recursive: true });
+		renameSync(mediaFile(item.id, `${item.id}.png`), legacy);
+
+		expect(relocateMediaFiles(db)).toEqual({ moved: 1, missing: 0 });
+		expect(existsSync(mediaFile(item.id, `${item.id}.png`))).toBe(true);
+		expect(existsSync(join(mediaDir(), "SPA-1"))).toBe(false);
+		expect(relocateMediaFiles(db)).toEqual({ moved: 0, missing: 0 });
 	});
 });

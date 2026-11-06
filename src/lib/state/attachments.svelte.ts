@@ -1,6 +1,8 @@
 import {
 	addTaskAttachment,
+	copyTaskAttachment,
 	getTaskAttachments,
+	moveTaskAttachment,
 	removeTaskAttachment,
 } from "#lib/remote/attachments.remote.ts";
 import { fetchFresh } from "#lib/remote/fresh.ts";
@@ -128,7 +130,22 @@ export function createSavedAttachments(
 	let busy = $state(false);
 	let failure = $state("");
 	let input = $state<HTMLInputElement | null>(null);
+	let status = $state("");
+	let statusTimer: ReturnType<typeof setTimeout> | null = null;
 	const { flash, notice } = createFeedback();
+
+	function say(message: string) {
+		status = message;
+		if (statusTimer !== null) clearTimeout(statusTimer);
+		statusTimer = setTimeout(() => {
+			status = "";
+			statusTimer = null;
+		}, 4000);
+	}
+
+	$effect(() => () => {
+		if (statusTimer !== null) clearTimeout(statusTimer);
+	});
 
 	const entries = $derived<AttachmentEntry[]>(
 		items.map((attachment) => ({
@@ -206,9 +223,38 @@ export function createSavedAttachments(
 		input?.click();
 	}
 
+	async function move(
+		id: string,
+		target: string,
+		copy: boolean,
+	): Promise<string | null> {
+		const task = getTask();
+		if (task === null) return "the task is gone";
+		busy = true;
+		try {
+			if (copy) {
+				await copyTaskAttachment({ attachment_id: id, task_id: target });
+				say(`Copied to ${target}`);
+				return null;
+			}
+			await moveTaskAttachment({ attachment_id: id, task_id: target });
+			items = items.filter((item) => item.id !== id);
+			getTasks().bumpAttachments(task.id, -1);
+			say(`Moved to ${target}`);
+			return null;
+		} catch (error) {
+			return messageOf(error);
+		} finally {
+			busy = false;
+		}
+	}
+
 	return {
 		get entries() {
 			return entries;
+		},
+		get items() {
+			return items;
 		},
 		get failed() {
 			return failed;
@@ -225,6 +271,9 @@ export function createSavedAttachments(
 		get notice() {
 			return notice.message;
 		},
+		get status() {
+			return status;
+		},
 		get denied() {
 			return notice.denied;
 		},
@@ -239,6 +288,7 @@ export function createSavedAttachments(
 		},
 		addFiles,
 		remove,
+		move,
 		reload,
 		openPicker,
 	};

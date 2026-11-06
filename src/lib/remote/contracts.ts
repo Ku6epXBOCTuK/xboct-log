@@ -177,6 +177,12 @@ export const attachmentDeleted = attachmentRef;
 
 export const attachmentRestored = attachmentRef;
 
+export const attachmentMoved = z.looseObject({
+	item: attachmentRef,
+	previous_task_id: z.string(),
+	was_deleted: z.boolean(),
+});
+
 export const attachmentPurged = z.looseObject({
 	id: z.string(),
 	task_id: z.string(),

@@ -10,6 +10,7 @@
 		type AttachmentEntry,
 	} from "#lib/tasks/attachments.ts";
 	import { resolve } from "$app/paths";
+	import ArrowRightLeft from "~icons/lucide/arrow-right-left";
 	import Paperclip from "~icons/lucide/paperclip";
 	import Trash2 from "~icons/lucide/trash-2";
 
@@ -17,9 +18,10 @@
 		entry: AttachmentEntry;
 		busy?: boolean;
 		onremove: () => void;
+		onmove?: () => void;
 	}
 
-	let { entry, busy = false, onremove }: Props = $props();
+	let { entry, busy = false, onremove, onmove }: Props = $props();
 
 	const file = $derived(entry.kind === "file" ? entry.file : undefined);
 	const name = $derived(
@@ -132,7 +134,7 @@
 			onfail={() => src !== undefined && openMedia(src)}
 		/>
 	{/if}
-	<div class="attachment-actions">
+	<div class="attachment-actions" class:is-wide={onmove !== undefined}>
 		{#if confirming}
 			<div class="attachment-confirm">
 				<span class="attachment-confirm-label">Remove?</span>
@@ -155,6 +157,16 @@
 				</Button>
 			</div>
 		{:else}
+			{#if onmove !== undefined}
+				<IconButton
+					label="Move to another task"
+					title="Move to another task"
+					disabled={busy}
+					onclick={onmove}
+				>
+					<ArrowRightLeft />
+				</IconButton>
+			{/if}
 			<IconButton
 				label="Remove the attachment"
 				title="Remove the attachment"
@@ -282,6 +294,10 @@
 		justify-content: flex-end;
 		width: var(--control-h);
 		height: var(--control-h);
+	}
+
+	.attachment-actions.is-wide {
+		width: calc(var(--control-h) * 2);
 	}
 
 	.attachment-size.is-hidden {

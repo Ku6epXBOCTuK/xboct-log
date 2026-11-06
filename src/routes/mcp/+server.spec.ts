@@ -567,6 +567,28 @@ describe("output contracts", () => {
 			},
 			attachments_verify: () => ({}),
 			attachments_deleted_list: () => ({}),
+			attachments_move: async () => {
+				const added = await call("attachments_add", {
+					task_id: base,
+					filename: "moved.txt",
+					content_base64: Buffer.from("there").toString("base64"),
+				});
+				return {
+					attachment_id: (added.item as { id: string }).id,
+					task_id: await freshTask(),
+				};
+			},
+			attachments_copy: async () => {
+				const added = await call("attachments_add", {
+					task_id: base,
+					filename: "copied.txt",
+					content_base64: Buffer.from("there").toString("base64"),
+				});
+				return {
+					attachment_id: (added.item as { id: string }).id,
+					task_id: await freshTask(),
+				};
+			},
 			attachments_restore: async () => {
 				const added = await call("attachments_add", {
 					task_id: base,

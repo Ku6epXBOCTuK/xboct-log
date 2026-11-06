@@ -27,4 +27,16 @@ export const attachmentActivity = {
 	deleted: (attachment: AttachedFile) => attachmentEntry(attachment, false),
 	restored: (attachment: AttachedFile) => attachmentEntry(attachment, true),
 	purged: (attachment: AttachedFile) => attachmentEntry(attachment, false),
+	moved: (
+		attachment: AttachedFile,
+		previousTaskId: string,
+		wasDeleted: boolean,
+	) =>
+		wasDeleted
+			? attachmentEntry(attachment, true)
+			: [
+					attachmentEntry({ ...attachment, task_id: previousTaskId }, false),
+					attachmentEntry(attachment, true),
+				],
+	copied: (attachment: AttachedFile) => attachmentEntry(attachment, true),
 };

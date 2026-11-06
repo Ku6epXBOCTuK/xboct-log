@@ -1,14 +1,27 @@
 <script lang="ts">
 	import AttachmentBody from "#lib/components/attachments/AttachmentBody.svelte";
 	import AttachmentSection from "#lib/components/attachments/AttachmentSection.svelte";
+	import MoveAttachmentDialog from "#lib/components/attachments/MoveAttachmentDialog.svelte";
 	import type { SavedAttachmentsStore } from "#lib/state/attachments.svelte.ts";
 	import { ATTACHMENT_ACCEPT } from "#lib/tasks/attachment-kinds.ts";
+	import type { TaskAttachment } from "#lib/types.ts";
 
 	interface Props {
 		store: SavedAttachmentsStore;
 	}
 
 	let { store }: Props = $props();
+
+	let moving = $state<TaskAttachment | null>(null);
+
+	function requestMove(key: string) {
+		moving = store.items.find((item) => item.id === key) ?? null;
+	}
+
+	async function moveTo(target: string, copy: boolean) {
+		if (moving === null) return "no attachment chosen";
+		return store.move(moving.id, target, copy);
+	}
 
 	function paste(event: ClipboardEvent) {
 		if (document.querySelector("dialog[open]") !== null) return;
@@ -44,7 +57,7 @@
 	fresh={store.fresh}
 	busy={store.busy}
 	denied={store.denied}
-	notice={store.notice}
+	notice={store.notice || store.status}
 	onpick={store.openPicker}
 	{hidden}
 >
@@ -54,6 +67,15 @@
 		failure={store.failure}
 		failed={store.failed}
 		onremove={store.remove}
+		onmove={requestMove}
 		onretry={store.reload}
 	/>
 </AttachmentSection>
+
+<MoveAttachmentDialog
+	open={moving !== null}
+	fileName={moving?.file_name ?? ""}
+	sourceTaskId={moving?.task_id ?? ""}
+	onsubmit={moveTo}
+	onclose={() => (moving = null)}
+/>
