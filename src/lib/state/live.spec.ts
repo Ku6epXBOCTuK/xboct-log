@@ -187,6 +187,63 @@ describe("createFreshness", () => {
 		expect(handlers.tasks).toHaveBeenCalledTimes(1);
 	});
 
+	it("refreshes the navigation data when another client changes the projects", async () => {
+		const fresh = createFreshness();
+		const handlers = wire(fresh);
+		const navigation = vi.fn(async () => {});
+		fresh.register("navigation", navigation);
+		fresh.start();
+
+		connected().emit("change", { entity: "projects", client: "another-tab" });
+		await vi.advanceTimersByTimeAsync(300);
+
+		expect(navigation).toHaveBeenCalledTimes(1);
+		expect(handlers.projects).toHaveBeenCalledTimes(1);
+	});
+
+	it("leaves the navigation data alone when a task changes", async () => {
+		const fresh = createFreshness();
+		const handlers = wire(fresh);
+		const navigation = vi.fn(async () => {});
+		fresh.register("navigation", navigation);
+		fresh.start();
+
+		connected().emit("change", { entity: "tasks", client: "another-tab" });
+		await vi.advanceTimersByTimeAsync(300);
+
+		expect(handlers.projects).toHaveBeenCalledTimes(1);
+		expect(navigation).not.toHaveBeenCalled();
+	});
+
+	it("flushes an immediate invalidation without the coalesce window", async () => {
+		const fresh = createFreshness();
+		const handlers = wire(fresh);
+
+		const done = fresh.invalidate(["projects"], true);
+		await vi.advanceTimersByTimeAsync(0);
+
+		expect(handlers.projects).toHaveBeenCalledTimes(1);
+		await done;
+	});
+
+	it("resolves the promise after the reload finishes", async () => {
+		const fresh = createFreshness();
+		const handlers = wire(fresh);
+		const slow = deferred();
+		handlers.projects.mockReturnValueOnce(slow.promise);
+
+		let settled = false;
+		const done = fresh.invalidate(["projects"], true).then(() => {
+			settled = true;
+		});
+		await vi.advanceTimersByTimeAsync(0);
+		expect(settled).toBe(false);
+
+		slow.resolve();
+		await done;
+		expect(settled).toBe(true);
+	});
+
 	it("ignores unknown entities and malformed payloads", async () => {
 		const fresh = createFreshness();
 		const handlers = wire(fresh);

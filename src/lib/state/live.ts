@@ -5,8 +5,9 @@ import { ENTITIES, type Entity } from "#lib/types.ts";
 const COALESCE_MS = 300;
 
 const COUNTERS = "counters" as const;
+const NAVIGATION = "navigation" as const;
 
-type Target = Entity | typeof COUNTERS;
+type Target = Entity | typeof COUNTERS | typeof NAVIGATION;
 
 const DEPENDENCIES: Record<Entity, readonly Target[]> = {
 	tasks: ["projects", "scopes", "tags", COUNTERS],
@@ -20,13 +21,14 @@ type Reload = () => void | Promise<void>;
 
 export interface Freshness {
 	register(target: Target, reload: Reload): () => void;
-	invalidate(targets: Iterable<Target>): void;
+	invalidate(targets: Iterable<Target>, immediate?: boolean): Promise<void>;
 	start(): () => void;
 }
 
 export function createFreshness(): Freshness {
 	const reloads = new Map<Target, Set<Reload>>();
 	const pending = new Set<Target>();
+	const waiters: Array<() => void> = [];
 	let timer: ReturnType<typeof setTimeout> | undefined;
 	let queue: Promise<void> = Promise.resolve();
 
@@ -59,26 +61,45 @@ export function createFreshness(): Freshness {
 		).then(() => {});
 	}
 
+	function settle(done: Array<() => void>): void {
+		for (const resolve of done) {
+			resolve();
+		}
+	}
+
 	function flush(): void {
+		const done = waiters.splice(0);
 		if (pending.size === 0) {
+			settle(done);
 			return;
 		}
 		const targets = [...pending];
 		pending.clear();
 		queue = queue.then(() => Promise.all(targets.map(reload))).then(() => {});
+		void queue.then(() => settle(done));
 	}
 
-	function invalidate(targets: Iterable<Target>): void {
+	function invalidate(
+		targets: Iterable<Target>,
+		immediate = false,
+	): Promise<void> {
 		for (const target of targets) {
 			pending.add(target);
 		}
 		if (timer !== undefined) {
 			clearTimeout(timer);
+			timer = undefined;
+		}
+		const done = new Promise<void>((resolve) => waiters.push(resolve));
+		if (immediate) {
+			flush();
+			return done;
 		}
 		timer = setTimeout(() => {
 			timer = undefined;
 			flush();
 		}, COALESCE_MS);
+		return done;
 	}
 
 	function start(): () => void {
@@ -99,14 +120,21 @@ export function createFreshness(): Freshness {
 			) {
 				return;
 			}
-			invalidate(expand([change.entity as Entity]));
+			const entity = change.entity as Entity;
+			invalidate(
+				entity === "projects"
+					? [...expand([entity]), NAVIGATION]
+					: expand([entity]),
+			);
 		});
-		source.addEventListener("sync", () => invalidate(expand(ENTITIES)));
+		source.addEventListener("sync", () =>
+			invalidate([...expand(ENTITIES), NAVIGATION]),
+		);
 		source.addEventListener("reset", () => reloadApp());
 
 		function handleVisibility(): void {
 			if (document.visibilityState === "visible") {
-				invalidate(expand(ENTITIES));
+				invalidate([...expand(ENTITIES), NAVIGATION]);
 			}
 		}
 		document.addEventListener("visibilitychange", handleVisibility);
@@ -119,6 +147,7 @@ export function createFreshness(): Freshness {
 				timer = undefined;
 			}
 			pending.clear();
+			settle(waiters.splice(0));
 		};
 	}
 

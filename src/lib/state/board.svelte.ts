@@ -1,6 +1,3 @@
-import { goto } from "$app/navigation";
-import { resolve } from "$app/paths";
-import { page } from "$app/state";
 import { getContext, setContext } from "svelte";
 import { listHref } from "#lib/navigation/href.ts";
 import { parsePath } from "#lib/navigation/paths.ts";
@@ -27,6 +24,9 @@ import { createUiStore } from "#lib/state/ui.svelte.ts";
 import { TASK_PAGE_SIZE } from "#lib/tasks/paging.ts";
 import { buildTaskQuery } from "#lib/tasks/query.ts";
 import type { Project, ProjectFilter, Scope } from "#lib/types.ts";
+import { goto, invalidate } from "$app/navigation";
+import { resolve } from "$app/paths";
+import { page } from "$app/state";
 
 export interface BoardInput {
 	projects: Project[];
@@ -39,7 +39,9 @@ export interface BoardInput {
 
 export function createBoard(input: BoardInput) {
 	const fresh = createFreshness();
-	const projects = createProjectStore(input.projects);
+	const projects = createProjectStore(input.projects, () =>
+		fresh.invalidate(["navigation"], true),
+	);
 	const stats = createStatsStore();
 	const tasks = createTaskStore([], 0, () =>
 		fresh.invalidate(["projects", "counters"]),
@@ -58,6 +60,7 @@ export function createBoard(input: BoardInput) {
 	fresh.register("tasks", () => data.refresh());
 	fresh.register("counters", () => stats.refresh());
 	fresh.register("projects", () => projects.refresh());
+	fresh.register("navigation", () => invalidate("app:projects"));
 	fresh.register("tags", () => tags.refresh());
 	fresh.register("comments", () => comments.refresh());
 	fresh.register("scopes", async () => {

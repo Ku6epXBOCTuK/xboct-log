@@ -63,6 +63,33 @@ describe("project store", () => {
 		expect(store.all.map((item) => item.id)).toEqual(["alpha"]);
 	});
 
+	it("runs the created hook after the project lands in the store", async () => {
+		const seen: string[][] = [];
+		const store = createProjectStore([], () => {
+			seen.push(store.all.map((item) => item.id));
+		});
+		createProject.mockResolvedValue(project("beta"));
+
+		await store.create({ id: "beta", name: "beta", prefix: "BET" });
+
+		expect(seen).toEqual([["beta"]]);
+	});
+
+	it("keeps the created project when the created hook fails", async () => {
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+		const store = createProjectStore([], () => {
+			throw new Error("offline");
+		});
+		createProject.mockResolvedValue(project("beta"));
+
+		await expect(
+			store.create({ id: "beta", name: "beta", prefix: "BET" }),
+		).resolves.toMatchObject({ id: "beta" });
+		expect(store.all.map((item) => item.id)).toEqual(["beta"]);
+		expect(warn).toHaveBeenCalled();
+		warn.mockRestore();
+	});
+
 	it("keeps counters when an update returns a project without them", async () => {
 		const store = createProjectStore([
 			project("alpha", {

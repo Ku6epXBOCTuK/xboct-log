@@ -3,7 +3,8 @@ import { getScopedProjectIds, getScopes } from "#lib/remote/scopes.remote.ts";
 import { getTagDictionary, getTags } from "#lib/remote/tags.remote.ts";
 import type { LayoutLoad } from "./$types";
 
-export const load: LayoutLoad = async () => {
+export const load: LayoutLoad = async ({ depends }) => {
+	depends("app:projects");
 	const projects = await getProjects({ includeArchived: true });
 	const tags = await getTags({});
 	const tagNames = await getTagDictionary({});

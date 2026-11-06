@@ -1,10 +1,10 @@
+import { sortProjects } from "#lib/projects/sort.ts";
 import { fetchFresh } from "#lib/remote/fresh.ts";
 import {
 	createProject,
 	getProjects,
 	updateProject,
 } from "#lib/remote/projects.remote.ts";
-import { sortProjects } from "#lib/projects/sort.ts";
 import type { Project } from "#lib/types.ts";
 
 export interface NewProjectInput {
@@ -14,7 +14,10 @@ export interface NewProjectInput {
 	repo?: string | null;
 }
 
-export function createProjectStore(initial: Project[]) {
+export function createProjectStore(
+	initial: Project[],
+	onCreated?: () => void | Promise<void>,
+) {
 	let projects = $state(sortProjects(initial));
 	const active = $derived(
 		projects.filter((project) => project.archived_at === null),
@@ -60,6 +63,11 @@ export function createProjectStore(initial: Project[]) {
 			const { id, ...rest } = input;
 			const project = await createProject({ project_id: id, ...rest });
 			projects = sortProjects([...projects, project]);
+			try {
+				await onCreated?.();
+			} catch (error) {
+				console.warn("[projects] created hook failed", error);
+			}
 			return project;
 		},
 		async rename(id: string, name: string) {
