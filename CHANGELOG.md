@@ -2,6 +2,19 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.7.0](https://github.com/Ku6epXBOCTuK/xboct-log/compare/1545e0a00a38322342c83eefa1e19bfd0ad26213..v0.7.0) - 2026-11-06
+#### Features
+- move activity to new task constant id id - ([0a7b05c](https://github.com/Ku6epXBOCTuK/xboct-log/commit/0a7b05cc2b0e3be4946374053dd6a56c98ef8cfc)) - Ku6epXBOCTuK
+- migrate tasks to new PK, add constant id - ([3ed83e2](https://github.com/Ku6epXBOCTuK/xboct-log/commit/3ed83e2544bc67107cde932291e4a7147aaeeee3)) - Ku6epXBOCTuK
+#### Bug Fixes
+- drop old_id in activity - ([4c382ee](https://github.com/Ku6epXBOCTuK/xboct-log/commit/4c382eefab0ee09d0895524ba6f2f66debc3e0dc)) - Ku6epXBOCTuK
+- add app folder hash for multiple instances workflow - ([f06ddc7](https://github.com/Ku6epXBOCTuK/xboct-log/commit/f06ddc7c0c0a5a50ba935b2b3793a7484c54ac89)) - Ku6epXBOCTuK
+- app run on specific port, error handling - ([481654a](https://github.com/Ku6epXBOCTuK/xboct-log/commit/481654a4d98b8b04eaa4d36ff751d22035b6eb14)) - Ku6epXBOCTuK
+- version return valid value instead of unknown - ([0b6810f](https://github.com/Ku6epXBOCTuK/xboct-log/commit/0b6810f7f226bb95e1ecfa89bb327e48f5a35cd1)) - Ku6epXBOCTuK
+- reuqests headers for auth - ([1545e0a](https://github.com/Ku6epXBOCTuK/xboct-log/commit/1545e0a00a38322342c83eefa1e19bfd0ad26213)) - Ku6epXBOCTuK
+
+- - -
+
 ## [v0.6.3](https://github.com/Ku6epXBOCTuK/xboct-log/compare/b41ef8b8d44bcd5fc5fdf5f4a49a147f65a78cf9..v0.6.3) - 2026-11-02
 #### Bug Fixes
 - add scope by name flow - ([b41ef8b](https://github.com/Ku6epXBOCTuK/xboct-log/commit/b41ef8b8d44bcd5fc5fdf5f4a49a147f65a78cf9)) - Ku6epXBOCTuK
