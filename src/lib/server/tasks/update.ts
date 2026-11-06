@@ -12,7 +12,7 @@ import { isRestorableStatus, listBlocks, releaseBlockedStatus } from "../links";
 import { guard, invalid, type AppError } from "../errors";
 import { withTransaction } from "../db";
 import { recordRevision } from "../revisions";
-import { withBlockingInfo } from "./read";
+import { countEpicChildrenByStatus, withBlockingInfo } from "./read";
 import {
 	emptyToNull,
 	isClosedReason,
@@ -70,6 +70,40 @@ function validatePatch(patch: TaskPatch): AppError | null {
 		);
 	}
 	return null;
+}
+
+function autoCloseEpic(
+	db: DatabaseSync,
+	childKey: string,
+	now: string,
+): Task | null {
+	const child = db
+		.prepare(
+			`SELECT epic.key AS epic_key
+			 FROM tasks child JOIN tasks epic ON epic.id = child.epic_id
+			 WHERE child.key = ?`,
+		)
+		.get(childKey) as { epic_key: string } | undefined;
+	if (!child) {
+		return null;
+	}
+	const epic = taskById(db, child.epic_key);
+	if (!epic) {
+		return null;
+	}
+	if (epic.status === "blocked" || CLOSED_STATUSES.includes(epic.status)) {
+		return null;
+	}
+	const counts = countEpicChildrenByStatus(db, epic.id);
+	if (counts.total === 0 || counts.total > counts.done + counts.cancelled) {
+		return null;
+	}
+	db.prepare(
+		`UPDATE tasks
+		 SET status = 'done', closed_at = ?, closed_reason = 'fixed', updated_at = ?
+		 WHERE key = ?`,
+	).run(now, now, epic.id);
+	return withBlockingInfo(db, [taskById(db, epic.id)!])[0];
 }
 
 export function updateTaskDetailed(
@@ -341,6 +375,10 @@ export function updateTaskDetailed(
 	const descriptionChanged =
 		patch.description !== undefined &&
 		patch.description !== current.description;
+	const closedNow =
+		patch.status !== undefined &&
+		CLOSED_STATUSES.includes(patch.status) &&
+		!CLOSED_STATUSES.includes(current.status);
 
 	return guard(() =>
 		withTransaction(db, () => {
@@ -370,9 +408,11 @@ export function updateTaskDetailed(
 					insertTag.run(tag, targetId);
 				}
 			}
+			const epic = closedNow ? autoCloseEpic(db, targetId, now) : null;
 			return {
 				task: withBlockingInfo(db, [taskById(db, targetId)!])[0],
 				changes,
+				...(epic ? { closed_epic: epic } : {}),
 			};
 		}),
 	);
@@ -421,10 +461,12 @@ export function closeTaskDetailed(
 				task_id: item.task_id,
 				changes: [{ field: "status", from: "blocked", to: item.status }],
 			}));
+			const epic = autoCloseEpic(db, targetId, now);
 			return {
 				task: withBlockingInfo(db, [taskById(db, targetId)!])[0],
 				changes,
 				released,
+				...(epic ? { closed_epic: epic } : {}),
 			};
 		}),
 	);

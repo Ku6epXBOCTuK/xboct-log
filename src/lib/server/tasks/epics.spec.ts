@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { failure, setup, unwrap } from "../app-test-kit";
 import { createProject } from "../projects";
 import {
+	closeTask,
+	closeTaskDetailed,
 	createTask,
 	deleteTask,
 	getTask,
@@ -126,5 +128,74 @@ describe("epic guards", () => {
 		const demoted = unwrap(updateTask(db, epic.id, { is_epic: false }));
 
 		expect(demoted.is_epic).toBe(false);
+	});
+});
+
+describe("epic auto-close", () => {
+	it("closes an epic when its last open task closes", async () => {
+		const db = await setup();
+		const epic = unwrap(
+			createTask(db, { project_id: "spa", title: "Root", is_epic: true }),
+		);
+		const first = unwrap(
+			createTask(db, { project_id: "spa", title: "One", epic_id: epic.id }),
+		);
+		const second = unwrap(
+			createTask(db, { project_id: "spa", title: "Two", epic_id: epic.id }),
+		);
+
+		const one = unwrap(closeTaskDetailed(db, first.id, "fixed"));
+		const two = unwrap(closeTaskDetailed(db, second.id, "fixed"));
+
+		expect(one.closed_epic).toBeUndefined();
+		expect(two.closed_epic?.status).toBe("done");
+		expect(two.closed_epic?.closed_reason).toBe("fixed");
+		expect(getTask(db, epic.id)?.status).toBe("done");
+	});
+
+	it("closes an epic when the last task is closed by a status update", async () => {
+		const db = await setup();
+		const epic = unwrap(
+			createTask(db, { project_id: "spa", title: "Root", is_epic: true }),
+		);
+		const child = unwrap(
+			createTask(db, { project_id: "spa", title: "Only", epic_id: epic.id }),
+		);
+
+		unwrap(updateTask(db, child.id, { status: "done" }));
+
+		expect(getTask(db, epic.id)?.status).toBe("done");
+		expect(getTask(db, epic.id)?.closed_reason).toBe("fixed");
+	});
+
+	it("keeps a closed epic as it was", async () => {
+		const db = await setup();
+		const epic = unwrap(
+			createTask(db, { project_id: "spa", title: "Root", is_epic: true }),
+		);
+		const child = unwrap(
+			createTask(db, { project_id: "spa", title: "Only", epic_id: epic.id }),
+		);
+		unwrap(closeTask(db, epic.id, "wontfix"));
+
+		unwrap(closeTask(db, child.id, "fixed"));
+
+		expect(getTask(db, epic.id)?.status).toBe("cancelled");
+		expect(getTask(db, epic.id)?.closed_reason).toBe("wontfix");
+	});
+
+	it("keeps a blocked epic blocked", async () => {
+		const db = await setup();
+		const epic = unwrap(
+			createTask(db, { project_id: "spa", title: "Root", is_epic: true }),
+		);
+		const child = unwrap(
+			createTask(db, { project_id: "spa", title: "Only", epic_id: epic.id }),
+		);
+		unwrap(updateTask(db, epic.id, { status: "blocked" }));
+
+		unwrap(closeTask(db, child.id, "fixed"));
+
+		expect(getTask(db, epic.id)?.status).toBe("blocked");
 	});
 });

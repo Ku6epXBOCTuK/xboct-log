@@ -49,6 +49,9 @@ function batchItem(
 				task: result.value.task,
 				changes: result.value.changes,
 				released: result.value.released ?? [],
+				...(result.value.closed_epic
+					? { closed_epic: result.value.closed_epic }
+					: {}),
 			}
 		: {
 				index,

@@ -226,6 +226,9 @@ export function createTaskStore(
 		async save(id: string, patch: TaskPatch) {
 			const updated = await updateTask({ task_id: id, patch });
 			put(updated);
+			if (updated.closed_epic) {
+				put(updated.closed_epic);
+			}
 			onMutate?.();
 			return updated;
 		},
@@ -248,6 +251,9 @@ export function createTaskStore(
 		async close(id: string, reason: ClosedReason) {
 			const updated = await closeTask({ task_id: id, reason });
 			put(updated);
+			if (updated.closed_epic) {
+				put(updated.closed_epic);
+			}
 			onMutate?.();
 			return updated;
 		},

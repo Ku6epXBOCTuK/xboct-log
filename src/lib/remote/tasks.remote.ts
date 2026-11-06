@@ -351,7 +351,7 @@ export const updateTask = defineCommand({
 	description:
 		"Update fields of an existing task by task_id. Pass the fields to change next to task_id (e.g. {task_id: 'LOG-87', status: 'in-progress'}); a nested patch object {task_id, patch: {status}} is accepted too. description is Markdown and formatting is rendered: a short log or config in a fenced block is welcome, source code belongs in the repository. The task_id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). epic_id accepts a full epic id (e.g. 'LOG-5') of the task's current project, scope takes the name of a scope of that project (case-insensitive; scope_id takes the id) and scope: null clears it, estimate takes the size of the task ('S', 'M' or 'L') or null to clear it, assignee takes the name of the responsible person or null to clear it, due_at takes the due date (YYYY-MM-DD) or null to clear it, and blocked_reason is one line of free text explaining a block outside the tracker, allowed only on a blocked task; leaving status 'blocked' clears it. The call must name at least one field with a value: no field, a field set to undefined, an unknown field or an epic id that does not exist is an error, the task is left untouched. Returns: the updated task - " +
 		TASK_FIELDS +
-		" with a changes array and a warnings array, which is not empty when the task is blocked with neither a blocker task nor a blocked_reason, or when an epic is closed while some of its subtasks are still open. An unknown tag is rejected: tags are a closed dictionary, see tags_list and tags_create.",
+		" with a changes array and a warnings array, which is not empty when the task is blocked with neither a blocker task nor a blocked_reason, or when an epic is closed while some of its subtasks are still open. Closing the last open subtask of an epic closes the epic itself with reason 'fixed' and returns it in closed_epic. An unknown tag is rejected: tags are a closed dictionary, see tags_list and tags_create.",
 	kind: "command",
 	input: updateInput,
 	mcpInput: flatUpdate.input,
@@ -373,10 +373,15 @@ export const updateTask = defineCommand({
 			...result.value.task,
 			changes: result.value.changes,
 			warnings: warningsFor(db, result.value.task),
+			...(result.value.closed_epic
+				? { closed_epic: result.value.closed_epic }
+				: {}),
 		});
 	},
-	activity: (input, task: TaskWithChanges) =>
+	activity: (input, task: TaskWithChanges & { closed_epic?: Task }) => [
 		activityEntry("task", task.id, fieldNames(input.patch ?? {}), task.changes),
+		...closedEpicEntries(task.closed_epic),
+	],
 });
 
 function summarize<T extends { ok: boolean }>(items: T[]) {
@@ -405,6 +410,13 @@ function warningsFor(db: DatabaseSync, task: Task): string[] {
 		}
 	}
 	return warnings;
+}
+
+function closedEpicEntries(epic: Task | undefined): ActivityEntry[] {
+	if (!epic) {
+		return [];
+	}
+	return [activityEntry("task", epic.id, ["status", "closed_reason"])];
 }
 
 function releasedEntries(released: ReleasedLink[]): ActivityEntry[] {
@@ -467,6 +479,7 @@ export const updateTasks = defineCommand({
 							fieldNames(input.items[index].patch),
 							item.changes,
 						),
+						...closedEpicEntries(item.closed_epic),
 					]
 				: [],
 		),
@@ -478,7 +491,7 @@ export const closeTask = defineCommand({
 	description:
 		"Close a task by task_id with a reason: 'fixed' → done, 'wontfix' | 'obsolete' | 'duplicate' | 'not-reproduced' → cancelled. 'not-reproduced' marks a report that could not be reproduced. The task_id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). Closing a task that blocks others releases them from status 'blocked' - every released task returns to the status it had before it was blocked ('open' when that status is unknown), and those tasks are listed in released. The blocking links stay in place as history, so do not remove them afterwards. Returns: the closed task - " +
 		TASK_FIELDS +
-		" with a changes array, a released array and a warnings array, which is not empty when an epic is closed while some of its subtasks are still open.",
+		" with a changes array, a released array and a warnings array, which is not empty when an epic is closed while some of its subtasks are still open. Closing the last open subtask of an epic closes the epic itself with reason 'fixed' and returns it in closed_epic.",
 	kind: "command",
 	input: strictObject({
 		task_id: taskIdSchema(ID_DESCRIPTION),
@@ -495,11 +508,18 @@ export const closeTask = defineCommand({
 			changes: result.value.changes,
 			released: result.value.released ?? [],
 			warnings: warningsFor(db, result.value.task),
+			...(result.value.closed_epic
+				? { closed_epic: result.value.closed_epic }
+				: {}),
 		});
 	},
-	activity: (_input, task: TaskWithChanges & { released?: ReleasedLink[] }) => [
+	activity: (
+		_input,
+		task: TaskWithChanges & { released?: ReleasedLink[]; closed_epic?: Task },
+	) => [
 		activityEntry("task", task.id, ["status", "closed_reason"], task.changes),
 		...releasedEntries(task.released ?? []),
+		...closedEpicEntries(task.closed_epic),
 	],
 });
 
@@ -544,6 +564,7 @@ export const closeTasks = defineCommand({
 							item.changes,
 						),
 						...releasedEntries(item.released ?? []),
+						...closedEpicEntries(item.closed_epic),
 					]
 				: [],
 		),
