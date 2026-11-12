@@ -11,6 +11,7 @@
 			"!.zcode",
 			"!**/*.yaml",
 			"!**/*.yml",
+			"!target",
 			"!CHANGELOG.md",
 			"!vscode-extension/CHANGELOG.md"
 		]
