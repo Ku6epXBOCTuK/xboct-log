@@ -44,8 +44,9 @@
 		"migrate:baseline": "node scripts/migrate.mjs baseline",
 		"migrate:unlock": "node scripts/migrate.mjs unlock",
 		"parity:capture": "node scripts/parity/capture.mjs",
-		"parity:seed": "node scripts/parity/seed.mjs",
-		"parity:compare": "node scripts/parity/compare.mjs"
+		"parity:check": "node scripts/parity/check.mjs",
+		"parity:compare": "node scripts/parity/compare.mjs",
+		"parity:seed": "node scripts/parity/seed.mjs"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.6.4",
