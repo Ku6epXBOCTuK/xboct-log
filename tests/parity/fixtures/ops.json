@@ -1,0 +1,3669 @@
+{
+  "calls": [
+    {
+      "name": "projects_list",
+      "kind": "query",
+      "mcp": true,
+      "input": {},
+      "output": [
+        {
+          "id": "spa",
+          "name": "SPA",
+          "prefix": "SPA",
+          "repo": "github.com/xboct/spa",
+          "created_at": "<now>",
+          "archived_at": null,
+          "task_counts": {
+            "backlog": 2,
+            "open": 1,
+            "in-progress": 2,
+            "blocked": 1,
+            "done": 0,
+            "cancelled": 0
+          },
+          "epic_counts": {
+            "backlog": 0,
+            "open": 1,
+            "in-progress": 0,
+            "blocked": 0,
+            "done": 0,
+            "cancelled": 0
+          }
+        },
+        {
+          "id": "log",
+          "name": "XBOCT-log",
+          "prefix": "LOG",
+          "repo": null,
+          "created_at": "<now>",
+          "archived_at": null,
+          "task_counts": {
+            "backlog": 1,
+            "open": 2,
+            "in-progress": 1,
+            "blocked": 0,
+            "done": 0,
+            "cancelled": 1
+          },
+          "epic_counts": {
+            "backlog": 0,
+            "open": 1,
+            "in-progress": 0,
+            "blocked": 0,
+            "done": 0,
+            "cancelled": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "projects_get",
+      "kind": "query",
+      "mcp": true,
+      "input": {
+        "project_id": "spa"
+      },
+      "output": {
+        "id": "spa",
+        "name": "SPA",
+        "prefix": "SPA",
+        "repo": "github.com/xboct/spa",
+        "created_at": "<now>",
+        "archived_at": null,
+        "task_counts": {
+          "backlog": 2,
+          "open": 1,
+          "in-progress": 2,
+          "blocked": 1,
+          "done": 0,
+          "cancelled": 0
+        },
+        "epic_counts": {
+          "backlog": 0,
+          "open": 1,
+          "in-progress": 0,
+          "blocked": 0,
+          "done": 0,
+          "cancelled": 0
+        },
+        "scope_counts": [
+          {
+            "scope_id": 1,
+            "name": "backend",
+            "tasks": 3,
+            "epics": 1
+          },
+          {
+            "scope_id": 2,
+            "name": "web",
+            "tasks": 1,
+            "epics": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "projects_create",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "project_id": "sweep",
+        "name": "Sweep",
+        "prefix": "SWP"
+      },
+      "output": {
+        "id": "sweep",
+        "name": "Sweep",
+        "prefix": "SWP",
+        "repo": null,
+        "created_at": "<now>",
+        "archived_at": null
+      }
+    },
+    {
+      "name": "projects_create",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "project_id": "sweep-target",
+        "name": "Sweep target",
+        "prefix": "SWT"
+      },
+      "output": {
+        "id": "sweep-target",
+        "name": "Sweep target",
+        "prefix": "SWT",
+        "repo": null,
+        "created_at": "<now>",
+        "archived_at": null
+      }
+    },
+    {
+      "name": "projects_update",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "project_id": "sweep",
+        "patch": {
+          "repo": "github.com/xboct/sweep"
+        }
+      },
+      "output": {
+        "id": "sweep",
+        "name": "Sweep",
+        "prefix": "SWP",
+        "repo": "github.com/xboct/sweep",
+        "created_at": "<now>",
+        "archived_at": null
+      }
+    },
+    {
+      "name": "scopes_list",
+      "kind": "query",
+      "mcp": true,
+      "input": {},
+      "output": [
+        {
+          "id": 3,
+          "project_id": "log",
+          "name": "release",
+          "created_at": "<now>",
+          "task_count": 2,
+          "tasks_total": 2,
+          "epics_count": 0
+        },
+        {
+          "id": 1,
+          "project_id": "spa",
+          "name": "backend",
+          "created_at": "<now>",
+          "task_count": 2,
+          "tasks_total": 3,
+          "epics_count": 1
+        },
+        {
+          "id": 2,
+          "project_id": "spa",
+          "name": "web",
+          "created_at": "<now>",
+          "task_count": 1,
+          "tasks_total": 1,
+          "epics_count": 0
+        }
+      ]
+    },
+    {
+      "name": "scopes_project_ids",
+      "kind": "query",
+      "mcp": true,
+      "input": {},
+      "output": [
+        "log",
+        "spa"
+      ]
+    },
+    {
+      "name": "scopes_create",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "project_id": "sweep",
+        "name": "Base scope"
+      },
+      "output": {
+        "id": 5,
+        "project_id": "sweep",
+        "name": "Base scope",
+        "created_at": "<now>"
+      }
+    },
+    {
+      "name": "scopes_create",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "project_id": "sweep",
+        "name": "Disposable"
+      },
+      "output": {
+        "id": 6,
+        "project_id": "sweep",
+        "name": "Disposable",
+        "created_at": "<now>"
+      }
+    },
+    {
+      "name": "scopes_get",
+      "kind": "query",
+      "mcp": true,
+      "input": {
+        "scope_id": 5
+      },
+      "output": {
+        "id": 5,
+        "project_id": "sweep",
+        "name": "Base scope",
+        "created_at": "<now>",
+        "task_count": 0,
+        "tasks_total": 0,
+        "epics_count": 0
+      }
+    },
+    {
+      "name": "scopes_update",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "scope_id": 6,
+        "patch": {
+          "name": "Renamed scope"
+        }
+      },
+      "output": {
+        "id": 6,
+        "project_id": "sweep",
+        "name": "Renamed scope",
+        "created_at": "<now>"
+      }
+    },
+    {
+      "name": "scopes_delete",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "scope_id": 6,
+        "dry_run": true
+      },
+      "output": {
+        "scope": {
+          "id": 6,
+          "project_id": "sweep",
+          "name": "Renamed scope",
+          "created_at": "<now>"
+        },
+        "task_ids": [],
+        "epic_ids": [],
+        "dry_run": true
+      }
+    },
+    {
+      "name": "scopes_delete",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "scope_id": 6
+      },
+      "output": {
+        "scope": {
+          "id": 6,
+          "project_id": "sweep",
+          "name": "Renamed scope",
+          "created_at": "<now>"
+        },
+        "task_ids": [],
+        "epic_ids": [],
+        "dry_run": false
+      }
+    },
+    {
+      "name": "tags_list",
+      "kind": "query",
+      "mcp": true,
+      "input": {},
+      "output": {
+        "items": [
+          {
+            "tag": "bug",
+            "count": 2,
+            "active": 1
+          },
+          {
+            "tag": "design-ui",
+            "count": 2,
+            "active": 2
+          },
+          {
+            "tag": "docs",
+            "count": 1,
+            "active": 0
+          },
+          {
+            "tag": "release",
+            "count": 1,
+            "active": 1
+          }
+        ],
+        "total": 4
+      }
+    },
+    {
+      "name": "tags_dictionary",
+      "kind": "query",
+      "mcp": true,
+      "input": {},
+      "output": {
+        "items": [
+          "bug",
+          "design-ui",
+          "docs",
+          "release"
+        ]
+      }
+    },
+    {
+      "name": "tags_inventory",
+      "kind": "query",
+      "mcp": false,
+      "input": {},
+      "output": {
+        "items": [
+          {
+            "name": "bug",
+            "archived": false,
+            "created_at": "<now>",
+            "count": 2,
+            "active": 1,
+            "backlog": 1
+          },
+          {
+            "name": "design-ui",
+            "archived": false,
+            "created_at": "<now>",
+            "count": 2,
+            "active": 2,
+            "backlog": 0
+          },
+          {
+            "name": "docs",
+            "archived": false,
+            "created_at": "<now>",
+            "count": 1,
+            "active": 0,
+            "backlog": 1
+          },
+          {
+            "name": "release",
+            "archived": false,
+            "created_at": "<now>",
+            "count": 1,
+            "active": 1,
+            "backlog": 0
+          },
+          {
+            "name": "legacy",
+            "archived": true,
+            "created_at": "<now>",
+            "count": 0,
+            "active": 0,
+            "backlog": 0
+          }
+        ],
+        "total": 5
+      }
+    },
+    {
+      "name": "tags_create",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "name": "sweep-tag"
+      },
+      "output": {
+        "name": "sweep-tag",
+        "archived": false,
+        "created_at": "<now>"
+      }
+    },
+    {
+      "name": "tags_create",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "name": "sweep-rename"
+      },
+      "output": {
+        "name": "sweep-rename",
+        "archived": false,
+        "created_at": "<now>"
+      }
+    },
+    {
+      "name": "tags_update",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "name": "sweep-tag",
+        "patch": {
+          "archived": true
+        }
+      },
+      "output": {
+        "name": "sweep-tag",
+        "archived": true,
+        "created_at": "<now>"
+      }
+    },
+    {
+      "name": "tags_rename",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "name": "sweep-rename",
+        "new_name": "sweep-renamed"
+      },
+      "output": {
+        "name": "sweep-renamed",
+        "archived": false,
+        "created_at": "<now>"
+      }
+    },
+    {
+      "name": "tasks_create",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "project_id": "sweep",
+        "title": "Base",
+        "status": "open",
+        "priority": "high",
+        "tags": [
+          "bug"
+        ],
+        "estimate": "M"
+      },
+      "output": {
+        "id": "SWP-1",
+        "project_id": "sweep",
+        "number": 1,
+        "title": "Base",
+        "description": "",
+        "status": "open",
+        "priority": "high",
+        "is_epic": false,
+        "epic_id": null,
+        "scope_id": null,
+        "source_file": null,
+        "tags": [
+          "bug"
+        ],
+        "estimate": "M",
+        "assignee": null,
+        "due_at": null,
+        "attachments_count": 0,
+        "created_at": "<now>",
+        "updated_at": "<now>",
+        "closed_at": null,
+        "closed_reason": null,
+        "blocked_reason": null,
+        "deleted_at": null,
+        "blocked_by": [],
+        "blocks": [],
+        "relates_to": [],
+        "duplicates": [],
+        "duplicated_by": [],
+        "warnings": []
+      }
+    },
+    {
+      "name": "tasks_create",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "project_id": "sweep",
+        "title": "Sweep epic",
+        "is_epic": true,
+        "scope_id": 5
+      },
+      "output": {
+        "id": "SWP-2",
+        "project_id": "sweep",
+        "number": 2,
+        "title": "Sweep epic",
+        "description": "",
+        "status": "backlog",
+        "priority": "medium",
+        "is_epic": true,
+        "epic_id": null,
+        "scope_id": 5,
+        "source_file": null,
+        "tags": [],
+        "estimate": null,
+        "assignee": null,
+        "due_at": null,
+        "attachments_count": 0,
+        "created_at": "<now>",
+        "updated_at": "<now>",
+        "closed_at": null,
+        "closed_reason": null,
+        "blocked_reason": null,
+        "deleted_at": null,
+        "blocked_by": [],
+        "blocks": [],
+        "relates_to": [],
+        "duplicates": [],
+        "duplicated_by": [],
+        "warnings": []
+      }
+    },
+    {
+      "name": "tasks_get",
+      "kind": "query",
+      "mcp": true,
+      "input": {
+        "task_id": "SWP-1"
+      },
+      "output": {
+        "id": "SWP-1",
+        "project_id": "sweep",
+        "number": 1,
+        "title": "Base",
+        "description": "",
+        "status": "open",
+        "priority": "high",
+        "is_epic": false,
+        "epic_id": null,
+        "scope_id": null,
+        "source_file": null,
+        "tags": [
+          "bug"
+        ],
+        "estimate": "M",
+        "assignee": null,
+        "due_at": null,
+        "attachments_count": 0,
+        "created_at": "<now>",
+        "updated_at": "<now>",
+        "closed_at": null,
+        "closed_reason": null,
+        "blocked_reason": null,
+        "deleted_at": null,
+        "blocked_by": [],
+        "blocks": [],
+        "relates_to": [],
+        "duplicates": [],
+        "duplicated_by": []
+      }
+    },
+    {
+      "name": "tasks_get_many",
+      "kind": "query",
+      "mcp": true,
+      "input": {
+        "task_ids": [
+          "SWP-1",
+          "SWP-2"
+        ]
+      },
+      "output": {
+        "items": [
+          {
+            "id": "SWP-1",
+            "project_id": "sweep",
+            "number": 1,
+            "title": "Base",
+            "description": "",
+            "status": "open",
+            "priority": "high",
+            "is_epic": false,
+            "epic_id": null,
+            "scope_id": null,
+            "source_file": null,
+            "tags": [
+              "bug"
+            ],
+            "estimate": "M",
+            "assignee": null,
+            "due_at": null,
+            "attachments_count": 0,
+            "created_at": "<now>",
+            "updated_at": "<now>",
+            "closed_at": null,
+            "closed_reason": null,
+            "blocked_reason": null,
+            "deleted_at": null,
+            "blocked_by": [],
+            "blocks": [],
+            "relates_to": [],
+            "duplicates": [],
+            "duplicated_by": []
+          },
+          {
+            "id": "SWP-2",
+            "project_id": "sweep",
+            "number": 2,
+            "title": "Sweep epic",
+            "description": "",
+            "status": "backlog",
+            "priority": "medium",
+            "is_epic": true,
+            "epic_id": null,
+            "scope_id": 5,
+            "source_file": null,
+            "tags": [],
+            "estimate": null,
+            "assignee": null,
+            "due_at": null,
+            "attachments_count": 0,
+            "created_at": "<now>",
+            "updated_at": "<now>",
+            "closed_at": null,
+            "closed_reason": null,
+            "blocked_reason": null,
+            "deleted_at": null,
+            "blocked_by": [],
+            "blocks": [],
+            "relates_to": [],
+            "duplicates": [],
+            "duplicated_by": []
+          }
+        ],
+        "missing": []
+      }
+    },
+    {
+      "name": "tasks_list",
+      "kind": "query",
+      "mcp": true,
+      "input": {},
+      "output": {
+        "items": [
+          {
+            "id": "SWP-2",
+            "project_id": "sweep",
+            "number": 2,
+            "title": "Sweep epic",
+            "status": "backlog",
+            "priority": "medium",
+            "is_epic": true,
+            "epic_id": null,
+            "scope_id": 5,
+            "source_file": null,
+            "tags": [],
+            "estimate": null,
+            "assignee": null,
+            "due_at": null,
+            "attachments_count": 0,
+            "created_at": "<now>",
+            "updated_at": "<now>",
+            "closed_at": null,
+            "closed_reason": null,
+            "blocked_reason": null,
+            "deleted_at": null,
+            "short_description": "",
+            "blocked_by": [],
+            "blocks": [],
+            "relates_to": [],
+            "duplicates": [],
+            "duplicated_by": []
+          },
+          {
+            "id": "SWP-1",
+            "project_id": "sweep",
+            "number": 1,
+            "title": "Base",
+            "status": "open",
+            "priority": "high",
+            "is_epic": false,
+            "epic_id": null,
+            "scope_id": null,
+            "source_file": null,
+            "tags": [
+              "bug"
+            ],
+            "estimate": "M",
+            "assignee": null,
+            "due_at": null,
+            "attachments_count": 0,
+            "created_at": "<now>",
+            "updated_at": "<now>",
+            "closed_at": null,
+            "closed_reason": null,
+            "blocked_reason": null,
+            "deleted_at": null,
+            "short_description": "",
+            "blocked_by": [],
+            "blocks": [],
+            "relates_to": [],
+            "duplicates": [],
+            "duplicated_by": []
+          },
+          {
+            "id": "LOG-6",
+            "project_id": "log",
+            "number": 6,
+            "title": "Moved from spa",
+            "status": "backlog",
+            "priority": "medium",
+            "is_epic": false,
+            "epic_id": null,
+            "scope_id": null,
+            "source_file": null,
+            "tags": [],
+            "estimate": null,
+            "assignee": null,
+            "due_at": null,
+            "attachments_count": 0,
+            "created_at": "<now>",
+            "updated_at": "<now>",
+            "closed_at": null,
+            "closed_reason": null,
+            "blocked_reason": null,
+            "deleted_at": null,
+            "short_description": "",
+            "blocked_by": [],
+            "blocks": [],
+            "relates_to": [],
+            "duplicates": [],
+            "duplicated_by": []
+          },
+          {
+            "id": "SPA-4",
+            "project_id": "spa",
+            "number": 4,
+            "title": "Wire SSE events",
+            "status": "in-progress",
+            "priority": "medium",
+            "is_epic": false,
+            "epic_id": "SPA-1",
+            "scope_id": 2,
+            "source_file": null,
+            "tags": [
+              "design-ui"
+            ],
+            "estimate": "M",
+            "assignee": "olga",
+            "due_at": null,
+            "attachments_count": 2,
+            "created_at": "<now>",
+            "updated_at": "<now>",
+            "closed_at": null,
+            "closed_reason": null,
+            "blocked_reason": null,
+            "deleted_at": null,
+            "short_description": "",
+            "blocked_by": [],
+            "blocks": [],
+            "relates_to": [],
+            "duplicates": [],
+            "duplicated_by": []
+          },
+          {
+            "id": "SPA-2",
+            "project_id": "spa",
+            "number": 2,
+            "title": "Port tasks list",
+            "status": "in-progress",
+            "priority": "medium",
+            "is_epic": false,
+            "epic_id": "SPA-1",
+            "scope_id": 1,
+            "source_file": "docs/rust-rewrite.md",
+            "tags": [
+              "bug"
+            ],
+            "estimate": "M",
+            "assignee": "ivan",
+            "due_at": "2026-12-01",
+            "attachments_count": 2,
+            "created_at": "<now>",
+            "updated_at": "<now>",
+            "closed_at": null,
+            "closed_reason": null,
+            "blocked_reason": null,
+            "deleted_at": null,
+            "short_description": "Second pass.",
+            "blocked_by": [],
+            "blocks": [],
+            "relates_to": [],
+            "duplicates": [],
+            "duplicated_by": [
+              "SPA-8"
+            ]
+          },
+          {
+            "id": "SPA-8",
+            "project_id": "spa",
+            "number": 8,
+            "title": "Duplicate report",
+            "status": "backlog",
+            "priority": "medium",
+            "is_epic": false,
+            "epic_id": null,
+            "scope_id": 1,
+            "source_file": null,
+            "tags": [
+              "bug"
+            ],
+            "estimate": null,
+            "assignee": null,
+            "due_at": null,
+            "attachments_count": 0,
+            "created_at": "<now>",
+            "updated_at": "<now>",
+            "closed_at": null,
+            "closed_reason": null,
+            "blocked_reason": null,
+            "deleted_at": null,
+            "short_description": "",
+            "blocked_by": [],
+            "blocks": [],
+            "relates_to": [
+              "SPA-3"
+            ],
+            "duplicates": [
+              "SPA-2"
+            ],
+            "duplicated_by": []
+          },
+          {
+            "id": "SPA-6",
+            "project_id": "spa",
+            "number": 6,
+            "title": "Blocked on upstream",
+            "status": "blocked",
+            "priority": "low",
+            "is_epic": false,
+            "epic_id": null,
+            "scope_id": null,
+            "source_file": null,
+            "tags": [],
+            "estimate": null,
+            "assignee": null,
+            "due_at": null,
+            "attachments_count": 0,
+            "created_at": "<now>",
+            "updated_at": "<now>",
+            "closed_at": null,
+            "closed_reason": null,
+            "blocked_reason": "waiting for sqlite 3.50",
+            "deleted_at": null,
+            "short_description": "",
+            "blocked_by": [
+              "LOG-2"
+            ],
+            "blocks": [],
+            "relates_to": [],
+            "duplicates": [],
+            "duplicated_by": []
+          },
+          {
+            "id": "SPA-5",
+            "project_id": "spa",
+            "number": 5,
+            "title": "Document deploy",
+            "status": "backlog",
+            "priority": "medium",
+            "is_epic": false,
+            "epic_id": null,
+            "scope_id": null,
+            "source_file": null,
+            "tags": [
+              "docs"
+            ],
+            "estimate": null,
+            "assignee": null,
+            "due_at": "2026-12-15",
+            "attachments_count": 1,
+            "created_at": "<now>",
+            "updated_at": "<now>",
+            "closed_at": null,
+            "closed_reason": null,
+            "blocked_reason": null,
+            "deleted_at": null,
+            "short_description": "",
+            "blocked_by": [],
+            "blocks": [],
+            "relates_to": [],
+            "duplicates": [],
+            "duplicated_by": []
+          },
+          {
+            "id": "SPA-3",
+            "project_id": "spa",
+            "number": 3,
+            "title": "Port task create",
+            "status": "open",
+            "priority": "critical",
+            "is_epic": false,
+            "epic_id": "SPA-1",
+            "scope_id": 1,
+            "source_file": null,
+            "tags": [],
+            "estimate": "S",
+            "assignee": null,
+            "due_at": null,
+            "attachments_count": 1,
+            "created_at": "<now>",
+            "updated_at": "<now>",
+            "closed_at": null,
+            "closed_reason": null,
+            "blocked_reason": null,
+            "deleted_at": null,
+            "short_description": "",
+            "blocked_by": [],
+            "blocks": [],
+            "relates_to": [
+              "SPA-8"
+            ],
+            "duplicates": [],
+            "duplicated_by": []
+          },
+          {
+            "id": "SPA-1",
+            "project_id": "spa",
+            "number": 1,
+            "title": "Rust backend",
+            "status": "open",
+            "priority": "high",
+            "is_epic": true,
+            "epic_id": null,
+            "scope_id": 1,
+            "source_file": null,
+            "tags": [
+              "design-ui"
+            ],
+            "estimate": "L",
+            "assignee": null,
+            "due_at": null,
+            "attachments_count": 0,
+            "created_at": "<now>",
+            "updated_at": "<now>",
+            "closed_at": null,
+            "closed_reason": null,
+            "blocked_reason": null,
+            "deleted_at": null,
+            "short_description": "Port the node backend to Rust.",
+            "blocked_by": [],
+            "blocks": [],
+            "relates_to": [],
+            "duplicates": [],
+            "duplicated_by": []
+          },
+          {
+            "id": "LOG-3",
+            "project_id": "log",
+            "number": 3,
+            "title": "Cancelled experiment",
+            "status": "cancelled",
+            "priority": "medium",
+            "is_epic": false,
+            "epic_id": null,
+            "scope_id": null,
+            "source_file": null,
+            "tags": [],
+            "estimate": null,
+            "assignee": null,
+            "due_at": null,
+            "attachments_count": 0,
+            "created_at": "<now>",
+            "updated_at": "<now>",
+            "closed_at": "<now>",
+            "closed_reason": "wontfix",
+            "blocked_reason": null,
+            "deleted_at": null,
+            "short_description": "",
+            "blocked_by": [],
+            "blocks": [],
+            "relates_to": [],
+            "duplicates": [],
+            "duplicated_by": []
+          },
+          {
+            "id": "LOG-4",
+            "project_id": "log",
+            "number": 4,
+            "title": "Toolchain epic",
+            "status": "open",
+            "priority": "high",
+            "is_epic": true,
+            "epic_id": null,
+            "scope_id": null,
+            "source_file": null,
+            "tags": [],
+            "estimate": null,
+            "assignee": null,
+            "due_at": null,
+            "attachments_count": 0,
+            "created_at": "<now>",
+            "updated_at": "<now>",
+            "closed_at": null,
+            "closed_reason": null,
+            "blocked_reason": null,
+            "deleted_at": null,
+            "short_description": "",
+            "blocked_by": [],
+            "blocks": [],
+            "relates_to": [],
+            "duplicates": [],
+            "duplicated_by": []
+          },
+          {
+            "id": "LOG-5",
+            "project_id": "log",
+            "number": 5,
+            "title": "Pin sqlite",
+            "status": "open",
+            "priority": "medium",
+            "is_epic": false,
+            "epic_id": "LOG-4",
+            "scope_id": null,
+            "source_file": null,
+            "tags": [],
+            "estimate": "S",
+            "assignee": null,
+            "due_at": null,
+            "attachments_count": 0,
+            "created_at": "<now>",
+            "updated_at": "<now>",
+            "closed_at": null,
+            "closed_reason": null,
+            "blocked_reason": null,
+            "deleted_at": null,
+            "short_description": "",
+            "blocked_by": [],
+            "blocks": [],
+            "relates_to": [],
+            "duplicates": [],
+            "duplicated_by": []
+          },
+          {
+            "id": "LOG-2",
+            "project_id": "log",
+            "number": 2,
+            "title": "Upgrade toolchain",
+            "status": "in-progress",
+            "priority": "medium",
+            "is_epic": false,
+            "epic_id": null,
+            "scope_id": 3,
+            "source_file": null,
+            "tags": [],
+            "estimate": null,
+            "assignee": null,
+            "due_at": null,
+            "attachments_count": 0,
+            "created_at": "<now>",
+            "updated_at": "<now>",
+            "closed_at": null,
+            "closed_reason": null,
+            "blocked_reason": null,
+            "deleted_at": null,
+            "short_description": "",
+            "blocked_by": [],
+            "blocks": [
+              "SPA-6"
+            ],
+            "relates_to": [],
+            "duplicates": [],
+            "duplicated_by": []
+          },
+          {
+            "id": "LOG-1",
+            "project_id": "log",
+            "number": 1,
+            "title": "Prepare rust workspace",
+            "status": "open",
+            "priority": "medium",
+            "is_epic": false,
+            "epic_id": null,
+            "scope_id": 3,
+            "source_file": null,
+            "tags": [
+              "release"
+            ],
+            "estimate": "L",
+            "assignee": null,
+            "due_at": null,
+            "attachments_count": 0,
+            "created_at": "<now>",
+            "updated_at": "<now>",
+            "closed_at": null,
+            "closed_reason": null,
+            "blocked_reason": null,
+            "deleted_at": null,
+            "short_description": "",
+            "blocked_by": [],
+            "blocks": [],
+            "relates_to": [],
+            "duplicates": [],
+            "duplicated_by": []
+          }
+        ],
+        "total": 15
+      }
+    },
+    {
+      "name": "tasks_list#filter",
+      "kind": "query",
+      "mcp": true,
+      "input": {
+        "status": [
+          "open",
+          "in-progress",
+          "blocked"
+        ],
+        "sort": "title",
+        "limit": 5,
+        "include_project": true,
+        "include_scope": true
+      },
+      "output": {
+        "items": [
+          {
+            "id": "SWP-1",
+            "project_id": "sweep",
+            "number": 1,
+            "title": "Base",
+            "status": "open",
+            "priority": "high",
+            "is_epic": false,
+            "epic_id": null,
+            "scope_id": null,
+            "source_file": null,
+            "tags": [
+              "bug"
+            ],
+            "estimate": "M",
+            "assignee": null,
+            "due_at": null,
+            "attachments_count": 0,
+            "created_at": "<now>",
+            "updated_at": "<now>",
+            "closed_at": null,
+            "closed_reason": null,
+            "blocked_reason": null,
+            "deleted_at": null,
+            "project_name": "Sweep",
+            "short_description": "",
+            "blocked_by": [],
+            "blocks": [],
+            "relates_to": [],
+            "duplicates": [],
+            "duplicated_by": []
+          },
+          {
+            "id": "SPA-6",
+            "project_id": "spa",
+            "number": 6,
+            "title": "Blocked on upstream",
+            "status": "blocked",
+            "priority": "low",
+            "is_epic": false,
+            "epic_id": null,
+            "scope_id": null,
+            "source_file": null,
+            "tags": [],
+            "estimate": null,
+            "assignee": null,
+            "due_at": null,
+            "attachments_count": 0,
+            "created_at": "<now>",
+            "updated_at": "<now>",
+            "closed_at": null,
+            "closed_reason": null,
+            "blocked_reason": "waiting for sqlite 3.50",
+            "deleted_at": null,
+            "project_name": "SPA",
+            "short_description": "",
+            "blocked_by": [
+              "LOG-2"
+            ],
+            "blocks": [],
+            "relates_to": [],
+            "duplicates": [],
+            "duplicated_by": []
+          },
+          {
+            "id": "LOG-5",
+            "project_id": "log",
+            "number": 5,
+            "title": "Pin sqlite",
+            "status": "open",
+            "priority": "medium",
+            "is_epic": false,
+            "epic_id": "LOG-4",
+            "scope_id": null,
+            "source_file": null,
+            "tags": [],
+            "estimate": "S",
+            "assignee": null,
+            "due_at": null,
+            "attachments_count": 0,
+            "created_at": "<now>",
+            "updated_at": "<now>",
+            "closed_at": null,
+            "closed_reason": null,
+            "blocked_reason": null,
+            "deleted_at": null,
+            "project_name": "XBOCT-log",
+            "short_description": "",
+            "blocked_by": [],
+            "blocks": [],
+            "relates_to": [],
+            "duplicates": [],
+            "duplicated_by": []
+          },
+          {
+            "id": "SPA-3",
+            "project_id": "spa",
+            "number": 3,
+            "title": "Port task create",
+            "status": "open",
+            "priority": "critical",
+            "is_epic": false,
+            "epic_id": "SPA-1",
+            "scope_id": 1,
+            "source_file": null,
+            "tags": [],
+            "estimate": "S",
+            "assignee": null,
+            "due_at": null,
+            "attachments_count": 1,
+            "created_at": "<now>",
+            "updated_at": "<now>",
+            "closed_at": null,
+            "closed_reason": null,
+            "blocked_reason": null,
+            "deleted_at": null,
+            "project_name": "SPA",
+            "scope_name": "backend",
+            "short_description": "",
+            "blocked_by": [],
+            "blocks": [],
+            "relates_to": [
+              "SPA-8"
+            ],
+            "duplicates": [],
+            "duplicated_by": []
+          },
+          {
+            "id": "SPA-2",
+            "project_id": "spa",
+            "number": 2,
+            "title": "Port tasks list",
+            "status": "in-progress",
+            "priority": "medium",
+            "is_epic": false,
+            "epic_id": "SPA-1",
+            "scope_id": 1,
+            "source_file": "docs/rust-rewrite.md",
+            "tags": [
+              "bug"
+            ],
+            "estimate": "M",
+            "assignee": "ivan",
+            "due_at": "2026-12-01",
+            "attachments_count": 2,
+            "created_at": "<now>",
+            "updated_at": "<now>",
+            "closed_at": null,
+            "closed_reason": null,
+            "blocked_reason": null,
+            "deleted_at": null,
+            "project_name": "SPA",
+            "scope_name": "backend",
+            "short_description": "Second pass.",
+            "blocked_by": [],
+            "blocks": [],
+            "relates_to": [],
+            "duplicates": [],
+            "duplicated_by": [
+              "SPA-8"
+            ]
+          }
+        ],
+        "total": 10
+      }
+    },
+    {
+      "name": "tasks_list#search",
+      "kind": "query",
+      "mcp": true,
+      "input": {
+        "q_any": [
+          "rust",
+          "deploy",
+          "sweep"
+        ],
+        "limit": 10
+      },
+      "output": {
+        "items": [
+          {
+            "id": "SWP-2",
+            "project_id": "sweep",
+            "number": 2,
+            "title": "Sweep epic",
+            "status": "backlog",
+            "priority": "medium",
+            "is_epic": true,
+            "epic_id": null,
+            "scope_id": 5,
+            "source_file": null,
+            "tags": [],
+            "estimate": null,
+            "assignee": null,
+            "due_at": null,
+            "attachments_count": 0,
+            "created_at": "<now>",
+            "updated_at": "<now>",
+            "closed_at": null,
+            "closed_reason": null,
+            "blocked_reason": null,
+            "deleted_at": null,
+            "short_description": "",
+            "blocked_by": [],
+            "blocks": [],
+            "relates_to": [],
+            "duplicates": [],
+            "duplicated_by": []
+          },
+          {
+            "id": "SPA-5",
+            "project_id": "spa",
+            "number": 5,
+            "title": "Document deploy",
+            "status": "backlog",
+            "priority": "medium",
+            "is_epic": false,
+            "epic_id": null,
+            "scope_id": null,
+            "source_file": null,
+            "tags": [
+              "docs"
+            ],
+            "estimate": null,
+            "assignee": null,
+            "due_at": "2026-12-15",
+            "attachments_count": 1,
+            "created_at": "<now>",
+            "updated_at": "<now>",
+            "closed_at": null,
+            "closed_reason": null,
+            "blocked_reason": null,
+            "deleted_at": null,
+            "short_description": "",
+            "blocked_by": [],
+            "blocks": [],
+            "relates_to": [],
+            "duplicates": [],
+            "duplicated_by": []
+          },
+          {
+            "id": "SPA-1",
+            "project_id": "spa",
+            "number": 1,
+            "title": "Rust backend",
+            "status": "open",
+            "priority": "high",
+            "is_epic": true,
+            "epic_id": null,
+            "scope_id": 1,
+            "source_file": null,
+            "tags": [
+              "design-ui"
+            ],
+            "estimate": "L",
+            "assignee": null,
+            "due_at": null,
+            "attachments_count": 0,
+            "created_at": "<now>",
+            "updated_at": "<now>",
+            "closed_at": null,
+            "closed_reason": null,
+            "blocked_reason": null,
+            "deleted_at": null,
+            "short_description": "Port the node backend to Rust.",
+            "blocked_by": [],
+            "blocks": [],
+            "relates_to": [],
+            "duplicates": [],
+            "duplicated_by": []
+          },
+          {
+            "id": "LOG-1",
+            "project_id": "log",
+            "number": 1,
+            "title": "Prepare rust workspace",
+            "status": "open",
+            "priority": "medium",
+            "is_epic": false,
+            "epic_id": null,
+            "scope_id": 3,
+            "source_file": null,
+            "tags": [
+              "release"
+            ],
+            "estimate": "L",
+            "assignee": null,
+            "due_at": null,
+            "attachments_count": 0,
+            "created_at": "<now>",
+            "updated_at": "<now>",
+            "closed_at": null,
+            "closed_reason": null,
+            "blocked_reason": null,
+            "deleted_at": null,
+            "short_description": "",
+            "blocked_by": [],
+            "blocks": [],
+            "relates_to": [],
+            "duplicates": [],
+            "duplicated_by": []
+          }
+        ],
+        "total": 4
+      }
+    },
+    {
+      "name": "tasks_options",
+      "kind": "query",
+      "mcp": true,
+      "input": {
+        "project_id": "sweep"
+      },
+      "output": {
+        "items": [
+          {
+            "id": "SWP-1",
+            "project_id": "sweep",
+            "number": 1,
+            "title": "Base",
+            "status": "open",
+            "priority": "high",
+            "is_epic": false,
+            "epic_id": null,
+            "scope_id": null,
+            "source_file": null,
+            "tags": [
+              "bug"
+            ],
+            "estimate": "M",
+            "assignee": null,
+            "due_at": null,
+            "attachments_count": 0,
+            "created_at": "<now>",
+            "updated_at": "<now>",
+            "closed_at": null,
+            "closed_reason": null,
+            "blocked_reason": null,
+            "deleted_at": null,
+            "short_description": "",
+            "blocked_by": [],
+            "blocks": [],
+            "relates_to": [],
+            "duplicates": [],
+            "duplicated_by": []
+          },
+          {
+            "id": "SWP-2",
+            "project_id": "sweep",
+            "number": 2,
+            "title": "Sweep epic",
+            "status": "backlog",
+            "priority": "medium",
+            "is_epic": true,
+            "epic_id": null,
+            "scope_id": 5,
+            "source_file": null,
+            "tags": [],
+            "estimate": null,
+            "assignee": null,
+            "due_at": null,
+            "attachments_count": 0,
+            "created_at": "<now>",
+            "updated_at": "<now>",
+            "closed_at": null,
+            "closed_reason": null,
+            "blocked_reason": null,
+            "deleted_at": null,
+            "short_description": "",
+            "blocked_by": [],
+            "blocks": [],
+            "relates_to": [],
+            "duplicates": [],
+            "duplicated_by": []
+          }
+        ],
+        "total": 2
+      }
+    },
+    {
+      "name": "tasks_stats",
+      "kind": "query",
+      "mcp": true,
+      "input": {},
+      "output": {
+        "tasks": {
+          "backlog": 3,
+          "open": 4,
+          "in-progress": 3,
+          "blocked": 1,
+          "done": 0,
+          "cancelled": 1
+        },
+        "epics": [
+          {
+            "id": "SPA-1",
+            "project_id": "spa",
+            "number": 1,
+            "title": "Rust backend",
+            "status": "open",
+            "priority": "high",
+            "is_epic": true,
+            "epic_id": null,
+            "scope_id": 1,
+            "source_file": null,
+            "tags": [
+              "design-ui"
+            ],
+            "estimate": "L",
+            "assignee": null,
+            "due_at": null,
+            "attachments_count": 0,
+            "created_at": "<now>",
+            "updated_at": "<now>",
+            "closed_at": null,
+            "closed_reason": null,
+            "blocked_reason": null,
+            "deleted_at": null,
+            "short_description": "Port the node backend to Rust.",
+            "blocked_by": [],
+            "blocks": [],
+            "relates_to": [],
+            "duplicates": [],
+            "duplicated_by": [],
+            "children_counts": {
+              "backlog": 0,
+              "open": 1,
+              "in-progress": 2,
+              "blocked": 0,
+              "done": 0,
+              "cancelled": 0,
+              "total": 3
+            }
+          },
+          {
+            "id": "SWP-2",
+            "project_id": "sweep",
+            "number": 2,
+            "title": "Sweep epic",
+            "status": "backlog",
+            "priority": "medium",
+            "is_epic": true,
+            "epic_id": null,
+            "scope_id": 5,
+            "source_file": null,
+            "tags": [],
+            "estimate": null,
+            "assignee": null,
+            "due_at": null,
+            "attachments_count": 0,
+            "created_at": "<now>",
+            "updated_at": "<now>",
+            "closed_at": null,
+            "closed_reason": null,
+            "blocked_reason": null,
+            "deleted_at": null,
+            "short_description": "",
+            "blocked_by": [],
+            "blocks": [],
+            "relates_to": [],
+            "duplicates": [],
+            "duplicated_by": []
+          },
+          {
+            "id": "LOG-4",
+            "project_id": "log",
+            "number": 4,
+            "title": "Toolchain epic",
+            "status": "open",
+            "priority": "high",
+            "is_epic": true,
+            "epic_id": null,
+            "scope_id": null,
+            "source_file": null,
+            "tags": [],
+            "estimate": null,
+            "assignee": null,
+            "due_at": null,
+            "attachments_count": 0,
+            "created_at": "<now>",
+            "updated_at": "<now>",
+            "closed_at": null,
+            "closed_reason": null,
+            "blocked_reason": null,
+            "deleted_at": null,
+            "short_description": "",
+            "blocked_by": [],
+            "blocks": [],
+            "relates_to": [],
+            "duplicates": [],
+            "duplicated_by": [],
+            "children_counts": {
+              "backlog": 0,
+              "open": 1,
+              "in-progress": 0,
+              "blocked": 0,
+              "done": 0,
+              "cancelled": 0,
+              "total": 1
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "tasks_create_many",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "items": [
+          {
+            "project_id": "sweep",
+            "title": "Many one"
+          },
+          {
+            "project_id": "sweep",
+            "title": "Many two",
+            "status": "open"
+          }
+        ]
+      },
+      "output": {
+        "items": [
+          {
+            "index": 0,
+            "id": "SWP-3",
+            "ok": true,
+            "task": {
+              "id": "SWP-3",
+              "project_id": "sweep",
+              "number": 3,
+              "title": "Many one",
+              "description": "",
+              "status": "backlog",
+              "priority": "medium",
+              "is_epic": false,
+              "epic_id": null,
+              "scope_id": null,
+              "source_file": null,
+              "tags": [],
+              "estimate": null,
+              "assignee": null,
+              "due_at": null,
+              "attachments_count": 0,
+              "created_at": "<now>",
+              "updated_at": "<now>",
+              "closed_at": null,
+              "closed_reason": null,
+              "blocked_reason": null,
+              "deleted_at": null,
+              "blocked_by": [],
+              "blocks": [],
+              "relates_to": [],
+              "duplicates": [],
+              "duplicated_by": []
+            },
+            "changes": [],
+            "released": [],
+            "warnings": []
+          },
+          {
+            "index": 1,
+            "id": "SWP-4",
+            "ok": true,
+            "task": {
+              "id": "SWP-4",
+              "project_id": "sweep",
+              "number": 4,
+              "title": "Many two",
+              "description": "",
+              "status": "open",
+              "priority": "medium",
+              "is_epic": false,
+              "epic_id": null,
+              "scope_id": null,
+              "source_file": null,
+              "tags": [],
+              "estimate": null,
+              "assignee": null,
+              "due_at": null,
+              "attachments_count": 0,
+              "created_at": "<now>",
+              "updated_at": "<now>",
+              "closed_at": null,
+              "closed_reason": null,
+              "blocked_reason": null,
+              "deleted_at": null,
+              "blocked_by": [],
+              "blocks": [],
+              "relates_to": [],
+              "duplicates": [],
+              "duplicated_by": []
+            },
+            "changes": [],
+            "released": [],
+            "warnings": []
+          }
+        ],
+        "succeeded": 2,
+        "failed": 0
+      }
+    },
+    {
+      "name": "tasks_create",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "project_id": "sweep",
+        "title": "Patch me"
+      },
+      "output": {
+        "id": "SWP-5",
+        "project_id": "sweep",
+        "number": 5,
+        "title": "Patch me",
+        "description": "",
+        "status": "backlog",
+        "priority": "medium",
+        "is_epic": false,
+        "epic_id": null,
+        "scope_id": null,
+        "source_file": null,
+        "tags": [],
+        "estimate": null,
+        "assignee": null,
+        "due_at": null,
+        "attachments_count": 0,
+        "created_at": "<now>",
+        "updated_at": "<now>",
+        "closed_at": null,
+        "closed_reason": null,
+        "blocked_reason": null,
+        "deleted_at": null,
+        "blocked_by": [],
+        "blocks": [],
+        "relates_to": [],
+        "duplicates": [],
+        "duplicated_by": [],
+        "warnings": []
+      }
+    },
+    {
+      "name": "tasks_update",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "task_id": "SWP-2",
+        "patch": {
+          "priority": "low",
+          "due_at": "2027-01-15",
+          "assignee": "ivan",
+          "description": "Epic of the parity sweep."
+        }
+      },
+      "output": {
+        "id": "SWP-2",
+        "project_id": "sweep",
+        "number": 2,
+        "title": "Sweep epic",
+        "description": "Epic of the parity sweep.",
+        "status": "backlog",
+        "priority": "low",
+        "is_epic": true,
+        "epic_id": null,
+        "scope_id": 5,
+        "source_file": null,
+        "tags": [],
+        "estimate": null,
+        "assignee": "ivan",
+        "due_at": "2027-01-15",
+        "attachments_count": 0,
+        "created_at": "<now>",
+        "updated_at": "<now>",
+        "closed_at": null,
+        "closed_reason": null,
+        "blocked_reason": null,
+        "deleted_at": null,
+        "blocked_by": [],
+        "blocks": [],
+        "relates_to": [],
+        "duplicates": [],
+        "duplicated_by": [],
+        "changes": [
+          {
+            "field": "priority",
+            "from": "medium",
+            "to": "low"
+          },
+          {
+            "field": "assignee",
+            "from": null,
+            "to": "ivan"
+          },
+          {
+            "field": "due_at",
+            "from": null,
+            "to": "2027-01-15"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "name": "tasks_update_many",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "items": [
+          {
+            "task_id": "SWP-5",
+            "patch": {
+              "priority": "low"
+            }
+          },
+          {
+            "task_id": "SPA-999",
+            "patch": {
+              "priority": "high"
+            }
+          }
+        ]
+      },
+      "output": {
+        "items": [
+          {
+            "index": 0,
+            "id": "SWP-5",
+            "ok": true,
+            "task": {
+              "id": "SWP-5",
+              "project_id": "sweep",
+              "number": 5,
+              "title": "Patch me",
+              "description": "",
+              "status": "backlog",
+              "priority": "low",
+              "is_epic": false,
+              "epic_id": null,
+              "scope_id": null,
+              "source_file": null,
+              "tags": [],
+              "estimate": null,
+              "assignee": null,
+              "due_at": null,
+              "attachments_count": 0,
+              "created_at": "<now>",
+              "updated_at": "<now>",
+              "closed_at": null,
+              "closed_reason": null,
+              "blocked_reason": null,
+              "deleted_at": null,
+              "blocked_by": [],
+              "blocks": [],
+              "relates_to": [],
+              "duplicates": [],
+              "duplicated_by": []
+            },
+            "changes": [
+              {
+                "field": "priority",
+                "from": "medium",
+                "to": "low"
+              }
+            ],
+            "released": [],
+            "warnings": []
+          },
+          {
+            "index": 1,
+            "id": "SPA-999",
+            "ok": false,
+            "error": {
+              "kind": "not_found",
+              "message": "task SPA-999 not found"
+            }
+          }
+        ],
+        "succeeded": 1,
+        "failed": 1
+      }
+    },
+    {
+      "name": "tasks_create",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "project_id": "sweep",
+        "title": "Doomed"
+      },
+      "output": {
+        "id": "SWP-6",
+        "project_id": "sweep",
+        "number": 6,
+        "title": "Doomed",
+        "description": "",
+        "status": "backlog",
+        "priority": "medium",
+        "is_epic": false,
+        "epic_id": null,
+        "scope_id": null,
+        "source_file": null,
+        "tags": [],
+        "estimate": null,
+        "assignee": null,
+        "due_at": null,
+        "attachments_count": 0,
+        "created_at": "<now>",
+        "updated_at": "<now>",
+        "closed_at": null,
+        "closed_reason": null,
+        "blocked_reason": null,
+        "deleted_at": null,
+        "blocked_by": [],
+        "blocks": [],
+        "relates_to": [],
+        "duplicates": [],
+        "duplicated_by": [],
+        "warnings": []
+      }
+    },
+    {
+      "name": "tasks_close",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "task_id": "SWP-6",
+        "reason": "fixed"
+      },
+      "output": {
+        "id": "SWP-6",
+        "project_id": "sweep",
+        "number": 6,
+        "title": "Doomed",
+        "description": "",
+        "status": "done",
+        "priority": "medium",
+        "is_epic": false,
+        "epic_id": null,
+        "scope_id": null,
+        "source_file": null,
+        "tags": [],
+        "estimate": null,
+        "assignee": null,
+        "due_at": null,
+        "attachments_count": 0,
+        "created_at": "<now>",
+        "updated_at": "<now>",
+        "closed_at": "<now>",
+        "closed_reason": "fixed",
+        "blocked_reason": null,
+        "deleted_at": null,
+        "blocked_by": [],
+        "blocks": [],
+        "relates_to": [],
+        "duplicates": [],
+        "duplicated_by": [],
+        "changes": [
+          {
+            "field": "status",
+            "from": "backlog",
+            "to": "done"
+          },
+          {
+            "field": "closed_reason",
+            "from": null,
+            "to": "fixed"
+          }
+        ],
+        "released": [],
+        "warnings": []
+      }
+    },
+    {
+      "name": "tasks_create",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "project_id": "sweep",
+        "title": "Close many A"
+      },
+      "output": {
+        "id": "SWP-7",
+        "project_id": "sweep",
+        "number": 7,
+        "title": "Close many A",
+        "description": "",
+        "status": "backlog",
+        "priority": "medium",
+        "is_epic": false,
+        "epic_id": null,
+        "scope_id": null,
+        "source_file": null,
+        "tags": [],
+        "estimate": null,
+        "assignee": null,
+        "due_at": null,
+        "attachments_count": 0,
+        "created_at": "<now>",
+        "updated_at": "<now>",
+        "closed_at": null,
+        "closed_reason": null,
+        "blocked_reason": null,
+        "deleted_at": null,
+        "blocked_by": [],
+        "blocks": [],
+        "relates_to": [],
+        "duplicates": [],
+        "duplicated_by": [],
+        "warnings": []
+      }
+    },
+    {
+      "name": "tasks_create",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "project_id": "sweep",
+        "title": "Close many B"
+      },
+      "output": {
+        "id": "SWP-8",
+        "project_id": "sweep",
+        "number": 8,
+        "title": "Close many B",
+        "description": "",
+        "status": "backlog",
+        "priority": "medium",
+        "is_epic": false,
+        "epic_id": null,
+        "scope_id": null,
+        "source_file": null,
+        "tags": [],
+        "estimate": null,
+        "assignee": null,
+        "due_at": null,
+        "attachments_count": 0,
+        "created_at": "<now>",
+        "updated_at": "<now>",
+        "closed_at": null,
+        "closed_reason": null,
+        "blocked_reason": null,
+        "deleted_at": null,
+        "blocked_by": [],
+        "blocks": [],
+        "relates_to": [],
+        "duplicates": [],
+        "duplicated_by": [],
+        "warnings": []
+      }
+    },
+    {
+      "name": "tasks_close_many",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "items": [
+          {
+            "task_id": "SWP-7",
+            "reason": "wontfix"
+          },
+          {
+            "task_id": "SWP-8",
+            "reason": "fixed"
+          },
+          {
+            "task_id": "SWP-9999",
+            "reason": "fixed"
+          }
+        ]
+      },
+      "output": {
+        "items": [
+          {
+            "index": 0,
+            "id": "SWP-7",
+            "ok": true,
+            "task": {
+              "id": "SWP-7",
+              "project_id": "sweep",
+              "number": 7,
+              "title": "Close many A",
+              "description": "",
+              "status": "cancelled",
+              "priority": "medium",
+              "is_epic": false,
+              "epic_id": null,
+              "scope_id": null,
+              "source_file": null,
+              "tags": [],
+              "estimate": null,
+              "assignee": null,
+              "due_at": null,
+              "attachments_count": 0,
+              "created_at": "<now>",
+              "updated_at": "<now>",
+              "closed_at": "<now>",
+              "closed_reason": "wontfix",
+              "blocked_reason": null,
+              "deleted_at": null,
+              "blocked_by": [],
+              "blocks": [],
+              "relates_to": [],
+              "duplicates": [],
+              "duplicated_by": []
+            },
+            "changes": [
+              {
+                "field": "status",
+                "from": "backlog",
+                "to": "cancelled"
+              },
+              {
+                "field": "closed_reason",
+                "from": null,
+                "to": "wontfix"
+              }
+            ],
+            "released": [],
+            "warnings": []
+          },
+          {
+            "index": 1,
+            "id": "SWP-8",
+            "ok": true,
+            "task": {
+              "id": "SWP-8",
+              "project_id": "sweep",
+              "number": 8,
+              "title": "Close many B",
+              "description": "",
+              "status": "done",
+              "priority": "medium",
+              "is_epic": false,
+              "epic_id": null,
+              "scope_id": null,
+              "source_file": null,
+              "tags": [],
+              "estimate": null,
+              "assignee": null,
+              "due_at": null,
+              "attachments_count": 0,
+              "created_at": "<now>",
+              "updated_at": "<now>",
+              "closed_at": "<now>",
+              "closed_reason": "fixed",
+              "blocked_reason": null,
+              "deleted_at": null,
+              "blocked_by": [],
+              "blocks": [],
+              "relates_to": [],
+              "duplicates": [],
+              "duplicated_by": []
+            },
+            "changes": [
+              {
+                "field": "status",
+                "from": "backlog",
+                "to": "done"
+              },
+              {
+                "field": "closed_reason",
+                "from": null,
+                "to": "fixed"
+              }
+            ],
+            "released": [],
+            "warnings": []
+          },
+          {
+            "index": 2,
+            "id": "SWP-9999",
+            "ok": false,
+            "error": {
+              "kind": "not_found",
+              "message": "task SWP-9999 not found"
+            }
+          }
+        ],
+        "succeeded": 2,
+        "failed": 1
+      }
+    },
+    {
+      "name": "tasks_delete",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "task_id": "SWP-5"
+      },
+      "output": {
+        "id": "SWP-5",
+        "deleted_at": "<now>",
+        "changes": [
+          {
+            "field": "deleted_at",
+            "from": null,
+            "to": "<now>"
+          },
+          {
+            "field": "blocked_by",
+            "from": [],
+            "to": []
+          }
+        ],
+        "released": []
+      }
+    },
+    {
+      "name": "tasks_restore",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "task_id": "SWP-5"
+      },
+      "output": {
+        "id": "SWP-5",
+        "project_id": "sweep",
+        "number": 5,
+        "title": "Patch me",
+        "description": "",
+        "status": "backlog",
+        "priority": "low",
+        "is_epic": false,
+        "epic_id": null,
+        "scope_id": null,
+        "source_file": null,
+        "tags": [],
+        "estimate": null,
+        "assignee": null,
+        "due_at": null,
+        "attachments_count": 0,
+        "created_at": "<now>",
+        "updated_at": "<now>",
+        "closed_at": null,
+        "closed_reason": null,
+        "blocked_reason": null,
+        "deleted_at": null,
+        "blocked_by": [],
+        "blocks": [],
+        "relates_to": [],
+        "duplicates": [],
+        "duplicated_by": []
+      }
+    },
+    {
+      "name": "tasks_move",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "task_id": "SWP-5",
+        "project_id": "sweep-target"
+      },
+      "output": {
+        "id": "SWT-1",
+        "project_id": "sweep-target",
+        "number": 1,
+        "title": "Patch me",
+        "description": "",
+        "status": "backlog",
+        "priority": "low",
+        "is_epic": false,
+        "epic_id": null,
+        "scope_id": null,
+        "source_file": null,
+        "tags": [],
+        "estimate": null,
+        "assignee": null,
+        "due_at": null,
+        "attachments_count": 0,
+        "created_at": "<now>",
+        "updated_at": "<now>",
+        "closed_at": null,
+        "closed_reason": null,
+        "blocked_reason": null,
+        "deleted_at": null,
+        "blocked_by": [],
+        "blocks": [],
+        "relates_to": [],
+        "duplicates": [],
+        "duplicated_by": []
+      }
+    },
+    {
+      "name": "tasks_history",
+      "kind": "query",
+      "mcp": true,
+      "input": {
+        "task_id": "SWP-1",
+        "limit": 20
+      },
+      "output": {
+        "items": [
+          {
+            "ts": "<now>",
+            "source": "ui",
+            "client": null,
+            "op": "tasks_create",
+            "fields": [
+              "status",
+              "priority",
+              "tags",
+              "estimate"
+            ],
+            "changes": []
+          }
+        ],
+        "total": 1
+      }
+    },
+    {
+      "name": "tasks_revisions_list",
+      "kind": "query",
+      "mcp": true,
+      "input": {
+        "task_id": "SWP-1"
+      },
+      "output": {
+        "items": [],
+        "total": 0
+      }
+    },
+    {
+      "name": "tasks_deleted_list",
+      "kind": "query",
+      "mcp": true,
+      "input": {},
+      "output": {
+        "items": [
+          {
+            "id": "SPA-7",
+            "project_id": "spa",
+            "number": 7,
+            "title": "Old spike",
+            "status": "backlog",
+            "priority": "medium",
+            "is_epic": false,
+            "epic_id": null,
+            "scope_id": null,
+            "source_file": null,
+            "tags": [],
+            "estimate": null,
+            "assignee": null,
+            "due_at": null,
+            "attachments_count": 0,
+            "created_at": "<now>",
+            "updated_at": "<now>",
+            "closed_at": null,
+            "closed_reason": null,
+            "blocked_reason": null,
+            "deleted_at": "<now>",
+            "short_description": "",
+            "blocked_by": [],
+            "blocks": [],
+            "relates_to": [],
+            "duplicates": [],
+            "duplicated_by": []
+          }
+        ],
+        "total": 1
+      }
+    },
+    {
+      "name": "tasks_create",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "project_id": "sweep",
+        "title": "Blocked"
+      },
+      "output": {
+        "id": "SWP-9",
+        "project_id": "sweep",
+        "number": 9,
+        "title": "Blocked",
+        "description": "",
+        "status": "backlog",
+        "priority": "medium",
+        "is_epic": false,
+        "epic_id": null,
+        "scope_id": null,
+        "source_file": null,
+        "tags": [],
+        "estimate": null,
+        "assignee": null,
+        "due_at": null,
+        "attachments_count": 0,
+        "created_at": "<now>",
+        "updated_at": "<now>",
+        "closed_at": null,
+        "closed_reason": null,
+        "blocked_reason": null,
+        "deleted_at": null,
+        "blocked_by": [],
+        "blocks": [],
+        "relates_to": [],
+        "duplicates": [],
+        "duplicated_by": [],
+        "warnings": []
+      }
+    },
+    {
+      "name": "tasks_add_blocker",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "task_id": "SWP-9",
+        "blocked_by": "SWP-1"
+      },
+      "output": {
+        "id": "SWP-9",
+        "project_id": "sweep",
+        "number": 9,
+        "title": "Blocked",
+        "description": "",
+        "status": "backlog",
+        "priority": "medium",
+        "is_epic": false,
+        "epic_id": null,
+        "scope_id": null,
+        "source_file": null,
+        "tags": [],
+        "estimate": null,
+        "assignee": null,
+        "due_at": null,
+        "attachments_count": 0,
+        "created_at": "<now>",
+        "updated_at": "<now>",
+        "closed_at": null,
+        "closed_reason": null,
+        "blocked_reason": null,
+        "deleted_at": null,
+        "blocked_by": [
+          "SWP-1"
+        ],
+        "blocks": [],
+        "relates_to": [],
+        "duplicates": [],
+        "duplicated_by": [],
+        "changes": [
+          {
+            "field": "blocked_by",
+            "from": [],
+            "to": [
+              "SWP-1"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "tasks_remove_blocker",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "task_id": "SWP-9",
+        "blocked_by": "SWP-1"
+      },
+      "output": {
+        "id": "SWP-9",
+        "project_id": "sweep",
+        "number": 9,
+        "title": "Blocked",
+        "description": "",
+        "status": "backlog",
+        "priority": "medium",
+        "is_epic": false,
+        "epic_id": null,
+        "scope_id": null,
+        "source_file": null,
+        "tags": [],
+        "estimate": null,
+        "assignee": null,
+        "due_at": null,
+        "attachments_count": 0,
+        "created_at": "<now>",
+        "updated_at": "<now>",
+        "closed_at": null,
+        "closed_reason": null,
+        "blocked_reason": null,
+        "deleted_at": null,
+        "blocked_by": [],
+        "blocks": [],
+        "relates_to": [],
+        "duplicates": [],
+        "duplicated_by": [],
+        "changes": [
+          {
+            "field": "blocked_by",
+            "from": [
+              "SWP-1"
+            ],
+            "to": []
+          }
+        ]
+      }
+    },
+    {
+      "name": "tasks_create",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "project_id": "sweep",
+        "title": "Linked"
+      },
+      "output": {
+        "id": "SWP-10",
+        "project_id": "sweep",
+        "number": 10,
+        "title": "Linked",
+        "description": "",
+        "status": "backlog",
+        "priority": "medium",
+        "is_epic": false,
+        "epic_id": null,
+        "scope_id": null,
+        "source_file": null,
+        "tags": [],
+        "estimate": null,
+        "assignee": null,
+        "due_at": null,
+        "attachments_count": 0,
+        "created_at": "<now>",
+        "updated_at": "<now>",
+        "closed_at": null,
+        "closed_reason": null,
+        "blocked_reason": null,
+        "deleted_at": null,
+        "blocked_by": [],
+        "blocks": [],
+        "relates_to": [],
+        "duplicates": [],
+        "duplicated_by": [],
+        "warnings": []
+      }
+    },
+    {
+      "name": "tasks_add_link",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "task_id": "SWP-10",
+        "link_type": "duplicates",
+        "target": "SWP-1"
+      },
+      "output": {
+        "id": "SWP-10",
+        "project_id": "sweep",
+        "number": 10,
+        "title": "Linked",
+        "description": "",
+        "status": "backlog",
+        "priority": "medium",
+        "is_epic": false,
+        "epic_id": null,
+        "scope_id": null,
+        "source_file": null,
+        "tags": [],
+        "estimate": null,
+        "assignee": null,
+        "due_at": null,
+        "attachments_count": 0,
+        "created_at": "<now>",
+        "updated_at": "<now>",
+        "closed_at": null,
+        "closed_reason": null,
+        "blocked_reason": null,
+        "deleted_at": null,
+        "blocked_by": [],
+        "blocks": [],
+        "relates_to": [],
+        "duplicates": [
+          "SWP-1"
+        ],
+        "duplicated_by": [],
+        "changes": [
+          {
+            "field": "duplicates",
+            "from": [],
+            "to": [
+              "SWP-1"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "tasks_remove_link",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "task_id": "SWP-10",
+        "link_type": "duplicates",
+        "target": "SWP-1"
+      },
+      "output": {
+        "id": "SWP-10",
+        "project_id": "sweep",
+        "number": 10,
+        "title": "Linked",
+        "description": "",
+        "status": "backlog",
+        "priority": "medium",
+        "is_epic": false,
+        "epic_id": null,
+        "scope_id": null,
+        "source_file": null,
+        "tags": [],
+        "estimate": null,
+        "assignee": null,
+        "due_at": null,
+        "attachments_count": 0,
+        "created_at": "<now>",
+        "updated_at": "<now>",
+        "closed_at": null,
+        "closed_reason": null,
+        "blocked_reason": null,
+        "deleted_at": null,
+        "blocked_by": [],
+        "blocks": [],
+        "relates_to": [],
+        "duplicates": [],
+        "duplicated_by": [],
+        "changes": [
+          {
+            "field": "duplicates",
+            "from": [
+              "SWP-1"
+            ],
+            "to": []
+          }
+        ]
+      }
+    },
+    {
+      "name": "tasks_comments_add",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "task_id": "SWP-1",
+        "body": "Parity comment"
+      },
+      "output": {
+        "id": "<uuid:1>",
+        "task_id": "SWP-1",
+        "body": "Parity comment",
+        "created_at": "<now>",
+        "edited_at": null,
+        "deleted_at": null
+      }
+    },
+    {
+      "name": "tasks_comments_edit",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "comment_id": "<uuid:1>",
+        "body": "Parity comment edited"
+      },
+      "output": {
+        "id": "<uuid:1>",
+        "task_id": "SWP-1",
+        "body": "Parity comment edited",
+        "created_at": "<now>",
+        "edited_at": "<now>",
+        "deleted_at": null
+      }
+    },
+    {
+      "name": "tasks_comments_list",
+      "kind": "query",
+      "mcp": true,
+      "input": {
+        "task_id": "SWP-1"
+      },
+      "output": {
+        "items": [
+          {
+            "id": "<uuid:1>",
+            "task_id": "SWP-1",
+            "body": "Parity comment edited",
+            "created_at": "<now>",
+            "edited_at": "<now>",
+            "deleted_at": null
+          }
+        ],
+        "total": 1
+      }
+    },
+    {
+      "name": "tasks_comments_delete",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "comment_id": "<uuid:1>"
+      },
+      "output": {
+        "id": "<uuid:1>",
+        "task_id": "SWP-1",
+        "body": "Parity comment edited",
+        "created_at": "<now>",
+        "edited_at": "<now>",
+        "deleted_at": "<now>"
+      }
+    },
+    {
+      "name": "attachments_add",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "task_id": "SWP-1",
+        "filename": "parity.txt",
+        "content_base64": "cGFyaXR5"
+      },
+      "output": {
+        "item": {
+          "id": "<uuid:2>",
+          "task_id": "SWP-1",
+          "file_name": "parity.txt",
+          "mime_type": "text/plain",
+          "size": 6,
+          "created_at": "<now>",
+          "uri": "xboct-log://attachment/<uuid:2>",
+          "missing": false,
+          "deleted_at": null
+        }
+      }
+    },
+    {
+      "name": "attachments_list",
+      "kind": "query",
+      "mcp": true,
+      "input": {
+        "task_id": "SWP-1"
+      },
+      "output": {
+        "items": [
+          {
+            "id": "<uuid:2>",
+            "task_id": "SWP-1",
+            "file_name": "parity.txt",
+            "mime_type": "text/plain",
+            "size": 6,
+            "created_at": "<now>",
+            "uri": "xboct-log://attachment/<uuid:2>",
+            "missing": false,
+            "deleted_at": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "attachments_delete",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "attachment_id": "<uuid:2>"
+      },
+      "output": {
+        "id": "<uuid:2>",
+        "task_id": "SWP-1",
+        "file_name": "parity.txt",
+        "mime_type": "text/plain",
+        "size": 6,
+        "created_at": "<now>",
+        "uri": "xboct-log://attachment/<uuid:2>",
+        "missing": false,
+        "deleted_at": "<now>"
+      }
+    },
+    {
+      "name": "attachments_deleted_list",
+      "kind": "query",
+      "mcp": true,
+      "input": {
+        "task_id": "SWP-1"
+      },
+      "output": {
+        "items": [
+          {
+            "id": "<uuid:2>",
+            "task_id": "SWP-1",
+            "file_name": "parity.txt",
+            "mime_type": "text/plain",
+            "size": 6,
+            "created_at": "<now>",
+            "uri": "xboct-log://attachment/<uuid:2>",
+            "missing": false,
+            "deleted_at": "<now>",
+            "task_title": "Base"
+          }
+        ]
+      }
+    },
+    {
+      "name": "attachments_deleted_list#all",
+      "kind": "query",
+      "mcp": true,
+      "input": {},
+      "output": {
+        "items": [
+          {
+            "id": "<uuid:2>",
+            "task_id": "SWP-1",
+            "file_name": "parity.txt",
+            "mime_type": "text/plain",
+            "size": 6,
+            "created_at": "<now>",
+            "uri": "xboct-log://attachment/<uuid:2>",
+            "missing": false,
+            "deleted_at": "<now>",
+            "task_title": "Base"
+          },
+          {
+            "id": "attachment:3",
+            "task_id": "SPA-2",
+            "file_name": "spec.md",
+            "mime_type": "text/markdown",
+            "size": 7,
+            "created_at": "<now>",
+            "uri": "xboct-log://attachment/attachment:3",
+            "missing": false,
+            "deleted_at": "<now>",
+            "task_title": "Port tasks list"
+          }
+        ]
+      }
+    },
+    {
+      "name": "attachments_restore",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "attachment_id": "<uuid:2>"
+      },
+      "output": {
+        "id": "<uuid:2>",
+        "task_id": "SWP-1",
+        "file_name": "parity.txt",
+        "mime_type": "text/plain",
+        "size": 6,
+        "created_at": "<now>",
+        "uri": "xboct-log://attachment/<uuid:2>",
+        "missing": false,
+        "deleted_at": null
+      }
+    },
+    {
+      "name": "attachments_copy",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "attachment_id": "<uuid:2>",
+        "task_id": "SWP-10"
+      },
+      "output": {
+        "item": {
+          "id": "<uuid:3>",
+          "task_id": "SWP-10",
+          "file_name": "parity.txt",
+          "mime_type": "text/plain",
+          "size": 6,
+          "created_at": "<now>",
+          "uri": "xboct-log://attachment/<uuid:3>",
+          "missing": false,
+          "deleted_at": null
+        }
+      }
+    },
+    {
+      "name": "attachments_add",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "task_id": "SWP-1",
+        "filename": "moving.txt",
+        "content_base64": "bW92aW5n"
+      },
+      "output": {
+        "item": {
+          "id": "<uuid:4>",
+          "task_id": "SWP-1",
+          "file_name": "moving.txt",
+          "mime_type": "text/plain",
+          "size": 6,
+          "created_at": "<now>",
+          "uri": "xboct-log://attachment/<uuid:4>",
+          "missing": false,
+          "deleted_at": null
+        }
+      }
+    },
+    {
+      "name": "attachments_move",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "attachment_id": "<uuid:4>",
+        "task_id": "SWP-2"
+      },
+      "output": {
+        "item": {
+          "id": "<uuid:4>",
+          "task_id": "SWP-2",
+          "file_name": "moving.txt",
+          "mime_type": "text/plain",
+          "size": 6,
+          "created_at": "<now>",
+          "uri": "xboct-log://attachment/<uuid:4>",
+          "missing": false,
+          "deleted_at": null
+        },
+        "previous_task_id": "SWP-1",
+        "was_deleted": false
+      }
+    },
+    {
+      "name": "attachments_add",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "task_id": "SWP-1",
+        "filename": "purged.txt",
+        "content_base64": "Ynll"
+      },
+      "output": {
+        "item": {
+          "id": "<uuid:5>",
+          "task_id": "SWP-1",
+          "file_name": "purged.txt",
+          "mime_type": "text/plain",
+          "size": 3,
+          "created_at": "<now>",
+          "uri": "xboct-log://attachment/<uuid:5>",
+          "missing": false,
+          "deleted_at": null
+        }
+      }
+    },
+    {
+      "name": "attachments_delete",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "attachment_id": "<uuid:5>"
+      },
+      "output": {
+        "id": "<uuid:5>",
+        "task_id": "SWP-1",
+        "file_name": "purged.txt",
+        "mime_type": "text/plain",
+        "size": 3,
+        "created_at": "<now>",
+        "uri": "xboct-log://attachment/<uuid:5>",
+        "missing": false,
+        "deleted_at": "<now>"
+      }
+    },
+    {
+      "name": "attachments_purge",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "attachment_id": "<uuid:5>"
+      },
+      "output": {
+        "id": "<uuid:5>",
+        "task_id": "SWP-1",
+        "file_name": "purged.txt",
+        "file_removed": true
+      }
+    },
+    {
+      "name": "attachments_verify",
+      "kind": "query",
+      "mcp": true,
+      "input": {},
+      "output": {
+        "ok": [
+          {
+            "id": "attachment:1",
+            "task_id": "SPA-2",
+            "file_name": "note.txt",
+            "mime_type": "text/plain",
+            "size": 16,
+            "created_at": "<now>",
+            "uri": "xboct-log://attachment/attachment:1",
+            "missing": false,
+            "deleted_at": null
+          },
+          {
+            "id": "attachment:6",
+            "task_id": "SPA-2",
+            "file_name": "copy-source.txt",
+            "mime_type": "text/plain",
+            "size": 5,
+            "created_at": "<now>",
+            "uri": "xboct-log://attachment/attachment:6",
+            "missing": false,
+            "deleted_at": null
+          },
+          {
+            "id": "attachment:2",
+            "task_id": "SPA-3",
+            "file_name": "pixel.png",
+            "mime_type": "image/png",
+            "size": 70,
+            "created_at": "<now>",
+            "uri": "xboct-log://attachment/attachment:2",
+            "missing": false,
+            "deleted_at": null
+          },
+          {
+            "id": "attachment:4",
+            "task_id": "SPA-4",
+            "file_name": "restored.txt",
+            "mime_type": "text/plain",
+            "size": 9,
+            "created_at": "<now>",
+            "uri": "xboct-log://attachment/attachment:4",
+            "missing": false,
+            "deleted_at": null
+          },
+          {
+            "id": "attachment:5",
+            "task_id": "SPA-4",
+            "file_name": "moving.txt",
+            "mime_type": "text/plain",
+            "size": 7,
+            "created_at": "<now>",
+            "uri": "xboct-log://attachment/attachment:5",
+            "missing": false,
+            "deleted_at": null
+          },
+          {
+            "id": "attachment:7",
+            "task_id": "SPA-5",
+            "file_name": "copy-source.txt",
+            "mime_type": "text/plain",
+            "size": 5,
+            "created_at": "<now>",
+            "uri": "xboct-log://attachment/attachment:7",
+            "missing": false,
+            "deleted_at": null
+          },
+          {
+            "id": "<uuid:2>",
+            "task_id": "SWP-1",
+            "file_name": "parity.txt",
+            "mime_type": "text/plain",
+            "size": 6,
+            "created_at": "<now>",
+            "uri": "xboct-log://attachment/<uuid:2>",
+            "missing": false,
+            "deleted_at": null
+          },
+          {
+            "id": "<uuid:3>",
+            "task_id": "SWP-10",
+            "file_name": "parity.txt",
+            "mime_type": "text/plain",
+            "size": 6,
+            "created_at": "<now>",
+            "uri": "xboct-log://attachment/<uuid:3>",
+            "missing": false,
+            "deleted_at": null
+          },
+          {
+            "id": "<uuid:4>",
+            "task_id": "SWP-2",
+            "file_name": "moving.txt",
+            "mime_type": "text/plain",
+            "size": 6,
+            "created_at": "<now>",
+            "uri": "xboct-log://attachment/<uuid:4>",
+            "missing": false,
+            "deleted_at": null
+          }
+        ],
+        "missing": []
+      }
+    },
+    {
+      "name": "activity_list",
+      "kind": "query",
+      "mcp": true,
+      "input": {
+        "limit": 10
+      },
+      "output": {
+        "items": [
+          {
+            "ts": "<now>",
+            "source": "ui",
+            "client": null,
+            "op": "attachments_purge",
+            "entity": "task",
+            "entity_id": "SWP-1",
+            "fields": [
+              "attachments"
+            ],
+            "changes": [
+              {
+                "field": "attachments",
+                "from": "purged.txt",
+                "to": null,
+                "ref_id": "<uuid:5>"
+              }
+            ]
+          },
+          {
+            "ts": "<now>",
+            "source": "ui",
+            "client": null,
+            "op": "attachments_delete",
+            "entity": "task",
+            "entity_id": "SWP-1",
+            "fields": [
+              "attachments"
+            ],
+            "changes": [
+              {
+                "field": "attachments",
+                "from": "purged.txt",
+                "to": null,
+                "ref_id": "<uuid:5>"
+              }
+            ]
+          },
+          {
+            "ts": "<now>",
+            "source": "ui",
+            "client": null,
+            "op": "attachments_add",
+            "entity": "task",
+            "entity_id": "SWP-1",
+            "fields": [
+              "attachments"
+            ],
+            "changes": [
+              {
+                "field": "attachments",
+                "from": null,
+                "to": "purged.txt",
+                "ref_id": "<uuid:5>"
+              }
+            ]
+          },
+          {
+            "ts": "<now>",
+            "source": "ui",
+            "client": null,
+            "op": "attachments_move",
+            "entity": "task",
+            "entity_id": "SWP-2",
+            "fields": [
+              "attachments"
+            ],
+            "changes": [
+              {
+                "field": "attachments",
+                "from": null,
+                "to": "moving.txt",
+                "ref_id": "<uuid:4>"
+              }
+            ]
+          },
+          {
+            "ts": "<now>",
+            "source": "ui",
+            "client": null,
+            "op": "attachments_move",
+            "entity": "task",
+            "entity_id": "SWP-1",
+            "fields": [
+              "attachments"
+            ],
+            "changes": [
+              {
+                "field": "attachments",
+                "from": "moving.txt",
+                "to": null,
+                "ref_id": "<uuid:4>"
+              }
+            ]
+          },
+          {
+            "ts": "<now>",
+            "source": "ui",
+            "client": null,
+            "op": "attachments_add",
+            "entity": "task",
+            "entity_id": "SWP-1",
+            "fields": [
+              "attachments"
+            ],
+            "changes": [
+              {
+                "field": "attachments",
+                "from": null,
+                "to": "moving.txt",
+                "ref_id": "<uuid:4>"
+              }
+            ]
+          },
+          {
+            "ts": "<now>",
+            "source": "ui",
+            "client": null,
+            "op": "attachments_copy",
+            "entity": "task",
+            "entity_id": "SWP-10",
+            "fields": [
+              "attachments"
+            ],
+            "changes": [
+              {
+                "field": "attachments",
+                "from": null,
+                "to": "parity.txt",
+                "ref_id": "<uuid:3>"
+              }
+            ]
+          },
+          {
+            "ts": "<now>",
+            "source": "ui",
+            "client": null,
+            "op": "attachments_restore",
+            "entity": "task",
+            "entity_id": "SWP-1",
+            "fields": [
+              "attachments"
+            ],
+            "changes": [
+              {
+                "field": "attachments",
+                "from": null,
+                "to": "parity.txt",
+                "ref_id": "<uuid:2>"
+              }
+            ]
+          },
+          {
+            "ts": "<now>",
+            "source": "ui",
+            "client": null,
+            "op": "attachments_delete",
+            "entity": "task",
+            "entity_id": "SWP-1",
+            "fields": [
+              "attachments"
+            ],
+            "changes": [
+              {
+                "field": "attachments",
+                "from": "parity.txt",
+                "to": null,
+                "ref_id": "<uuid:2>"
+              }
+            ]
+          },
+          {
+            "ts": "<now>",
+            "source": "ui",
+            "client": null,
+            "op": "attachments_add",
+            "entity": "task",
+            "entity_id": "SWP-1",
+            "fields": [
+              "attachments"
+            ],
+            "changes": [
+              {
+                "field": "attachments",
+                "from": null,
+                "to": "parity.txt",
+                "ref_id": "<uuid:2>"
+              }
+            ]
+          }
+        ],
+        "total": 108,
+        "ops": [
+          "attachments_add",
+          "attachments_copy",
+          "attachments_delete",
+          "attachments_move",
+          "attachments_purge",
+          "attachments_restore",
+          "projects_create",
+          "projects_update",
+          "scopes_create",
+          "scopes_delete",
+          "scopes_update",
+          "tags_create",
+          "tags_rename",
+          "tags_update",
+          "tasks_add_blocker",
+          "tasks_add_link",
+          "tasks_close",
+          "tasks_close_many",
+          "tasks_comments_add",
+          "tasks_comments_delete",
+          "tasks_comments_edit",
+          "tasks_create",
+          "tasks_create_many",
+          "tasks_delete",
+          "tasks_move",
+          "tasks_remove_blocker",
+          "tasks_remove_link",
+          "tasks_restore",
+          "tasks_update",
+          "tasks_update_many"
+        ]
+      }
+    },
+    {
+      "name": "tasks_update#sse",
+      "kind": "command",
+      "mcp": true,
+      "input": {
+        "task_id": "SWP-10",
+        "patch": {
+          "title": "Linked task changed"
+        }
+      },
+      "output": {
+        "id": "SWP-10",
+        "project_id": "sweep",
+        "number": 10,
+        "title": "Linked task changed",
+        "description": "",
+        "status": "backlog",
+        "priority": "medium",
+        "is_epic": false,
+        "epic_id": null,
+        "scope_id": null,
+        "source_file": null,
+        "tags": [],
+        "estimate": null,
+        "assignee": null,
+        "due_at": null,
+        "attachments_count": 1,
+        "created_at": "<now>",
+        "updated_at": "<now>",
+        "closed_at": null,
+        "closed_reason": null,
+        "blocked_reason": null,
+        "deleted_at": null,
+        "blocked_by": [],
+        "blocks": [],
+        "relates_to": [],
+        "duplicates": [],
+        "duplicated_by": [],
+        "changes": [
+          {
+            "field": "title",
+            "from": "Linked",
+            "to": "Linked task changed"
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "name": "backup_create",
+      "kind": "command",
+      "mcp": true,
+      "input": {},
+      "output": {
+        "path": "<runtime>/backups/manual/xboct-log-<stamp>.db"
+      }
+    },
+    {
+      "name": "backup_list",
+      "kind": "query",
+      "mcp": true,
+      "input": {},
+      "output": {
+        "items": [
+          {
+            "kind": "manual",
+            "name": "xboct-log-<stamp>.db",
+            "path": "<runtime>/backups/manual/xboct-log-<stamp>.db",
+            "size": 229376,
+            "mtime": "<now>"
+          }
+        ]
+      }
+    },
+    {
+      "name": "backups_inspect",
+      "kind": "command",
+      "mcp": false,
+      "input": {
+        "kind": "manual",
+        "name": "xboct-log-<stamp>.db"
+      },
+      "output": {
+        "projects": 5,
+        "tasks": 24
+      }
+    },
+    {
+      "name": "backups_restore",
+      "kind": "command",
+      "mcp": false,
+      "input": {
+        "kind": "manual",
+        "name": "xboct-log-<stamp>.db"
+      },
+      "output": {
+        "snapshot": {
+          "projects": 5,
+          "tasks": 24
+        },
+        "safetyPath": "<runtime>/backups/manual/xboct-log-before-restore-<stamp>.db"
+      }
+    },
+    {
+      "name": "tasks_get#after-restore",
+      "kind": "query",
+      "mcp": true,
+      "input": {
+        "task_id": "SWP-1"
+      },
+      "output": {
+        "id": "SWP-1",
+        "project_id": "sweep",
+        "number": 1,
+        "title": "Base",
+        "description": "",
+        "status": "open",
+        "priority": "high",
+        "is_epic": false,
+        "epic_id": null,
+        "scope_id": null,
+        "source_file": null,
+        "tags": [
+          "bug"
+        ],
+        "estimate": "M",
+        "assignee": null,
+        "due_at": null,
+        "attachments_count": 1,
+        "created_at": "<now>",
+        "updated_at": "<now>",
+        "closed_at": null,
+        "closed_reason": null,
+        "blocked_reason": null,
+        "deleted_at": null,
+        "blocked_by": [],
+        "blocks": [],
+        "relates_to": [],
+        "duplicates": [],
+        "duplicated_by": []
+      }
+    }
+  ],
+  "errors": [
+    {
+      "name": "tasks_get",
+      "arguments": {
+        "task_id": "SPA-999"
+      },
+      "isError": true,
+      "text": "task SPA-999 not found",
+      "structuredContent": {
+        "error": {
+          "kind": "not_found",
+          "message": "task SPA-999 not found"
+        }
+      }
+    },
+    {
+      "name": "tasks_create",
+      "arguments": {
+        "project_id": "ghost",
+        "title": "Nowhere"
+      },
+      "isError": true,
+      "text": "project ghost not found",
+      "structuredContent": {
+        "error": {
+          "kind": "not_found",
+          "message": "project ghost not found"
+        }
+      }
+    },
+    {
+      "name": "projects_create",
+      "arguments": {
+        "project_id": "spa",
+        "name": "SPA again",
+        "prefix": "SPA"
+      },
+      "isError": true,
+      "text": "project id or prefix already exists",
+      "structuredContent": {
+        "error": {
+          "kind": "conflict",
+          "message": "project id or prefix already exists"
+        }
+      }
+    },
+    {
+      "name": "tasks_list",
+      "arguments": {
+        "titel": "x"
+      },
+      "isError": true,
+      "text": "Input validation error: Invalid arguments for tool tasks_list: Unknown parameter(s): titel. Did you mean: titel -> title? Allowed parameters: project_id, exclude_project_id, status, priority, estimate, assignee, due_before, due_after, tag, is_epic, epic_id, scope_id, has_epic, has_scope, has_tags, blocked_by, blocks, q, q_any, number_exact, id_exact, title, title_exact, source_file, fields, include_description, include_project, include_scope, project_archived, sort, order, include_deleted, limit, offset"
+    },
+    {
+      "name": "tasks_comments_edit",
+      "arguments": {
+        "comment_id": "<uuid:6>",
+        "body": "Nowhere"
+      },
+      "isError": true,
+      "text": "comment 00000000-0000-0000-0000-000000000002 not found",
+      "structuredContent": {
+        "error": {
+          "kind": "not_found",
+          "message": "comment 00000000-0000-0000-0000-000000000002 not found"
+        }
+      }
+    },
+    {
+      "name": "scopes_delete",
+      "arguments": {
+        "scope_id": 999999
+      },
+      "isError": true,
+      "text": "scope 999999 not found",
+      "structuredContent": {
+        "error": {
+          "kind": "not_found",
+          "message": "scope 999999 not found"
+        }
+      }
+    },
+    {
+      "name": "attachments_purge",
+      "arguments": {
+        "attachment_id": "<uuid:7>"
+      },
+      "isError": true,
+      "text": "no deleted attachment with the id 11111111-1111-4111-8111-111111111111",
+      "structuredContent": {
+        "error": {
+          "kind": "not_found",
+          "message": "no deleted attachment with the id 11111111-1111-4111-8111-111111111111"
+        }
+      }
+    },
+    {
+      "name": "tasks_add_link",
+      "arguments": {
+        "task_id": "SWP-1",
+        "link_type": "relates_to",
+        "target": "SWP-1"
+      },
+      "isError": true,
+      "text": "a task cannot relates to itself",
+      "structuredContent": {
+        "error": {
+          "kind": "validation",
+          "message": "a task cannot relates to itself"
+        }
+      }
+    }
+  ],
+  "events": {
+    "status": 200,
+    "headers": {
+      "content-type": "text/event-stream",
+      "cache-control": "no-cache, no-transform"
+    },
+    "sync": "event: sync\ndata: {\"seq\":44}",
+    "change": "event: change\ndata: {\"seq\":45,\"entity\":\"tasks\",\"op\":\"tasks_update\",\"source\":\"ui\",\"client\":null}"
+  },
+  "media": {
+    "live": {
+      "status": 200,
+      "headers": {
+        "content-type": "text/plain",
+        "content-disposition": "inline; filename=\"note.txt\"",
+        "content-length": "16",
+        "cache-control": "no-store",
+        "x-content-type-options": "nosniff"
+      },
+      "sha256": "408fb95af69281738212942232a8ebfca21cddce6b749d7264154c6b9bd96a9b",
+      "size": 16
+    },
+    "deleted": {
+      "status": 200,
+      "headers": {
+        "content-type": "text/markdown",
+        "content-disposition": "inline; filename=\"spec.md\"",
+        "content-length": "7",
+        "cache-control": "no-store",
+        "x-content-type-options": "nosniff"
+      },
+      "sha256": "603c828a03383f98b82bf9c6787deeb5c40c02871a1b8d6ba14b0d538020a02b",
+      "size": 7
+    },
+    "missing": {
+      "status": 404,
+      "headers": {
+        "content-type": "text/plain; charset=utf-8",
+        "x-content-type-options": "nosniff"
+      },
+      "sha256": "df0b036b060a95814295768e229acbd8dc625eb5dc4164e6f17af8115e6da9fb",
+      "size": 62
+    }
+  }
+}

@@ -2,6 +2,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const STORED_NAME =
 	/^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(\.[A-Za-z0-9]+)$/i;
 const TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/;
+const BACKUP_NAME =
+	/xboct-log-(before-restore-)?(?:\d{4}-W\d{2}|\d{4}-\d{2}-\d{2}(?:-\d{6}|T[0-9:.Z-]+)?)\.db/g;
 
 const DAY_MS = 86_400_000;
 
@@ -66,9 +68,17 @@ export function createNormalizer(
 			}
 		}
 		if (runtime !== undefined) {
-			const portable = value.replaceAll("\\", "/");
+			const stamped = value.replace(
+				BACKUP_NAME,
+				(_match, safety: string | undefined) =>
+					`xboct-log-${safety ?? ""}<stamp>.db`,
+			);
+			const portable = stamped.replaceAll("\\", "/");
 			if (portable === runtime || portable.startsWith(`${runtime}/`)) {
 				return `<runtime>${portable.slice(runtime.length)}`;
+			}
+			if (stamped !== value) {
+				return stamped;
 			}
 		}
 		if (value.startsWith("[") || value.startsWith("{")) {

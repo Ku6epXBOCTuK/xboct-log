@@ -16,4 +16,8 @@ const seeded = runVitest("tests/parity/seed.node.spec.ts", env);
 if (seeded !== 0) {
 	process.exit(seeded);
 }
-process.exit(runVitest("tests/parity/capture.node.spec.ts", env));
+const contract = runVitest("tests/parity/capture.node.spec.ts", env);
+if (contract !== 0) {
+	process.exit(contract);
+}
+process.exit(runVitest("tests/parity/ops.node.spec.ts", env));

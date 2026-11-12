@@ -98,6 +98,16 @@ function canonicalizeLinks(rows: Row[]): Row[] {
 	return rows;
 }
 
+export function databaseIdentities(db: DatabaseSync): Map<string, string> {
+	const read = (sql: string): Row[] =>
+		db.prepare(sql).all() as unknown as Row[];
+	return identitiesOf({
+		tasks: read("SELECT id, key FROM tasks ORDER BY rowid"),
+		task_attachments: read("SELECT id FROM task_attachments ORDER BY rowid"),
+		task_comments: read("SELECT id FROM task_comments ORDER BY rowid"),
+	});
+}
+
 export function readDatabase(
 	db: DatabaseSync,
 	options: NormalizerOptions = {},
