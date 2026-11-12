@@ -89,6 +89,8 @@ export default defineConfig(({ mode }) => {
 									name: "parity",
 									environment: "node",
 									testTimeout: 60_000,
+									sequence: { shuffle: false },
+									fileParallelism: false,
 									include: ["tests/parity/**/*.spec.ts"],
 								},
 							},

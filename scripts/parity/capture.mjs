@@ -9,8 +9,11 @@ const out = resolve(
 );
 
 mkdirSync(out, { recursive: true });
-console.log(`capturing the node contract into ${out}`);
+console.log(`seeding the database and capturing the node contract into ${out}`);
 
-runVitest("tests/parity/capture.node.spec.ts", {
-	XBOCT_LOG_PARITY_OUT: out,
-});
+const env = { XBOCT_LOG_PARITY_OUT: out };
+const seeded = runVitest("tests/parity/seed.node.spec.ts", env);
+if (seeded !== 0) {
+	process.exit(seeded);
+}
+process.exit(runVitest("tests/parity/capture.node.spec.ts", env));

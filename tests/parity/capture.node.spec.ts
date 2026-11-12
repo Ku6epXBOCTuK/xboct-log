@@ -1,27 +1,22 @@
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { z } from "zod";
 import { getOps } from "#lib/remote/index.ts";
-import { closeDb, getDb } from "#lib/server/db.ts";
-import { migrateDatabase } from "#lib/server/migrations.ts";
+import { closeDb } from "#lib/server/db.ts";
 import { GET as healthGET } from "../../src/routes/api/health/+server.ts";
 import {
 	GET as mcpGET,
 	POST as mcpPOST,
 } from "../../src/routes/mcp/+server.ts";
+import {
+	databasePath,
+	fixtureDir,
+	openRuntimeDatabase,
+} from "./lib/runtime.ts";
+import { createNormalizer } from "./lib/normalize.ts";
 
 const PROTOCOL_VERSION = "2026-07-28";
-
-let runtimeDir: string;
-
-function outDir(): string {
-	const value = process.env.XBOCT_LOG_PARITY_OUT;
-	if (value === undefined || value === "") {
-		throw new Error("XBOCT_LOG_PARITY_OUT is not set; run pnpm parity:capture");
-	}
-	return value;
-}
 
 function rpcRequest(body: unknown, method = "POST"): Request {
 	return new Request("http://localhost/mcp", {
@@ -63,23 +58,17 @@ function schemaOf(schema: z.ZodType | undefined): unknown {
 		: z.toJSONSchema(schema, { reused: "inline" });
 }
 
-beforeAll(async () => {
-	runtimeDir = join(process.cwd(), "tests", "parity", ".tmp", "runtime");
-	rmSync(runtimeDir, { recursive: true, force: true });
-	mkdirSync(runtimeDir, { recursive: true });
-
-	process.env.XBOCT_LOG_DB = join(runtimeDir, "db.sqlite");
-	process.env.XBOCT_LOG_MEDIA_DIR = join(runtimeDir, "media");
-	process.env.XBOCT_LOG_BACKUP_DIR = join(runtimeDir, "backups");
-	process.env.XBOCT_LOG_BACKUP_DISABLED = "1";
-
-	const db = getDb(process.env.XBOCT_LOG_DB);
-	await migrateDatabase(db);
+beforeAll(() => {
+	if (!existsSync(databasePath())) {
+		throw new Error(
+			"the seeded database is missing; run pnpm parity:capture or pnpm parity:seed first",
+		);
+	}
+	openRuntimeDatabase();
 });
 
 afterAll(() => {
 	closeDb();
-	rmSync(runtimeDir, { recursive: true, force: true });
 });
 
 describe("node contract", () => {
@@ -104,6 +93,20 @@ describe("node contract", () => {
 		const tools = await rpc("tools/list", {});
 		const resources = await rpc("resources/list", {});
 		const templates = await rpc("resources/templates/list", {});
+		const attachments =
+			(resources.result as { resources?: { uri?: string }[] } | undefined)
+				?.resources ?? [];
+		const identities = new Map<string, string>();
+		for (const [index, resource] of attachments.entries()) {
+			const match = /^xboct-log:\/\/attachment\/(.+)$/.exec(resource.uri ?? "");
+			if (match !== null) {
+				identities.set(match[1].toLowerCase(), `<attachment:${index + 1}>`);
+			}
+		}
+		const normalizeResources = createNormalizer({
+			identities,
+			now: Date.now(),
+		});
 		const getResponse = await mcpGET({
 			request: rpcRequest(undefined, "GET"),
 		} as never);
@@ -123,7 +126,7 @@ describe("node contract", () => {
 			mcp: {
 				initialize: initialize.result,
 				tools: tools.result,
-				resources: resources.result,
+				resources: normalizeResources(resources.result),
 				templates: templates.result,
 				get: {
 					status: getResponse.status,
@@ -143,8 +146,8 @@ describe("node contract", () => {
 		expect(toolsList).toHaveLength(53);
 		expect(initialize.error).toBeUndefined();
 
-		const target = join(outDir(), "contract.json");
-		mkdirSync(outDir(), { recursive: true });
+		const target = join(fixtureDir(), "contract.json");
+		mkdirSync(fixtureDir(), { recursive: true });
 		writeFileSync(target, `${JSON.stringify(contract, null, 2)}\n`);
 		console.log(`wrote ${target}`);
 	});

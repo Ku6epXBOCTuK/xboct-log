@@ -20,10 +20,11 @@ export function argumentValue(args, flag) {
 	return value;
 }
 
-export function runVitest(spec, env = {}) {
+export function runVitest(specs, env = {}) {
+	const files = Array.isArray(specs) ? specs : [specs];
 	const result = spawnSync(
 		"pnpm",
-		["exec", "vitest", "run", "--project", "parity", spec],
+		["exec", "vitest", "run", "--project", "parity", ...files],
 		{
 			cwd: root,
 			stdio: "inherit",
@@ -36,5 +37,5 @@ export function runVitest(spec, env = {}) {
 		},
 	);
 	if (result.error) throw result.error;
-	process.exit(result.status ?? 1);
+	return result.status ?? 1;
 }

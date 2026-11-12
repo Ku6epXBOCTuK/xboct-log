@@ -10547,6 +10547,48 @@
           "title": "Task attachments",
           "description": "Every attachment of the backlog with the uri that holds its bytes. Read it when attachments may have been added or removed since the client connected.",
           "mimeType": "application/json"
+        },
+        {
+          "title": "Task attachment",
+          "description": "The file of one task attachment, base64-encoded. Take the uri from attachments_list. An attachment is at most 20 MB.",
+          "mimeType": "text/plain",
+          "uri": "xboct-log://attachment/<attachment:2>",
+          "name": "SPA-2 note.txt"
+        },
+        {
+          "title": "Task attachment",
+          "description": "The file of one task attachment, base64-encoded. Take the uri from attachments_list. An attachment is at most 20 MB.",
+          "mimeType": "text/plain",
+          "uri": "xboct-log://attachment/<attachment:3>",
+          "name": "SPA-2 copy-source.txt"
+        },
+        {
+          "title": "Task attachment",
+          "description": "The file of one task attachment, base64-encoded. Take the uri from attachments_list. An attachment is at most 20 MB.",
+          "mimeType": "image/png",
+          "uri": "xboct-log://attachment/<attachment:4>",
+          "name": "SPA-3 pixel.png"
+        },
+        {
+          "title": "Task attachment",
+          "description": "The file of one task attachment, base64-encoded. Take the uri from attachments_list. An attachment is at most 20 MB.",
+          "mimeType": "text/plain",
+          "uri": "xboct-log://attachment/<attachment:5>",
+          "name": "SPA-4 restored.txt"
+        },
+        {
+          "title": "Task attachment",
+          "description": "The file of one task attachment, base64-encoded. Take the uri from attachments_list. An attachment is at most 20 MB.",
+          "mimeType": "text/plain",
+          "uri": "xboct-log://attachment/<attachment:6>",
+          "name": "SPA-4 moving.txt"
+        },
+        {
+          "title": "Task attachment",
+          "description": "The file of one task attachment, base64-encoded. Take the uri from attachments_list. An attachment is at most 20 MB.",
+          "mimeType": "text/plain",
+          "uri": "xboct-log://attachment/<attachment:7>",
+          "name": "SPA-5 copy-source.txt"
         }
       ]
     },
