@@ -10,8 +10,8 @@ name = "xboct-log"
 path = "src/main.rs"
 
 [dependencies]
-xboct-log-core = { path = "../core" }
-xboct-log-server = { path = "../server" }
+xboct-log-core = { workspace = true }
+xboct-log-server = { workspace = true }
 clap.workspace = true
 tokio.workspace = true
 tracing.workspace = true

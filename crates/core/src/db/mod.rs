@@ -1,3 +1,6 @@
+#[allow(unsafe_code)]
+mod ulower;
+
 use std::{
     ops::{Deref, DerefMut},
     path::Path,
@@ -37,6 +40,7 @@ impl Db {
 
         let pool = SqlitePoolOptions::new()
             .max_connections(if memory { 1 } else { 5 })
+            .after_connect(|conn, _meta| Box::pin(async move { ulower::register(conn).await }))
             .connect_with(options)
             .await?;
 
@@ -50,6 +54,10 @@ impl Db {
     pub async fn begin(&self) -> Result<Tx> {
         let inner = self.pool.begin_with("BEGIN IMMEDIATE").await?;
         Ok(Tx { inner })
+    }
+
+    pub async fn migrate(&self) -> Result<()> {
+        crate::migrations::migrate(self).await
     }
 
     pub async fn close(self) {
@@ -107,16 +115,31 @@ mod tests {
             .unwrap()
     }
 
-    #[tokio::test]
-    async fn applies_the_pragmas() {
-        let dir = std::env::temp_dir().join(format!(
+    fn scratch_dir() -> std::path::PathBuf {
+        std::env::temp_dir().join(format!(
             "xboct-log-db-{}-{}",
             std::process::id(),
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
                 .as_nanos()
-        ));
+        ))
+    }
+
+    async fn remove_scratch_dir(dir: std::path::PathBuf) {
+        for _ in 0..50 {
+            match std::fs::remove_dir_all(&dir) {
+                Ok(()) => return,
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => return,
+                Err(_) => tokio::time::sleep(Duration::from_millis(20)).await,
+            }
+        }
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[tokio::test]
+    async fn applies_the_pragmas() {
+        let dir = scratch_dir();
         let path = dir.join("nested/tasks.db");
 
         let db = Db::open(&path).await.unwrap();
@@ -140,7 +163,7 @@ mod tests {
         assert_eq!(busy_timeout, 5_000);
 
         db.close().await;
-        std::fs::remove_dir_all(dir).unwrap();
+        remove_scratch_dir(dir).await;
     }
 
     #[tokio::test]
@@ -188,19 +211,62 @@ mod tests {
 
     #[tokio::test]
     async fn creates_the_database_directory() {
-        let dir = std::env::temp_dir().join(format!(
-            "xboct-log-db-{}-{}",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
-        ));
+        let dir = scratch_dir();
 
         let db = Db::open(dir.join("a/b/tasks.db")).await.unwrap();
         db.close().await;
 
         assert!(dir.join("a/b/tasks.db").exists());
-        std::fs::remove_dir_all(dir).unwrap();
+        remove_scratch_dir(dir).await;
+    }
+
+    #[tokio::test]
+    async fn registers_ulower_on_every_connection() {
+        let dir = scratch_dir();
+        let db = Db::open(dir.join("tasks.db")).await.unwrap();
+        let mut connections = Vec::new();
+        for _ in 0..5 {
+            connections.push(db.pool().acquire().await.unwrap());
+        }
+
+        for mut connection in connections {
+            let lowered: String = sqlx::query_scalar("SELECT ULOWER(?)")
+                .bind("Привет ΣΟΦΟΣ")
+                .fetch_one(&mut *connection)
+                .await
+                .unwrap();
+            assert_eq!(lowered, "привет σοφος");
+        }
+
+        db.close().await;
+        remove_scratch_dir(dir).await;
+    }
+
+    #[tokio::test]
+    async fn lowercases_like_the_node_function() {
+        let db = memory_db().await;
+        let cases = [
+            ("Привет", "привет"),
+            ("İstanbul", "i\u{307}stanbul"),
+            ("ΟΣ", "ος"),
+            ("Σ", "σ"),
+            ("ABC", "abc"),
+            ("", ""),
+        ];
+
+        for (input, expected) in cases {
+            let lowered: String = sqlx::query_scalar("SELECT ULOWER(?)")
+                .bind(input)
+                .fetch_one(db.pool())
+                .await
+                .unwrap();
+            assert_eq!(lowered, expected, "ULOWER({input})");
+        }
+
+        let null: Option<String> = sqlx::query_scalar("SELECT ULOWER(NULL)")
+            .fetch_one(db.pool())
+            .await
+            .unwrap();
+        assert_eq!(null, None);
     }
 }

@@ -3,6 +3,7 @@
 pub mod config;
 pub mod db;
 pub mod error;
+mod migrations;
 
 pub use config::{BackupConfig, Config, ConfigError};
 pub use db::{Db, Tx};
