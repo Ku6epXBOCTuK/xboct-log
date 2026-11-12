@@ -1,0 +1,18 @@
+[package]
+name = "xboct-log-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "xboct-log"
+path = "src/main.rs"
+
+[dependencies]
+xboct-log-core = { path = "../core" }
+xboct-log-server = { path = "../server" }
+clap.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
