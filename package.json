@@ -42,7 +42,9 @@
 		"migrate:status": "node scripts/migrate.mjs status",
 		"migrate:rollback": "node scripts/migrate.mjs rollback",
 		"migrate:baseline": "node scripts/migrate.mjs baseline",
-		"migrate:unlock": "node scripts/migrate.mjs unlock"
+		"migrate:unlock": "node scripts/migrate.mjs unlock",
+		"parity:capture": "node scripts/parity/capture.mjs",
+		"parity:compare": "node scripts/parity/compare.mjs"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.6.4",

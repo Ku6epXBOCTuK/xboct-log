@@ -5,9 +5,11 @@ import "./backups.remote";
 import "./blockers.remote";
 import "./links.remote";
 import "./comments.remote";
+import "./options.remote";
 import "./projects.remote";
 import "./revisions.remote";
 import "./scopes.remote";
+import "./stats.remote";
 import "./tasks.remote";
 import "./tags.remote";
 

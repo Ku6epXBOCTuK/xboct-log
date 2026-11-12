@@ -9,6 +9,7 @@
 			"!.svelte-kit",
 			"!.dev",
 			"!.zcode",
+			"!tests/parity/fixtures",
 			"!**/*.yaml",
 			"!**/*.yml",
 			"!target",

@@ -686,6 +686,8 @@ describe("output contracts", () => {
 				return { name: "sweep-rename", new_name: "sweep-renamed" };
 			},
 			tasks_list: () => ({}),
+			tasks_options: () => ({ project_id: "sweep" }),
+			tasks_stats: () => ({}),
 			tasks_deleted_list: () => ({}),
 			tasks_get_many: () => ({ task_ids: [base] }),
 			tasks_get: () => ({ task_id: base }),

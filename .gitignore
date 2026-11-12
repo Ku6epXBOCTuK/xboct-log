@@ -27,6 +27,9 @@ vite.config.ts.timestamp-*
 # refs
 /refs/
 
+# Parity harness scratch space
+/tests/parity/.tmp/
+
 # Local docs
 /docs/instances.md
 

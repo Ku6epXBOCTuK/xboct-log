@@ -81,6 +81,19 @@ export default defineConfig(({ mode }) => {
 						exclude: ["src/**/*.svelte.{test,spec}.{js,ts}"],
 					},
 				},
+				...(process.env.XBOCT_LOG_PARITY === "1"
+					? [
+							{
+								extends: "./vite.config.ts",
+								test: {
+									name: "parity",
+									environment: "node",
+									testTimeout: 60_000,
+									include: ["tests/parity/**/*.spec.ts"],
+								},
+							},
+						]
+					: []),
 			],
 		},
 	};
