@@ -34,13 +34,27 @@ fn lists_the_registered_operations() {
             "tasks_remove_blocker",
             "tasks_create_many",
             "tasks_update_many",
-            "tasks_close_many"
+            "tasks_options",
+            "tasks_stats",
+            "tasks_revisions_list",
+            "tasks_deleted_list",
+            "tasks_get_many",
+            "tasks_close_many",
+            "tasks_history",
+            "activity_list"
         ]
     );
     assert!(ops.iter().all(|op| op.mcp));
     assert_eq!(ops[0].kind, Kind::Query);
     assert_eq!(ops[1].kind, Kind::Query);
-    assert!(ops[2..].iter().all(|op| op.kind == Kind::Command));
+    assert_eq!(ops[14].kind, Kind::Query);
+    assert_eq!(ops[15].kind, Kind::Query);
+    assert_eq!(ops[16].kind, Kind::Query);
+    assert_eq!(ops[17].kind, Kind::Query);
+    assert_eq!(ops[18].kind, Kind::Query);
+    assert_eq!(ops[19].kind, Kind::Command);
+    assert_eq!(ops[20].kind, Kind::Query);
+    assert_eq!(ops[21].kind, Kind::Query);
     assert!(ops[0].description.starts_with("List tasks with filters"));
     assert!(ops[1].description.starts_with("Get a single task"));
     assert!(ops[2].description.starts_with("Create a task"));

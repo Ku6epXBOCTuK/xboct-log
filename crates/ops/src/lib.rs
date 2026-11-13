@@ -5,6 +5,7 @@ use std::{future::Future, sync::Arc};
 use serde::{Serialize, de::DeserializeOwned};
 use xboct_log_core::{Db, Entity, Events, Result};
 
+pub mod activity;
 mod descriptions;
 pub mod tasks;
 
@@ -81,10 +82,12 @@ macro_rules! ops {
 	};
 }
 
+pub use activity::{ActivitiesList, TasksHistory};
 pub use tasks::{
     TasksAddBlocker, TasksAddLink, TasksClose, TasksCloseMany, TasksCreate, TasksCreateMany,
-    TasksDelete, TasksGet, TasksList, TasksMove, TasksRemoveBlocker, TasksRemoveLink, TasksRestore,
-    TasksUpdate, TasksUpdateMany,
+    TasksDelete, TasksDeletedList, TasksGet, TasksGetMany, TasksList, TasksMove, TasksOptions,
+    TasksRemoveBlocker, TasksRemoveLink, TasksRestore, TasksRevisionsList, TasksStats, TasksUpdate,
+    TasksUpdateMany,
 };
 
 crate::ops![
@@ -102,5 +105,12 @@ crate::ops![
     TasksRemoveBlocker,
     TasksCreateMany,
     TasksUpdateMany,
+    TasksOptions,
+    TasksStats,
+    TasksRevisionsList,
+    TasksDeletedList,
+    TasksGetMany,
     TasksCloseMany,
+    TasksHistory,
+    ActivitiesList,
 ];

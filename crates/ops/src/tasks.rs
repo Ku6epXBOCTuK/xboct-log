@@ -1,9 +1,9 @@
 use serde::Deserialize;
 use serde_json::{Value, json};
 use xboct_log_core::{
-    AppError, ClosedReason, Entity, NewTask, Result, TaskKey, TaskList, TaskPatch, close_task,
-    close_task_detailed, count_epic_children_by_status, create_task, get_task, list_tasks,
-    update_task, warnings_for,
+    AppError, ClosedReason, Entity, NewTask, ProjectId, Result, TaskKey, TaskList, TaskPatch,
+    close_task, close_task_detailed, count_epic_children_by_status, create_task, get_task,
+    list_tasks, update_task, warnings_for,
 };
 
 use crate::{Ctx, Kind, Op};
@@ -270,7 +270,7 @@ pub struct TasksMove;
 #[serde(deny_unknown_fields)]
 pub struct MoveInput {
     pub task_id: TaskKey,
-    pub project_id: String,
+    pub project_id: ProjectId,
 }
 
 impl Op for TasksMove {
@@ -291,7 +291,8 @@ impl Op for TasksMove {
 
     async fn run(ctx: &Ctx, input: Self::Input) -> Result<Self::Output> {
         let task =
-            xboct_log_core::move_task(&ctx.db, input.task_id.as_str(), &input.project_id).await?;
+            xboct_log_core::move_task(&ctx.db, input.task_id.as_str(), input.project_id.as_str())
+                .await?;
         Ok(serde_json::to_value(task)?)
     }
 }
@@ -590,5 +591,195 @@ impl Op for TasksRemoveBlocker {
         let after = get_task(&ctx.db, input.task_id.as_str()).await?;
         let changes = xboct_log_core::link_changes(&before, &after, "blocked_by");
         linked_output(after, changes)
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct OptionsInput {
+    #[serde(default)]
+    project_id: Option<ProjectId>,
+    #[serde(default)]
+    q: Option<String>,
+    #[serde(default)]
+    limit: Option<i64>,
+}
+
+pub struct TasksOptions;
+
+impl Op for TasksOptions {
+    const NAME: &'static str = "tasks_options";
+    const KIND: Kind = Kind::Query;
+    const MCP: bool = true;
+    type Input = OptionsInput;
+    type Output = TaskList;
+
+    fn description() -> &'static str {
+        crate::descriptions::TASKS_OPTIONS
+    }
+
+    async fn run(ctx: &Ctx, input: Self::Input) -> Result<Self::Output> {
+        if let Some(limit) = input.limit
+            && !(1..=5000).contains(&limit)
+        {
+            return Err(AppError::validation("limit must be between 1 and 5000"));
+        }
+        xboct_log_core::task_options(
+            &ctx.db,
+            input.project_id.as_ref().map(ProjectId::as_str),
+            input.q.as_deref(),
+            input.limit,
+        )
+        .await
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct StatsInput {}
+
+pub struct TasksStats;
+
+impl Op for TasksStats {
+    const NAME: &'static str = "tasks_stats";
+    const KIND: Kind = Kind::Query;
+    const MCP: bool = true;
+    type Input = StatsInput;
+    type Output = Value;
+
+    fn description() -> &'static str {
+        crate::descriptions::TASKS_STATS
+    }
+
+    async fn run(ctx: &Ctx, _input: Self::Input) -> Result<Self::Output> {
+        xboct_log_core::task_stats(&ctx.db).await
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RevisionsInput {
+    task_id: TaskKey,
+    #[serde(default)]
+    field: Option<String>,
+    #[serde(default)]
+    limit: Option<i64>,
+}
+
+pub struct TasksRevisionsList;
+
+impl Op for TasksRevisionsList {
+    const NAME: &'static str = "tasks_revisions_list";
+    const KIND: Kind = Kind::Query;
+    const MCP: bool = true;
+    type Input = RevisionsInput;
+    type Output = Value;
+
+    fn description() -> &'static str {
+        crate::descriptions::TASKS_REVISIONS_LIST
+    }
+
+    async fn run(ctx: &Ctx, input: Self::Input) -> Result<Self::Output> {
+        if let Some(field) = &input.field
+            && field != "description"
+            && field != "comment"
+        {
+            return Err(AppError::validation(
+                "field must be 'description' or 'comment'",
+            ));
+        }
+        if let Some(limit) = input.limit
+            && !(1..=200).contains(&limit)
+        {
+            return Err(AppError::validation("limit must be between 1 and 200"));
+        }
+        xboct_log_core::list_revisions(
+            &ctx.db,
+            input.task_id.as_str(),
+            input.field.as_deref(),
+            input.limit,
+        )
+        .await
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DeletedListInput {
+    #[serde(default)]
+    project_id: Option<ProjectId>,
+    #[serde(default)]
+    q: Option<String>,
+    #[serde(default)]
+    limit: Option<i64>,
+    #[serde(default)]
+    offset: Option<i64>,
+}
+
+pub struct TasksDeletedList;
+
+impl Op for TasksDeletedList {
+    const NAME: &'static str = "tasks_deleted_list";
+    const KIND: Kind = Kind::Query;
+    const MCP: bool = true;
+    type Input = DeletedListInput;
+    type Output = TaskList;
+
+    fn description() -> &'static str {
+        crate::descriptions::TASKS_DELETED_LIST
+    }
+
+    async fn run(ctx: &Ctx, input: Self::Input) -> Result<Self::Output> {
+        let limit = input.limit.unwrap_or(50);
+        if !(1..=200).contains(&limit) {
+            return Err(AppError::validation("limit must be between 1 and 200"));
+        }
+        let offset = input.offset.unwrap_or(0);
+        if offset < 0 {
+            return Err(AppError::validation("offset must be zero or positive"));
+        }
+        let mut query = json!({
+            "deleted_only": true,
+            "limit": limit,
+            "offset": offset
+        });
+        if let Some(project_id) = &input.project_id {
+            query["project_id"] = json!(project_id);
+        }
+        if let Some(q) = &input.q {
+            query["q"] = json!(q);
+        }
+        let filters: xboct_log_core::TaskFilters = serde_json::from_value(query)?;
+        list_tasks(&ctx.db, &filters).await
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct GetManyInput {
+    task_ids: Vec<TaskKey>,
+}
+
+pub struct TasksGetMany;
+
+impl Op for TasksGetMany {
+    const NAME: &'static str = "tasks_get_many";
+    const KIND: Kind = Kind::Query;
+    const MCP: bool = true;
+    type Input = GetManyInput;
+    type Output = Value;
+
+    fn description() -> &'static str {
+        crate::descriptions::TASKS_GET_MANY
+    }
+
+    async fn run(ctx: &Ctx, input: Self::Input) -> Result<Self::Output> {
+        let ids: Vec<String> = input
+            .task_ids
+            .iter()
+            .map(|key| key.as_str().to_string())
+            .collect();
+        let many = xboct_log_core::get_tasks_by_ids(&ctx.db, &ids).await?;
+        Ok(serde_json::to_value(many)?)
     }
 }

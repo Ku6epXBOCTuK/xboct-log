@@ -97,7 +97,7 @@ async fn lookup_task_with(db: &Db, id: &str, include_deleted: bool) -> Result<Op
     Ok(row.map(|(key,)| TaskKey::from(key)))
 }
 
-async fn lookup_task(db: &Db, id: &str) -> Result<Option<TaskKey>> {
+pub(crate) async fn lookup_task(db: &Db, id: &str) -> Result<Option<TaskKey>> {
     lookup_task_with(db, id, false).await
 }
 

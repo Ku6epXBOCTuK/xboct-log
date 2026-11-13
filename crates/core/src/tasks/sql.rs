@@ -580,6 +580,10 @@ fn pick_fields(task: Task, fields: Option<&[String]>) -> serde_json::Value {
 
 pub async fn list_tasks(db: &Db, filters: &TaskFilters) -> Result<TaskList> {
     filters.validate()?;
+    list_tasks_unchecked(db, filters).await
+}
+
+pub(crate) async fn list_tasks_unchecked(db: &Db, filters: &TaskFilters) -> Result<TaskList> {
     let include_project = filters.include_project == Some(true);
     let include_scope = filters.include_scope == Some(true);
     let include_description = filters.include_description == Some(true)
