@@ -50,6 +50,23 @@ pnpm parity:compare --self-test           # проверка, что сравн�
 
 ## Rust
 
-Захват для Rust пишется в отдельный каталог (`--actual`), `source` остаётся `ui`,
-как у node, иначе ответы и журнал активности разойдутся. Сравнение — тот же
-`compare.mjs --expected fixtures --actual tests/parity/.tmp/rust`.
+`crates/parity` — сторона Rust: `parity-capture` (бин `parity-capture`) читает ту
+же базу, что засеял node, и пишет `db.json` в `--actual` тем же нормализатором,
+что и `tests/parity/lib/normalize.ts`. `_sqlx_migrations` — единственная таблица,
+которую захват пропускает.
+
+```powershell
+pnpm parity:rust    # засеять базу через node, снять Rust, сверить db.json
+```
+
+`source` остаётся `ui`, как у node, иначе ответы и журнал активности разойдутся.
+Сравнение — тот же `compare.mjs --expected fixtures --actual tests/parity/.tmp/rust`
+(по умолчанию он смотрит именно туда).
+
+Пока реестр операций Rust отстаёт от плана, `parity-capture` печатает
+недостающие имена и выходит с кодом 1: `crates/parity/src/plan.rs` держит порядок
+вызовов `ops.node.spec.ts`, сверка автоматическая, список не пишется руками.
+
+Сверять можно по частям: `compare.mjs --only db.json` или
+`--only ops.json#calls,events` — это нужно, пока часть поверхности ещё не
+перенесена (`contract.json` требует готового MCP).

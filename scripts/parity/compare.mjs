@@ -18,25 +18,53 @@ function jsonFiles(dir) {
 		.sort();
 }
 
-function compareDirs(expectedDir, actualDir) {
+function selection(value) {
+	const selected = new Map();
+	for (const entry of value.split(",")) {
+		const [file, ...keys] = entry.split("#");
+		selected.set(file.trim(), keys.length === 0 ? null : keys);
+	}
+	return selected;
+}
+
+function compareDirs(expectedDir, actualDir, only) {
 	const expectedFiles = jsonFiles(expectedDir);
 	const actualFiles = jsonFiles(actualDir);
 	const seen = new Set(actualFiles);
 	const lines = [];
+	const files = only === undefined ? expectedFiles : [...only.keys()];
 
-	for (const file of expectedFiles) {
+	for (const file of files) {
 		if (!seen.has(file)) {
 			lines.push(`${file}: missing in actual`);
 			continue;
 		}
-		const expected = JSON.parse(readFileSync(join(expectedDir, file), "utf8"));
-		const actual = JSON.parse(readFileSync(join(actualDir, file), "utf8"));
+		let expected = JSON.parse(readFileSync(join(expectedDir, file), "utf8"));
+		let actual = JSON.parse(readFileSync(join(actualDir, file), "utf8"));
+		const keys = only?.get(file);
+		if (keys !== null && keys !== undefined) {
+			const absent = keys.filter((key) => !(key in actual));
+			if (absent.length > 0) {
+				lines.push(`${file}: ${absent.join(", ")} missing in actual`);
+				continue;
+			}
+			const pick = (document) =>
+				Object.fromEntries(
+					keys
+						.filter((key) => key in document)
+						.map((key) => [key, document[key]]),
+				);
+			expected = pick(expected);
+			actual = pick(actual);
+		}
 		for (const line of diffJson(expected, actual)) {
 			lines.push(`${file}: ${line}`);
 		}
 	}
-	for (const file of actualFiles) {
-		if (!expectedFiles.includes(file)) lines.push(`${file}: only in actual`);
+	if (only === undefined) {
+		for (const file of actualFiles) {
+			if (!expectedFiles.includes(file)) lines.push(`${file}: only in actual`);
+		}
 	}
 	return lines;
 }
@@ -88,6 +116,8 @@ const actualDir = resolve(
 	root,
 	argumentValue(args, "--actual") ?? "tests/parity/.tmp/rust",
 );
+const onlyValue = argumentValue(args, "--only");
+const only = onlyValue === undefined ? undefined : selection(onlyValue);
 
 if (args.includes("--self-test")) {
 	selfTest(expectedDir);
@@ -100,9 +130,11 @@ if (jsonFiles(expectedDir).length === 0) {
 	process.exit(1);
 }
 
-const lines = compareDirs(expectedDir, actualDir);
+const lines = compareDirs(expectedDir, actualDir, only);
 if (lines.length > 0) {
 	report(lines);
 	process.exit(1);
 }
-console.log(`contracts match: ${jsonFiles(expectedDir).length} file(s)`);
+console.log(
+	`contracts match: ${only === undefined ? jsonFiles(expectedDir).length : only.size} file(s)`,
+);

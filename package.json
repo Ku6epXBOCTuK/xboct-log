@@ -47,6 +47,7 @@
 		"parity:check": "node scripts/parity/check.mjs",
 		"parity:compare": "node scripts/parity/compare.mjs",
 		"parity:seed": "node scripts/parity/seed.mjs",
+		"parity:rust": "node scripts/parity/rust.mjs",
 		"rust:check": "node scripts/rust/check.mjs"
 	},
 	"devDependencies": {
