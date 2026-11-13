@@ -4,7 +4,8 @@ use chrono::{DateTime, Datelike, Local, Timelike};
 
 use crate::{AppError, BackupConfig, Db, Result};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum BackupKind {
     Daily,
     Weekly,
@@ -97,12 +98,7 @@ pub async fn run_backup(
         Err(error) => return Err(AppError::from(error)),
     }
 
-    let target_text = target.to_string_lossy().into_owned();
-    sqlx::query("VACUUM INTO ?")
-        .bind(target_text)
-        .execute(db.pool())
-        .await
-        .map_err(|error| AppError::unexpected(error.to_string()))?;
+    copy_database(db, &target).await?;
 
     if let Some(keep) = kind.keep(config) {
         prune(&target_dir, keep);
@@ -110,7 +106,27 @@ pub async fn run_backup(
     Ok(target)
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+// NOTE: node copies pages with node:sqlite's backup API, so a checkpoint and a
+// plain file copy of the main database must yield those same bytes.
+pub async fn copy_database(db: &Db, target: &Path) -> Result<()> {
+    if db.path() == Path::new(":memory:") {
+        sqlx::query("VACUUM INTO ?")
+            .bind(target.to_string_lossy().into_owned())
+            .execute(db.pool())
+            .await
+            .map_err(|error| AppError::unexpected(error.to_string()))?;
+        return Ok(());
+    }
+
+    sqlx::query("PRAGMA wal_checkpoint(TRUNCATE)")
+        .execute(db.pool())
+        .await
+        .map_err(|error| AppError::unexpected(error.to_string()))?;
+    std::fs::copy(db.path(), target)?;
+    Ok(())
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct BackupFile {
     pub kind: BackupKind,
     pub name: String,

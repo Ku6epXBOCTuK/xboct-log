@@ -36,6 +36,10 @@ const NODE_MIGRATIONS: [&str; 26] = [
     "026_task_auto_closed.js",
 ];
 
+pub fn known_migrations() -> &'static [&'static str] {
+    &NODE_MIGRATIONS
+}
+
 const CREATE_SQLX_MIGRATIONS: &str = "CREATE TABLE IF NOT EXISTS _sqlx_migrations (
     version BIGINT PRIMARY KEY,
     description TEXT NOT NULL,

@@ -15,8 +15,8 @@ impl Placeholders {
     fn learn(&mut self, raw: &Value, normalized: &Value) {
         match (raw, normalized) {
             (Value::String(raw), Value::String(normalized)) => {
-                if raw != normalized && is_placeholder(normalized) {
-                    self.0.insert(normalized.clone(), raw.clone());
+                if raw != normalized {
+                    self.learn_text(raw, normalized);
                 }
             }
             (Value::Array(raw), Value::Array(normalized)) => {
@@ -32,6 +32,43 @@ impl Placeholders {
                 }
             }
             _ => {}
+        }
+    }
+
+    fn learn_text(&mut self, raw: &str, normalized: &str) {
+        let parts = split_placeholders(normalized);
+        if parts.len() < 2 {
+            return;
+        }
+        let mut cursor = 0;
+        let mut learned: Vec<(String, String)> = Vec::new();
+        for (index, part) in parts.iter().enumerate() {
+            if index % 2 == 0 {
+                let Some(end) = match_text(raw, cursor, part) else {
+                    return;
+                };
+                cursor = end;
+                continue;
+            }
+            let end = if parts[index + 1].is_empty() {
+                raw.len()
+            } else {
+                match find_text(raw, cursor, parts[index + 1]) {
+                    Some(start) => start,
+                    None => return,
+                }
+            };
+            if end <= cursor {
+                return;
+            }
+            learned.push((format!("<{part}>"), raw[cursor..end].to_string()));
+            cursor = end;
+        }
+        if cursor != raw.len() || learned.is_empty() {
+            return;
+        }
+        for (placeholder, value) in learned {
+            self.0.entry(placeholder).or_insert(value);
         }
     }
 
@@ -61,8 +98,43 @@ impl Placeholders {
     }
 }
 
-fn is_placeholder(value: &str) -> bool {
-    value.starts_with('<') && value.ends_with('>') && value.len() > 2
+fn match_text(raw: &str, cursor: usize, text: &str) -> Option<usize> {
+    let mut end = cursor;
+    let mut chars = raw[cursor..].char_indices();
+    for expected in text.chars() {
+        let (offset, actual) = chars.next()?;
+        if actual != expected && !(is_separator(actual) && is_separator(expected)) {
+            return None;
+        }
+        end = cursor + offset + actual.len_utf8();
+    }
+    Some(end)
+}
+
+fn find_text(raw: &str, cursor: usize, text: &str) -> Option<usize> {
+    raw[cursor..]
+        .char_indices()
+        .map(|(offset, _)| cursor + offset)
+        .find(|start| match_text(raw, *start, text).is_some())
+}
+
+fn is_separator(value: char) -> bool {
+    value == '/' || value == '\\'
+}
+
+fn split_placeholders(value: &str) -> Vec<&str> {
+    let mut parts = Vec::new();
+    let mut cursor = 0;
+    while let Some(start) = value[cursor..].find('<').map(|offset| cursor + offset) {
+        let Some(length) = value[start..].find('>') else {
+            break;
+        };
+        parts.push(&value[cursor..start]);
+        parts.push(&value[start + 1..start + length]);
+        cursor = start + length + 1;
+    }
+    parts.push(&value[cursor..]);
+    parts
 }
 
 #[derive(Debug, Deserialize)]
@@ -161,5 +233,29 @@ impl Sweep {
         }
 
         Ok((ReplayedCalls { calls: replayed }, lines))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::*;
+
+    #[test]
+    fn learns_a_stamp_from_a_windows_path() {
+        let mut placeholders = Placeholders::default();
+        placeholders.learn(
+            &json!("C:\\run\\backups\\manual\\xboct-log-2026-11-13-144556.db"),
+            &json!("<runtime>/backups/manual/xboct-log-<stamp>.db"),
+        );
+        assert_eq!(
+            placeholders.text("xboct-log-<stamp>.db"),
+            "xboct-log-2026-11-13-144556.db"
+        );
+        assert_eq!(
+            placeholders.text("<runtime>/backups/manual/x.db"),
+            "C:\\run/backups/manual/x.db"
+        );
     }
 }

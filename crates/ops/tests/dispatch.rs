@@ -44,6 +44,10 @@ fn lists_the_registered_operations() {
             "attachments_copy",
             "attachments_purge",
             "attachments_verify",
+            "backup_create",
+            "backup_list",
+            "backups_inspect",
+            "backups_restore",
             "tasks_add_blocker",
             "tasks_remove_blocker",
             "tasks_add_link",
@@ -94,6 +98,9 @@ fn lists_the_registered_operations() {
         "attachments_move",
         "attachments_copy",
         "attachments_purge",
+        "backup_create",
+        "backups_inspect",
+        "backups_restore",
         "tasks_add_blocker",
         "tasks_remove_blocker",
         "tasks_add_link",
@@ -120,7 +127,8 @@ fn lists_the_registered_operations() {
         "tags_rename",
     ];
     for op in &ops {
-        assert_eq!(op.mcp, op.name != "tags_inventory", "{} mcp", op.name);
+        let hidden = ["tags_inventory", "backups_inspect", "backups_restore"];
+        assert_eq!(op.mcp, !hidden.contains(&op.name), "{} mcp", op.name);
         assert!(!op.description.is_empty(), "{} has a description", op.name);
         let kind = if commands.contains(&op.name) {
             Kind::Command

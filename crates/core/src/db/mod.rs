@@ -3,7 +3,7 @@ mod ulower;
 
 use std::{
     ops::{Deref, DerefMut},
-    path::Path,
+    path::{Path, PathBuf},
     time::Duration,
 };
 
@@ -16,6 +16,7 @@ use crate::error::Result;
 
 pub struct Db {
     pool: SqlitePool,
+    path: PathBuf,
 }
 
 impl Db {
@@ -44,11 +45,18 @@ impl Db {
             .connect_with(options)
             .await?;
 
-        Ok(Self { pool })
+        Ok(Self {
+            pool,
+            path: path.to_path_buf(),
+        })
     }
 
     pub fn pool(&self) -> &SqlitePool {
         &self.pool
+    }
+
+    pub fn path(&self) -> &Path {
+        &self.path
     }
 
     pub async fn begin(&self) -> Result<Tx> {

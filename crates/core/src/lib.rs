@@ -15,6 +15,7 @@ pub mod media;
 mod migrations;
 pub mod paths;
 pub mod projects;
+pub mod restore;
 pub mod scheduler;
 pub mod scopes;
 pub mod tags;
@@ -52,10 +53,11 @@ pub use media::{
 pub use paths::{data_fingerprint, fingerprint_path};
 pub use projects::{
     INBOX_PROJECT_ID, INBOX_PROJECT_PREFIX, NewProject, Project, ProjectDetails, ProjectPatch,
-    ProjectWithCounts, ScopeCount, create_project, get_project, list_projects, normalize_prefix,
-    normalize_repo, project_details, project_id_error, project_prefix_error, project_with_counts,
-    repo_error, resolve_project_ref, update_project,
+    ProjectWithCounts, ScopeCount, create_project, ensure_inbox, get_project, list_projects,
+    normalize_prefix, normalize_repo, project_details, project_id_error, project_prefix_error,
+    project_with_counts, repo_error, resolve_project_ref, update_project,
 };
+pub use restore::{RestoreOutcome, SnapshotInfo, inspect_snapshot, resolve_backup, restore_backup};
 pub use scheduler::{
     catch_up, ms_until_next, run_scheduled, scheduled_for, start as start_scheduler,
 };

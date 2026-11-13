@@ -11,6 +11,7 @@ use xboct_log_core::{
 
 pub mod activity;
 pub mod attachments;
+pub mod backups;
 pub mod comments;
 mod descriptions;
 mod entries;
@@ -164,6 +165,7 @@ pub use attachments::{
     AttachmentsAdd, AttachmentsCopy, AttachmentsDelete, AttachmentsDeletedList, AttachmentsList,
     AttachmentsMove, AttachmentsPurge, AttachmentsRestore, AttachmentsVerify,
 };
+pub use backups::{BackupCreate, BackupListOp, BackupsInspect, BackupsRestore};
 pub use comments::{CommentsAdd, CommentsDelete, CommentsEdit, CommentsList};
 pub use projects::{ProjectsCreate, ProjectsGet, ProjectsList, ProjectsUpdate};
 pub use scopes::{
@@ -189,6 +191,10 @@ crate::ops![
     AttachmentsCopy,
     AttachmentsPurge,
     AttachmentsVerify,
+    BackupCreate,
+    BackupListOp,
+    BackupsInspect,
+    BackupsRestore,
     TasksAddBlocker,
     TasksRemoveBlocker,
     TasksAddLink,

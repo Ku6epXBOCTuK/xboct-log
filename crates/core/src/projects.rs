@@ -229,6 +229,43 @@ pub async fn get_project(db: &Db, id: &str) -> Result<Option<Project>> {
     project_by_id(&mut connection, id).await
 }
 
+pub async fn ensure_inbox(db: &Db) -> Result<Project> {
+    if let Some(existing) = get_project(db, INBOX_PROJECT_ID).await? {
+        if existing.archived_at.is_none() {
+            return Ok(existing);
+        }
+        sqlx::query("UPDATE projects SET archived_at = NULL WHERE id = ?")
+            .bind(INBOX_PROJECT_ID)
+            .execute(db.pool())
+            .await?;
+        return get_project(db, INBOX_PROJECT_ID)
+            .await?
+            .ok_or_else(|| AppError::unexpected("the inbox disappeared after unarchiving"));
+    }
+
+    let clash: Option<(String, String)> =
+        sqlx::query_as("SELECT id, name FROM projects WHERE prefix = ? COLLATE NOCASE")
+            .bind(INBOX_PROJECT_PREFIX)
+            .fetch_optional(db.pool())
+            .await?;
+    if let Some((id, name)) = clash {
+        return Err(AppError::unexpected(format!(
+            "cannot create Inbox: prefix {INBOX_PROJECT_PREFIX} is taken by project \"{name}\" ({id})"
+        )));
+    }
+
+    sqlx::query("INSERT INTO projects (id, name, prefix, created_at) VALUES (?, 'Inbox', ?, ?)")
+        .bind(INBOX_PROJECT_ID)
+        .bind(INBOX_PROJECT_PREFIX)
+        .bind(crate::tasks::now_iso())
+        .execute(db.pool())
+        .await?;
+
+    get_project(db, INBOX_PROJECT_ID)
+        .await?
+        .ok_or_else(|| AppError::unexpected("the inbox disappeared after creating it"))
+}
+
 pub async fn resolve_project_ref(db: &Db, reference: &str) -> Result<Option<Project>> {
     let mut connection = db.pool().acquire().await?;
     let trimmed = reference.trim();
