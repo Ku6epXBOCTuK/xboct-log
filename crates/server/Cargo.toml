@@ -16,6 +16,9 @@ serde_json.workspace = true
 tracing.workspace = true
 chrono.workspace = true
 async-stream.workspace = true
+rmcp.workspace = true
+base64.workspace = true
+tower = { workspace = true, features = ["util"] }
 
 [dev-dependencies]
 tower = { workspace = true, features = ["util"] }

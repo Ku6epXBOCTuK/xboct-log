@@ -16,6 +16,7 @@ pub mod comments;
 mod descriptions;
 mod entries;
 pub mod projects;
+pub mod schemas;
 pub mod scopes;
 pub mod tags;
 pub mod tasks;
@@ -236,3 +237,10 @@ crate::ops![
     TagsUpdate,
     TagsRename,
 ];
+
+pub fn tool_schema(name: &str) -> Option<(&'static str, &'static str)> {
+    schemas::TOOLS
+        .iter()
+        .find(|(tool, _, _)| *tool == name)
+        .map(|(_, input, output)| (*input, *output))
+}

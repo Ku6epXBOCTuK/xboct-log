@@ -7,7 +7,7 @@ use std::{
 
 use xboct_log_ops::metadata;
 use xboct_log_parity::{
-    plan,
+    mcp, plan,
     snapshot::read_database,
     sweep::{Calls, Sweep},
 };
@@ -51,6 +51,10 @@ async fn run() -> Result<(), String> {
 
     fs::create_dir_all(&out).map_err(|error| error.to_string())?;
 
+    let fixture = PathBuf::from(
+        argument(&args, "--fixtures").unwrap_or_else(|| "tests/parity/fixtures".to_owned()),
+    );
+
     let document = read_database(&database, now_ms()).await?;
     write_json(&out.join("db.json"), &document)?;
     println!(
@@ -59,13 +63,32 @@ async fn run() -> Result<(), String> {
         database.display()
     );
 
-    let fixture = PathBuf::from(
-        argument(&args, "--fixtures").unwrap_or_else(|| "tests/parity/fixtures".to_owned()),
-    );
+    let mcp_database = out.join("mcp.sqlite");
+    copy_database(&database, &mcp_database)?;
+    let captured = mcp::capture(&mcp_database, &runtime, now_ms()).await?;
+    let contract_path = fixture.join("contract.json");
+    let contract_text = fs::read_to_string(&contract_path)
+        .map_err(|error| format!("cannot read {}: {error}", contract_path.display()))?;
+    let contract: serde_json::Value = serde_json::from_str(&contract_text)
+        .map_err(|error| format!("{} is not json: {error}", contract_path.display()))?;
+    let mcp_mismatches = mcp::compare(&captured, &contract);
+    println!("mcp: {} mismatch(es)", mcp_mismatches.len());
+    for line in mcp_mismatches.iter().take(20) {
+        println!("  {line}");
+    }
+    if !mcp_mismatches.is_empty() {
+        return Err(format!(
+            "{} mcp response(s) differ from the node snapshot",
+            mcp_mismatches.len()
+        ));
+    }
+
     let calls_path = fixture.join("ops.json");
     let text = fs::read_to_string(&calls_path)
         .map_err(|error| format!("cannot read {}: {error}", calls_path.display()))?;
     let calls: Calls = serde_json::from_str(&text)
+        .map_err(|error| format!("{} is not json: {error}", calls_path.display()))?;
+    let calls_value: serde_json::Value = serde_json::from_str(&text)
         .map_err(|error| format!("{} is not json: {error}", calls_path.display()))?;
 
     let replay_database = out.join("sweep.sqlite");
@@ -90,6 +113,19 @@ async fn run() -> Result<(), String> {
         return Err(format!(
             "{} replayed call(s) differ from the node snapshots",
             mismatches.len()
+        ));
+    }
+
+    let errors = mcp::capture_errors(&sweep.database, &sweep.runtime).await?;
+    let error_mismatches = mcp::compare_errors(&errors, &calls_value);
+    println!("mcp errors: {} mismatch(es)", error_mismatches.len());
+    for line in error_mismatches.iter().take(20) {
+        println!("  {line}");
+    }
+    if !error_mismatches.is_empty() {
+        return Err(format!(
+            "{} mcp failure case(s) differ from the node snapshot",
+            error_mismatches.len()
         ));
     }
 

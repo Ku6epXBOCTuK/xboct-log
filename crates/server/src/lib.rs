@@ -4,22 +4,29 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use axum::{
-    Json, Router,
+    Extension, Json, Router,
     body::Body,
     extract::{Path, State},
-    http::{HeaderName, HeaderValue, StatusCode, header},
+    http::{HeaderName, HeaderValue, Method, Request, StatusCode, header},
     response::{
         IntoResponse, Response,
         sse::{Event, KeepAlive, Sse},
     },
-    routing::{get, post},
+    routing::{any, get, post},
 };
 use chrono::Local;
+use rmcp::transport::streamable_http_server::{
+    StreamableHttpServerConfig, StreamableHttpService, session::local::LocalSessionManager,
+};
 use tokio::sync::broadcast::error::RecvError;
+use tower::ServiceExt;
 use xboct_log_core::{
     AppError, BackupKind, Config, Db, Events, ServerEvent, attachment_format, data_fingerprint,
     media::AttachmentKind as Kind, read_attachment_file, read_deleted_attachment_file, run_backup,
 };
+
+pub mod mcp;
+mod mcp_text;
 
 pub const APP_NAME: &str = "xboct-log";
 const HEARTBEAT: Duration = Duration::from_secs(15);
@@ -32,14 +39,46 @@ pub struct AppState {
 }
 
 pub fn app(state: AppState) -> Router {
+    let service = mcp_service(&state);
     Router::new()
         .route("/api/health", get(health))
         .route("/api/events", get(events))
         .route("/api/backup", post(backup))
         .route("/media/{id}", get(media))
         .route("/deleted/media/{id}", get(deleted_media))
+        .route("/mcp", any(mcp_entry))
+        .layer(Extension(service))
         .with_state(state)
 }
+
+type McpService = StreamableHttpService<mcp::Backlog, LocalSessionManager>;
+
+fn mcp_service(state: &AppState) -> McpService {
+    let backlog = mcp::Backlog::new(state.db.clone(), state.config.clone(), state.events.clone());
+    StreamableHttpService::new(
+        move || Ok(backlog.clone()),
+        Arc::new(LocalSessionManager::default()),
+        StreamableHttpServerConfig::default(),
+    )
+}
+
+async fn mcp_entry(Extension(service): Extension<McpService>, request: Request<Body>) -> Response {
+    if request.method() == Method::GET {
+        return (
+            StatusCode::METHOD_NOT_ALLOWED,
+            [(header::CONTENT_TYPE, "application/json")],
+            METHOD_NOT_ALLOWED_BODY,
+        )
+            .into_response();
+    }
+    match service.oneshot(request).await {
+        Ok(response) => response.into_response(),
+        Err(never) => match never {},
+    }
+}
+
+const METHOD_NOT_ALLOWED_BODY: &str =
+    r#"{"jsonrpc":"2.0","error":{"code":-32000,"message":"Method not allowed."},"id":null}"#;
 
 #[derive(serde::Serialize)]
 struct Health {

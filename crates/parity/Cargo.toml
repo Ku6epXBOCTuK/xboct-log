@@ -12,9 +12,12 @@ path = "src/main.rs"
 [dependencies]
 xboct-log-core.workspace = true
 xboct-log-ops.workspace = true
+xboct-log-server.workspace = true
+axum.workspace = true
 chrono.workspace = true
 regex.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 sqlx.workspace = true
 tokio.workspace = true
+tower = { workspace = true, features = ["util"] }

@@ -31,7 +31,7 @@ impl LinkType {
     pub fn verb(self) -> &'static str {
         match self {
             Self::Blocks => "block",
-            Self::RelatesTo => "relate to",
+            Self::RelatesTo => "relates to",
             Self::Duplicates => "duplicate",
         }
     }

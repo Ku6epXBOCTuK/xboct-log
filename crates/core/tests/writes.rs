@@ -357,7 +357,7 @@ async fn links_tasks_and_releases_blockers() {
     let itself = add_link(&db, LinkType::RelatesTo, "LOG-1", "LOG-1")
         .await
         .expect_err("self");
-    assert_eq!(itself.message(), "a task cannot relate to itself");
+    assert_eq!(itself.message(), "a task cannot relates to itself");
 
     update_task(&db, "LOG-1", patch(json!({"status": "blocked"})))
         .await
