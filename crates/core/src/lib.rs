@@ -17,7 +17,7 @@ pub mod tasks;
 #[cfg(test)]
 mod test_support;
 
-pub use activity::prune_activity;
+pub use activity::{ActivityEntry, prune_activity, record_activity};
 pub use activity_read::{
     ActivityEntity, ActivitySearch, list_activity, search_activity, validate_activity_search,
 };
