@@ -442,3 +442,153 @@ impl Op for TasksCloseMany {
         Ok(summary(items))
     }
 }
+
+#[derive(Debug, Clone, Copy, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum LinkKindInput {
+    RelatesTo,
+    Duplicates,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LinkInput {
+    pub task_id: TaskKey,
+    pub link_type: LinkKindInput,
+    pub target: TaskKey,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BlockerInput {
+    pub task_id: TaskKey,
+    pub blocked_by: TaskKey,
+}
+
+fn linked_output(task: xboct_log_core::Task, changes: Vec<Value>) -> Result<Value> {
+    let mut value = serde_json::to_value(task)?;
+    if let Value::Object(object) = &mut value {
+        object.insert("changes".to_string(), json!(changes));
+    }
+    Ok(value)
+}
+
+pub struct TasksAddLink;
+
+impl Op for TasksAddLink {
+    const NAME: &'static str = "tasks_add_link";
+    const KIND: Kind = Kind::Command;
+    const MCP: bool = true;
+
+    type Input = LinkInput;
+    type Output = Value;
+
+    fn description() -> &'static str {
+        crate::descriptions::TASKS_ADD_LINK
+    }
+
+    fn entity() -> Option<Entity> {
+        Some(Entity::Tasks)
+    }
+
+    async fn run(ctx: &Ctx, input: Self::Input) -> Result<Self::Output> {
+        let before = get_task(&ctx.db, input.task_id.as_str()).await?;
+        let (kind, field) = match input.link_type {
+            LinkKindInput::RelatesTo => (xboct_log_core::LinkType::RelatesTo, "relates_to"),
+            LinkKindInput::Duplicates => (xboct_log_core::LinkType::Duplicates, "duplicates"),
+        };
+        xboct_log_core::add_link(&ctx.db, kind, input.task_id.as_str(), input.target.as_str())
+            .await?;
+        let after = get_task(&ctx.db, input.task_id.as_str()).await?;
+        let changes = xboct_log_core::link_changes(&before, &after, field);
+        linked_output(after, changes)
+    }
+}
+
+pub struct TasksRemoveLink;
+
+impl Op for TasksRemoveLink {
+    const NAME: &'static str = "tasks_remove_link";
+    const KIND: Kind = Kind::Command;
+    const MCP: bool = true;
+
+    type Input = LinkInput;
+    type Output = Value;
+
+    fn description() -> &'static str {
+        crate::descriptions::TASKS_REMOVE_LINK
+    }
+
+    fn entity() -> Option<Entity> {
+        Some(Entity::Tasks)
+    }
+
+    async fn run(ctx: &Ctx, input: Self::Input) -> Result<Self::Output> {
+        let before = get_task(&ctx.db, input.task_id.as_str()).await?;
+        let (kind, field) = match input.link_type {
+            LinkKindInput::RelatesTo => (xboct_log_core::LinkType::RelatesTo, "relates_to"),
+            LinkKindInput::Duplicates => (xboct_log_core::LinkType::Duplicates, "duplicates"),
+        };
+        xboct_log_core::remove_link(&ctx.db, kind, input.task_id.as_str(), input.target.as_str())
+            .await?;
+        let after = get_task(&ctx.db, input.task_id.as_str()).await?;
+        let changes = xboct_log_core::link_changes(&before, &after, field);
+        linked_output(after, changes)
+    }
+}
+
+pub struct TasksAddBlocker;
+
+impl Op for TasksAddBlocker {
+    const NAME: &'static str = "tasks_add_blocker";
+    const KIND: Kind = Kind::Command;
+    const MCP: bool = true;
+
+    type Input = BlockerInput;
+    type Output = Value;
+
+    fn description() -> &'static str {
+        crate::descriptions::TASKS_ADD_BLOCKER
+    }
+
+    fn entity() -> Option<Entity> {
+        Some(Entity::Tasks)
+    }
+
+    async fn run(ctx: &Ctx, input: Self::Input) -> Result<Self::Output> {
+        let before = get_task(&ctx.db, input.task_id.as_str()).await?;
+        xboct_log_core::add_blocker(&ctx.db, input.task_id.as_str(), input.blocked_by.as_str())
+            .await?;
+        let after = get_task(&ctx.db, input.task_id.as_str()).await?;
+        let changes = xboct_log_core::link_changes(&before, &after, "blocked_by");
+        linked_output(after, changes)
+    }
+}
+
+pub struct TasksRemoveBlocker;
+
+impl Op for TasksRemoveBlocker {
+    const NAME: &'static str = "tasks_remove_blocker";
+    const KIND: Kind = Kind::Command;
+    const MCP: bool = true;
+
+    type Input = BlockerInput;
+    type Output = Value;
+
+    fn description() -> &'static str {
+        crate::descriptions::TASKS_REMOVE_BLOCKER
+    }
+
+    fn entity() -> Option<Entity> {
+        Some(Entity::Tasks)
+    }
+
+    async fn run(ctx: &Ctx, input: Self::Input) -> Result<Self::Output> {
+        let before = get_task(&ctx.db, input.task_id.as_str()).await?;
+        xboct_log_core::remove_blocker(&ctx.db, input.task_id.as_str(), input.blocked_by.as_str())
+            .await?;
+        let after = get_task(&ctx.db, input.task_id.as_str()).await?;
+        let changes = xboct_log_core::link_changes(&before, &after, "blocked_by");
+        linked_output(after, changes)
+    }
+}

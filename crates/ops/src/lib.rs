@@ -82,8 +82,9 @@ macro_rules! ops {
 }
 
 pub use tasks::{
-    TasksClose, TasksCloseMany, TasksCreate, TasksCreateMany, TasksDelete, TasksGet, TasksList,
-    TasksMove, TasksRestore, TasksUpdate, TasksUpdateMany,
+    TasksAddBlocker, TasksAddLink, TasksClose, TasksCloseMany, TasksCreate, TasksCreateMany,
+    TasksDelete, TasksGet, TasksList, TasksMove, TasksRemoveBlocker, TasksRemoveLink, TasksRestore,
+    TasksUpdate, TasksUpdateMany,
 };
 
 crate::ops![
@@ -95,6 +96,10 @@ crate::ops![
     TasksDelete,
     TasksRestore,
     TasksMove,
+    TasksAddLink,
+    TasksRemoveLink,
+    TasksAddBlocker,
+    TasksRemoveBlocker,
     TasksCreateMany,
     TasksUpdateMany,
     TasksCloseMany,

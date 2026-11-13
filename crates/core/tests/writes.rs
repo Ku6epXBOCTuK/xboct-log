@@ -1,7 +1,8 @@
 use serde_json::{Value, json};
 use xboct_log_core::{
-    ClosedReason, Db, NewTask, Status, TaskPatch, close_task, create_task, delete_task, get_task,
-    move_task, restore_task, update_task,
+    ClosedReason, Db, LinkType, NewTask, Status, TaskPatch, add_blocker, add_link, close_task,
+    create_task, delete_task, get_task, move_task, remove_blocker, remove_link, restore_task,
+    update_task,
 };
 async fn open() -> Db {
     let db = Db::open(":memory:").await.expect("open");
@@ -323,4 +324,60 @@ async fn detaches_epic_children_on_delete() {
 
     let child = get_task(&db, "LOG-2").await.expect("read child");
     assert!(child.epic_id.is_none());
+}
+
+#[tokio::test]
+async fn links_tasks_and_releases_blockers() {
+    let db = open().await;
+    for title in ["One", "Two", "Three"] {
+        create_task(&db, new_task(json!({"project_id": "log", "title": title})))
+            .await
+            .expect("create");
+    }
+
+    add_link(&db, LinkType::RelatesTo, "LOG-1", "LOG-2")
+        .await
+        .expect("relate");
+    let first = get_task(&db, "LOG-1").await.expect("read first");
+    assert_eq!(first.relates_to, vec!["LOG-2"]);
+    let second = get_task(&db, "LOG-2").await.expect("read second");
+    assert_eq!(second.relates_to, vec!["LOG-1"]);
+
+    add_link(&db, LinkType::Duplicates, "LOG-1", "LOG-3")
+        .await
+        .expect("duplicate");
+    let cycle = add_link(&db, LinkType::Duplicates, "LOG-3", "LOG-1")
+        .await
+        .expect_err("cycle");
+    assert_eq!(
+        cycle.message(),
+        "duplicates cycle: LOG-1 already duplicates LOG-3"
+    );
+
+    let itself = add_link(&db, LinkType::RelatesTo, "LOG-1", "LOG-1")
+        .await
+        .expect_err("self");
+    assert_eq!(itself.message(), "a task cannot relate to itself");
+
+    update_task(&db, "LOG-1", patch(json!({"status": "blocked"})))
+        .await
+        .expect("block");
+    add_blocker(&db, "LOG-1", "LOG-2").await.expect("blocker");
+    let blocked = get_task(&db, "LOG-1").await.expect("read blocked");
+    assert_eq!(blocked.blocked_by, vec!["LOG-2"]);
+
+    remove_blocker(&db, "LOG-1", "LOG-2")
+        .await
+        .expect("release");
+    let released = get_task(&db, "LOG-1").await.expect("read released");
+    assert!(released.blocked_by.is_empty());
+    assert_eq!(released.status, Status::Backlog);
+
+    let missing = remove_link(&db, LinkType::RelatesTo, "LOG-1", "LOG-3")
+        .await
+        .expect_err("missing");
+    assert_eq!(
+        missing.message(),
+        "no relates_to link between LOG-1 and LOG-3"
+    );
 }

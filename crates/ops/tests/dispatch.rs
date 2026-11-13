@@ -28,6 +28,10 @@ fn lists_the_registered_operations() {
             "tasks_delete",
             "tasks_restore",
             "tasks_move",
+            "tasks_add_link",
+            "tasks_remove_link",
+            "tasks_add_blocker",
+            "tasks_remove_blocker",
             "tasks_create_many",
             "tasks_update_many",
             "tasks_close_many"
@@ -46,6 +50,12 @@ fn lists_the_registered_operations() {
             .starts_with("Update fields of an existing task")
     );
     assert!(ops[4].description.starts_with("Close a task"));
+    assert!(
+        ops[8]
+            .description
+            .starts_with("Add a typed link between two tasks")
+    );
+    assert!(ops[10].description.starts_with("Link two tasks"));
 }
 
 #[tokio::test]
