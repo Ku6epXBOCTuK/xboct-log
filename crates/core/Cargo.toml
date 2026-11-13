@@ -16,6 +16,4 @@ icu_locale_core.workspace = true
 chrono.workspace = true
 sha2.workspace = true
 tokio.workspace = true
-
-[dev-dependencies]
-tokio.workspace = true
+tracing.workspace = true

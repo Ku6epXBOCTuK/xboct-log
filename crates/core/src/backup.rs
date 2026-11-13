@@ -110,6 +110,57 @@ pub async fn run_backup(
     Ok(target)
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BackupFile {
+    pub kind: BackupKind,
+    pub name: String,
+    pub path: PathBuf,
+    pub size: u64,
+    pub mtime: String,
+}
+
+pub fn list_backups(dir: &Path) -> Vec<BackupFile> {
+    let mut files = Vec::new();
+    for kind in [
+        BackupKind::Auto,
+        BackupKind::Daily,
+        BackupKind::Weekly,
+        BackupKind::Manual,
+    ] {
+        let kind_dir = dir.join(kind.directory());
+        let Ok(entries) = std::fs::read_dir(&kind_dir) else {
+            continue;
+        };
+        for entry in entries.filter_map(|entry| entry.ok()) {
+            let name = entry.file_name().to_string_lossy().into_owned();
+            if !name.ends_with(".db") {
+                continue;
+            }
+            let path = entry.path();
+            let Ok(metadata) = entry.metadata() else {
+                continue;
+            };
+            let Ok(modified) = metadata.modified() else {
+                continue;
+            };
+            files.push(BackupFile {
+                kind,
+                name,
+                path,
+                size: metadata.len(),
+                mtime: iso_timestamp(modified),
+            });
+        }
+    }
+    files.sort_by(|a, b| b.mtime.cmp(&a.mtime));
+    files
+}
+
+fn iso_timestamp(modified: std::time::SystemTime) -> String {
+    let time: DateTime<chrono::Utc> = modified.into();
+    time.to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -201,6 +252,27 @@ mod tests {
             .unwrap();
         assert_eq!(count, 1);
         snapshot.close().await;
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn lists_snapshots_newest_first() {
+        let dir = scratch_dir();
+        let daily = dir.join("daily");
+        std::fs::create_dir_all(&daily).unwrap();
+        std::fs::write(daily.join("xboct-log-2026-01-03.db"), b"old").unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        let manual = dir.join("manual");
+        std::fs::create_dir_all(&manual).unwrap();
+        std::fs::write(manual.join("xboct-log-2026-01-04-030000.db"), b"new").unwrap();
+
+        let files = list_backups(&dir);
+
+        assert_eq!(files.len(), 2);
+        assert_eq!(files[0].kind, BackupKind::Manual);
+        assert_eq!(files[0].size, 3);
+        assert!(files[0].mtime.ends_with('Z'));
+        assert_eq!(files[1].kind, BackupKind::Daily);
         let _ = std::fs::remove_dir_all(dir);
     }
 
