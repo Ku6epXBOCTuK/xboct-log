@@ -1,6 +1,6 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast;
 
 const CHANNEL_CAPACITY: usize = 1024;
@@ -27,12 +27,22 @@ impl Entity {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ActivitySource {
     Ui,
     Mcp,
     Cli,
+}
+
+impl ActivitySource {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            ActivitySource::Ui => "ui",
+            ActivitySource::Mcp => "mcp",
+            ActivitySource::Cli => "cli",
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]

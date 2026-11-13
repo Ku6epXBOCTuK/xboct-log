@@ -18,7 +18,9 @@ pub mod tasks;
 mod test_support;
 
 pub use activity::prune_activity;
-pub use activity_read::{ActivitySearch, list_activity, search_activity, validate_activity_search};
+pub use activity_read::{
+    ActivityEntity, ActivitySearch, list_activity, search_activity, validate_activity_search,
+};
 pub use auto_backup::{AutoBackup, maybe_auto_backup, newest_auto_snapshot_at};
 pub use backup::{BackupFile, BackupKind, file_name as backup_file_name, list_backups, run_backup};
 pub use config::{BackupConfig, Config, ConfigError};

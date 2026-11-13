@@ -2,17 +2,37 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 use sqlx::{QueryBuilder, Sqlite};
 
-use crate::{AppError, Db, ProjectId, Result};
+use crate::{ActivitySource, AppError, Db, ProjectId, Result};
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ActivityEntity {
+    Task,
+    Project,
+    Scope,
+    Tag,
+}
+
+impl ActivityEntity {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            ActivityEntity::Task => "task",
+            ActivityEntity::Project => "project",
+            ActivityEntity::Scope => "scope",
+            ActivityEntity::Tag => "tag",
+        }
+    }
+}
 
 #[derive(Debug, Default, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ActivitySearch {
     #[serde(default)]
-    pub source: Option<String>,
+    pub source: Option<ActivitySource>,
     #[serde(default)]
     pub op: Option<String>,
     #[serde(default)]
-    pub entity: Option<String>,
+    pub entity: Option<ActivityEntity>,
     #[serde(default)]
     pub project_id: Option<ProjectId>,
     #[serde(default)]
@@ -94,7 +114,7 @@ pub async fn search_activity(db: &Db, search: &ActivitySearch) -> Result<Value> 
     let mut binds: Vec<String> = Vec::new();
     if let Some(source) = &search.source {
         clauses.push("source = ?".to_string());
-        binds.push(source.clone());
+        binds.push(source.as_str().to_string());
     }
     if let Some(op) = &search.op {
         clauses.push("op = ?".to_string());
@@ -102,7 +122,7 @@ pub async fn search_activity(db: &Db, search: &ActivitySearch) -> Result<Value> 
     }
     if let Some(entity) = &search.entity {
         clauses.push("entity = ?".to_string());
-        binds.push(entity.clone());
+        binds.push(entity.as_str().to_string());
     }
     if let Some(project_id) = &search.project_id {
         clauses.push(
