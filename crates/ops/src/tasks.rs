@@ -2,7 +2,8 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 use xboct_log_core::{
     AppError, ClosedReason, Entity, NewTask, Result, TaskKey, TaskList, TaskPatch, close_task,
-    count_epic_children_by_status, create_task, get_task, list_tasks, update_task,
+    close_task_detailed, count_epic_children_by_status, create_task, get_task, list_tasks,
+    update_task, warnings_for,
 };
 
 use crate::{Ctx, Kind, Op};
@@ -18,7 +19,7 @@ impl Op for TasksList {
     type Output = TaskList;
 
     fn description() -> &'static str {
-        "List tasks with filters (project, status, priority, estimate, assignee, due date, tags, epic, scope, blocked_by, blocks, text query, title, title_exact, source_file), sorting and pagination. Use q to locate a task by id, title, description, the id of its epic or a partial tag (e.g. q='LOG-4', q='26', q='est:'). Returns: {items, total} - items is the list of matching tasks, total is the count of all matching tasks before limit/offset. limit defaults to 100 (max 1000); use offset and total to paginate. Use fields to limit returned columns; the field names it accepts are listed in the description of the fields parameter, unknown names are ignored, and id, project_id and number always stay in the result. By default each task carries short_description (first line, ~120 chars) instead of the full description; set include_description to get the full text, in which case short_description is omitted. include_project attaches project names, include_scope attaches scope names, and neither filters; project_archived filters by project archival; include_deleted also returns soft-deleted tasks (hidden by default). Task id is the full 'PREFIX-NUMBER' identifier (e.g. 'LOG-82'); number is the per-project sequence number (e.g. 82), unique only inside its project. project_id accepts one id or a list of ids; exclude_project_id drops the given projects (use it for 'every project except X'). The epic filter accepts a full epic id (e.g. 'LOG-5') or a list of them; scope_id likewise takes one scope id or a list, and null matches tasks without that link. has_epic and has_scope filter by the presence of an epic or a scope. The estimate filter takes one size or a list of them ('S', 'M', 'L'); tasks without an estimate are not matched. The assignee filter takes one name or a list of them and matches case-insensitively; tasks without an assignee are not matched. The due_before and due_after filters take a date (YYYY-MM-DD) and select the tasks due before it or on and after it; tasks without a due date are not matched, so the two together give a due window. sort accepts updated_at, created_at, closed_at, priority, number and title. The blocked_by filter returns tasks whose blocked_by list contains the given task, the blocks filter returns tasks whose blocks list contains the given task. The source_file filter matches the source file path of a task partially and case-insensitively, so a fragment such as 'backlog' selects every task imported from that file. Every task carries blocked_by (tasks that block me) and blocks (tasks I block) as id lists."
+        crate::descriptions::TASKS_LIST
     }
 
     async fn run(ctx: &Ctx, input: Self::Input) -> Result<Self::Output> {
@@ -43,7 +44,7 @@ impl Op for TasksGet {
     type Output = Value;
 
     fn description() -> &'static str {
-        "Get a single task by task_id. The task_id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'); a bare number is rejected because it is unique only inside a project. Returns: the task itself - {id, project_id, number, title, description, status, priority, is_epic, epic_id, scope_id, source_file, tags, estimate, assignee, due_at, attachments_count, created_at, updated_at, closed_at, closed_reason, blocked_reason, deleted_at, project_name, scope_name, short_description, blocked_by, blocks, relates_to, duplicates, duplicated_by, children_counts}. For a task with is_epic=true the result also carries children_counts: the number of its child tasks per status (backlog, open, in-progress, blocked, done, cancelled) plus their total."
+        crate::descriptions::TASKS_GET
     }
 
     fn entity() -> Option<Entity> {
@@ -153,5 +154,291 @@ impl Op for TasksClose {
 
     async fn run(ctx: &Ctx, input: Self::Input) -> Result<Self::Output> {
         close_task(&ctx.db, input.task_id.as_str(), input.reason).await
+    }
+}
+
+fn summary(items: Vec<Value>) -> Value {
+    let succeeded = items
+        .iter()
+        .filter(|item| item.get("ok") == Some(&Value::Bool(true)))
+        .count() as i64;
+    let failed = items.len() as i64 - succeeded;
+    json!({ "items": items, "succeeded": succeeded, "failed": failed })
+}
+
+fn validate_items(count: usize) -> Result<()> {
+    if (1..=100).contains(&count) {
+        Ok(())
+    } else {
+        Err(AppError::validation(
+            "items must contain between 1 and 100 entries",
+        ))
+    }
+}
+
+fn batch_error(index: usize, id: Option<&str>, error: &AppError) -> Value {
+    json!({
+        "index": index,
+        "id": id,
+        "ok": false,
+        "error": { "kind": error.kind(), "message": error.message() },
+    })
+}
+
+fn update_item(
+    index: usize,
+    id: &str,
+    outcome: xboct_log_core::tasks::UpdateOutcome,
+    warnings: Vec<String>,
+) -> Value {
+    let mut item = json!({
+        "index": index,
+        "id": id,
+        "ok": true,
+        "task": outcome.task,
+        "changes": outcome.changes,
+        "released": outcome.released,
+        "warnings": warnings,
+    });
+    if let Value::Object(object) = &mut item {
+        if let Some(epic) = outcome.closed_epic {
+            object.insert("closed_epic".to_string(), json!(epic));
+        }
+        if let Some(epic) = outcome.reopened_epic {
+            object.insert("reopened_epic".to_string(), json!(epic));
+        }
+    }
+    item
+}
+
+pub struct TasksDelete;
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DeleteInput {
+    pub task_id: TaskKey,
+}
+
+impl Op for TasksDelete {
+    const NAME: &'static str = "tasks_delete";
+    const KIND: Kind = Kind::Command;
+    const MCP: bool = true;
+
+    type Input = DeleteInput;
+    type Output = Value;
+
+    fn description() -> &'static str {
+        crate::descriptions::TASKS_DELETE
+    }
+
+    fn entity() -> Option<Entity> {
+        Some(Entity::Tasks)
+    }
+
+    async fn run(ctx: &Ctx, input: Self::Input) -> Result<Self::Output> {
+        xboct_log_core::delete_task(&ctx.db, input.task_id.as_str()).await
+    }
+}
+
+pub struct TasksRestore;
+
+impl Op for TasksRestore {
+    const NAME: &'static str = "tasks_restore";
+    const KIND: Kind = Kind::Command;
+    const MCP: bool = true;
+
+    type Input = DeleteInput;
+    type Output = Value;
+
+    fn description() -> &'static str {
+        crate::descriptions::TASKS_RESTORE
+    }
+
+    fn entity() -> Option<Entity> {
+        Some(Entity::Tasks)
+    }
+
+    async fn run(ctx: &Ctx, input: Self::Input) -> Result<Self::Output> {
+        let task = xboct_log_core::restore_task(&ctx.db, input.task_id.as_str()).await?;
+        Ok(serde_json::to_value(task)?)
+    }
+}
+
+pub struct TasksMove;
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MoveInput {
+    pub task_id: TaskKey,
+    pub project_id: String,
+}
+
+impl Op for TasksMove {
+    const NAME: &'static str = "tasks_move";
+    const KIND: Kind = Kind::Command;
+    const MCP: bool = true;
+
+    type Input = MoveInput;
+    type Output = Value;
+
+    fn description() -> &'static str {
+        crate::descriptions::TASKS_MOVE
+    }
+
+    fn entity() -> Option<Entity> {
+        Some(Entity::Tasks)
+    }
+
+    async fn run(ctx: &Ctx, input: Self::Input) -> Result<Self::Output> {
+        let task =
+            xboct_log_core::move_task(&ctx.db, input.task_id.as_str(), &input.project_id).await?;
+        Ok(serde_json::to_value(task)?)
+    }
+}
+
+pub struct TasksCreateMany;
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CreateManyInput {
+    pub items: Vec<NewTask>,
+}
+
+impl Op for TasksCreateMany {
+    const NAME: &'static str = "tasks_create_many";
+    const KIND: Kind = Kind::Command;
+    const MCP: bool = true;
+
+    type Input = CreateManyInput;
+    type Output = Value;
+
+    fn description() -> &'static str {
+        crate::descriptions::TASKS_CREATE_MANY
+    }
+
+    fn entity() -> Option<Entity> {
+        Some(Entity::Tasks)
+    }
+
+    async fn run(ctx: &Ctx, input: Self::Input) -> Result<Self::Output> {
+        validate_items(input.items.len())?;
+        let mut items = Vec::with_capacity(input.items.len());
+        for (index, task) in input.items.into_iter().enumerate() {
+            match create_task(&ctx.db, task).await {
+                Ok(value) => {
+                    let mut value = value;
+                    let warnings = match &mut value {
+                        Value::Object(object) => {
+                            object.remove("warnings").unwrap_or_else(|| json!([]))
+                        }
+                        _ => json!([]),
+                    };
+                    items.push(json!({
+                        "index": index,
+                        "id": value.get("id").cloned().unwrap_or(Value::Null),
+                        "ok": true,
+                        "task": value,
+                        "changes": [],
+                        "released": [],
+                        "warnings": warnings,
+                    }));
+                }
+                Err(error) => items.push(batch_error(index, None, &error)),
+            }
+        }
+        Ok(summary(items))
+    }
+}
+
+pub struct TasksUpdateMany;
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateManyInput {
+    pub items: Vec<UpdateInput>,
+}
+
+impl Op for TasksUpdateMany {
+    const NAME: &'static str = "tasks_update_many";
+    const KIND: Kind = Kind::Command;
+    const MCP: bool = true;
+
+    type Input = UpdateManyInput;
+    type Output = Value;
+
+    fn description() -> &'static str {
+        crate::descriptions::TASKS_UPDATE_MANY
+    }
+
+    fn entity() -> Option<Entity> {
+        Some(Entity::Tasks)
+    }
+
+    async fn run(ctx: &Ctx, input: Self::Input) -> Result<Self::Output> {
+        validate_items(input.items.len())?;
+        let mut items = Vec::with_capacity(input.items.len());
+        for (index, item) in input.items.into_iter().enumerate() {
+            let id = item.task_id.to_string();
+            let patch = match item.patch {
+                Some(value) => serde_json::from_value::<TaskPatch>(value)
+                    .map_err(|error| AppError::validation(error.to_string())),
+                None => Ok(item.flat),
+            };
+            let result = match patch {
+                Ok(patch) => {
+                    xboct_log_core::update_task_detailed(&ctx.db, item.task_id.as_str(), patch)
+                        .await
+                }
+                Err(error) => Err(error),
+            };
+            match result {
+                Ok(outcome) => {
+                    let warnings = warnings_for(&ctx.db, &outcome.task).await?;
+                    items.push(update_item(index, &id, outcome, warnings));
+                }
+                Err(error) => items.push(batch_error(index, Some(&id), &error)),
+            }
+        }
+        Ok(summary(items))
+    }
+}
+
+pub struct TasksCloseMany;
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CloseManyInput {
+    pub items: Vec<CloseInput>,
+}
+
+impl Op for TasksCloseMany {
+    const NAME: &'static str = "tasks_close_many";
+    const KIND: Kind = Kind::Command;
+    const MCP: bool = true;
+
+    type Input = CloseManyInput;
+    type Output = Value;
+
+    fn description() -> &'static str {
+        crate::descriptions::TASKS_CLOSE_MANY
+    }
+
+    fn entity() -> Option<Entity> {
+        Some(Entity::Tasks)
+    }
+
+    async fn run(ctx: &Ctx, input: Self::Input) -> Result<Self::Output> {
+        validate_items(input.items.len())?;
+        let mut items = Vec::with_capacity(input.items.len());
+        for (index, item) in input.items.into_iter().enumerate() {
+            let id = item.task_id.to_string();
+            match close_task_detailed(&ctx.db, item.task_id.as_str(), item.reason).await {
+                Ok(outcome) => {
+                    let warnings = warnings_for(&ctx.db, &outcome.task).await?;
+                    items.push(update_item(index, &id, outcome, warnings));
+                }
+                Err(error) => items.push(batch_error(index, Some(&id), &error)),
+            }
+        }
+        Ok(summary(items))
     }
 }

@@ -81,6 +81,21 @@ macro_rules! ops {
 	};
 }
 
-pub use tasks::{TasksClose, TasksCreate, TasksGet, TasksList, TasksUpdate};
+pub use tasks::{
+    TasksClose, TasksCloseMany, TasksCreate, TasksCreateMany, TasksDelete, TasksGet, TasksList,
+    TasksMove, TasksRestore, TasksUpdate, TasksUpdateMany,
+};
 
-crate::ops![TasksList, TasksGet, TasksCreate, TasksUpdate, TasksClose];
+crate::ops![
+    TasksList,
+    TasksGet,
+    TasksCreate,
+    TasksUpdate,
+    TasksClose,
+    TasksDelete,
+    TasksRestore,
+    TasksMove,
+    TasksCreateMany,
+    TasksUpdateMany,
+    TasksCloseMany,
+];

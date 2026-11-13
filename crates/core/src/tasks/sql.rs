@@ -461,7 +461,10 @@ async fn tags_for_tasks(db: &Db, keys: &[String]) -> Result<HashMap<String, Vec<
     Ok(tags)
 }
 
-async fn blocking_info_for(db: &Db, keys: &[String]) -> Result<HashMap<String, BlockingInfo>> {
+pub(crate) async fn blocking_info_for(
+    db: &Db,
+    keys: &[String],
+) -> Result<HashMap<String, BlockingInfo>> {
     let mut info: HashMap<String, BlockingInfo> = keys
         .iter()
         .map(|key| (key.clone(), BlockingInfo::default()))

@@ -69,26 +69,64 @@ async fn hint_for_full_id(db: &Db, id: &str) -> Result<Option<String>> {
     Ok(Some(format!("did you mean {}?", keys.join(" or "))))
 }
 
-async fn ids_by_number(db: &Db, number: i64) -> Result<Vec<String>> {
-    let rows: Vec<(String,)> = sqlx::query_as(
-        "SELECT key FROM tasks WHERE number = ? AND deleted_at IS NULL ORDER BY project_id, key",
-    )
-    .bind(number)
-    .fetch_all(db.pool())
-    .await?;
+async fn ids_by_number(db: &Db, number: i64, include_deleted: bool) -> Result<Vec<String>> {
+    let sql = if include_deleted {
+        "SELECT key FROM tasks WHERE number = ? ORDER BY project_id, key"
+    } else {
+        "SELECT key FROM tasks WHERE number = ? AND deleted_at IS NULL ORDER BY project_id, key"
+    };
+    let rows: Vec<(String,)> = sqlx::query_as(sql)
+        .bind(number)
+        .fetch_all(db.pool())
+        .await?;
     Ok(rows.into_iter().map(|(key,)| key).collect())
 }
 
-async fn lookup_task(db: &Db, id: &str) -> Result<Option<TaskKey>> {
+async fn lookup_task_with(db: &Db, id: &str, include_deleted: bool) -> Result<Option<TaskKey>> {
     let normalized = normalize_task_id_input(id);
-    let row: Option<(String,)> = sqlx::query_as(
-        "SELECT key FROM tasks WHERE (key = ? OR key = ?) AND deleted_at IS NULL LIMIT 1",
-    )
-    .bind(id)
-    .bind(normalized)
-    .fetch_optional(db.pool())
-    .await?;
+    let sql = if include_deleted {
+        "SELECT key FROM tasks WHERE (key = ? OR key = ?) LIMIT 1"
+    } else {
+        "SELECT key FROM tasks WHERE (key = ? OR key = ?) AND deleted_at IS NULL LIMIT 1"
+    };
+    let row: Option<(String,)> = sqlx::query_as(sql)
+        .bind(id)
+        .bind(normalized)
+        .fetch_optional(db.pool())
+        .await?;
     Ok(row.map(|(key,)| TaskKey::from(key)))
+}
+
+async fn lookup_task(db: &Db, id: &str) -> Result<Option<TaskKey>> {
+    lookup_task_with(db, id, false).await
+}
+
+pub async fn resolve_task_id_any(db: &Db, id: &str) -> Result<TaskKey> {
+    let trimmed = id.trim();
+    if is_bare_number(trimmed) {
+        let number: i64 = trimmed
+            .parse()
+            .map_err(|error: std::num::ParseIntError| AppError::validation(error.to_string()))?;
+        let candidates = ids_by_number(db, number, true).await?;
+        if candidates.is_empty() {
+            return Err(AppError::validation(format!(
+                "task id must be 'PREFIX-NUMBER' - no task {number} in the backlog"
+            )));
+        }
+        return Err(AppError::validation(format!(
+            "task id must be 'PREFIX-NUMBER' - use {}",
+            candidates.join(", ")
+        )));
+    }
+    if let Some(key) = lookup_task_with(db, trimmed, true).await? {
+        return Ok(key);
+    }
+    let hint = hint_for_full_id(db, trimmed).await?;
+    let message = match hint {
+        Some(hint) => format!("task {trimmed} not found - {hint}"),
+        None => format!("task {trimmed} not found"),
+    };
+    Err(AppError::not_found(message))
 }
 
 pub async fn resolve_task_id(db: &Db, id: &str) -> Result<TaskKey> {
@@ -97,7 +135,7 @@ pub async fn resolve_task_id(db: &Db, id: &str) -> Result<TaskKey> {
         let number: i64 = trimmed
             .parse()
             .map_err(|error: std::num::ParseIntError| AppError::validation(error.to_string()))?;
-        let candidates = ids_by_number(db, number).await?;
+        let candidates = ids_by_number(db, number, false).await?;
         if candidates.is_empty() {
             return Err(AppError::validation(format!(
                 "task id must be 'PREFIX-NUMBER' - no task {number} in the backlog"

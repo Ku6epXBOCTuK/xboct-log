@@ -34,7 +34,8 @@ pub use scheduler::{
 };
 pub use tasks::{
     BlockingInfo, ClosedReason, Estimate, NewTask, NullableList, OneOrList, Order, Priority, Sort,
-    Status, Task, TaskFilters, TaskList, TaskPatch, UpdateOutcome, close_task,
-    count_epic_children_by_status, create_task, get_task, list_tasks, normalize_task_id_input,
-    resolve_task_id, update_task,
+    Status, Task, TaskFilters, TaskList, TaskPatch, UpdateOutcome, close_task, close_task_detailed,
+    count_epic_children_by_status, create_task, delete_task, get_task, list_tasks, move_task,
+    normalize_task_id_input, resolve_task_id, resolve_task_id_any, restore_task, update_task,
+    update_task_detailed, warnings_for,
 };

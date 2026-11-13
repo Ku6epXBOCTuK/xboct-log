@@ -1,8 +1,8 @@
 use serde_json::{Value, json};
 use xboct_log_core::{
-    ClosedReason, Db, NewTask, Status, TaskPatch, close_task, create_task, update_task,
+    ClosedReason, Db, NewTask, Status, TaskPatch, close_task, create_task, delete_task, get_task,
+    move_task, restore_task, update_task,
 };
-
 async fn open() -> Db {
     let db = Db::open(":memory:").await.expect("open");
     db.migrate().await.expect("migrate");
@@ -237,4 +237,90 @@ async fn warns_about_a_blocked_task_without_a_reason() {
         updated["warnings"][0],
         "task is blocked with no blocker task and no blocked_reason: say what or who it waits for, or add a blocker"
     );
+}
+
+#[tokio::test]
+async fn deletes_releases_restores_and_moves() {
+    let db = open().await;
+    let blocker = create_task(
+        &db,
+        new_task(json!({"project_id": "log", "title": "Blocker"})),
+    )
+    .await
+    .expect("create blocker");
+    let blocked = create_task(
+        &db,
+        new_task(json!({"project_id": "log", "title": "Blocked"})),
+    )
+    .await
+    .expect("create blocked");
+    assert_eq!(blocker["id"], "LOG-1");
+    assert_eq!(blocked["id"], "LOG-2");
+
+    sqlx::query(
+        "INSERT INTO task_links (source_task_id, target_task_id, link_type, created_at) SELECT source.id, target.id, 'blocks', '2026-01-01T00:00:00.000Z' FROM tasks source, tasks target WHERE source.key = 'LOG-1' AND target.key = 'LOG-2'",
+    )
+    .execute(db.pool())
+    .await
+    .expect("link");
+    sqlx::query(
+        "UPDATE tasks SET status = 'blocked', blocked_from_status = 'backlog', blocked_reason = 'wait' WHERE key = 'LOG-2'",
+    )
+    .execute(db.pool())
+    .await
+    .expect("block");
+
+    let deleted = delete_task(&db, "LOG-1").await.expect("delete");
+    assert_eq!(deleted["id"], "LOG-1");
+    assert!(deleted["deleted_at"].is_string());
+    assert_eq!(deleted["changes"][0]["field"], "deleted_at");
+    assert_eq!(deleted["changes"][1]["field"], "blocked_by");
+    assert_eq!(deleted["changes"][1]["from"], json!([]));
+    assert_eq!(deleted["changes"][1]["to"], json!([]));
+    assert_eq!(deleted["released"][0]["task_id"], "LOG-2");
+    assert_eq!(deleted["released"][0]["changes"][1]["to"], "backlog");
+
+    let released = get_task(&db, "LOG-2").await.expect("read blocked");
+    assert_eq!(released.status, Status::Backlog);
+    assert!(released.blocked_reason.is_none());
+
+    let restored = restore_task(&db, "LOG-1").await.expect("restore");
+    assert!(restored.deleted_at.is_none());
+    let conflict = restore_task(&db, "LOG-1").await.expect_err("restore live");
+    assert_eq!(conflict.message(), "task LOG-1 is not deleted");
+
+    sqlx::query("INSERT INTO projects (id, prefix, name, created_at) VALUES ('spa', 'SPA', 'Spa', '2026-01-01T00:00:00.000Z')")
+        .execute(db.pool())
+        .await
+        .expect("project");
+    let moved = move_task(&db, "LOG-1", "spa").await.expect("move");
+    assert_eq!(moved.id, "SPA-1");
+    assert_eq!(moved.project_id, "spa");
+    assert_eq!(moved.number.get(), 1);
+}
+
+#[tokio::test]
+async fn detaches_epic_children_on_delete() {
+    let db = open().await;
+    create_task(
+        &db,
+        new_task(json!({"project_id": "log", "title": "Epic", "is_epic": true})),
+    )
+    .await
+    .expect("epic");
+    create_task(
+        &db,
+        new_task(json!({"project_id": "log", "title": "Child", "epic_id": "LOG-1"})),
+    )
+    .await
+    .expect("child");
+
+    let deleted = delete_task(&db, "LOG-1").await.expect("delete");
+    let released = deleted["released"].as_array().expect("released");
+    assert_eq!(released[0]["task_id"], "LOG-2");
+    assert_eq!(released[0]["changes"][0]["field"], "epic_id");
+    assert_eq!(released[0]["changes"][0]["to"], Value::Null);
+
+    let child = get_task(&db, "LOG-2").await.expect("read child");
+    assert!(child.epic_id.is_none());
 }

@@ -24,15 +24,19 @@ fn lists_the_registered_operations() {
             "tasks_get",
             "tasks_create",
             "tasks_update",
-            "tasks_close"
+            "tasks_close",
+            "tasks_delete",
+            "tasks_restore",
+            "tasks_move",
+            "tasks_create_many",
+            "tasks_update_many",
+            "tasks_close_many"
         ]
     );
     assert!(ops.iter().all(|op| op.mcp));
     assert_eq!(ops[0].kind, Kind::Query);
     assert_eq!(ops[1].kind, Kind::Query);
-    assert_eq!(ops[2].kind, Kind::Command);
-    assert_eq!(ops[3].kind, Kind::Command);
-    assert_eq!(ops[4].kind, Kind::Command);
+    assert!(ops[2..].iter().all(|op| op.kind == Kind::Command));
     assert!(ops[0].description.starts_with("List tasks with filters"));
     assert!(ops[1].description.starts_with("Get a single task"));
     assert!(ops[2].description.starts_with("Create a task"));
@@ -82,4 +86,54 @@ async fn rejects_unknown_operations_and_fields() {
         "{}",
         field.message()
     );
+}
+
+#[tokio::test]
+async fn runs_a_batch_and_reports_each_item() {
+    let ctx = context().await;
+    sqlx::query("INSERT INTO projects (id, prefix, name, created_at) VALUES ('log', 'LOG', 'Log', '2026-01-01T00:00:00.000Z')")
+        .execute(ctx.db.pool())
+        .await
+        .unwrap();
+
+    let created = dispatch(
+        &ctx,
+        "tasks_create_many",
+        json!({"items": [
+            {"project_id": "log", "title": "First"},
+            {"project_id": "log", "title": "Second"},
+            {"project_id": "ghost", "title": "Third"}
+        ]}),
+    )
+    .await
+    .expect("create many");
+    assert_eq!(created["succeeded"], 2);
+    assert_eq!(created["failed"], 1);
+    assert_eq!(created["items"][0]["task"]["id"], "LOG-1");
+    assert_eq!(created["items"][1]["task"]["id"], "LOG-2");
+    assert_eq!(created["items"][2]["ok"], false);
+    assert_eq!(created["items"][2]["id"], serde_json::Value::Null);
+    assert_eq!(created["items"][2]["error"]["kind"], "not_found");
+
+    let updated = dispatch(
+        &ctx,
+        "tasks_update_many",
+        json!({"items": [{"task_id": "LOG-1", "status": "in-progress"}]}),
+    )
+    .await
+    .expect("update many");
+    assert_eq!(updated["items"][0]["task"]["status"], "in-progress");
+
+    let closed = dispatch(
+        &ctx,
+        "tasks_close_many",
+        json!({"items": [
+            {"task_id": "LOG-1", "reason": "fixed"},
+            {"task_id": "LOG-404", "reason": "fixed"}
+        ]}),
+    )
+    .await
+    .expect("close many");
+    assert_eq!(closed["items"][0]["task"]["status"], "done");
+    assert_eq!(closed["items"][1]["ok"], false);
 }
