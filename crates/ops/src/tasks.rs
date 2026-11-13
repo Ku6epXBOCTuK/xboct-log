@@ -1,8 +1,8 @@
 use serde::Deserialize;
 use serde_json::{Value, json};
 use xboct_log_core::{
-    AppError, Entity, Result, TaskKey, TaskList, count_epic_children_by_status, get_task,
-    list_tasks,
+    AppError, ClosedReason, Entity, NewTask, Result, TaskKey, TaskList, TaskPatch, close_task,
+    count_epic_children_by_status, create_task, get_task, list_tasks, update_task,
 };
 
 use crate::{Ctx, Kind, Op};
@@ -63,5 +63,95 @@ impl Op for TasksGet {
             }
         }
         Ok(value)
+    }
+}
+
+pub struct TasksCreate;
+
+impl Op for TasksCreate {
+    const NAME: &'static str = "tasks_create";
+    const KIND: Kind = Kind::Command;
+    const MCP: bool = true;
+
+    type Input = NewTask;
+    type Output = Value;
+
+    fn description() -> &'static str {
+        crate::descriptions::TASKS_CREATE
+    }
+
+    fn entity() -> Option<Entity> {
+        Some(Entity::Tasks)
+    }
+
+    async fn run(ctx: &Ctx, input: Self::Input) -> Result<Self::Output> {
+        create_task(&ctx.db, input).await
+    }
+}
+
+pub struct TasksUpdate;
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateInput {
+    pub task_id: TaskKey,
+    #[serde(default)]
+    pub patch: Option<Value>,
+    #[serde(flatten)]
+    pub flat: TaskPatch,
+}
+
+impl Op for TasksUpdate {
+    const NAME: &'static str = "tasks_update";
+    const KIND: Kind = Kind::Command;
+    const MCP: bool = true;
+
+    type Input = UpdateInput;
+    type Output = Value;
+
+    fn description() -> &'static str {
+        crate::descriptions::TASKS_UPDATE
+    }
+
+    fn entity() -> Option<Entity> {
+        Some(Entity::Tasks)
+    }
+
+    async fn run(ctx: &Ctx, input: Self::Input) -> Result<Self::Output> {
+        let patch = match input.patch {
+            Some(value) => serde_json::from_value(value)
+                .map_err(|error| AppError::validation(error.to_string()))?,
+            None => input.flat,
+        };
+        update_task(&ctx.db, input.task_id.as_str(), patch).await
+    }
+}
+
+pub struct TasksClose;
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CloseInput {
+    pub task_id: TaskKey,
+    pub reason: ClosedReason,
+}
+
+impl Op for TasksClose {
+    const NAME: &'static str = "tasks_close";
+    const KIND: Kind = Kind::Command;
+    const MCP: bool = true;
+
+    type Input = CloseInput;
+    type Output = Value;
+
+    fn description() -> &'static str {
+        crate::descriptions::TASKS_CLOSE
+    }
+
+    fn entity() -> Option<Entity> {
+        Some(Entity::Tasks)
+    }
+
+    async fn run(ctx: &Ctx, input: Self::Input) -> Result<Self::Output> {
+        close_task(&ctx.db, input.task_id.as_str(), input.reason).await
     }
 }

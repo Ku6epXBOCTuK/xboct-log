@@ -122,6 +122,35 @@ impl Priority {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ClosedReason {
+    Fixed,
+    Wontfix,
+    Obsolete,
+    Duplicate,
+    NotReproduced,
+}
+
+impl ClosedReason {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Fixed => "fixed",
+            Self::Wontfix => "wontfix",
+            Self::Obsolete => "obsolete",
+            Self::Duplicate => "duplicate",
+            Self::NotReproduced => "not-reproduced",
+        }
+    }
+
+    pub fn status(self) -> Status {
+        match self {
+            Self::Fixed => Status::Done,
+            _ => Status::Cancelled,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct Task {
     pub id: TaskKey,

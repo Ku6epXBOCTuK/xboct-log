@@ -33,7 +33,8 @@ pub use scheduler::{
     catch_up, ms_until_next, run_scheduled, scheduled_for, start as start_scheduler,
 };
 pub use tasks::{
-    BlockingInfo, Estimate, NullableList, OneOrList, Order, Priority, Sort, Status, Task,
-    TaskFilters, TaskList, count_epic_children_by_status, get_task, list_tasks,
-    normalize_task_id_input, resolve_task_id,
+    BlockingInfo, ClosedReason, Estimate, NewTask, NullableList, OneOrList, Order, Priority, Sort,
+    Status, Task, TaskFilters, TaskList, TaskPatch, UpdateOutcome, close_task,
+    count_epic_children_by_status, create_task, get_task, list_tasks, normalize_task_id_input,
+    resolve_task_id, update_task,
 };

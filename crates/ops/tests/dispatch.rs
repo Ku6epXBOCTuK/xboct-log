@@ -16,14 +16,32 @@ async fn context() -> Ctx {
 #[test]
 fn lists_the_registered_operations() {
     let ops = metadata();
-    assert_eq!(ops.len(), 2);
-    assert_eq!(ops[0].name, "tasks_list");
+    let names: Vec<&str> = ops.iter().map(|op| op.name).collect();
+    assert_eq!(
+        names,
+        vec![
+            "tasks_list",
+            "tasks_get",
+            "tasks_create",
+            "tasks_update",
+            "tasks_close"
+        ]
+    );
+    assert!(ops.iter().all(|op| op.mcp));
     assert_eq!(ops[0].kind, Kind::Query);
-    assert!(ops[0].mcp);
-    assert_eq!(ops[1].name, "tasks_get");
     assert_eq!(ops[1].kind, Kind::Query);
+    assert_eq!(ops[2].kind, Kind::Command);
+    assert_eq!(ops[3].kind, Kind::Command);
+    assert_eq!(ops[4].kind, Kind::Command);
     assert!(ops[0].description.starts_with("List tasks with filters"));
     assert!(ops[1].description.starts_with("Get a single task"));
+    assert!(ops[2].description.starts_with("Create a task"));
+    assert!(
+        ops[3]
+            .description
+            .starts_with("Update fields of an existing task")
+    );
+    assert!(ops[4].description.starts_with("Close a task"));
 }
 
 #[tokio::test]

@@ -663,7 +663,7 @@ pub async fn count_epic_children_by_status(
     Ok(counts)
 }
 
-async fn task_by_key(db: &Db, key: &str) -> Result<Option<Task>> {
+pub(crate) async fn task_by_key(db: &Db, key: &str) -> Result<Option<Task>> {
     let row: Option<TaskRow> = sqlx::query_as(
 		"SELECT tasks.*, (SELECT key FROM tasks epic WHERE epic.id = tasks.epic_id) AS epic_key, (SELECT COUNT(*) FROM task_attachments a WHERE a.task_id = tasks.id AND a.deleted_at IS NULL) AS attachments_count, NULL AS project_name, NULL AS scope_name FROM tasks WHERE tasks.key = ?",
 	)

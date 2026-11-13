@@ -5,6 +5,7 @@ use std::{future::Future, sync::Arc};
 use serde::{Serialize, de::DeserializeOwned};
 use xboct_log_core::{Db, Entity, Events, Result};
 
+mod descriptions;
 pub mod tasks;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -80,6 +81,6 @@ macro_rules! ops {
 	};
 }
 
-pub use tasks::{TasksGet, TasksList};
+pub use tasks::{TasksClose, TasksCreate, TasksGet, TasksList, TasksUpdate};
 
-crate::ops![TasksList, TasksGet];
+crate::ops![TasksList, TasksGet, TasksCreate, TasksUpdate, TasksClose];

@@ -1,0 +1,973 @@
+use serde::{Deserialize, Serialize};
+use serde_json::{Value, json};
+
+use crate::ids::{ProjectId, ScopeId, TagName, TaskKey};
+use crate::{AppError, Db, Result, Tx};
+
+use super::model::{Estimate, Priority, Status, Task};
+use super::resolve::{resolve_epic_id, resolve_scope_ref};
+use super::sql::{count_epic_children_by_status, task_by_key};
+
+pub const BLOCKED_REASON_MAX_LENGTH: usize = 200;
+const REVISION_MERGE_MS: i64 = 30 * 60_000;
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct NewTask {
+    pub project_id: ProjectId,
+    pub title: String,
+    #[serde(default)]
+    pub description: Option<String>,
+    #[serde(default)]
+    pub status: Option<Status>,
+    #[serde(default)]
+    pub priority: Option<Priority>,
+    #[serde(default)]
+    pub is_epic: Option<bool>,
+    #[serde(default)]
+    pub epic_id: Option<Option<TaskKey>>,
+    #[serde(default)]
+    pub scope_id: Option<Option<ScopeId>>,
+    #[serde(default)]
+    pub scope: Option<Option<String>>,
+    #[serde(default)]
+    pub source_file: Option<Option<String>>,
+    #[serde(default)]
+    pub tags: Option<Vec<TagName>>,
+    #[serde(default)]
+    pub estimate: Option<Option<Estimate>>,
+    #[serde(default)]
+    pub assignee: Option<Option<String>>,
+    #[serde(default)]
+    pub due_at: Option<Option<String>>,
+    #[serde(default)]
+    pub blocked_reason: Option<Option<String>>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TaskPatch {
+    #[serde(default)]
+    pub title: Option<String>,
+    #[serde(default)]
+    pub description: Option<String>,
+    #[serde(default)]
+    pub status: Option<Status>,
+    #[serde(default)]
+    pub priority: Option<Priority>,
+    #[serde(default)]
+    pub is_epic: Option<bool>,
+    #[serde(default)]
+    pub epic_id: Option<Option<TaskKey>>,
+    #[serde(default)]
+    pub scope_id: Option<Option<ScopeId>>,
+    #[serde(default)]
+    pub scope: Option<Option<String>>,
+    #[serde(default)]
+    pub source_file: Option<Option<String>>,
+    #[serde(default)]
+    pub tags: Option<Vec<TagName>>,
+    #[serde(default)]
+    pub estimate: Option<Option<Estimate>>,
+    #[serde(default)]
+    pub assignee: Option<Option<String>>,
+    #[serde(default)]
+    pub due_at: Option<Option<String>>,
+    #[serde(default)]
+    pub blocked_reason: Option<Option<String>>,
+}
+
+impl TaskPatch {
+    fn is_empty(&self) -> bool {
+        self.title.is_none()
+            && self.description.is_none()
+            && self.status.is_none()
+            && self.priority.is_none()
+            && self.is_epic.is_none()
+            && self.epic_id.is_none()
+            && self.scope_id.is_none()
+            && self.scope.is_none()
+            && self.source_file.is_none()
+            && self.tags.is_none()
+            && self.estimate.is_none()
+            && self.assignee.is_none()
+            && self.due_at.is_none()
+            && self.blocked_reason.is_none()
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ReleasedLink {
+    pub task_id: TaskKey,
+    pub changes: Vec<Value>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct UpdateOutcome {
+    pub task: Task,
+    pub changes: Vec<Value>,
+    pub released: Vec<ReleasedLink>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub closed_epic: Option<Task>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reopened_epic: Option<Task>,
+}
+
+pub fn empty_to_null(value: Option<&str>) -> Option<String> {
+    let value = value?.trim();
+    if value.is_empty() {
+        None
+    } else {
+        Some(value.to_string())
+    }
+}
+
+pub fn normalize_tags(tags: Option<&[TagName]>) -> Vec<TagName> {
+    let mut normalized: Vec<TagName> = Vec::new();
+    for tag in tags.unwrap_or_default() {
+        let tag = TagName::normalized(tag.as_str());
+        if !normalized.iter().any(|known| known == &tag) {
+            normalized.push(tag);
+        }
+    }
+    normalized
+}
+
+pub fn normalize_due_date(value: Option<&str>) -> Option<String> {
+    let trimmed = value.unwrap_or_default().trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    if let Ok(date) = chrono::NaiveDate::parse_from_str(trimmed, "%Y-%m-%d") {
+        return Some(date.format("%Y-%m-%d").to_string());
+    }
+    let parsed = chrono::DateTime::parse_from_rfc3339(trimmed).ok()?;
+    Some(
+        parsed
+            .with_timezone(&chrono::Utc)
+            .date_naive()
+            .format("%Y-%m-%d")
+            .to_string(),
+    )
+}
+
+fn now_iso() -> String {
+    chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
+}
+
+fn change(field: &str, from: Value, to: Value) -> Value {
+    json!({ "field": field, "from": from, "to": to })
+}
+
+async fn project_prefix(db: &Db, project_id: &str) -> Result<Option<String>> {
+    let row: Option<(String,)> = sqlx::query_as("SELECT prefix FROM projects WHERE id = ?")
+        .bind(project_id)
+        .fetch_optional(db.pool())
+        .await?;
+    Ok(row.map(|(prefix,)| prefix))
+}
+
+async fn validate_tags(db: &Db, tags: &[TagName]) -> Result<()> {
+    if tags.is_empty() {
+        return Ok(());
+    }
+    let dictionary: Vec<(String, i64)> =
+        sqlx::query_as("SELECT name, archived FROM tags ORDER BY name")
+            .fetch_all(db.pool())
+            .await?;
+    let active: Vec<&str> = dictionary
+        .iter()
+        .filter(|(_, archived)| *archived == 0)
+        .map(|(name, _)| name.as_str())
+        .collect();
+    let unknown: Vec<&str> = tags
+        .iter()
+        .map(TagName::as_str)
+        .filter(|tag| !active.iter().any(|name| name == tag))
+        .collect();
+    if unknown.is_empty() {
+        return Ok(());
+    }
+    let archived: Vec<&str> = unknown
+        .iter()
+        .copied()
+        .filter(|tag| {
+            dictionary
+                .iter()
+                .any(|(name, archived)| name == tag && *archived == 1)
+        })
+        .collect();
+    let usage: Vec<(String, i64)> = sqlx::query_as(
+        "SELECT tt.tag, COUNT(*) FROM task_tags tt JOIN tasks ON tasks.id = tt.task_id WHERE tasks.deleted_at IS NULL AND tt.tag NOT IN (SELECT name FROM tags WHERE archived = 1) GROUP BY tt.tag ORDER BY COUNT(*) DESC, tt.tag ASC",
+    )
+    .fetch_all(db.pool())
+    .await?;
+    let options = active
+        .iter()
+        .map(|name| {
+            let count = usage
+                .iter()
+                .find(|(tag, _)| tag == name)
+                .map(|(_, count)| *count)
+                .unwrap_or(0);
+            format!("{name} ({count})")
+        })
+        .take(12)
+        .collect::<Vec<_>>()
+        .join(", ");
+    let archived_part = if archived.is_empty() {
+        String::new()
+    } else {
+        format!(
+            " Archived: {} - restore with tags_update {{name, patch:{{archived:false}}}} or pick another.",
+            archived.join(", ")
+        )
+    };
+    Err(AppError::validation(format!(
+        "unknown tag(s): {}. Existing tags: {options}. See tags_list for the full list; create a genuinely new tag with tags_create {{name}}.{archived_part}",
+        unknown.join(", ")
+    )))
+}
+
+async fn record_revision(
+    db: &Db,
+    task_id: &str,
+    field: &str,
+    body: &str,
+    now: chrono::DateTime<chrono::Utc>,
+) -> Result<()> {
+    let latest: Option<(String,)> = sqlx::query_as(
+        "SELECT created_at FROM task_revisions WHERE task_id = (SELECT id FROM tasks WHERE key = ?) AND field = ? AND ref_id IS NULL ORDER BY id DESC LIMIT 1",
+    )
+    .bind(task_id)
+    .bind(field)
+    .fetch_optional(db.pool())
+    .await?;
+    if let Some((created_at,)) = latest
+        && let Ok(created) = chrono::DateTime::parse_from_rfc3339(&created_at)
+    {
+        let elapsed = now.timestamp_millis() - created.timestamp_millis();
+        if (0..REVISION_MERGE_MS).contains(&elapsed) {
+            return Ok(());
+        }
+    }
+    sqlx::query(
+        "INSERT INTO task_revisions (task_id, field, ref_id, body, created_at) VALUES ((SELECT id FROM tasks WHERE key = ?), ?, NULL, ?, ?)",
+    )
+    .bind(task_id)
+    .bind(field)
+    .bind(body)
+    .bind(now.to_rfc3339_opts(chrono::SecondsFormat::Millis, true))
+    .execute(db.pool())
+    .await?;
+    Ok(())
+}
+
+async fn warnings_for(db: &Db, task: &Task) -> Result<Vec<String>> {
+    let mut warnings = Vec::new();
+    if task.status == Status::Blocked && task.blocked_by.is_empty() && task.blocked_reason.is_none()
+    {
+        warnings.push(
+            "task is blocked with no blocker task and no blocked_reason: say what or who it waits for, or add a blocker"
+                .to_string(),
+        );
+    }
+    if task.is_epic && matches!(task.status, Status::Done | Status::Cancelled) {
+        let counts = count_epic_children_by_status(db, task.id.as_str()).await?;
+        let total = counts.get("total").copied().unwrap_or(0);
+        let done = counts.get("done").copied().unwrap_or(0);
+        let cancelled = counts.get("cancelled").copied().unwrap_or(0);
+        let open = total - done - cancelled;
+        if open > 0 {
+            warnings.push(format!(
+                "epic is {} while {open} of {total} subtasks are still open: close them too or reopen the epic",
+                task.status.as_str()
+            ));
+        }
+    }
+    Ok(warnings)
+}
+
+async fn read_task(db: &Db, key: &TaskKey) -> Result<Task> {
+    task_by_key(db, key.as_str())
+        .await?
+        .ok_or_else(|| AppError::unexpected(format!("task {key} disappeared while writing")))
+}
+
+pub async fn create_task(db: &Db, input: NewTask) -> Result<Value> {
+    let project = project_prefix(db, input.project_id.as_str()).await?;
+    let Some(prefix) = project else {
+        return Err(AppError::not_found(format!(
+            "project {} not found",
+            input.project_id
+        )));
+    };
+
+    let title = input.title.trim();
+    if title.is_empty() {
+        return Err(AppError::validation("task title is required"));
+    }
+    let status = input.status.unwrap_or(Status::Backlog);
+    let priority = input.priority.unwrap_or(Priority::Medium);
+
+    let tags = normalize_tags(input.tags.as_deref());
+    validate_tags(db, &tags).await?;
+    let source_file = empty_to_null(
+        input
+            .source_file
+            .as_ref()
+            .and_then(|value| value.as_deref()),
+    );
+    let estimate = input.estimate.flatten();
+    let assignee = empty_to_null(input.assignee.as_ref().and_then(|value| value.as_deref()));
+    let due_at = normalize_due_date(input.due_at.as_ref().and_then(|value| value.as_deref()));
+    if input
+        .due_at
+        .as_ref()
+        .and_then(|value| value.as_deref())
+        .is_some()
+        && due_at.is_none()
+    {
+        return Err(AppError::validation(format!(
+            "invalid due date: {}",
+            input
+                .due_at
+                .as_ref()
+                .and_then(|value| value.as_deref())
+                .unwrap_or_default()
+        )));
+    }
+
+    let epic_id = input.epic_id.as_ref().and_then(|value| value.as_ref());
+    let resolved_epic = match epic_id {
+        Some(epic) => {
+            Some(resolve_epic_id(db, epic.as_str(), input.project_id.as_str(), None).await?)
+        }
+        None => None,
+    };
+    if resolved_epic.is_some() && input.is_epic == Some(true) {
+        return Err(AppError::validation(
+            "epics are flat: an epic cannot belong to another epic, leave epic_id unset",
+        ));
+    }
+
+    let scope_id = resolve_scope_ref(
+        db,
+        input
+            .scope_id
+            .as_ref()
+            .and_then(|value| value.map(ScopeId::get)),
+        input.scope.as_ref().map(|value| value.as_deref()),
+        input.project_id.as_str(),
+    )
+    .await?;
+
+    let blocked_reason = empty_to_null(
+        input
+            .blocked_reason
+            .as_ref()
+            .and_then(|value| value.as_deref()),
+    );
+    if let Some(reason) = &blocked_reason
+        && reason.chars().count() > BLOCKED_REASON_MAX_LENGTH
+    {
+        return Err(AppError::validation(format!(
+            "blocked_reason is too long: {} characters, max {BLOCKED_REASON_MAX_LENGTH}",
+            reason.chars().count()
+        )));
+    }
+    if blocked_reason.is_some() && status != Status::Blocked {
+        return Err(AppError::validation(
+            "blocked_reason is only allowed on a blocked task",
+        ));
+    }
+
+    let now = now_iso();
+    let closed_at = matches!(status, Status::Done | Status::Cancelled).then(|| now.clone());
+    let mut tx = db.begin().await?;
+    let number = allocate_number_tx(&mut tx, input.project_id.as_str()).await?;
+    let id = uuid::Uuid::new_v4().to_string();
+    let key = format!("{prefix}-{number}");
+    sqlx::query(
+        "INSERT INTO tasks (id, key, project_id, number, title, description, status, priority, is_epic, epic_id, scope_id, source_file, estimate, assignee, due_at, blocked_reason, created_at, updated_at, closed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, (SELECT id FROM tasks WHERE key = ?), ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    )
+    .bind(&id)
+    .bind(&key)
+    .bind(input.project_id.as_str())
+    .bind(number)
+    .bind(title)
+    .bind(input.description.clone().unwrap_or_default())
+    .bind(status.as_str())
+    .bind(priority.as_str())
+    .bind(i64::from(input.is_epic == Some(true)))
+    .bind(resolved_epic.as_ref().map(TaskKey::as_str))
+    .bind(scope_id)
+    .bind(source_file.as_deref())
+    .bind(estimate.as_ref().map(|value| value.as_str()))
+    .bind(assignee.as_deref())
+    .bind(due_at.as_deref())
+    .bind(blocked_reason.as_deref())
+    .bind(&now)
+    .bind(&now)
+    .bind(closed_at.as_deref())
+    .execute(&mut *tx)
+    .await?;
+    for tag in &tags {
+        sqlx::query("INSERT INTO task_tags (task_id, tag) VALUES (?, ?)")
+            .bind(&id)
+            .bind(tag.as_str())
+            .execute(&mut *tx)
+            .await?;
+    }
+    tx.commit().await?;
+
+    let task = read_task(db, &TaskKey::from(key)).await?;
+    let warnings = warnings_for(db, &task).await?;
+    let mut output = serde_json::to_value(&task)?;
+    if let Value::Object(object) = &mut output {
+        object.insert("warnings".to_string(), json!(warnings));
+    }
+    Ok(output)
+}
+
+async fn allocate_number_tx(tx: &mut Tx, project_id: &str) -> Result<i64> {
+    let (high, used): (i64, i64) = sqlx::query_as(
+        "SELECT COALESCE((SELECT last_number FROM task_number_high_water WHERE project_id = ?), 0), COALESCE((SELECT MAX(number) FROM tasks WHERE project_id = ?), 0)",
+    )
+    .bind(project_id)
+    .bind(project_id)
+    .fetch_one(&mut **tx)
+    .await?;
+    let next = high.max(used) + 1;
+    sqlx::query(
+        "INSERT INTO task_number_high_water (project_id, last_number) VALUES (?, ?) ON CONFLICT (project_id) DO UPDATE SET last_number = excluded.last_number",
+    )
+    .bind(project_id)
+    .bind(next)
+    .execute(&mut **tx)
+    .await?;
+    Ok(next)
+}
+
+async fn auto_close_epic(db: &Db, child: &TaskKey, now: &str) -> Result<Option<Task>> {
+    let row: Option<(String,)> = sqlx::query_as(
+        "SELECT epic.key FROM tasks child JOIN tasks epic ON epic.id = child.epic_id WHERE child.key = ?",
+    )
+    .bind(child.as_str())
+    .fetch_optional(db.pool())
+    .await?;
+    let Some((epic_key,)) = row else {
+        return Ok(None);
+    };
+    let epic = read_task(db, &TaskKey::from(epic_key)).await?;
+    if epic.status == Status::Blocked || matches!(epic.status, Status::Done | Status::Cancelled) {
+        return Ok(None);
+    }
+    let counts = count_epic_children_by_status(db, epic.id.as_str()).await?;
+    let total = counts.get("total").copied().unwrap_or(0);
+    let done = counts.get("done").copied().unwrap_or(0);
+    let cancelled = counts.get("cancelled").copied().unwrap_or(0);
+    if total == 0 || total > done + cancelled {
+        return Ok(None);
+    }
+    sqlx::query(
+        "UPDATE tasks SET status = 'done', closed_at = ?, closed_reason = 'fixed', auto_closed = 1, updated_at = ? WHERE key = ?",
+    )
+    .bind(now)
+    .bind(now)
+    .bind(epic.id.as_str())
+    .execute(db.pool())
+    .await?;
+    Ok(Some(read_task(db, &epic.id).await?))
+}
+
+async fn reopen_auto_closed_epic(db: &Db, child: &TaskKey, now: &str) -> Result<Option<Task>> {
+    let row: Option<(String,)> = sqlx::query_as(
+        "SELECT epic.key FROM tasks child JOIN tasks epic ON epic.id = child.epic_id WHERE child.key = ? AND epic.auto_closed = 1",
+    )
+    .bind(child.as_str())
+    .fetch_optional(db.pool())
+    .await?;
+    let Some((epic_key,)) = row else {
+        return Ok(None);
+    };
+    sqlx::query(
+        "UPDATE tasks SET status = 'open', closed_at = NULL, closed_reason = NULL, auto_closed = 0, updated_at = ? WHERE key = ?",
+    )
+    .bind(now)
+    .bind(&epic_key)
+    .execute(db.pool())
+    .await?;
+    Ok(Some(read_task(db, &TaskKey::from(epic_key)).await?))
+}
+
+async fn is_restorable_status(status: &str) -> bool {
+    matches!(status, "backlog" | "open" | "in-progress")
+}
+
+async fn has_open_blocked_by(db: &Db, key: &str) -> Result<bool> {
+    let (count,): (i64,) = sqlx::query_as(
+        "SELECT COUNT(*) FROM task_links l JOIN tasks ON tasks.id = l.source_task_id WHERE l.link_type = 'blocks' AND l.target_task_id = (SELECT id FROM tasks target WHERE target.key = ?) AND tasks.deleted_at IS NULL AND tasks.status NOT IN ('done', 'cancelled')",
+    )
+    .bind(key)
+    .fetch_one(db.pool())
+    .await?;
+    Ok(count > 0)
+}
+
+pub async fn release_blocked_status(db: &Db, keys: &[TaskKey]) -> Result<Vec<(TaskKey, Status)>> {
+    let mut released = Vec::new();
+    for key in keys {
+        let row: Option<(String, Option<String>)> = sqlx::query_as(
+            "SELECT status, blocked_from_status FROM tasks WHERE key = ? AND deleted_at IS NULL",
+        )
+        .bind(key.as_str())
+        .fetch_optional(db.pool())
+        .await?;
+        let Some((status, blocked_from)) = row else {
+            continue;
+        };
+        if status != "blocked" || has_open_blocked_by(db, key.as_str()).await? {
+            continue;
+        }
+        let restored = blocked_from
+            .as_deref()
+            .filter(|value| matches!(*value, "backlog" | "open" | "in-progress"))
+            .unwrap_or("open");
+        let now = now_iso();
+        sqlx::query(
+            "UPDATE tasks SET status = ?, blocked_from_status = NULL, blocked_reason = NULL, updated_at = ? WHERE key = ?",
+        )
+        .bind(restored)
+        .bind(&now)
+        .bind(key.as_str())
+        .execute(db.pool())
+        .await?;
+        let status = Status::from_db(restored).unwrap_or(Status::Open);
+        released.push((key.clone(), status));
+    }
+    Ok(released)
+}
+
+async fn list_blocks(db: &Db, key: &str) -> Result<Vec<TaskKey>> {
+    let rows: Vec<(String,)> = sqlx::query_as(
+        "SELECT tasks.key FROM task_links l JOIN tasks ON tasks.id = l.target_task_id WHERE l.link_type = 'blocks' AND l.source_task_id = (SELECT id FROM tasks source WHERE source.key = ?) AND tasks.deleted_at IS NULL",
+    )
+    .bind(key)
+    .fetch_all(db.pool())
+    .await?;
+    let mut keys: Vec<TaskKey> = rows.into_iter().map(|(key,)| TaskKey::from(key)).collect();
+    keys.sort();
+    Ok(keys)
+}
+
+pub async fn update_task_detailed(db: &Db, id: &str, patch: TaskPatch) -> Result<UpdateOutcome> {
+    if patch.is_empty() {
+        return Err(AppError::validation(
+            "nothing to update: name at least one field next to task_id, e.g. {task_id: 'LOG-254', status: 'in-progress'}",
+        ));
+    }
+    let target = super::resolve::resolve_task_id(db, id).await?;
+    let current = read_task(db, &target).await?;
+    let mut changes: Vec<Value> = Vec::new();
+    let mut sets: Vec<String> = Vec::new();
+    let mut params: Vec<Option<String>> = Vec::new();
+    let now = now_iso();
+
+    let push_text = |sets: &mut Vec<String>,
+                     params: &mut Vec<Option<String>>,
+                     sql: &str,
+                     value: Option<String>| {
+        sets.push(sql.to_string());
+        params.push(value);
+    };
+
+    if let Some(title) = &patch.title {
+        let title = title.trim();
+        if title.is_empty() {
+            return Err(AppError::validation("task title is required"));
+        }
+        push_text(&mut sets, &mut params, "title = ?", Some(title.to_string()));
+        if title != current.title {
+            changes.push(change("title", json!(current.title), json!(title)));
+        }
+    }
+    let description_changed = match &patch.description {
+        Some(description) => {
+            push_text(
+                &mut sets,
+                &mut params,
+                "description = ?",
+                Some(description.clone()),
+            );
+            description != current.description.as_deref().unwrap_or_default()
+        }
+        None => false,
+    };
+
+    if let Some(status) = patch.status {
+        push_text(
+            &mut sets,
+            &mut params,
+            "status = ?",
+            Some(status.as_str().to_string()),
+        );
+        if status != current.status {
+            sets.push("auto_closed = 0".to_string());
+            changes.push(change("status", json!(current.status), json!(status)));
+        }
+        if status == Status::Blocked {
+            if current.status != Status::Blocked {
+                let previous = if is_restorable_status(current.status.as_str()).await {
+                    Some(current.status.as_str().to_string())
+                } else {
+                    None
+                };
+                push_text(&mut sets, &mut params, "blocked_from_status = ?", previous);
+            }
+        } else {
+            sets.push("blocked_from_status = NULL".to_string());
+            if let Some(reason) = &current.blocked_reason
+                && patch.blocked_reason.is_none()
+            {
+                sets.push("blocked_reason = NULL".to_string());
+                changes.push(change("blocked_reason", json!(reason), Value::Null));
+            }
+        }
+        let closed_now = matches!(status, Status::Done | Status::Cancelled);
+        let was_closed = current.closed_at.is_some();
+        if closed_now && !was_closed {
+            push_text(&mut sets, &mut params, "closed_at = ?", Some(now.clone()));
+        } else if !closed_now && was_closed {
+            push_text(&mut sets, &mut params, "closed_at = ?", None);
+            push_text(&mut sets, &mut params, "closed_reason = ?", None);
+        }
+    }
+
+    if let Some(reason) = &patch.blocked_reason {
+        let blocked_reason = empty_to_null(reason.as_deref());
+        if let Some(value) = &blocked_reason
+            && value.chars().count() > BLOCKED_REASON_MAX_LENGTH
+        {
+            return Err(AppError::validation(format!(
+                "blocked_reason is too long: {} characters, max {BLOCKED_REASON_MAX_LENGTH}",
+                value.chars().count()
+            )));
+        }
+        let next_status = patch.status.unwrap_or(current.status);
+        if blocked_reason.is_some() && next_status != Status::Blocked {
+            return Err(AppError::validation(
+                "blocked_reason is only allowed on a blocked task",
+            ));
+        }
+        if blocked_reason != current.blocked_reason {
+            push_text(
+                &mut sets,
+                &mut params,
+                "blocked_reason = ?",
+                blocked_reason.clone(),
+            );
+            changes.push(change(
+                "blocked_reason",
+                json!(current.blocked_reason),
+                json!(blocked_reason),
+            ));
+        }
+    }
+
+    if let Some(priority) = patch.priority {
+        push_text(
+            &mut sets,
+            &mut params,
+            "priority = ?",
+            Some(priority.as_str().to_string()),
+        );
+        if priority != current.priority {
+            changes.push(change("priority", json!(current.priority), json!(priority)));
+        }
+    }
+    if let Some(estimate) = &patch.estimate {
+        push_text(
+            &mut sets,
+            &mut params,
+            "estimate = ?",
+            estimate.map(|value| value.as_str().to_string()),
+        );
+        let next = estimate.map(|value| value.as_str());
+        let was = current.estimate.as_ref().map(|value| value.as_str());
+        if next != was {
+            changes.push(change("estimate", json!(was), json!(next)));
+        }
+    }
+    if let Some(assignee) = &patch.assignee {
+        let assignee = empty_to_null(assignee.as_deref());
+        push_text(&mut sets, &mut params, "assignee = ?", assignee.clone());
+        if assignee != current.assignee {
+            changes.push(change("assignee", json!(current.assignee), json!(assignee)));
+        }
+    }
+    if let Some(due) = &patch.due_at {
+        let raw = due.as_deref().unwrap_or_default();
+        let due_at = normalize_due_date(Some(raw));
+        if due_at.is_none() && !raw.trim().is_empty() {
+            return Err(AppError::validation(format!("invalid due date: {raw}")));
+        }
+        push_text(&mut sets, &mut params, "due_at = ?", due_at.clone());
+        if due_at != current.due_at {
+            changes.push(change("due_at", json!(current.due_at), json!(due_at)));
+        }
+    }
+    if let Some(is_epic) = patch.is_epic {
+        if current.is_epic && !is_epic {
+            let (count,): (i64,) = sqlx::query_as(
+                "SELECT COUNT(*) FROM tasks WHERE epic_id = (SELECT id FROM tasks epic WHERE epic.key = ?) AND deleted_at IS NULL",
+            )
+            .bind(target.as_str())
+            .fetch_one(db.pool())
+            .await?;
+            if count > 0 {
+                return Err(AppError::validation(format!(
+                    "cannot demote an epic with {count} subtask(s): detach or move them first"
+                )));
+            }
+        }
+        push_text(
+            &mut sets,
+            &mut params,
+            "is_epic = ?",
+            Some(i64::from(is_epic).to_string()),
+        );
+        if is_epic != current.is_epic {
+            changes.push(change("is_epic", json!(current.is_epic), json!(is_epic)));
+        }
+    }
+
+    let mut next_tags: Option<Vec<TagName>> = None;
+    if let Some(tags) = &patch.tags {
+        let tags = normalize_tags(Some(tags));
+        validate_tags(db, &tags).await?;
+        let unchanged = tags.len() == current.tags.len()
+            && tags
+                .iter()
+                .all(|tag| current.tags.iter().any(|known| known == tag));
+        if !unchanged {
+            let mut sorted = tags.clone();
+            sorted.sort();
+            changes.push(change("tags", json!(current.tags), json!(sorted)));
+        }
+        next_tags = Some(tags);
+    }
+
+    if let Some(source_file) = &patch.source_file {
+        push_text(
+            &mut sets,
+            &mut params,
+            "source_file = ?",
+            empty_to_null(source_file.as_deref()),
+        );
+    }
+
+    if let Some(epic_id) = &patch.epic_id {
+        let resolved = match epic_id {
+            Some(epic) => Some(
+                resolve_epic_id(
+                    db,
+                    epic.as_str(),
+                    current.project_id.as_str(),
+                    Some(target.as_str()),
+                )
+                .await?,
+            ),
+            None => None,
+        };
+        push_text(
+            &mut sets,
+            &mut params,
+            "epic_id = (SELECT id FROM tasks WHERE key = ?)",
+            resolved.as_ref().map(|key| key.as_str().to_string()),
+        );
+        let was = current.epic_id.as_ref().map(TaskKey::as_str);
+        let next = resolved.as_ref().map(TaskKey::as_str);
+        if was != next {
+            changes.push(change("epic_id", json!(was), json!(next)));
+        }
+    }
+
+    let next_is_epic = patch.is_epic.unwrap_or(current.is_epic);
+    let next_epic_id = patch
+        .epic_id
+        .as_ref()
+        .map(|value| value.as_ref())
+        .unwrap_or(current.epic_id.as_ref());
+    if next_is_epic && next_epic_id.is_some() {
+        return Err(AppError::validation(
+            "epics are flat: an epic cannot belong to another epic, leave epic_id unset",
+        ));
+    }
+
+    if patch.scope_id.is_some() || patch.scope.is_some() {
+        let scope_id = resolve_scope_ref(
+            db,
+            patch
+                .scope_id
+                .as_ref()
+                .and_then(|value| value.map(ScopeId::get)),
+            patch.scope.as_ref().map(|value| value.as_deref()),
+            current.project_id.as_str(),
+        )
+        .await?;
+        let scope_id = scope_id.map(ScopeId::from);
+        push_text(
+            &mut sets,
+            &mut params,
+            "scope_id = ?",
+            scope_id.map(|value| value.get().to_string()),
+        );
+        if scope_id != current.scope_id {
+            changes.push(change("scope_id", json!(current.scope_id), json!(scope_id)));
+        }
+    }
+
+    push_text(&mut sets, &mut params, "updated_at = ?", Some(now.clone()));
+
+    let closed_now = patch
+        .status
+        .is_some_and(|status| matches!(status, Status::Done | Status::Cancelled))
+        && !matches!(current.status, Status::Done | Status::Cancelled);
+    let reopened_now = patch
+        .status
+        .is_some_and(|status| !matches!(status, Status::Done | Status::Cancelled))
+        && matches!(current.status, Status::Done | Status::Cancelled);
+
+    if description_changed {
+        record_revision(
+            db,
+            target.as_str(),
+            "description",
+            current.description.as_deref().unwrap_or_default(),
+            chrono::DateTime::parse_from_rfc3339(&now)
+                .map(|value| value.with_timezone(&chrono::Utc))
+                .unwrap_or_else(|_| chrono::Utc::now()),
+        )
+        .await?;
+    }
+    let mut tx = db.begin().await?;
+    let sql = format!("UPDATE tasks SET {} WHERE key = ?", sets.join(", "));
+    let mut update = sqlx::query(sqlx::AssertSqlSafe(sql));
+    for param in &params {
+        update = update.bind(param.clone());
+    }
+    update.bind(target.as_str()).execute(&mut *tx).await?;
+
+    if let Some(tags) = &next_tags {
+        sqlx::query("DELETE FROM task_tags WHERE task_id = (SELECT id FROM tasks WHERE key = ?)")
+            .bind(target.as_str())
+            .execute(&mut *tx)
+            .await?;
+        for tag in tags {
+            sqlx::query(
+                "INSERT INTO task_tags (task_id, tag) SELECT id, ? FROM tasks WHERE key = ?",
+            )
+            .bind(tag.as_str())
+            .bind(target.as_str())
+            .execute(&mut *tx)
+            .await?;
+        }
+    }
+    tx.commit().await?;
+
+    let closed_epic = if closed_now {
+        auto_close_epic(db, &target, &now).await?
+    } else {
+        None
+    };
+    let reopened_epic = if reopened_now {
+        reopen_auto_closed_epic(db, &target, &now).await?
+    } else {
+        None
+    };
+    Ok(UpdateOutcome {
+        task: read_task(db, &target).await?,
+        changes,
+        released: Vec::new(),
+        closed_epic,
+        reopened_epic,
+    })
+}
+
+pub async fn update_task(db: &Db, id: &str, patch: TaskPatch) -> Result<Value> {
+    let outcome = update_task_detailed(db, id, patch).await?;
+    let warnings = warnings_for(db, &outcome.task).await?;
+    let mut output = serde_json::to_value(&outcome.task)?;
+    if let Value::Object(object) = &mut output {
+        object.insert("changes".to_string(), json!(outcome.changes));
+        object.insert("warnings".to_string(), json!(warnings));
+        if let Some(epic) = outcome.closed_epic {
+            object.insert("closed_epic".to_string(), serde_json::to_value(epic)?);
+        }
+        if let Some(epic) = outcome.reopened_epic {
+            object.insert("reopened_epic".to_string(), serde_json::to_value(epic)?);
+        }
+    }
+    Ok(output)
+}
+
+pub async fn close_task_detailed(
+    db: &Db,
+    id: &str,
+    reason: super::model::ClosedReason,
+) -> Result<UpdateOutcome> {
+    let target = super::resolve::resolve_task_id(db, id).await?;
+    let current = read_task(db, &target).await?;
+    let status = reason.status();
+    let changes = vec![
+        change("status", json!(current.status), json!(status)),
+        change("closed_reason", json!(current.closed_reason), json!(reason)),
+    ];
+    let now = now_iso();
+    let mut tx = db.begin().await?;
+    sqlx::query(
+        "UPDATE tasks SET status = ?, closed_at = ?, closed_reason = ?, auto_closed = 0, updated_at = ? WHERE key = ?",
+    )
+    .bind(status.as_str())
+    .bind(&now)
+    .bind(reason.as_str())
+    .bind(&now)
+    .bind(target.as_str())
+    .execute(&mut *tx)
+    .await?;
+    tx.commit().await?;
+
+    let blocks = list_blocks(db, target.as_str()).await?;
+    let released_status = release_blocked_status(db, &blocks).await?;
+    let released: Vec<ReleasedLink> = released_status
+        .into_iter()
+        .map(|(task_id, status)| ReleasedLink {
+            task_id,
+            changes: vec![change("status", json!(Status::Blocked), json!(status))],
+        })
+        .collect();
+    let closed_epic = auto_close_epic(db, &target, &now).await?;
+    Ok(UpdateOutcome {
+        task: read_task(db, &target).await?,
+        changes,
+        released,
+        closed_epic,
+        reopened_epic: None,
+    })
+}
+
+pub async fn close_task(db: &Db, id: &str, reason: super::model::ClosedReason) -> Result<Value> {
+    let outcome = close_task_detailed(db, id, reason).await?;
+    let warnings = warnings_for(db, &outcome.task).await?;
+    let mut output = serde_json::to_value(&outcome.task)?;
+    if let Value::Object(object) = &mut output {
+        object.insert("changes".to_string(), json!(outcome.changes));
+        object.insert("released".to_string(), json!(outcome.released));
+        object.insert("warnings".to_string(), json!(warnings));
+        if let Some(epic) = outcome.closed_epic {
+            object.insert("closed_epic".to_string(), serde_json::to_value(epic)?);
+        }
+    }
+    Ok(output)
+}
