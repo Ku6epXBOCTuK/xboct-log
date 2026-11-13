@@ -6,7 +6,11 @@ use std::{
 };
 
 use xboct_log_ops::metadata;
-use xboct_log_parity::{plan, snapshot::read_database};
+use xboct_log_parity::{
+    plan,
+    snapshot::read_database,
+    sweep::{Calls, Sweep},
+};
 
 fn argument(args: &[String], flag: &str) -> Option<String> {
     let index = args.iter().position(|value| value == flag)?;
@@ -55,6 +59,40 @@ async fn run() -> Result<(), String> {
         database.display()
     );
 
+    let fixture = PathBuf::from(
+        argument(&args, "--fixtures").unwrap_or_else(|| "tests/parity/fixtures".to_owned()),
+    );
+    let calls_path = fixture.join("ops.json");
+    let text = fs::read_to_string(&calls_path)
+        .map_err(|error| format!("cannot read {}: {error}", calls_path.display()))?;
+    let calls: Calls = serde_json::from_str(&text)
+        .map_err(|error| format!("{} is not json: {error}", calls_path.display()))?;
+
+    let replay_database = out.join("sweep.sqlite");
+    copy_database(&database, &replay_database)?;
+    let sweep = Sweep {
+        runtime,
+        database: replay_database,
+        now_ms: fixture_now(&calls_path),
+    };
+    let (replayed, mismatches) = sweep.run(&calls).await.map_err(|error| error.to_string())?;
+    write_json(&out.join("ops.json"), &replayed)?;
+    println!(
+        "replayed {} of {} calls, {} mismatch(es)",
+        replayed.calls.len(),
+        calls.calls.len(),
+        mismatches.len()
+    );
+    for line in mismatches.iter().take(20) {
+        println!("  {line}");
+    }
+    if !mismatches.is_empty() {
+        return Err(format!(
+            "{} replayed call(s) differ from the node snapshots",
+            mismatches.len()
+        ));
+    }
+
     let registry: BTreeSet<&str> = metadata().iter().map(|op| op.name).collect();
     let planned = plan::planned();
     let missing: Vec<&str> = planned
@@ -98,4 +136,29 @@ fn write_json(path: &Path, value: &impl serde::Serialize) -> Result<(), String> 
     let mut text = serde_json::to_string_pretty(value).map_err(|error| error.to_string())?;
     text.push('\n');
     fs::write(path, text).map_err(|error| format!("cannot write {}: {error}", path.display()))
+}
+
+fn fixture_now(path: &Path) -> i64 {
+    fs::metadata(path)
+        .and_then(|metadata| metadata.modified())
+        .ok()
+        .and_then(|time| time.duration_since(UNIX_EPOCH).ok())
+        .map(|duration| duration.as_millis() as i64)
+        .unwrap_or_else(now_ms)
+}
+
+fn copy_database(source: &Path, target: &Path) -> Result<(), String> {
+    for suffix in ["", "-wal", "-shm"] {
+        let from = PathBuf::from(format!("{}{suffix}", source.display()));
+        let to = PathBuf::from(format!("{}{suffix}", target.display()));
+        if to.exists() {
+            fs::remove_file(&to)
+                .map_err(|error| format!("cannot remove {}: {error}", to.display()))?;
+        }
+        if from.exists() {
+            fs::copy(&from, &to)
+                .map_err(|error| format!("cannot copy {}: {error}", from.display()))?;
+        }
+    }
+    Ok(())
 }

@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ids::{ProjectId, ScopeId, Seq, TagName, TaskKey};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Status {
     Backlog,
@@ -24,6 +24,8 @@ impl Status {
         Self::Done,
         Self::Cancelled,
     ];
+
+    pub const ACTIVE: [Self; 3] = [Self::Open, Self::InProgress, Self::Blocked];
 
     pub fn as_str(self) -> &'static str {
         match self {

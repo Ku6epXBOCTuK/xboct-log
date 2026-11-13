@@ -12,7 +12,9 @@ pub mod ids;
 pub mod media;
 mod migrations;
 pub mod paths;
+pub mod projects;
 pub mod scheduler;
+pub mod scopes;
 pub mod tasks;
 #[cfg(test)]
 mod test_support;
@@ -33,15 +35,26 @@ pub use media::{
     read_deleted_attachment_file,
 };
 pub use paths::{data_fingerprint, fingerprint_path};
+pub use projects::{
+    INBOX_PROJECT_ID, INBOX_PROJECT_PREFIX, NewProject, Project, ProjectDetails, ProjectPatch,
+    ProjectWithCounts, ScopeCount, create_project, get_project, list_projects, normalize_prefix,
+    normalize_repo, project_details, project_id_error, project_prefix_error, project_with_counts,
+    repo_error, resolve_project_ref, update_project,
+};
 pub use scheduler::{
     catch_up, ms_until_next, run_scheduled, scheduled_for, start as start_scheduler,
+};
+pub use scopes::{
+    Scope, ScopeCounts, ScopeDeleteReport, ScopeWithCounts, count_tasks_by_scope, create_scope,
+    delete_scope_detailed, find_scope_by_name, get_scope, list_scopes, preview_scope_delete,
+    scoped_project_ids, update_scope,
 };
 pub use tasks::{
     BlockingInfo, ClosedReason, Estimate, LinkType, NewTask, NullableList, OneOrList, Order,
     Priority, SearchTerm, Sort, Status, Task, TaskFilters, TaskList, TaskPatch, UpdateOutcome,
-    add_blocker, add_link, close_task, close_task_detailed, count_epic_children_by_status,
-    create_task, delete_task, get_task, get_tasks_by_ids, link_changes, list_revisions, list_tasks,
-    move_task, normalize_task_id_input, parse_search_query, remove_blocker, remove_link,
-    resolve_task_id, resolve_task_id_any, restore_task, task_options, task_stats, update_task,
-    update_task_detailed, warnings_for,
+    add_blocker, add_link, close_task, close_task_detailed, count_by_status,
+    count_epic_children_by_status, create_task, delete_task, get_task, get_tasks_by_ids,
+    link_changes, list_revisions, list_tasks, move_task, normalize_task_id_input, now_iso,
+    parse_search_query, remove_blocker, remove_link, resolve_task_id, resolve_task_id_any,
+    restore_task, task_options, task_stats, update_task, update_task_detailed, warnings_for,
 };

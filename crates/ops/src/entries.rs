@@ -1,5 +1,5 @@
 use serde_json::Value;
-use xboct_log_core::ActivityEntry;
+use xboct_log_core::{ActivityEntity, ActivityEntry};
 
 pub fn entries(op: &str, input: &Value, output: &Value) -> Vec<ActivityEntry> {
     match op {
@@ -114,6 +114,67 @@ pub fn entries(op: &str, input: &Value, output: &Value) -> Vec<ActivityEntry> {
             strings(&["blocked_by"]),
             array(output.get("changes")),
         )],
+        "projects_create" => vec![ActivityEntry::new(
+            ActivityEntity::Project,
+            text(output, "id"),
+            present_fields(input, &["project_id", "name", "prefix", "repo"]),
+            Vec::new(),
+        )],
+        "projects_update" => vec![ActivityEntry::new(
+            ActivityEntity::Project,
+            text(output, "id"),
+            present_fields(
+                input.get("patch").unwrap_or(&Value::Null),
+                &["name", "archived", "repo"],
+            ),
+            Vec::new(),
+        )],
+        "scopes_create" => vec![ActivityEntry::new(
+            ActivityEntity::Scope,
+            number_text(output, "id"),
+            present_fields(input, &["project_id", "name"]),
+            Vec::new(),
+        )],
+        "scopes_update" => vec![ActivityEntry::new(
+            ActivityEntity::Scope,
+            number_text(output, "id"),
+            present_fields(input.get("patch").unwrap_or(&Value::Null), &["name"]),
+            Vec::new(),
+        )],
+        "scopes_delete" => {
+            if input
+                .get("dry_run")
+                .and_then(Value::as_bool)
+                .unwrap_or(false)
+            {
+                return Vec::new();
+            }
+            let scope_id = number_text(input, "scope_id");
+            let mut entries = vec![ActivityEntry::new(
+                ActivityEntity::Scope,
+                scope_id.clone(),
+                Vec::new(),
+                Vec::new(),
+            )];
+            for key in ["task_ids", "epic_ids"] {
+                for task in array(output.get(key)) {
+                    let task_id = task.as_str().unwrap_or_default().to_string();
+                    if task_id.is_empty() {
+                        continue;
+                    }
+                    entries.push(ActivityEntry::task(
+                        task_id,
+                        strings(&["scope_id"]),
+                        vec![serde_json::json!({
+                            "field": "scope_id",
+                            "from": scope_id.parse::<i64>().ok(),
+                            "to": null,
+                        })],
+                    ));
+                }
+            }
+            entries
+        }
         _ => Vec::new(),
     }
 }
@@ -136,6 +197,25 @@ fn nested_text(value: Option<&Value>, key: &str) -> String {
         .and_then(Value::as_str)
         .unwrap_or_default()
         .to_string()
+}
+
+fn number_text(value: &Value, key: &str) -> String {
+    match value.get(key) {
+        Some(Value::Number(number)) => number.to_string(),
+        Some(Value::String(text)) => text.clone(),
+        _ => String::new(),
+    }
+}
+
+fn present_fields(value: &Value, names: &[&str]) -> Vec<String> {
+    let Some(object) = value.as_object() else {
+        return Vec::new();
+    };
+    names
+        .iter()
+        .filter(|name| object.contains_key(**name))
+        .map(|name| (*name).to_string())
+        .collect()
 }
 
 fn array(value: Option<&Value>) -> Vec<Value> {

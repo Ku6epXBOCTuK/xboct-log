@@ -20,56 +20,88 @@ fn lists_the_registered_operations() {
     assert_eq!(
         names,
         vec![
+            "tasks_history",
+            "activity_list",
+            "tasks_add_blocker",
+            "tasks_remove_blocker",
+            "tasks_add_link",
+            "tasks_remove_link",
+            "tasks_options",
+            "projects_list",
+            "projects_get",
+            "projects_create",
+            "projects_update",
+            "tasks_revisions_list",
+            "scopes_list",
+            "scopes_get",
+            "scopes_project_ids",
+            "scopes_create",
+            "scopes_update",
+            "scopes_delete",
+            "tasks_stats",
             "tasks_list",
+            "tasks_deleted_list",
+            "tasks_get_many",
             "tasks_get",
             "tasks_create",
+            "tasks_create_many",
             "tasks_update",
+            "tasks_update_many",
             "tasks_close",
+            "tasks_close_many",
             "tasks_delete",
             "tasks_restore",
             "tasks_move",
-            "tasks_add_link",
-            "tasks_remove_link",
-            "tasks_add_blocker",
-            "tasks_remove_blocker",
-            "tasks_create_many",
-            "tasks_update_many",
-            "tasks_options",
-            "tasks_stats",
-            "tasks_revisions_list",
-            "tasks_deleted_list",
-            "tasks_get_many",
-            "tasks_close_many",
-            "tasks_history",
-            "activity_list"
         ]
     );
-    assert!(ops.iter().all(|op| op.mcp));
+
+    let commands = [
+        "tasks_add_blocker",
+        "tasks_remove_blocker",
+        "tasks_add_link",
+        "tasks_remove_link",
+        "projects_create",
+        "projects_update",
+        "scopes_create",
+        "scopes_update",
+        "scopes_delete",
+        "tasks_create",
+        "tasks_create_many",
+        "tasks_update",
+        "tasks_update_many",
+        "tasks_close",
+        "tasks_close_many",
+        "tasks_delete",
+        "tasks_restore",
+        "tasks_move",
+    ];
+    for op in &ops {
+        assert!(op.mcp, "{} is exposed over mcp", op.name);
+        assert!(!op.description.is_empty(), "{} has a description", op.name);
+        let kind = if commands.contains(&op.name) {
+            Kind::Command
+        } else {
+            Kind::Query
+        };
+        assert_eq!(op.kind, kind, "{} kind", op.name);
+    }
+
     assert_eq!(ops[0].kind, Kind::Query);
-    assert_eq!(ops[1].kind, Kind::Query);
-    assert_eq!(ops[14].kind, Kind::Query);
-    assert_eq!(ops[15].kind, Kind::Query);
-    assert_eq!(ops[16].kind, Kind::Query);
-    assert_eq!(ops[17].kind, Kind::Query);
-    assert_eq!(ops[18].kind, Kind::Query);
-    assert_eq!(ops[19].kind, Kind::Command);
-    assert_eq!(ops[20].kind, Kind::Query);
-    assert_eq!(ops[21].kind, Kind::Query);
-    assert!(ops[0].description.starts_with("List tasks with filters"));
-    assert!(ops[1].description.starts_with("Get a single task"));
-    assert!(ops[2].description.starts_with("Create a task"));
-    assert!(
-        ops[3]
-            .description
-            .starts_with("Update fields of an existing task")
-    );
-    assert!(ops[4].description.starts_with("Close a task"));
-    assert!(
-        ops[8]
-            .description
-            .starts_with("Add a typed link between two tasks")
-    );
-    assert!(ops[10].description.starts_with("Link two tasks"));
+    assert_eq!(ops[6].kind, Kind::Query);
+    assert_eq!(ops[8].kind, Kind::Query);
+    assert_eq!(ops[9].kind, Kind::Command);
+    assert_eq!(ops[11].kind, Kind::Query);
+    assert_eq!(ops[17].kind, Kind::Command);
+    assert_eq!(ops[19].kind, Kind::Query);
+    assert_eq!(ops[22].kind, Kind::Query);
+    assert_eq!(ops[31].kind, Kind::Command);
+    assert!(ops[0].description.starts_with("Show the change log"));
+    assert!(ops[7].description.starts_with("List projects"));
+    assert!(ops[9].description.starts_with("Create a project"));
+    assert!(ops[12].description.starts_with("List scopes"));
+    assert_eq!(ops[7].entity, None);
+    assert_eq!(ops[9].entity, Some(Entity::Projects));
+    assert_eq!(ops[15].entity, Some(Entity::Scopes));
 }
 
 #[tokio::test]

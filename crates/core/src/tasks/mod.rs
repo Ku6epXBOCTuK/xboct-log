@@ -6,8 +6,8 @@ mod resolve;
 mod sql;
 mod write;
 pub use extra::{
-    SearchTerm, TaskMany, count_children_by_epic, count_tasks_by_status, get_tasks_by_ids,
-    list_revisions, parse_search_query, task_options, task_stats,
+    SearchTerm, TaskMany, count_by_status, count_children_by_epic, count_tasks_by_status,
+    get_tasks_by_ids, list_revisions, parse_search_query, task_options, task_stats,
 };
 pub use filters::{NullableList, OneOrList, Order, Sort, TaskFilters};
 pub use links::{
@@ -18,5 +18,5 @@ pub use resolve::{normalize_task_id_input, resolve_task_id, resolve_task_id_any}
 pub use sql::{count_epic_children_by_status, get_task, list_tasks};
 pub use write::{
     NewTask, ReleasedLink, TaskPatch, UpdateOutcome, close_task, close_task_detailed, create_task,
-    delete_task, move_task, restore_task, update_task, update_task_detailed, warnings_for,
+    delete_task, move_task, now_iso, restore_task, update_task, update_task_detailed, warnings_for,
 };

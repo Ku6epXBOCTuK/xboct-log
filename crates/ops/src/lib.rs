@@ -3,7 +3,7 @@
 use std::{future::Future, sync::Arc};
 
 use chrono::Local;
-use serde::{Serialize, de::DeserializeOwned};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use xboct_log_core::{
     ActivitySource, AutoBackup, Config, Db, Entity, Events, Result, maybe_auto_backup,
     record_activity,
@@ -12,9 +12,12 @@ use xboct_log_core::{
 pub mod activity;
 mod descriptions;
 mod entries;
+pub mod projects;
+pub mod scopes;
 pub mod tasks;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum Kind {
     Query,
     Command,
@@ -154,6 +157,10 @@ macro_rules! ops {
 }
 
 pub use activity::{ActivitiesList, TasksHistory};
+pub use projects::{ProjectsCreate, ProjectsGet, ProjectsList, ProjectsUpdate};
+pub use scopes::{
+    ScopesCreate, ScopesDelete, ScopesGet, ScopesList, ScopesProjectIds, ScopesUpdate,
+};
 pub use tasks::{
     TasksAddBlocker, TasksAddLink, TasksClose, TasksCloseMany, TasksCreate, TasksCreateMany,
     TasksDelete, TasksDeletedList, TasksGet, TasksGetMany, TasksList, TasksMove, TasksOptions,
@@ -162,26 +169,36 @@ pub use tasks::{
 };
 
 crate::ops![
+    TasksHistory,
+    ActivitiesList,
+    TasksAddBlocker,
+    TasksRemoveBlocker,
+    TasksAddLink,
+    TasksRemoveLink,
+    TasksOptions,
+    ProjectsList,
+    ProjectsGet,
+    ProjectsCreate,
+    ProjectsUpdate,
+    TasksRevisionsList,
+    ScopesList,
+    ScopesGet,
+    ScopesProjectIds,
+    ScopesCreate,
+    ScopesUpdate,
+    ScopesDelete,
+    TasksStats,
     TasksList,
+    TasksDeletedList,
+    TasksGetMany,
     TasksGet,
     TasksCreate,
+    TasksCreateMany,
     TasksUpdate,
+    TasksUpdateMany,
     TasksClose,
+    TasksCloseMany,
     TasksDelete,
     TasksRestore,
     TasksMove,
-    TasksAddLink,
-    TasksRemoveLink,
-    TasksAddBlocker,
-    TasksRemoveBlocker,
-    TasksCreateMany,
-    TasksUpdateMany,
-    TasksOptions,
-    TasksStats,
-    TasksRevisionsList,
-    TasksDeletedList,
-    TasksGetMany,
-    TasksCloseMany,
-    TasksHistory,
-    ActivitiesList,
 ];

@@ -81,20 +81,35 @@ pub fn parse_search_query(input: &str) -> Vec<SearchTerm> {
         .collect()
 }
 
-pub async fn count_tasks_by_status(db: &Db) -> Result<BTreeMap<String, i64>> {
-    let rows: Vec<(String, i64)> = sqlx::query_as(
-        "SELECT status, COUNT(*) FROM tasks WHERE deleted_at IS NULL AND is_epic = 0 GROUP BY status",
-    )
-    .fetch_all(db.pool())
-    .await?;
-    let mut counts: BTreeMap<String, i64> = Status::ALL
-        .iter()
-        .map(|status| (status.as_str().to_string(), 0))
-        .collect();
+pub async fn count_by_status(
+    db: &Db,
+    project_id: Option<&str>,
+    is_epic: bool,
+) -> Result<BTreeMap<Status, i64>> {
+    let mut sql =
+        String::from("SELECT status, COUNT(*) FROM tasks WHERE deleted_at IS NULL AND is_epic = ?");
+    if project_id.is_some() {
+        sql.push_str(" AND project_id = ?");
+    }
+    sql.push_str(" GROUP BY status");
+
+    let mut query = sqlx::query_as(sqlx::AssertSqlSafe(sql)).bind(i64::from(is_epic));
+    if let Some(project_id) = project_id {
+        query = query.bind(project_id);
+    }
+    let rows: Vec<(String, i64)> = query.fetch_all(db.pool()).await?;
+
+    let mut counts: BTreeMap<Status, i64> = Status::ALL.iter().map(|status| (*status, 0)).collect();
     for (status, count) in rows {
-        counts.insert(status, count);
+        if let Ok(status) = serde_json::from_value::<Status>(Value::String(status)) {
+            counts.insert(status, count);
+        }
     }
     Ok(counts)
+}
+
+pub async fn count_tasks_by_status(db: &Db) -> Result<BTreeMap<Status, i64>> {
+    count_by_status(db, None, false).await
 }
 
 pub async fn count_children_by_epic(db: &Db) -> Result<BTreeMap<String, BTreeMap<String, i64>>> {
