@@ -5,9 +5,9 @@ use std::time::Duration;
 
 use axum::{
     Extension, Json, Router,
-    body::Body,
+    body::{Body, Bytes},
     extract::{Path, State},
-    http::{HeaderName, HeaderValue, Method, Request, StatusCode, header},
+    http::{HeaderMap, HeaderName, HeaderValue, Method, Request, StatusCode, header},
     response::{
         IntoResponse, Response,
         sse::{Event, KeepAlive, Sse},
@@ -24,12 +24,14 @@ use xboct_log_core::{
     AppError, BackupKind, Config, Db, Events, ServerEvent, attachment_format, data_fingerprint,
     media::AttachmentKind as Kind, read_attachment_file, read_deleted_attachment_file, run_backup,
 };
+use xboct_log_ops::{Ctx, dispatch, metadata};
 
 pub mod mcp;
 mod mcp_text;
 
 pub const APP_NAME: &str = "xboct-log";
 const HEARTBEAT: Duration = Duration::from_secs(15);
+const CLIENT_HEADER: &str = "x-xboct-client";
 
 #[derive(Clone)]
 pub struct AppState {
@@ -41,6 +43,7 @@ pub struct AppState {
 pub fn app(state: AppState) -> Router {
     let service = mcp_service(&state);
     Router::new()
+        .merge(ops_router())
         .route("/api/health", get(health))
         .route("/api/events", get(events))
         .route("/api/backup", post(backup))
@@ -49,6 +52,67 @@ pub fn app(state: AppState) -> Router {
         .route("/mcp", any(mcp_entry))
         .layer(Extension(service))
         .with_state(state)
+}
+
+fn ops_router() -> Router<AppState> {
+    let mut router = Router::new();
+    for info in metadata() {
+        let path = format!("/api/{}", info.name);
+        let name = info.name;
+        router = router.route(
+            &path,
+            post(
+                move |State(state): State<AppState>, headers: HeaderMap, body: Bytes| async move {
+                    op_endpoint(&state, &headers, &body, name).await
+                },
+            ),
+        );
+    }
+    router
+}
+
+async fn op_endpoint(state: &AppState, headers: &HeaderMap, body: &[u8], name: &str) -> Response {
+    let input = if body.is_empty() {
+        serde_json::json!({})
+    } else {
+        match serde_json::from_slice::<serde_json::Value>(body) {
+            Ok(value) => value,
+            Err(error) => {
+                return error_response(&AppError::validation(format!(
+                    "the request body is not json: {error}"
+                )));
+            }
+        }
+    };
+    let client = headers
+        .get(CLIENT_HEADER)
+        .and_then(|value| value.to_str().ok())
+        .and_then(client_label);
+    let ctx =
+        Ctx::new(state.db.clone(), state.events.clone(), state.config.clone()).with_client(client);
+    match dispatch(&ctx, name, input).await {
+        Ok(value) => Json(value).into_response(),
+        Err(error) => error_response(&error),
+    }
+}
+
+fn error_response(error: &AppError) -> Response {
+    let status =
+        StatusCode::from_u16(error.status().as_u16()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
+    let body = serde_json::json!({
+        "kind": error.kind(),
+        "message": error.message(),
+    });
+    (status, Json(body)).into_response()
+}
+
+fn client_label(value: &str) -> Option<String> {
+    let valid = !value.is_empty()
+        && value.len() <= 64
+        && value.chars().all(|character| {
+            character.is_ascii_alphanumeric() || character == '_' || character == '-'
+        });
+    valid.then(|| value.to_string())
 }
 
 type McpService = StreamableHttpService<mcp::Backlog, LocalSessionManager>;
@@ -307,6 +371,16 @@ mod tests {
             .await
             .unwrap();
         sqlx::query(
+            "CREATE TABLE tags (
+                name TEXT PRIMARY KEY,
+                archived INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL
+            )",
+        )
+        .execute(db.pool())
+        .await
+        .unwrap();
+        sqlx::query(
             "CREATE TABLE task_attachments (
                 id TEXT PRIMARY KEY,
                 task_id TEXT NOT NULL,
@@ -399,6 +473,27 @@ mod tests {
 
         async fn post(&self, uri: &str) -> (StatusCode, HeaderMap, Vec<u8>) {
             self.request(Method::POST, uri).await
+        }
+
+        async fn post_json(
+            &self,
+            uri: &str,
+            body: &str,
+            client: Option<&str>,
+        ) -> (StatusCode, HeaderMap, Vec<u8>) {
+            let mut builder = Request::builder()
+                .method(Method::POST)
+                .uri(uri)
+                .header(header::CONTENT_TYPE, "application/json");
+            if let Some(client) = client {
+                builder = builder.header(CLIENT_HEADER, client);
+            }
+            let request = builder.body(Body::from(body.to_owned())).unwrap();
+            let response = self.router.clone().oneshot(request).await.unwrap();
+            let status = response.status();
+            let headers = response.headers().clone();
+            let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+            (status, headers, body.to_vec())
         }
 
         async fn request(&self, method: Method, uri: &str) -> (StatusCode, HeaderMap, Vec<u8>) {
@@ -614,5 +709,52 @@ mod tests {
             .expect("the sse stream ended")
             .expect("the sse frame failed");
         String::from_utf8(frame.to_vec()).unwrap()
+    }
+
+    #[tokio::test]
+    async fn serves_every_operation_over_rest() {
+        let app = test_app().await;
+
+        let (status, _, body) = app.post_json("/api/tags_dictionary", "", None).await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(body, br#"{"items":[]}"#);
+
+        let (status, _, body) = app
+            .post_json("/api/tags_create", r#"{"name":"api"}"#, Some("tab-7"))
+            .await;
+        assert_eq!(status, StatusCode::OK);
+        let created: Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(created["name"], "api");
+        assert_eq!(created["archived"], false);
+
+        let (_, _, body) = app.post_json("/api/tags_dictionary", "", None).await;
+        assert_eq!(body, br#"{"items":["api"]}"#);
+
+        app.stop().await;
+    }
+
+    #[tokio::test]
+    async fn reports_operation_errors_as_json() {
+        let app = test_app().await;
+
+        let (status, headers, body) = app
+            .post_json(
+                "/api/tags_rename",
+                r#"{"name":"nope","new_name":"x"}"#,
+                None,
+            )
+            .await;
+        assert_eq!(status, StatusCode::NOT_FOUND);
+        assert_eq!(header(&headers, "content-type"), "application/json");
+        let error: Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(error["kind"], "not_found");
+        assert_eq!(error["message"], "tag nope not found");
+
+        let (status, _, body) = app.post_json("/api/tasks_list", "not json", None).await;
+        assert_eq!(status, StatusCode::BAD_REQUEST);
+        let error: Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(error["kind"], "validation");
+
+        app.stop().await;
     }
 }

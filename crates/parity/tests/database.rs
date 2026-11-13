@@ -23,6 +23,15 @@ fn modified_ms(path: &PathBuf) -> i64 {
         .unwrap_or_else(now_ms)
 }
 
+fn newest_timestamp(text: &str) -> Option<i64> {
+    let regex = regex::Regex::new(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z").unwrap();
+    regex
+        .find_iter(text)
+        .filter_map(|found| chrono::DateTime::parse_from_rfc3339(found.as_str()).ok())
+        .map(|stamp| stamp.timestamp_millis())
+        .max()
+}
+
 #[tokio::test]
 async fn reads_the_node_database_like_the_committed_fixture() {
     let root = root();
@@ -38,10 +47,9 @@ async fn reads_the_node_database_like_the_committed_fixture() {
     let fixture_path = root.join("tests/parity/fixtures/db.json");
     let fixture = fs::read_to_string(&fixture_path).expect("tests/parity/fixtures/db.json");
     let expected: Value = serde_json::from_str(&fixture).expect("the fixture is json");
+    let now = newest_timestamp(&fixture).unwrap_or_else(|| modified_ms(&fixture_path));
 
-    let document = read_database(&database, modified_ms(&fixture_path))
-        .await
-        .unwrap();
+    let document = read_database(&database, now).await.unwrap();
     let actual = serde_json::to_value(&document).unwrap();
 
     if let Some(found) = difference(&expected, &actual) {
