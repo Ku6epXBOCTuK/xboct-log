@@ -9,3 +9,6 @@ publish.workspace = true
 xboct-log-core = { workspace = true }
 serde.workspace = true
 serde_json.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true

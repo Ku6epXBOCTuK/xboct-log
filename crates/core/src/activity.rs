@@ -35,14 +35,7 @@ mod tests {
     }
 
     fn scratch_dir() -> std::path::PathBuf {
-        std::env::temp_dir().join(format!(
-            "xboct-log-activity-{}-{}",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
-        ))
+        crate::test_support::scratch_dir("activity")
     }
 
     #[tokio::test]

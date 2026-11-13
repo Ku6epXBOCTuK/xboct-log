@@ -1,0 +1,424 @@
+use serde_json::{Value, json};
+use xboct_log_core::{
+    AppErrorKind, Db, TaskFilters, count_epic_children_by_status, get_task, list_tasks,
+    resolve_task_id,
+};
+
+async fn database() -> Db {
+    let db = Db::open(":memory:").await.unwrap();
+    db.migrate().await.unwrap();
+    let pool = db.pool();
+    for (id, name, prefix, archived) in [
+        ("log", "Log", "LOG", None),
+        ("spa", "Spa", "SPA", Some("2026-01-05T00:00:00.000Z")),
+    ] {
+        sqlx::query(
+			"INSERT INTO projects (id, name, prefix, created_at, archived_at) VALUES (?, ?, ?, ?, ?)",
+		)
+		.bind(id)
+		.bind(name)
+		.bind(prefix)
+		.bind("2026-01-01T00:00:00.000Z")
+		.bind(archived)
+		.execute(pool)
+		.await
+		.unwrap();
+    }
+    sqlx::query("INSERT INTO scopes (id, project_id, name, created_at) VALUES (1, 'log', 'backend', ?), (2, 'log', 'web', ?)")
+		.bind("2026-01-01T00:00:00.000Z")
+		.bind("2026-01-01T00:00:00.000Z")
+		.execute(pool)
+		.await
+		.unwrap();
+    for tag in ["bug", "docs"] {
+        sqlx::query("INSERT INTO tags (name, created_at) VALUES (?, ?)")
+            .bind(tag)
+            .bind("2026-01-01T00:00:00.000Z")
+            .execute(pool)
+            .await
+            .unwrap();
+    }
+    let tasks = [
+        (
+            "t1",
+            "LOG-1",
+            "log",
+            1,
+            "Rust port",
+            "The rust rewrite epic",
+            "open",
+            "high",
+            1,
+            None,
+            None,
+            None,
+            None,
+            None,
+            "2026-01-01T00:00:00.001Z",
+            None,
+            None,
+            None,
+        ),
+        (
+            "t2",
+            "LOG-2",
+            "log",
+            2,
+            "Port the tasks list",
+            "## Heading\nSecond line with details",
+            "backlog",
+            "medium",
+            0,
+            Some("t1"),
+            Some(1),
+            Some("docs/rust-rewrite.md"),
+            Some("Ivan"),
+            Some("M"),
+            "2026-01-01T00:00:00.002Z",
+            Some("2026-12-01"),
+            None,
+            None,
+        ),
+        (
+            "t3",
+            "LOG-3",
+            "log",
+            3,
+            "Write docs",
+            "",
+            "done",
+            "low",
+            0,
+            Some("t1"),
+            Some(2),
+            None,
+            None,
+            None,
+            "2026-01-01T00:00:00.003Z",
+            None,
+            Some("2026-01-01T00:00:00.003Z"),
+            None,
+        ),
+        (
+            "t4",
+            "LOG-4",
+            "log",
+            4,
+            "Third task",
+            "Detailed body",
+            "in-progress",
+            "critical",
+            0,
+            None,
+            None,
+            None,
+            None,
+            Some("S"),
+            "2026-01-01T00:00:00.004Z",
+            None,
+            None,
+            None,
+        ),
+        (
+            "t5",
+            "LOG-5",
+            "log",
+            5,
+            "Fifth task",
+            "",
+            "backlog",
+            "low",
+            0,
+            None,
+            None,
+            None,
+            None,
+            None,
+            "2026-01-01T00:00:00.002Z",
+            None,
+            None,
+            None,
+        ),
+        (
+            "t6",
+            "SPA-2",
+            "spa",
+            2,
+            "Second project",
+            "",
+            "open",
+            "critical",
+            0,
+            None,
+            None,
+            None,
+            None,
+            None,
+            "2026-01-01T00:00:00.005Z",
+            None,
+            None,
+            None,
+        ),
+        (
+            "t7",
+            "SPA-1",
+            "spa",
+            1,
+            "Deleted thing",
+            "",
+            "backlog",
+            "low",
+            0,
+            None,
+            None,
+            None,
+            None,
+            None,
+            "2026-01-01T00:00:00.000Z",
+            None,
+            None,
+            Some("2026-01-02T00:00:00.000Z"),
+        ),
+    ];
+    for (
+        id,
+        key,
+        project,
+        number,
+        title,
+        description,
+        status,
+        priority,
+        is_epic,
+        epic,
+        scope,
+        source,
+        assignee,
+        estimate,
+        updated,
+        due,
+        closed,
+        deleted,
+    ) in tasks
+    {
+        sqlx::query(
+			"INSERT INTO tasks (id, key, project_id, number, title, description, status, priority, is_epic, epic_id, scope_id, source_file, assignee, estimate, due_at, created_at, updated_at, closed_at, closed_reason, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		)
+		.bind(id)
+		.bind(key)
+		.bind(project)
+		.bind(number)
+		.bind(title)
+		.bind(description)
+		.bind(status)
+		.bind(priority)
+		.bind(is_epic)
+		.bind(epic)
+		.bind(scope)
+		.bind(source)
+		.bind(assignee)
+		.bind(estimate)
+		.bind(due)
+		.bind("2026-01-01T00:00:00.000Z")
+		.bind(updated)
+		.bind(closed)
+		.bind(closed.map(|_| "fixed"))
+		.bind(deleted)
+		.execute(pool)
+		.await
+		.unwrap();
+    }
+    for (task, tag) in [("t2", "bug"), ("t2", "docs"), ("t3", "docs"), ("t4", "bug")] {
+        sqlx::query("INSERT INTO task_tags (task_id, tag) VALUES (?, ?)")
+            .bind(task)
+            .bind(tag)
+            .execute(pool)
+            .await
+            .unwrap();
+    }
+    for (source, target, link) in [
+        ("t4", "t2", "blocks"),
+        ("t1", "t3", "relates_to"),
+        ("t4", "t1", "duplicates"),
+    ] {
+        sqlx::query(
+			"INSERT INTO task_links (source_task_id, target_task_id, link_type, created_at) VALUES (?, ?, ?, ?)",
+		)
+		.bind(source)
+		.bind(target)
+		.bind(link)
+		.bind("2026-01-01T00:00:00.000Z")
+		.execute(pool)
+		.await
+		.unwrap();
+    }
+    db
+}
+
+fn filters(value: Value) -> TaskFilters {
+    serde_json::from_value(value).unwrap()
+}
+
+#[tokio::test]
+async fn lists_tasks_in_the_node_shape() {
+    let db = database().await;
+    let page = list_tasks(&db, &filters(json!({}))).await.unwrap();
+    assert_eq!(page.total, 6);
+    assert_eq!(page.items.len(), 6);
+    assert_eq!(page.items[0]["id"], "SPA-2");
+    let first = page
+        .items
+        .iter()
+        .find(|item| item["id"] == "LOG-2")
+        .unwrap();
+    assert_eq!(first["id"], "LOG-2");
+    assert_eq!(first["project_id"], "log");
+    assert_eq!(first["number"], 2);
+    assert_eq!(first["status"], "backlog");
+    assert_eq!(first["priority"], "medium");
+    assert_eq!(first["is_epic"], false);
+    assert_eq!(first["epic_id"], "LOG-1");
+    assert_eq!(first["scope_id"], 1);
+    assert_eq!(first["estimate"], "M");
+    assert_eq!(first["assignee"], "Ivan");
+    assert_eq!(first["due_at"], "2026-12-01");
+    assert_eq!(first["attachments_count"], 0);
+    assert_eq!(first["tags"], json!(["bug", "docs"]));
+    assert_eq!(first["short_description"], "Heading");
+    assert!(first.get("description").is_none());
+    assert_eq!(first["blocked_by"], json!(["LOG-4"]));
+    assert_eq!(first["blocks"], json!([]));
+    assert_eq!(first["relates_to"], json!([]));
+    assert_eq!(first["duplicates"], json!([]));
+    assert_eq!(first["duplicated_by"], json!([]));
+    assert_eq!(first["closed_at"], Value::Null);
+    assert_eq!(first["deleted_at"], Value::Null);
+}
+
+#[tokio::test]
+async fn applies_filters_like_the_node_registry() {
+    let db = database().await;
+    let cases = [
+        (json!({"project_id": "log"}), 5),
+        (json!({"status": "open"}), 2),
+        (json!({"tag": "BUG"}), 2),
+        (json!({"assignee": "ivan"}), 1),
+        (json!({"estimate": "S"}), 1),
+        (json!({"epic_id": "LOG-1"}), 2),
+        (json!({"has_tags": false}), 3),
+        (json!({"q": "detailed"}), 1),
+        (json!({"title_exact": "write docs"}), 1),
+        (json!({"source_file": "rust-rewrite"}), 1),
+        (
+            json!({"project_archived": true, "include_project": true}),
+            1,
+        ),
+        (json!({"deleted_only": true}), 1),
+        (json!({"include_deleted": true}), 7),
+        (json!({"blocked_by": "LOG-4"}), 1),
+        (json!({"blocks": "LOG-2"}), 1),
+    ];
+    for (value, total) in cases {
+        let page = list_tasks(&db, &filters(value.clone())).await.unwrap();
+        assert_eq!(page.total, total, "{value}");
+    }
+}
+
+#[tokio::test]
+async fn sorts_titles_and_keeps_exact_matches_first() {
+    let db = database().await;
+    let page = list_tasks(
+        &db,
+        &filters(json!({"sort": "title", "id_exact": ["LOG-4"]})),
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        page.items
+            .iter()
+            .map(|item| item["id"].as_str().unwrap())
+            .collect::<Vec<_>>(),
+        ["LOG-4", "LOG-5", "LOG-2", "LOG-1", "SPA-2", "LOG-3"]
+    );
+    let paged = list_tasks(
+        &db,
+        &filters(json!({"sort": "title", "limit": 2, "offset": 1})),
+    )
+    .await
+    .unwrap();
+    assert_eq!(paged.total, 6);
+    assert_eq!(paged.items.len(), 2);
+    assert_eq!(paged.items[0]["id"], "LOG-2");
+}
+
+#[tokio::test]
+async fn attaches_project_and_scope_names_on_request() {
+    let db = database().await;
+    let page = list_tasks(
+		&db,
+		&filters(json!({"project_id": "log", "scope_id": 1, "include_project": true, "include_scope": true, "limit": 1})),
+	)
+	.await
+	.unwrap();
+    let first = &page.items[0];
+    assert_eq!(first["project_name"], "Log");
+    assert_eq!(first["scope_name"], "backend");
+}
+
+#[tokio::test]
+async fn limits_the_payload_to_the_requested_fields() {
+    let db = database().await;
+    let page = list_tasks(
+        &db,
+        &filters(json!({"fields": "title,status,bogus", "limit": 1})),
+    )
+    .await
+    .unwrap();
+    let first = page.items[0].as_object().unwrap();
+    let mut names = first.keys().map(String::as_str).collect::<Vec<_>>();
+    names.sort_unstable();
+    assert_eq!(names, ["id", "number", "project_id", "status", "title"]);
+}
+
+#[tokio::test]
+async fn counts_epic_children_by_status() {
+    let db = database().await;
+    let counts = count_epic_children_by_status(&db, "LOG-1").await.unwrap();
+    assert_eq!(counts.get("backlog"), Some(&1));
+    assert_eq!(counts.get("done"), Some(&1));
+    assert_eq!(counts.get("open"), Some(&0));
+    assert_eq!(counts.get("total"), Some(&2));
+}
+
+#[tokio::test]
+async fn reads_one_task_and_hides_deleted_ones() {
+    let db = database().await;
+    let task = get_task(&db, "log-2").await.unwrap();
+    assert_eq!(task.id, "LOG-2");
+    assert_eq!(
+        task.description.as_deref(),
+        Some("## Heading\nSecond line with details")
+    );
+    assert_eq!(task.blocked_by, ["LOG-4"]);
+
+    assert_eq!(
+        get_task(&db, "SPA-1").await.unwrap_err().kind(),
+        AppErrorKind::NotFound
+    );
+    let error = get_task(&db, "999").await.unwrap_err();
+    assert_eq!(error.kind(), AppErrorKind::Validation);
+    assert!(error.message().contains("task id must be 'PREFIX-NUMBER'"));
+}
+
+#[tokio::test]
+async fn hints_at_unknown_task_ids() {
+    let db = database().await;
+    let error = resolve_task_id(&db, "LOG-6").await.unwrap_err();
+    assert_eq!(error.kind(), AppErrorKind::NotFound);
+    assert_eq!(
+        error.message(),
+        "task LOG-6 not found - did you mean LOG-5 or LOG-4 or LOG-3?"
+    );
+    let prefix = resolve_task_id(&db, "NOPE-1").await.unwrap_err();
+    assert!(prefix.message().contains("unknown project prefix 'NOPE'"));
+}

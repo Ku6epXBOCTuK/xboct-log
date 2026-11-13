@@ -11,6 +11,9 @@ pub mod media;
 mod migrations;
 pub mod paths;
 pub mod scheduler;
+pub mod tasks;
+#[cfg(test)]
+mod test_support;
 
 pub use activity::prune_activity;
 pub use auto_backup::{AutoBackup, maybe_auto_backup, newest_auto_snapshot_at};
@@ -26,4 +29,9 @@ pub use media::{
 pub use paths::{data_fingerprint, fingerprint_path};
 pub use scheduler::{
     catch_up, ms_until_next, run_scheduled, scheduled_for, start as start_scheduler,
+};
+pub use tasks::{
+    BlockingInfo, Estimate, NullableList, OneOrList, Order, Priority, Sort, Status, Task,
+    TaskFilters, TaskList, count_epic_children_by_status, get_task, list_tasks,
+    normalize_task_id_input, resolve_task_id,
 };

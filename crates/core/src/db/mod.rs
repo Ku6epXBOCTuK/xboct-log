@@ -116,14 +116,7 @@ mod tests {
     }
 
     fn scratch_dir() -> std::path::PathBuf {
-        std::env::temp_dir().join(format!(
-            "xboct-log-db-{}-{}",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
-        ))
+        crate::test_support::scratch_dir("db")
     }
 
     async fn remove_scratch_dir(dir: std::path::PathBuf) {

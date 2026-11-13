@@ -114,14 +114,7 @@ mod tests {
     }
 
     fn scratch_dir() -> PathBuf {
-        std::env::temp_dir().join(format!(
-            "xboct-log-auto-{}-{}",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
-        ))
+        crate::test_support::scratch_dir("auto")
     }
 
     #[tokio::test]
