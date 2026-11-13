@@ -1,32 +1,40 @@
 #![forbid(unsafe_code)]
 
 use std::sync::Arc;
+use std::time::Duration;
 
 use axum::{
     Json, Router,
     body::Body,
     extract::{Path, State},
     http::{HeaderName, HeaderValue, StatusCode, header},
-    response::{IntoResponse, Response},
+    response::{
+        IntoResponse, Response,
+        sse::{Event, KeepAlive, Sse},
+    },
     routing::{get, post},
 };
 use chrono::Local;
+use tokio::sync::broadcast::error::RecvError;
 use xboct_log_core::{
-    AppError, BackupKind, Config, Db, attachment_format, data_fingerprint,
+    AppError, BackupKind, Config, Db, Events, ServerEvent, attachment_format, data_fingerprint,
     media::AttachmentKind as Kind, read_attachment_file, read_deleted_attachment_file, run_backup,
 };
 
 pub const APP_NAME: &str = "xboct-log";
+const HEARTBEAT: Duration = Duration::from_secs(15);
 
 #[derive(Clone)]
 pub struct AppState {
     pub db: Arc<Db>,
     pub config: Arc<Config>,
+    pub events: Arc<Events>,
 }
 
 pub fn app(state: AppState) -> Router {
     Router::new()
         .route("/api/health", get(health))
+        .route("/api/events", get(events))
         .route("/api/backup", post(backup))
         .route("/media/{id}", get(media))
         .route("/deleted/media/{id}", get(deleted_media))
@@ -49,6 +57,44 @@ async fn health(State(state): State<AppState>) -> Json<Health> {
         version: env!("CARGO_PKG_VERSION"),
         data: Some(data_fingerprint(&state.config.db_path)),
     })
+}
+
+async fn events(State(state): State<AppState>) -> Response {
+    let events = state.events.clone();
+    let mut receiver = events.subscribe();
+    let stream = async_stream::stream! {
+        let seq = events.current_seq();
+        yield Ok::<Event, std::convert::Infallible>(sse_event("sync", &serde_json::json!({ "seq": seq })));
+        loop {
+            match receiver.recv().await {
+                Ok(ServerEvent::Change(change)) => yield Ok(sse_event("change", &change)),
+                Ok(ServerEvent::Reset) | Err(RecvError::Lagged(_)) => {
+                    yield Ok(sse_event("reset", &serde_json::json!({})));
+                }
+                Err(RecvError::Closed) => break,
+            }
+        }
+    };
+
+    let mut response = Sse::new(stream)
+        .keep_alive(KeepAlive::new().interval(HEARTBEAT).text("ping"))
+        .into_response();
+    let headers = response.headers_mut();
+    headers.insert(
+        header::CACHE_CONTROL,
+        HeaderValue::from_static("no-cache, no-transform"),
+    );
+    headers.insert(header::CONNECTION, HeaderValue::from_static("keep-alive"));
+    headers.insert(
+        HeaderName::from_static("x-accel-buffering"),
+        HeaderValue::from_static("no"),
+    );
+    response
+}
+
+fn sse_event<T: serde::Serialize>(name: &str, data: &T) -> Event {
+    let payload = serde_json::to_string(data).unwrap_or_else(|_| "null".to_owned());
+    Event::default().event(name).data(payload)
 }
 
 #[derive(serde::Serialize)]
@@ -258,6 +304,7 @@ mod tests {
         let state = AppState {
             db: Arc::new(db),
             config: Arc::new(config),
+            events: Arc::new(Events::new()),
         };
         let router = app(state.clone());
 
@@ -478,5 +525,56 @@ mod tests {
         assert_eq!(status, StatusCode::OK);
 
         app.stop().await;
+    }
+
+    #[tokio::test]
+    async fn streams_sync_change_and_reset_over_sse() {
+        use xboct_log_core::{ActivitySource, Entity};
+
+        let app = test_app().await;
+        let request = Request::builder()
+            .method(Method::GET)
+            .uri("/api/events")
+            .body(Body::empty())
+            .unwrap();
+        let response = app.router.clone().oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let headers = response.headers();
+        assert_eq!(header(headers, "content-type"), "text/event-stream");
+        assert_eq!(header(headers, "cache-control"), "no-cache, no-transform");
+        assert_eq!(header(headers, "connection"), "keep-alive");
+        assert_eq!(header(headers, "x-accel-buffering"), "no");
+
+        let mut stream = response.into_body().into_data_stream();
+        assert_eq!(
+            next_frame(&mut stream).await,
+            "event: sync\ndata: {\"seq\":0}\n\n"
+        );
+
+        app.state
+            .events
+            .publish_change(Entity::Tasks, "tasks_update", ActivitySource::Ui, None);
+        assert_eq!(
+            next_frame(&mut stream).await,
+            "event: change\ndata: {\"seq\":1,\"entity\":\"tasks\",\"op\":\"tasks_update\",\"source\":\"ui\",\"client\":null}\n\n"
+        );
+
+        app.state.events.publish_reset();
+        assert_eq!(next_frame(&mut stream).await, "event: reset\ndata: {}\n\n");
+
+        drop(stream);
+        app.stop().await;
+    }
+
+    async fn next_frame(stream: &mut axum::body::BodyDataStream) -> String {
+        use futures_util::StreamExt;
+
+        let frame = tokio::time::timeout(Duration::from_secs(5), stream.next())
+            .await
+            .expect("no sse frame within 5 s")
+            .expect("the sse stream ended")
+            .expect("the sse frame failed");
+        String::from_utf8(frame.to_vec()).unwrap()
     }
 }
