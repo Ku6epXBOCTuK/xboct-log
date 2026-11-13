@@ -246,12 +246,25 @@ SQL остаётся тем же, что в node, во всех 12 местах:
 
 ### 6. Фронтенд на REST (5 дней)
 
-1. `adapter-static` + SPA-fallback, `+layout.ts` без server load.
-2. Генерация `schema.d.ts`, клиент на `openapi-fetch`.
-3. `src/lib/client/remote-fetch.ts` заменяется REST-клиентом с тем же
-   интерфейсом, что и сейчас; сторы, компоненты и SSE-подписка не переписываются.
-4. Удаление `src/lib/remote`, `src/routes/mcp/+server.ts`, `src/routes/api/**`.
-5. Переход на TanStack Query — не входит в переезд, отдельная задача в трекере.
+1. REST-слой операций на сервере: маршруты `POST /api/<имя операции>` генерируются
+   из реестра, тело — input, ответ — output, ошибки `{kind, message}` с
+   400/404/409/500, заголовок `x-xboct-client` из запроса попадает в `Ctx`.
+   `GET /api/openapi.json` — из `utoipa`; если `ToSchema` не справляется с
+   `flatten` и `BTreeMap<Status, i64>`, схема собирается `schemars` и это
+   отдельная задача в трекере.
+2. Генерация `schema.d.ts`: бинарник пишет `openapi.json`,
+   `openapi-typescript` — `src/lib/api/schema.d.ts`; `pnpm contract:check`
+   перегенерирует и падает на `git diff --exit-code`.
+3. `adapter-static` + SPA-fallback, `+layout.ts` без server load.
+4. Клиент на `openapi-fetch`: `src/lib/api/client.ts` забирает таймаут и
+   ретраи у `src/lib/client/remote-fetch.ts`, `src/lib/api/*.ts` повторяют
+   нынешние имена (`getProjects`, `createProject`, …), поэтому в сторах и
+   компонентах меняется только путь импорта. Сторы, компоненты и SSE не
+   переписываются.
+5. Удаление `src/lib/remote`, `src/routes/mcp/+server.ts`, `src/routes/api/**`,
+   `src/routes/media/**` и их спек; `parity:seed` переезжает на скрипт без
+   `#lib/remote`, фикстуры паритета остаются коммитнутыми. Переход на
+   TanStack Query — не входит в переезд, отдельная задача в трекере.
 
 Готово, когда: `pnpm check` чист, в SPA не осталось ни одного ручного типа ответа,
 все экраны работают на живом сервере.
