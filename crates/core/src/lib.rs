@@ -4,6 +4,7 @@ pub mod activity;
 pub mod activity_read;
 pub mod auto_backup;
 pub mod backup;
+pub mod comments;
 pub mod config;
 pub mod db;
 pub mod error;
@@ -26,6 +27,10 @@ pub use activity_read::{
 };
 pub use auto_backup::{AutoBackup, maybe_auto_backup, newest_auto_snapshot_at};
 pub use backup::{BackupFile, BackupKind, file_name as backup_file_name, list_backups, run_backup};
+pub use comments::{
+    Comment, MAX_COMMENT_BODY_LENGTH, add_comment, delete_comment, edit_comment, get_comment,
+    list_comments,
+};
 pub use config::{BackupConfig, Config, ConfigError};
 pub use db::{Db, Tx};
 pub use error::{AppError, AppErrorKind, ErrorStatus, Result};

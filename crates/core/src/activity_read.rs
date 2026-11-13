@@ -84,13 +84,65 @@ fn clamp_limit(limit: Option<i64>) -> i64 {
     limit.unwrap_or(50).clamp(1, 200)
 }
 
+fn push_search(query: &mut QueryBuilder<Sqlite>, search: &ActivitySearch) {
+    if let Some(source) = &search.source {
+        query.push(" AND source = ").push_bind(source.as_str());
+    }
+    if let Some(op) = &search.op {
+        query.push(" AND op = ").push_bind(op.as_str());
+    }
+    if let Some(entity) = &search.entity {
+        query.push(" AND entity = ").push_bind(entity.as_str());
+    }
+    if let Some(project_id) = &search.project_id {
+        query
+            .push(
+                " AND ((entity = 'project' AND entity_id = ",
+            )
+            .push_bind(project_id.as_str())
+            .push(
+                ") OR (entity = 'task' AND (entity_id IN (SELECT key FROM tasks WHERE project_id = ",
+            )
+            .push_bind(project_id.as_str())
+            .push(
+                ") OR entity_task_id IN (SELECT id FROM tasks WHERE project_id = ",
+            )
+            .push_bind(project_id.as_str())
+            .push(
+                "))) OR (entity = 'scope' AND entity_id IN (SELECT CAST(id AS TEXT) FROM scopes WHERE project_id = ",
+            )
+            .push_bind(project_id.as_str())
+            .push(")))");
+    }
+    if let Some(from) = &search.from {
+        query.push(" AND created_at >= ").push_bind(from.as_str());
+    }
+    if let Some(to) = &search.to {
+        query.push(" AND created_at <= ").push_bind(to.as_str());
+    }
+}
+
+fn push_history(query: &mut QueryBuilder<Sqlite>, entity: &str, entity_id: &str) {
+    query.push(" AND entity = ").push_bind(entity);
+    if entity == "task" {
+        query
+            .push(" AND (entity_id = ")
+            .push_bind(entity_id)
+            .push(" OR entity_task_id = (SELECT id FROM tasks WHERE key = ")
+            .push_bind(entity_id)
+            .push("))");
+    } else {
+        query.push(" AND entity_id = ").push_bind(entity_id);
+    }
+}
+
 type SearchRow = (
     String,
     String,
     Option<String>,
     String,
     String,
-    Option<String>,
+    String,
     String,
     Option<String>,
 );
@@ -108,61 +160,22 @@ pub async fn search_activity(db: &Db, search: &ActivitySearch) -> Result<Value> 
     if !has_table(db).await? {
         return Ok(json!({ "items": [], "total": 0, "ops": [] }));
     }
-    let mut where_sql = String::new();
-    let mut first = true;
-    let mut clauses: Vec<String> = Vec::new();
-    let mut binds: Vec<String> = Vec::new();
-    if let Some(source) = &search.source {
-        clauses.push("source = ?".to_string());
-        binds.push(source.as_str().to_string());
-    }
-    if let Some(op) = &search.op {
-        clauses.push("op = ?".to_string());
-        binds.push(op.clone());
-    }
-    if let Some(entity) = &search.entity {
-        clauses.push("entity = ?".to_string());
-        binds.push(entity.as_str().to_string());
-    }
-    if let Some(project_id) = &search.project_id {
-        clauses.push(
-            "((entity = 'project' AND entity_id = ?) OR (entity = 'task' AND (entity_id IN (SELECT key FROM tasks WHERE project_id = ?) OR entity_task_id IN (SELECT id FROM tasks WHERE project_id = ?))) OR (entity = 'scope' AND entity_id IN (SELECT CAST(id AS TEXT) FROM scopes WHERE project_id = ?)))"
-                .to_string(),
-        );
-        for _ in 0..4 {
-            binds.push(project_id.as_str().to_string());
-        }
-    }
-    if let Some(from) = &search.from {
-        clauses.push("created_at >= ?".to_string());
-        binds.push(from.clone());
-    }
-    if let Some(to) = &search.to {
-        clauses.push("created_at <= ?".to_string());
-        binds.push(to.clone());
-    }
-    if !clauses.is_empty() {
-        where_sql = format!(" WHERE {}", clauses.join(" AND "));
-        first = false;
-    }
-    let _ = first;
-
-    let mut count =
-        QueryBuilder::<Sqlite>::new(format!("SELECT COUNT(*) FROM activity{where_sql}"));
-    for bind in &binds {
-        count.push_bind(bind.clone());
-    }
-    let total: i64 = count.build_query_scalar().fetch_one(db.pool()).await?;
-
     let limit = clamp_limit(search.limit);
     let offset = search.offset.unwrap_or(0).max(0);
-    let mut query = QueryBuilder::<Sqlite>::new(format!(
-        "SELECT created_at, source, client, op, entity, entity_id, fields, changes FROM activity{where_sql} ORDER BY id DESC LIMIT "
-    ));
-    for bind in &binds {
-        query.push_bind(bind.clone());
-    }
-    query.push_bind(limit).push(" OFFSET ").push_bind(offset);
+
+    let mut count = QueryBuilder::<Sqlite>::new("SELECT COUNT(*) FROM activity WHERE 1 = 1");
+    push_search(&mut count, search);
+    let total: i64 = count.build_query_scalar().fetch_one(db.pool()).await?;
+
+    let mut query = QueryBuilder::<Sqlite>::new(
+        "SELECT created_at, source, client, op, entity, entity_id, fields, changes FROM activity WHERE 1 = 1",
+    );
+    push_search(&mut query, search);
+    query
+        .push(" ORDER BY id DESC LIMIT ")
+        .push_bind(limit)
+        .push(" OFFSET ")
+        .push_bind(offset);
     let rows: Vec<SearchRow> = query.build_query_as().fetch_all(db.pool()).await?;
     let items: Vec<Value> = rows
         .into_iter()
@@ -196,32 +209,16 @@ pub async fn list_activity(
     if !has_table(db).await? {
         return Ok(json!({ "items": [], "total": 0 }));
     }
-    let (where_sql, binds): (String, Vec<String>) = if entity == "task" {
-        (
-            " WHERE entity = ? AND (entity_id = ? OR entity_task_id = (SELECT id FROM tasks WHERE key = ?))"
-                .to_string(),
-            vec![entity.to_string(), entity_id.to_string(), entity_id.to_string()],
-        )
-    } else {
-        (
-            " WHERE entity = ? AND entity_id = ?".to_string(),
-            vec![entity.to_string(), entity_id.to_string()],
-        )
-    };
-    let mut count =
-        QueryBuilder::<Sqlite>::new(format!("SELECT COUNT(*) FROM activity{where_sql}"));
-    for bind in &binds {
-        count.push_bind(bind.clone());
-    }
+    let mut count = QueryBuilder::<Sqlite>::new("SELECT COUNT(*) FROM activity WHERE 1 = 1");
+    push_history(&mut count, entity, entity_id);
     let total: i64 = count.build_query_scalar().fetch_one(db.pool()).await?;
 
-    let mut query = QueryBuilder::<Sqlite>::new(format!(
-        "SELECT created_at, source, client, op, fields, changes FROM activity{where_sql} ORDER BY id DESC LIMIT "
-    ));
-    for bind in &binds {
-        query.push_bind(bind.clone());
-    }
+    let mut query = QueryBuilder::<Sqlite>::new(
+        "SELECT created_at, source, client, op, fields, changes FROM activity WHERE 1 = 1",
+    );
+    push_history(&mut query, entity, entity_id);
     query
+        .push(" ORDER BY id DESC LIMIT ")
         .push_bind(clamp_limit(limit))
         .push(" OFFSET ")
         .push_bind(offset.unwrap_or(0).max(0));

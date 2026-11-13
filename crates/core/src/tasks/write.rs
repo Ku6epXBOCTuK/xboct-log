@@ -167,19 +167,21 @@ async fn project_prefix(db: &Db, project_id: &str) -> Result<Option<String>> {
     Ok(row.map(|(prefix,)| prefix))
 }
 
-async fn record_revision(
-    db: &Db,
+pub async fn record_revision(
+    connection: &mut sqlx::SqliteConnection,
     task_id: &str,
     field: &str,
+    ref_id: Option<&str>,
     body: &str,
     now: chrono::DateTime<chrono::Utc>,
 ) -> Result<()> {
     let latest: Option<(String,)> = sqlx::query_as(
-        "SELECT created_at FROM task_revisions WHERE task_id = (SELECT id FROM tasks WHERE key = ?) AND field = ? AND ref_id IS NULL ORDER BY id DESC LIMIT 1",
+        "SELECT created_at FROM task_revisions WHERE task_id = (SELECT id FROM tasks WHERE key = ?) AND field = ? AND ref_id IS ? ORDER BY id DESC LIMIT 1",
     )
     .bind(task_id)
     .bind(field)
-    .fetch_optional(db.pool())
+    .bind(ref_id)
+    .fetch_optional(&mut *connection)
     .await?;
     if let Some((created_at,)) = latest
         && let Ok(created) = chrono::DateTime::parse_from_rfc3339(&created_at)
@@ -190,13 +192,14 @@ async fn record_revision(
         }
     }
     sqlx::query(
-        "INSERT INTO task_revisions (task_id, field, ref_id, body, created_at) VALUES ((SELECT id FROM tasks WHERE key = ?), ?, NULL, ?, ?)",
+        "INSERT INTO task_revisions (task_id, field, ref_id, body, created_at) VALUES ((SELECT id FROM tasks WHERE key = ?), ?, ?, ?, ?)",
     )
     .bind(task_id)
     .bind(field)
+    .bind(ref_id)
     .bind(body)
     .bind(now.to_rfc3339_opts(chrono::SecondsFormat::Millis, true))
-    .execute(db.pool())
+    .execute(&mut *connection)
     .await?;
     Ok(())
 }
@@ -778,10 +781,12 @@ pub async fn update_task_detailed(db: &Db, id: &str, patch: TaskPatch) -> Result
         && matches!(current.status, Status::Done | Status::Cancelled);
 
     if description_changed {
+        let mut connection = db.pool().acquire().await?;
         record_revision(
-            db,
+            &mut connection,
             target.as_str(),
             "description",
+            None,
             current.description.as_deref().unwrap_or_default(),
             chrono::DateTime::parse_from_rfc3339(&now)
                 .map(|value| value.with_timezone(&chrono::Utc))

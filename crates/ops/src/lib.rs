@@ -10,6 +10,7 @@ use xboct_log_core::{
 };
 
 pub mod activity;
+pub mod comments;
 mod descriptions;
 mod entries;
 pub mod projects;
@@ -158,6 +159,7 @@ macro_rules! ops {
 }
 
 pub use activity::{ActivitiesList, TasksHistory};
+pub use comments::{CommentsAdd, CommentsDelete, CommentsEdit, CommentsList};
 pub use projects::{ProjectsCreate, ProjectsGet, ProjectsList, ProjectsUpdate};
 pub use scopes::{
     ScopesCreate, ScopesDelete, ScopesGet, ScopesList, ScopesProjectIds, ScopesUpdate,
@@ -177,6 +179,10 @@ crate::ops![
     TasksRemoveBlocker,
     TasksAddLink,
     TasksRemoveLink,
+    CommentsList,
+    CommentsAdd,
+    CommentsEdit,
+    CommentsDelete,
     TasksOptions,
     ProjectsList,
     ProjectsGet,

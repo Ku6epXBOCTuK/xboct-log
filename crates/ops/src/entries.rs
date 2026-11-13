@@ -114,6 +114,13 @@ pub fn entries(op: &str, input: &Value, output: &Value) -> Vec<ActivityEntry> {
             strings(&["blocked_by"]),
             array(output.get("changes")),
         )],
+        "tasks_comments_add" | "tasks_comments_edit" | "tasks_comments_delete" => {
+            vec![ActivityEntry::task(
+                text(output, "task_id"),
+                strings(&["comments"]),
+                Vec::new(),
+            )]
+        }
         "projects_create" => vec![ActivityEntry::new(
             ActivityEntity::Project,
             text(output, "id"),

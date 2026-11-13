@@ -120,7 +120,18 @@ pub async fn count_children_by_epic(db: &Db) -> Result<BTreeMap<String, BTreeMap
     .await?;
     let mut counts: BTreeMap<String, BTreeMap<String, i64>> = BTreeMap::new();
     for (epic, status, count) in rows {
-        let entry = counts.entry(epic).or_default();
+        let entry = counts.entry(epic).or_insert_with(|| {
+            let mut empty = BTreeMap::new();
+            for status in Status::ALL {
+                let name = serde_json::to_value(status)
+                    .ok()
+                    .and_then(|value| value.as_str().map(str::to_owned))
+                    .unwrap_or_default();
+                empty.insert(name, 0);
+            }
+            empty.insert("total".to_string(), 0);
+            empty
+        });
         entry.insert(status, count);
         *entry.entry("total".to_string()).or_insert(0) += count;
     }

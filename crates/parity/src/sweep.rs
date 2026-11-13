@@ -1,12 +1,69 @@
 use std::{collections::HashMap, sync::Arc};
 
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{Map, Value};
 use xboct_log_core::{Config, Db, Events, Result};
 use xboct_log_ops::{Ctx, Kind, dispatch, metadata};
 
 use crate::diff::difference;
 use crate::normalize::Normalizer;
+
+#[derive(Default)]
+struct Placeholders(HashMap<String, String>);
+
+impl Placeholders {
+    fn learn(&mut self, raw: &Value, normalized: &Value) {
+        match (raw, normalized) {
+            (Value::String(raw), Value::String(normalized)) => {
+                if raw != normalized && is_placeholder(normalized) {
+                    self.0.insert(normalized.clone(), raw.clone());
+                }
+            }
+            (Value::Array(raw), Value::Array(normalized)) => {
+                for (raw, normalized) in raw.iter().zip(normalized) {
+                    self.learn(raw, normalized);
+                }
+            }
+            (Value::Object(raw), Value::Object(normalized)) => {
+                for (key, raw) in raw {
+                    if let Some(normalized) = normalized.get(key) {
+                        self.learn(raw, normalized);
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn resolve(&self, value: &Value) -> Value {
+        match value {
+            Value::String(text) => Value::String(self.text(text)),
+            Value::Array(items) => {
+                Value::Array(items.iter().map(|item| self.resolve(item)).collect())
+            }
+            Value::Object(map) => Value::Object(
+                map.iter()
+                    .map(|(key, value)| (key.clone(), self.resolve(value)))
+                    .collect::<Map<String, Value>>(),
+            ),
+            other => other.clone(),
+        }
+    }
+
+    fn text(&self, text: &str) -> String {
+        let mut known: Vec<(&String, &String)> = self.0.iter().collect();
+        known.sort_by_key(|(placeholder, _)| std::cmp::Reverse(placeholder.len()));
+        let mut resolved = text.to_owned();
+        for (placeholder, value) in known {
+            resolved = resolved.replace(placeholder.as_str(), value);
+        }
+        resolved
+    }
+}
+
+fn is_placeholder(value: &str) -> bool {
+    value.starts_with('<') && value.ends_with('>') && value.len() > 2
+}
 
 #[derive(Debug, Deserialize)]
 pub struct Call {
@@ -63,14 +120,21 @@ impl Sweep {
         let known = metadata();
         let mut replayed = Vec::with_capacity(calls.calls.len());
         let mut lines = Vec::new();
+        let mut placeholders = Placeholders::default();
 
         for (index, call) in calls.calls.iter().enumerate() {
-            if !known.iter().any(|op| op.name == call.name) {
+            let name = call.name.split('#').next().unwrap_or(&call.name);
+            if !known.iter().any(|op| op.name == name) {
                 break;
             }
-            let output = dispatch(&ctx, &call.name, call.input.clone()).await;
+            let input = placeholders.resolve(&call.input);
+            let output = dispatch(&ctx, name, input.clone()).await;
             let output = match output {
-                Ok(value) => normalizer.normalize(&value),
+                Ok(value) => {
+                    let normalized = normalizer.normalize(&value);
+                    placeholders.learn(&value, &normalized);
+                    normalized
+                }
                 Err(error) => {
                     lines.push(format!(
                         "call {index} {}: {:?} {}",
@@ -88,7 +152,7 @@ impl Sweep {
                 name: call.name.clone(),
                 kind: call.kind,
                 mcp: call.mcp,
-                input: call.input.clone(),
+                input,
                 output,
             });
         }

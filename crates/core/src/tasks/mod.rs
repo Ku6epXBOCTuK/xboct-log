@@ -18,5 +18,6 @@ pub use resolve::{normalize_task_id_input, resolve_task_id, resolve_task_id_any}
 pub use sql::{count_epic_children_by_status, get_task, list_tasks};
 pub use write::{
     NewTask, ReleasedLink, TaskPatch, UpdateOutcome, close_task, close_task_detailed, create_task,
-    delete_task, move_task, now_iso, restore_task, update_task, update_task_detailed, warnings_for,
+    delete_task, move_task, now_iso, record_revision, restore_task, update_task,
+    update_task_detailed, warnings_for,
 };

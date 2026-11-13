@@ -26,6 +26,10 @@ fn lists_the_registered_operations() {
             "tasks_remove_blocker",
             "tasks_add_link",
             "tasks_remove_link",
+            "tasks_comments_list",
+            "tasks_comments_add",
+            "tasks_comments_edit",
+            "tasks_comments_delete",
             "tasks_options",
             "projects_list",
             "projects_get",
@@ -66,6 +70,9 @@ fn lists_the_registered_operations() {
         "tasks_remove_blocker",
         "tasks_add_link",
         "tasks_remove_link",
+        "tasks_comments_add",
+        "tasks_comments_edit",
+        "tasks_comments_delete",
         "projects_create",
         "projects_update",
         "scopes_create",
@@ -95,22 +102,38 @@ fn lists_the_registered_operations() {
         assert_eq!(op.kind, kind, "{} kind", op.name);
     }
 
-    assert_eq!(ops[0].kind, Kind::Query);
-    assert_eq!(ops[6].kind, Kind::Query);
-    assert_eq!(ops[8].kind, Kind::Query);
-    assert_eq!(ops[9].kind, Kind::Command);
-    assert_eq!(ops[11].kind, Kind::Query);
-    assert_eq!(ops[17].kind, Kind::Command);
-    assert_eq!(ops[19].kind, Kind::Query);
-    assert_eq!(ops[22].kind, Kind::Query);
-    assert_eq!(ops[31].kind, Kind::Command);
-    assert!(ops[0].description.starts_with("Show the change log"));
-    assert!(ops[7].description.starts_with("List projects"));
-    assert!(ops[9].description.starts_with("Create a project"));
-    assert!(ops[12].description.starts_with("List scopes"));
-    assert_eq!(ops[7].entity, None);
-    assert_eq!(ops[9].entity, Some(Entity::Projects));
-    assert_eq!(ops[15].entity, Some(Entity::Scopes));
+    let find = |name: &str| {
+        ops.iter()
+            .find(|op| op.name == name)
+            .unwrap_or_else(|| panic!("{name} is registered"))
+    };
+    assert_eq!(find("tasks_list").kind, Kind::Query);
+    assert_eq!(find("tasks_comments_list").kind, Kind::Query);
+    assert_eq!(find("tasks_comments_add").kind, Kind::Command);
+    assert_eq!(find("tasks_options").kind, Kind::Query);
+    assert_eq!(find("projects_create").kind, Kind::Command);
+    assert_eq!(find("scopes_delete").kind, Kind::Command);
+    assert!(!find("tags_inventory").mcp);
+    assert!(
+        find("tasks_history")
+            .description
+            .starts_with("Show the change log")
+    );
+    assert!(
+        find("projects_list")
+            .description
+            .starts_with("List projects")
+    );
+    assert!(
+        find("projects_create")
+            .description
+            .starts_with("Create a project")
+    );
+    assert!(find("scopes_list").description.starts_with("List scopes"));
+    assert_eq!(find("projects_list").entity, None);
+    assert_eq!(find("projects_create").entity, Some(Entity::Projects));
+    assert_eq!(find("scopes_create").entity, Some(Entity::Scopes));
+    assert_eq!(find("tasks_comments_add").entity, Some(Entity::Comments));
 }
 
 #[tokio::test]

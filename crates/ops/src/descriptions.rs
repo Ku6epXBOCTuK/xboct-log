@@ -68,3 +68,11 @@ pub const TAGS_CREATE: &str = "Add a tag to the dictionary. Tags are a closed li
 pub const TAGS_UPDATE: &str = "Archive or restore a tag by name: pass archived next to name (e.g. {name: 'design', archived: true}); a nested patch object is accepted too. An archived tag keeps the tasks that already carry it, but it disappears from tags_list and cannot be assigned again. Returns: the tag - {name, archived, created_at}.";
 
 pub const TAGS_RENAME: &str = "Rename a tag everywhere: the dictionary entry and every task that carries it. Fails when the new name is already taken. Returns: the tag - {name, archived, created_at}.";
+
+pub const COMMENTS_LIST: &str = "List the comments of a task, oldest first. Deleted comments are hidden. The task id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). Returns: {items, total} - every item is a comment - {id, task_id, body, created_at, edited_at, deleted_at}.";
+
+pub const COMMENTS_ADD: &str = "Add a comment to a task. The task id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). The body is Markdown and formatting is rendered: a short log or config in a fenced block is welcome, source code belongs in the repository. Returns: the created comment - {id, task_id, body, created_at, edited_at, deleted_at}. Editing a comment later keeps its previous text as a revision.";
+
+pub const COMMENTS_EDIT: &str = "Edit the text of a comment by comment_id, the `id` field of an item from tasks_comments_list. The body is Markdown and formatting is rendered, as in tasks_comments_add. The previous text is kept as a revision, so nothing is lost. Returns: the updated comment - {id, task_id, body, created_at, edited_at, deleted_at} with edited_at set.";
+
+pub const COMMENTS_DELETE: &str = "Soft-delete a comment by comment_id, the `id` field of an item from tasks_comments_list. The comment disappears from the task, but its id and history stay in the database. Returns: the deleted comment - {id, task_id, body, created_at, edited_at, deleted_at} with deleted_at set.";
