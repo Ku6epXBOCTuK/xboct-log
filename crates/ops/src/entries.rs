@@ -204,8 +204,48 @@ pub fn entries(op: &str, input: &Value, output: &Value) -> Vec<ActivityEntry> {
                 "to": text(output, "name"),
             })],
         )],
+        "attachments_add" | "attachments_copy" => attachment_entry(output.get("item"), true),
+        "attachments_restore" => attachment_entry(Some(output), true),
+        "attachments_delete" | "attachments_purge" => attachment_entry(Some(output), false),
+        "attachments_move" => {
+            let item = output.get("item").cloned().unwrap_or(Value::Null);
+            if output.get("was_deleted").and_then(Value::as_bool) == Some(true) {
+                return attachment_entry(Some(&item), true);
+            }
+            let previous = text(output, "previous_task_id");
+            let mut entries = attachment_entry_for(&item, &previous, false);
+            entries.extend(attachment_entry(Some(&item), true));
+            entries
+        }
         _ => Vec::new(),
     }
+}
+
+fn attachment_entry(item: Option<&Value>, present: bool) -> Vec<ActivityEntry> {
+    let Some(item) = item else {
+        return Vec::new();
+    };
+    let task_id = text(item, "task_id");
+    attachment_entry_for(item, &task_id, present)
+}
+
+fn attachment_entry_for(item: &Value, task_id: &str, present: bool) -> Vec<ActivityEntry> {
+    let file_name = text(item, "file_name");
+    let (from, to) = if present {
+        (Value::Null, Value::from(file_name))
+    } else {
+        (Value::from(file_name), Value::Null)
+    };
+    vec![ActivityEntry::task(
+        task_id,
+        strings(&["attachments"]),
+        vec![serde_json::json!({
+            "field": "attachments",
+            "from": from,
+            "to": to,
+            "ref_id": text(item, "id"),
+        })],
+    )]
 }
 
 fn strings(fields: &[&str]) -> Vec<String> {

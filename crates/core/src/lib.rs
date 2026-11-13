@@ -2,6 +2,7 @@
 
 pub mod activity;
 pub mod activity_read;
+pub mod attachments;
 pub mod auto_backup;
 pub mod backup;
 pub mod comments;
@@ -25,6 +26,14 @@ pub use activity::{ActivityEntry, prune_activity, record_activity};
 pub use activity_read::{
     ActivityEntity, ActivitySearch, list_activity, search_activity, validate_activity_search,
 };
+pub use attachments::{
+    ATTACHMENT_PURGE_KEEP_DAYS, Attachment, AttachmentCheck, DeletedAttachment,
+    MAX_ATTACHMENT_SIZE, MovedAttachment, PurgedAttachment, add_attachment,
+    add_attachment_from_base64, add_attachment_from_path, attachment_by_id, attachment_uri,
+    copy_attachment, delete_attachment, list_all_attachments, list_attachments,
+    list_deleted_attachments, move_attachment, purge_attachment, restore_attachment,
+    verify_attachments,
+};
 pub use auto_backup::{AutoBackup, maybe_auto_backup, newest_auto_snapshot_at};
 pub use backup::{BackupFile, BackupKind, file_name as backup_file_name, list_backups, run_backup};
 pub use comments::{
@@ -35,7 +44,7 @@ pub use config::{BackupConfig, Config, ConfigError};
 pub use db::{Db, Tx};
 pub use error::{AppError, AppErrorKind, ErrorStatus, Result};
 pub use events::{ActivitySource, ChangeEvent, Entity, Events, ServerEvent, entity_of};
-pub use ids::{Prefix, ProjectId, ScopeId, Seq, TagName, TaskKey};
+pub use ids::{AttachmentId, Prefix, ProjectId, ScopeId, Seq, TagName, TaskKey};
 pub use media::{
     AttachmentContents, AttachmentFormat, AttachmentKind, attachment_format, read_attachment_file,
     read_deleted_attachment_file,

@@ -125,6 +125,58 @@ impl TagName {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
+#[serde(transparent)]
+pub struct AttachmentId(String);
+
+impl AttachmentId {
+    pub fn new(value: impl Into<String>) -> Self {
+        Self(value.into())
+    }
+
+    pub fn parse(value: &str) -> Result<Self, AppError> {
+        let parsed = uuid::Uuid::parse_str(value).map_err(|_| {
+            AppError::validation(format!("the attachment id {value} is not a uuid"))
+        })?;
+        Ok(Self(parsed.hyphenated().to_string()))
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl<'de> Deserialize<'de> for AttachmentId {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let raw = String::deserialize(deserializer)?;
+        Self::parse(&raw).map_err(serde::de::Error::custom)
+    }
+}
+
+impl std::fmt::Display for AttachmentId {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(&self.0)
+    }
+}
+
+impl AsRef<str> for AttachmentId {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl From<String> for AttachmentId {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
+impl From<AttachmentId> for String {
+    fn from(value: AttachmentId) -> Self {
+        value.0
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct ScopeId(i64);

@@ -59,6 +59,29 @@ pub async fn read_database(path: &Path, now_ms: i64) -> Result<DatabaseDocument,
     document
 }
 
+pub async fn read_identity_rows(
+    path: &Path,
+) -> Result<BTreeMap<String, Vec<serde_json::Map<String, Value>>>, String> {
+    let options = SqliteConnectOptions::new().filename(path).read_only(true);
+    let mut connection = SqliteConnection::connect_with(&options)
+        .await
+        .map_err(|error| error.to_string())?;
+
+    let mut raw_rows = BTreeMap::new();
+    for table in ["tasks", "task_attachments", "task_comments"] {
+        let sql: Option<String> =
+            sqlx::query_scalar("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?")
+                .bind(table)
+                .fetch_optional(&mut connection)
+                .await
+                .map_err(|error| error.to_string())?;
+        let table_columns = read_columns(&mut connection, table).await?;
+        let rows = read_rows(&mut connection, table, &table_columns, sql.as_deref()).await?;
+        raw_rows.insert(table.to_owned(), rows);
+    }
+    Ok(raw_rows)
+}
+
 async fn read_snapshot(
     connection: &mut SqliteConnection,
     now_ms: i64,

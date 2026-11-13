@@ -10,6 +10,7 @@ use xboct_log_core::{
 };
 
 pub mod activity;
+pub mod attachments;
 pub mod comments;
 mod descriptions;
 mod entries;
@@ -159,6 +160,10 @@ macro_rules! ops {
 }
 
 pub use activity::{ActivitiesList, TasksHistory};
+pub use attachments::{
+    AttachmentsAdd, AttachmentsCopy, AttachmentsDelete, AttachmentsDeletedList, AttachmentsList,
+    AttachmentsMove, AttachmentsPurge, AttachmentsRestore, AttachmentsVerify,
+};
 pub use comments::{CommentsAdd, CommentsDelete, CommentsEdit, CommentsList};
 pub use projects::{ProjectsCreate, ProjectsGet, ProjectsList, ProjectsUpdate};
 pub use scopes::{
@@ -175,6 +180,15 @@ pub use tasks::{
 crate::ops![
     TasksHistory,
     ActivitiesList,
+    AttachmentsList,
+    AttachmentsDeletedList,
+    AttachmentsAdd,
+    AttachmentsDelete,
+    AttachmentsRestore,
+    AttachmentsMove,
+    AttachmentsCopy,
+    AttachmentsPurge,
+    AttachmentsVerify,
     TasksAddBlocker,
     TasksRemoveBlocker,
     TasksAddLink,

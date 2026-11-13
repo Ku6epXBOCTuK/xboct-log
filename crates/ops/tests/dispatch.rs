@@ -13,6 +13,19 @@ async fn context() -> Ctx {
     Ctx::new(Arc::new(db), Arc::new(Events::new()), Arc::new(config))
 }
 
+async fn media_context(media: &std::path::Path) -> Ctx {
+    let db = Db::open(":memory:").await.unwrap();
+    db.migrate().await.unwrap();
+    let media = media.display().to_string();
+    let config = Config::from_lookup(move |name| match name {
+        "XBOCT_LOG_DB" => Some(":memory:".to_string()),
+        "XBOCT_LOG_MEDIA_DIR" => Some(media.clone()),
+        _ => None,
+    })
+    .expect("config");
+    Ctx::new(Arc::new(db), Arc::new(Events::new()), Arc::new(config))
+}
+
 #[test]
 fn lists_the_registered_operations() {
     let ops = metadata();
@@ -22,6 +35,15 @@ fn lists_the_registered_operations() {
         vec![
             "tasks_history",
             "activity_list",
+            "attachments_list",
+            "attachments_deleted_list",
+            "attachments_add",
+            "attachments_delete",
+            "attachments_restore",
+            "attachments_move",
+            "attachments_copy",
+            "attachments_purge",
+            "attachments_verify",
             "tasks_add_blocker",
             "tasks_remove_blocker",
             "tasks_add_link",
@@ -66,6 +88,12 @@ fn lists_the_registered_operations() {
     );
 
     let commands = [
+        "attachments_add",
+        "attachments_delete",
+        "attachments_restore",
+        "attachments_move",
+        "attachments_copy",
+        "attachments_purge",
         "tasks_add_blocker",
         "tasks_remove_blocker",
         "tasks_add_link",
@@ -332,4 +360,67 @@ async fn runs_a_batch_and_reports_each_item() {
     .expect("close many");
     assert_eq!(closed["items"][0]["task"]["status"], "done");
     assert_eq!(closed["items"][1]["ok"], false);
+}
+#[tokio::test]
+async fn records_attachment_activity_and_clears_it_on_restore() {
+    let media = std::env::temp_dir().join("xboct-log-dispatch-attachments");
+    let _ = std::fs::remove_dir_all(&media);
+    let ctx = media_context(&media).await;
+    let mut receiver = ctx.events.subscribe();
+    sqlx::query("INSERT INTO projects (id, prefix, name, created_at) VALUES ('log', 'LOG', 'Log', '2026-01-01T00:00:00.000Z')")
+        .execute(ctx.db.pool())
+        .await
+        .unwrap();
+    dispatch(
+        &ctx,
+        "tasks_create",
+        json!({"project_id": "log", "title": "First"}),
+    )
+    .await
+    .unwrap();
+    while receiver.try_recv().is_ok() {}
+
+    let added = dispatch(
+        &ctx,
+        "attachments_add",
+        json!({"task_id": "LOG-1", "filename": "note.txt", "content_base64": "aGVsbG8="}),
+    )
+    .await
+    .expect("add");
+    let id = added["item"]["id"].as_str().unwrap().to_string();
+    let deleted = dispatch(&ctx, "attachments_delete", json!({"attachment_id": id}))
+        .await
+        .expect("delete");
+    assert!(deleted["deleted_at"].is_string());
+    let restored = dispatch(&ctx, "attachments_restore", json!({"attachment_id": id}))
+        .await
+        .expect("restore");
+    assert_eq!(restored["deleted_at"], serde_json::Value::Null);
+
+    let rows: Vec<(String, String)> = sqlx::query_as(
+        "SELECT op, changes FROM activity WHERE op LIKE 'attachments_%' ORDER BY id",
+    )
+    .fetch_all(ctx.db.pool())
+    .await
+    .unwrap();
+    let ops: Vec<&str> = rows.iter().map(|row| row.0.as_str()).collect();
+    assert_eq!(
+        ops,
+        vec![
+            "attachments_add",
+            "attachments_delete",
+            "attachments_restore"
+        ]
+    );
+    assert!(rows[0].1.contains("\"to\":\"note.txt\""), "{}", rows[0].1);
+    assert!(rows[1].1.contains("\"from\":\"note.txt\""), "{}", rows[1].1);
+    assert!(rows[2].1.contains("\"to\":\"note.txt\""), "{}", rows[2].1);
+    assert_eq!(
+        sqlx::query_scalar::<_, i64>("SELECT count(*) FROM activity")
+            .fetch_one(ctx.db.pool())
+            .await
+            .unwrap(),
+        4
+    );
+    let _ = std::fs::remove_dir_all(&media);
 }

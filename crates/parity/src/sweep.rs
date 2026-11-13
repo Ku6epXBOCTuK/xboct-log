@@ -115,8 +115,11 @@ impl Sweep {
         let ctx = Ctx::new(db, Arc::new(Events::new()), config);
 
         let runtime_text = self.runtime.to_string_lossy().into_owned();
-        let mut normalizer =
-            Normalizer::new(self.now_ms, Some(runtime_text.as_str()), HashMap::new());
+        let identity_rows = crate::snapshot::read_identity_rows(&self.database)
+            .await
+            .unwrap_or_default();
+        let identities = crate::normalize::identities_of(&identity_rows);
+        let mut normalizer = Normalizer::new(self.now_ms, Some(runtime_text.as_str()), identities);
         let known = metadata();
         let mut replayed = Vec::with_capacity(calls.calls.len());
         let mut lines = Vec::new();
