@@ -175,6 +175,28 @@ pub fn entries(op: &str, input: &Value, output: &Value) -> Vec<ActivityEntry> {
             }
             entries
         }
+        "tags_create" => vec![ActivityEntry::new(
+            ActivityEntity::Tag,
+            text(output, "name"),
+            present_fields(input, &["name"]),
+            Vec::new(),
+        )],
+        "tags_update" => vec![ActivityEntry::new(
+            ActivityEntity::Tag,
+            text(output, "name"),
+            present_fields(input.get("patch").unwrap_or(&Value::Null), &["archived"]),
+            Vec::new(),
+        )],
+        "tags_rename" => vec![ActivityEntry::new(
+            ActivityEntity::Tag,
+            text(output, "name"),
+            strings(&["name"]),
+            vec![serde_json::json!({
+                "field": "name",
+                "from": text(input, "name"),
+                "to": text(output, "name"),
+            })],
+        )],
         _ => Vec::new(),
     }
 }

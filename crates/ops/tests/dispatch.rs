@@ -52,6 +52,12 @@ fn lists_the_registered_operations() {
             "tasks_delete",
             "tasks_restore",
             "tasks_move",
+            "tags_list",
+            "tags_dictionary",
+            "tags_inventory",
+            "tags_create",
+            "tags_update",
+            "tags_rename",
         ]
     );
 
@@ -74,9 +80,12 @@ fn lists_the_registered_operations() {
         "tasks_delete",
         "tasks_restore",
         "tasks_move",
+        "tags_create",
+        "tags_update",
+        "tags_rename",
     ];
     for op in &ops {
-        assert!(op.mcp, "{} is exposed over mcp", op.name);
+        assert_eq!(op.mcp, op.name != "tags_inventory", "{} mcp", op.name);
         assert!(!op.description.is_empty(), "{} has a description", op.name);
         let kind = if commands.contains(&op.name) {
             Kind::Command

@@ -14,6 +14,7 @@ mod descriptions;
 mod entries;
 pub mod projects;
 pub mod scopes;
+pub mod tags;
 pub mod tasks;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -161,6 +162,7 @@ pub use projects::{ProjectsCreate, ProjectsGet, ProjectsList, ProjectsUpdate};
 pub use scopes::{
     ScopesCreate, ScopesDelete, ScopesGet, ScopesList, ScopesProjectIds, ScopesUpdate,
 };
+pub use tags::{TagsCreate, TagsDictionary, TagsInventory, TagsList, TagsRename, TagsUpdate};
 pub use tasks::{
     TasksAddBlocker, TasksAddLink, TasksClose, TasksCloseMany, TasksCreate, TasksCreateMany,
     TasksDelete, TasksDeletedList, TasksGet, TasksGetMany, TasksList, TasksMove, TasksOptions,
@@ -201,4 +203,10 @@ crate::ops![
     TasksDelete,
     TasksRestore,
     TasksMove,
+    TagsList,
+    TagsDictionary,
+    TagsInventory,
+    TagsCreate,
+    TagsUpdate,
+    TagsRename,
 ];

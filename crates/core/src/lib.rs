@@ -15,6 +15,7 @@ pub mod paths;
 pub mod projects;
 pub mod scheduler;
 pub mod scopes;
+pub mod tags;
 pub mod tasks;
 #[cfg(test)]
 mod test_support;
@@ -48,6 +49,11 @@ pub use scopes::{
     Scope, ScopeCounts, ScopeDeleteReport, ScopeWithCounts, count_tasks_by_scope, create_scope,
     delete_scope_detailed, find_scope_by_name, get_scope, list_scopes, preview_scope_delete,
     scoped_project_ids, update_scope,
+};
+pub use tags::{
+    TAG_NAME_MAX_LENGTH, TagCount, TagInventoryEntry, TagQuery, TagRecord, ensure_tag, get_tag,
+    list_dictionary, list_tag_inventory, list_tags, normalize_tag_name, rename_tag,
+    set_tag_archived, tag_name_error, validate_tags,
 };
 pub use tasks::{
     BlockingInfo, ClosedReason, Estimate, LinkType, NewTask, NullableList, OneOrList, Order,

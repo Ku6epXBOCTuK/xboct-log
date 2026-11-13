@@ -56,3 +56,15 @@ pub const SCOPES_CREATE: &str = "Create a scope in a project. A scope groups the
 pub const SCOPES_UPDATE: &str = "Rename a scope by scope_id: pass the new name next to scope_id (e.g. {scope_id: 3, name: 'Design'}); a nested patch object {scope_id, patch: {name}} is accepted too. Returns: the updated scope - {id, project_id, name, created_at, task_count, tasks_total, epics_count}.";
 
 pub const SCOPES_DELETE: &str = "Delete a scope by scope_id; its tasks lose the scope assignment. Pass dry_run: true to preview the deletion - it returns the scope and the ids of the tasks and epics that would lose it, and changes nothing. Returns: {scope, task_ids, epic_ids, dry_run} - the deleted scope and the ids of the tasks and epics that lost it; with dry_run the same report without changing anything.";
+
+pub const TAGS_LIST: &str = "Read the tags in use: every tag with the number of tasks that carry it and the number of open ones. Read-only. Use it before filtering or assigning a tag: the tag list is closed, so tasks_create and tasks_update reject a tag that is not in the dictionary. Archived tags are not listed and cannot be assigned. Accepts the filters project_id and status; soft-deleted tasks are not counted. Returns: {items, total}, where each item is { tag, count, active }, most used first. active counts the tasks that are open, in-progress or blocked: backlog and closed tasks are not counted.";
+
+pub const TAGS_DICTIONARY: &str = "List every tag name in the dictionary, including the tags that no task carries yet. Archived tags are excluded: they cannot be assigned. Use tags_list for the counts of the tags in use. Returns: {items} - the tag names, sorted by name.";
+
+pub const TAGS_INVENTORY: &str = "The whole tag dictionary including the archived tags and the tags no task carries, with usage counts. Counts soft-deleted tasks out. Archived tags stay on the tasks that already carry them but cannot be assigned again. `active` counts open, in-progress and blocked tasks, `backlog` counts the backlog ones. Returns: {items, total}, where each item is {name, archived, created_at, count, active, backlog}.";
+
+pub const TAGS_CREATE: &str = "Add a tag to the dictionary. Tags are a closed list: tasks_create and tasks_update accept only names that are in it. Names are trimmed and lowercased. Calling it on an existing tag changes nothing, and an archived tag is restored. Returns: the tag - {name, archived, created_at}.";
+
+pub const TAGS_UPDATE: &str = "Archive or restore a tag by name: pass archived next to name (e.g. {name: 'design', archived: true}); a nested patch object is accepted too. An archived tag keeps the tasks that already carry it, but it disappears from tags_list and cannot be assigned again. Returns: the tag - {name, archived, created_at}.";
+
+pub const TAGS_RENAME: &str = "Rename a tag everywhere: the dictionary entry and every task that carries it. Fails when the new name is already taken. Returns: the tag - {name, archived, created_at}.";

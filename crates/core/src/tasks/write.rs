@@ -167,68 +167,6 @@ async fn project_prefix(db: &Db, project_id: &str) -> Result<Option<String>> {
     Ok(row.map(|(prefix,)| prefix))
 }
 
-async fn validate_tags(db: &Db, tags: &[TagName]) -> Result<()> {
-    if tags.is_empty() {
-        return Ok(());
-    }
-    let dictionary: Vec<(String, i64)> =
-        sqlx::query_as("SELECT name, archived FROM tags ORDER BY name")
-            .fetch_all(db.pool())
-            .await?;
-    let active: Vec<&str> = dictionary
-        .iter()
-        .filter(|(_, archived)| *archived == 0)
-        .map(|(name, _)| name.as_str())
-        .collect();
-    let unknown: Vec<&str> = tags
-        .iter()
-        .map(TagName::as_str)
-        .filter(|tag| !active.iter().any(|name| name == tag))
-        .collect();
-    if unknown.is_empty() {
-        return Ok(());
-    }
-    let archived: Vec<&str> = unknown
-        .iter()
-        .copied()
-        .filter(|tag| {
-            dictionary
-                .iter()
-                .any(|(name, archived)| name == tag && *archived == 1)
-        })
-        .collect();
-    let usage: Vec<(String, i64)> = sqlx::query_as(
-        "SELECT tt.tag, COUNT(*) FROM task_tags tt JOIN tasks ON tasks.id = tt.task_id WHERE tasks.deleted_at IS NULL AND tt.tag NOT IN (SELECT name FROM tags WHERE archived = 1) GROUP BY tt.tag ORDER BY COUNT(*) DESC, tt.tag ASC",
-    )
-    .fetch_all(db.pool())
-    .await?;
-    let options = active
-        .iter()
-        .map(|name| {
-            let count = usage
-                .iter()
-                .find(|(tag, _)| tag == name)
-                .map(|(_, count)| *count)
-                .unwrap_or(0);
-            format!("{name} ({count})")
-        })
-        .take(12)
-        .collect::<Vec<_>>()
-        .join(", ");
-    let archived_part = if archived.is_empty() {
-        String::new()
-    } else {
-        format!(
-            " Archived: {} - restore with tags_update {{name, patch:{{archived:false}}}} or pick another.",
-            archived.join(", ")
-        )
-    };
-    Err(AppError::validation(format!(
-        "unknown tag(s): {}. Existing tags: {options}. See tags_list for the full list; create a genuinely new tag with tags_create {{name}}.{archived_part}",
-        unknown.join(", ")
-    )))
-}
-
 async fn record_revision(
     db: &Db,
     task_id: &str,
@@ -311,7 +249,7 @@ pub async fn create_task(db: &Db, input: NewTask) -> Result<Value> {
     let priority = input.priority.unwrap_or(Priority::Medium);
 
     let tags = normalize_tags(input.tags.as_deref());
-    validate_tags(db, &tags).await?;
+    crate::tags::validate_tags(db, &tags).await?;
     let source_file = empty_to_null(
         input
             .source_file
@@ -745,7 +683,7 @@ pub async fn update_task_detailed(db: &Db, id: &str, patch: TaskPatch) -> Result
     let mut next_tags: Option<Vec<TagName>> = None;
     if let Some(tags) = &patch.tags {
         let tags = normalize_tags(Some(tags));
-        validate_tags(db, &tags).await?;
+        crate::tags::validate_tags(db, &tags).await?;
         let unchanged = tags.len() == current.tags.len()
             && tags
                 .iter()
