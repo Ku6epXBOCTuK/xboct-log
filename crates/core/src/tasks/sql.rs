@@ -2,10 +2,11 @@ use std::collections::HashMap;
 
 use sqlx::{QueryBuilder, Sqlite};
 
+use crate::ids::{ProjectId, ScopeId, Seq, TagName, TaskKey};
 use crate::{AppError, Db, Result};
 
 use super::filters::{NullableList, Sort, TaskFilters};
-use super::model::{BlockingInfo, Status, Task, TaskList, TaskRow};
+use super::model::{BlockingInfo, Estimate, Priority, Status, Task, TaskList, TaskRow};
 use super::resolve::{normalize_task_id_input, resolve_task_id};
 
 const SEARCH_COLUMNS: [&str; 5] = [
@@ -25,11 +26,11 @@ fn push_and(qb: &mut QueryBuilder<Sqlite>, first: &mut bool) {
     }
 }
 
-fn push_in_text(qb: &mut QueryBuilder<Sqlite>, column: &str, values: &[String]) {
+fn push_in_text<T: AsRef<str>>(qb: &mut QueryBuilder<Sqlite>, column: &str, values: &[T]) {
     qb.push(column).push(" IN (");
     let mut separated = qb.separated(", ");
     for value in values {
-        separated.push_bind(value.clone());
+        separated.push_bind(value.as_ref().to_string());
     }
     separated.push_unseparated(")");
 }
@@ -59,13 +60,19 @@ fn push_search(qb: &mut QueryBuilder<Sqlite>, term: &str) {
 }
 
 fn exact_values(filters: &TaskFilters) -> (Vec<i64>, Vec<String>) {
-    let numbers = filters.number_exact.clone().unwrap_or_default();
+    let numbers = filters
+        .number_exact
+        .as_deref()
+        .unwrap_or_default()
+        .iter()
+        .map(|value| value.get())
+        .collect();
     let ids = filters
         .id_exact
         .as_deref()
         .unwrap_or_default()
         .iter()
-        .map(|value| normalize_task_id_input(value.trim()).to_lowercase())
+        .map(|value| normalize_task_id_input(value.as_str().trim()).to_lowercase())
         .filter(|value| !value.is_empty())
         .collect();
     (numbers, ids)
@@ -131,7 +138,7 @@ fn push_where(qb: &mut QueryBuilder<Sqlite>, filters: &TaskFilters) {
         qb.push("tasks.project_id NOT IN (");
         let mut separated = qb.separated(", ");
         for value in values.clone().into_vec() {
-            separated.push_bind(value);
+            separated.push_bind(value.into_string());
         }
         separated.push_unseparated(")");
     }
@@ -200,7 +207,7 @@ fn push_where(qb: &mut QueryBuilder<Sqlite>, filters: &TaskFilters) {
                     .clone()
                     .into_vec()
                     .into_iter()
-                    .map(|value| normalize_task_id_input(value.trim()))
+                    .map(|value| normalize_task_id_input(value.as_str().trim()))
                     .collect();
                 qb.push("tasks.epic_id IN (SELECT id FROM tasks epic WHERE epic.key IN (");
                 let mut separated = qb.separated(", ");
@@ -218,7 +225,12 @@ fn push_where(qb: &mut QueryBuilder<Sqlite>, filters: &TaskFilters) {
                 qb.push("tasks.scope_id IS NULL");
             }
             NullableList::Value(values) => {
-                let values = values.clone().into_vec();
+                let values: Vec<i64> = values
+                    .clone()
+                    .into_vec()
+                    .into_iter()
+                    .map(ScopeId::get)
+                    .collect();
                 push_in_int(qb, "tasks.scope_id", &values);
             }
         };
@@ -249,11 +261,11 @@ fn push_where(qb: &mut QueryBuilder<Sqlite>, filters: &TaskFilters) {
     }
     if let Some(value) = &filters.blocked_by {
         push_and(qb, &mut first);
-        push_blocking_filter(qb, "blocked_by", value);
+        push_blocking_filter(qb, "blocked_by", value.as_str());
     }
     if let Some(value) = &filters.blocks {
         push_and(qb, &mut first);
-        push_blocking_filter(qb, "blocks", value);
+        push_blocking_filter(qb, "blocks", value.as_str());
     }
     if let Some(values) = &filters.tag {
         push_and(qb, &mut first);
@@ -261,7 +273,7 @@ fn push_where(qb: &mut QueryBuilder<Sqlite>, filters: &TaskFilters) {
             .clone()
             .into_vec()
             .into_iter()
-            .map(|value| value.to_lowercase())
+            .map(|value| value.as_str().to_lowercase())
             .collect();
         qb.push("EXISTS (SELECT 1 FROM task_tags tt WHERE tt.task_id = tasks.id AND ULOWER(tt.tag) IN (");
         let mut separated = qb.separated(", ");
@@ -393,21 +405,21 @@ fn push_order(qb: &mut QueryBuilder<Sqlite>, filters: &TaskFilters) {
     }
 }
 
-fn row_to_task(row: TaskRow, tags: Vec<String>, blocking: BlockingInfo) -> Task {
+fn row_to_task(row: TaskRow, tags: Vec<TagName>, blocking: BlockingInfo) -> Task {
     Task {
-        id: row.key,
-        project_id: row.project_id,
-        number: row.number,
+        id: TaskKey::from(row.key),
+        project_id: ProjectId::from(row.project_id),
+        number: Seq::from(row.number),
         title: row.title,
         description: Some(row.description),
-        status: row.status,
-        priority: row.priority,
+        status: Status::from_db(&row.status).unwrap_or(Status::Backlog),
+        priority: Priority::from_db(&row.priority).unwrap_or(Priority::Low),
         is_epic: row.is_epic == 1,
-        epic_id: row.epic_key,
-        scope_id: row.scope_id,
+        epic_id: row.epic_key.map(TaskKey::from),
+        scope_id: row.scope_id.map(ScopeId::from),
         source_file: row.source_file,
         tags,
-        estimate: row.estimate,
+        estimate: row.estimate.as_deref().and_then(Estimate::from_db),
         assignee: row.assignee,
         due_at: row.due_at,
         attachments_count: row.attachments_count,
@@ -429,8 +441,8 @@ fn row_to_task(row: TaskRow, tags: Vec<String>, blocking: BlockingInfo) -> Task 
     }
 }
 
-async fn tags_for_tasks(db: &Db, keys: &[String]) -> Result<HashMap<String, Vec<String>>> {
-    let mut tags: HashMap<String, Vec<String>> = HashMap::new();
+async fn tags_for_tasks(db: &Db, keys: &[String]) -> Result<HashMap<String, Vec<TagName>>> {
+    let mut tags: HashMap<String, Vec<TagName>> = HashMap::new();
     if keys.is_empty() {
         return Ok(tags);
     }
@@ -444,7 +456,7 @@ async fn tags_for_tasks(db: &Db, keys: &[String]) -> Result<HashMap<String, Vec<
     separated.push_unseparated(") ORDER BY task_tags.tag");
     let rows: Vec<(String, String)> = qb.build_query_as().fetch_all(db.pool()).await?;
     for (key, tag) in rows {
-        tags.entry(key).or_default().push(tag);
+        tags.entry(key).or_default().push(TagName::from(tag));
     }
     Ok(tags)
 }
@@ -475,26 +487,26 @@ async fn blocking_info_for(db: &Db, keys: &[String]) -> Result<HashMap<String, B
         match link_type.as_str() {
             "blocks" => {
                 if let Some(entry) = info.get_mut(&target) {
-                    entry.blocked_by.push(source.clone());
+                    entry.blocked_by.push(TaskKey::from(source.clone()));
                 }
                 if let Some(entry) = info.get_mut(&source) {
-                    entry.blocks.push(target.clone());
+                    entry.blocks.push(TaskKey::from(target.clone()));
                 }
             }
             "relates_to" => {
                 if let Some(entry) = info.get_mut(&source) {
-                    entry.relates_to.push(target.clone());
+                    entry.relates_to.push(TaskKey::from(target.clone()));
                 }
                 if let Some(entry) = info.get_mut(&target) {
-                    entry.relates_to.push(source.clone());
+                    entry.relates_to.push(TaskKey::from(source.clone()));
                 }
             }
             "duplicates" => {
                 if let Some(entry) = info.get_mut(&source) {
-                    entry.duplicates.push(target.clone());
+                    entry.duplicates.push(TaskKey::from(target.clone()));
                 }
                 if let Some(entry) = info.get_mut(&target) {
-                    entry.duplicated_by.push(source.clone());
+                    entry.duplicated_by.push(TaskKey::from(source.clone()));
                 }
             }
             _ => {}
@@ -678,7 +690,7 @@ pub async fn get_task(db: &Db, id: &str) -> Result<Task> {
         return Ok(task);
     }
     let key = resolve_task_id(db, id).await?;
-    task_by_key(db, &key)
+    task_by_key(db, key.as_str())
         .await?
         .ok_or_else(|| AppError::unexpected(format!("task {key} disappeared while reading")))
 }

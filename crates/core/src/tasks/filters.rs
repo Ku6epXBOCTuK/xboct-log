@@ -1,6 +1,9 @@
 use serde::Deserialize;
 
-use crate::{AppError, Result};
+use crate::{
+    AppError, Result,
+    ids::{ProjectId, ScopeId, Seq, TagName, TaskKey},
+};
 
 use super::model::{Estimate, Priority, Status};
 
@@ -50,27 +53,27 @@ pub enum Order {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TaskFilters {
-    pub project_id: Option<OneOrList<String>>,
-    pub exclude_project_id: Option<OneOrList<String>>,
+    pub project_id: Option<OneOrList<ProjectId>>,
+    pub exclude_project_id: Option<OneOrList<ProjectId>>,
     pub status: Option<OneOrList<Status>>,
     pub priority: Option<OneOrList<Priority>>,
     pub estimate: Option<OneOrList<Estimate>>,
     pub assignee: Option<OneOrList<String>>,
     pub due_before: Option<String>,
     pub due_after: Option<String>,
-    pub tag: Option<OneOrList<String>>,
+    pub tag: Option<OneOrList<TagName>>,
     pub is_epic: Option<bool>,
-    pub epic_id: Option<NullableList<String>>,
-    pub scope_id: Option<NullableList<i64>>,
+    pub epic_id: Option<NullableList<TaskKey>>,
+    pub scope_id: Option<NullableList<ScopeId>>,
     pub has_epic: Option<bool>,
     pub has_scope: Option<bool>,
     pub has_tags: Option<bool>,
-    pub blocked_by: Option<String>,
-    pub blocks: Option<String>,
+    pub blocked_by: Option<TaskKey>,
+    pub blocks: Option<TaskKey>,
     pub q: Option<String>,
     pub q_any: Option<Vec<String>>,
-    pub number_exact: Option<Vec<i64>>,
-    pub id_exact: Option<Vec<String>>,
+    pub number_exact: Option<Vec<Seq>>,
+    pub id_exact: Option<Vec<TaskKey>>,
     pub title: Option<String>,
     pub title_exact: Option<String>,
     pub source_file: Option<String>,

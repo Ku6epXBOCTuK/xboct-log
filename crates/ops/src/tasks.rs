@@ -1,7 +1,8 @@
 use serde::Deserialize;
 use serde_json::{Value, json};
 use xboct_log_core::{
-    AppError, Entity, Result, TaskList, count_epic_children_by_status, get_task, list_tasks,
+    AppError, Entity, Result, TaskKey, TaskList, count_epic_children_by_status, get_task,
+    list_tasks,
 };
 
 use crate::{Ctx, Kind, Op};
@@ -30,7 +31,7 @@ pub struct TasksGet;
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct GetInput {
-    pub task_id: String,
+    pub task_id: TaskKey,
 }
 
 impl Op for TasksGet {
@@ -50,13 +51,13 @@ impl Op for TasksGet {
     }
 
     async fn run(ctx: &Ctx, input: Self::Input) -> Result<Self::Output> {
-        let task = get_task(&ctx.db, &input.task_id).await?;
+        let task = get_task(&ctx.db, input.task_id.as_str()).await?;
         let epic = task.is_epic;
         let key = task.id.clone();
         let mut value =
             serde_json::to_value(task).map_err(|error| AppError::unexpected(error.to_string()))?;
         if epic {
-            let counts = count_epic_children_by_status(&ctx.db, &key).await?;
+            let counts = count_epic_children_by_status(&ctx.db, key.as_str()).await?;
             if let Value::Object(object) = &mut value {
                 object.insert("children_counts".to_string(), json!(counts));
             }

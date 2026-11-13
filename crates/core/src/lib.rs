@@ -7,6 +7,7 @@ pub mod config;
 pub mod db;
 pub mod error;
 pub mod events;
+pub mod ids;
 pub mod media;
 mod migrations;
 pub mod paths;
@@ -22,6 +23,7 @@ pub use config::{BackupConfig, Config, ConfigError};
 pub use db::{Db, Tx};
 pub use error::{AppError, AppErrorKind, ErrorStatus, Result};
 pub use events::{ActivitySource, ChangeEvent, Entity, Events, ServerEvent, entity_of};
+pub use ids::{Prefix, ProjectId, ScopeId, Seq, TagName, TaskKey};
 pub use media::{
     AttachmentContents, AttachmentFormat, AttachmentKind, attachment_format, read_attachment_file,
     read_deleted_attachment_file,

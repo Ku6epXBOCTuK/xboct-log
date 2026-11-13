@@ -1,3 +1,4 @@
+use crate::ids::TaskKey;
 use crate::{AppError, Db, Result};
 
 pub fn normalize_task_id_input(value: &str) -> String {
@@ -78,7 +79,7 @@ async fn ids_by_number(db: &Db, number: i64) -> Result<Vec<String>> {
     Ok(rows.into_iter().map(|(key,)| key).collect())
 }
 
-async fn lookup_task(db: &Db, id: &str) -> Result<Option<String>> {
+async fn lookup_task(db: &Db, id: &str) -> Result<Option<TaskKey>> {
     let normalized = normalize_task_id_input(id);
     let row: Option<(String,)> = sqlx::query_as(
         "SELECT key FROM tasks WHERE (key = ? OR key = ?) AND deleted_at IS NULL LIMIT 1",
@@ -87,10 +88,10 @@ async fn lookup_task(db: &Db, id: &str) -> Result<Option<String>> {
     .bind(normalized)
     .fetch_optional(db.pool())
     .await?;
-    Ok(row.map(|(key,)| key))
+    Ok(row.map(|(key,)| TaskKey::from(key)))
 }
 
-pub async fn resolve_task_id(db: &Db, id: &str) -> Result<String> {
+pub async fn resolve_task_id(db: &Db, id: &str) -> Result<TaskKey> {
     let trimmed = id.trim();
     if is_bare_number(trimmed) {
         let number: i64 = trimmed

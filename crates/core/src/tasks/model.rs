@@ -2,6 +2,8 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
+use crate::ids::{ProjectId, ScopeId, Seq, TagName, TaskKey};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Status {
@@ -93,24 +95,49 @@ impl Estimate {
             Self::Large => "L",
         }
     }
+
+    pub fn from_db(value: &str) -> Option<Self> {
+        match value {
+            "S" => Some(Self::Small),
+            "M" => Some(Self::Medium),
+            "L" => Some(Self::Large),
+            _ => None,
+        }
+    }
+}
+
+impl Status {
+    pub fn from_db(value: &str) -> Option<Self> {
+        Self::ALL
+            .into_iter()
+            .find(|status| status.as_str() == value)
+    }
+}
+
+impl Priority {
+    pub fn from_db(value: &str) -> Option<Self> {
+        [Self::Low, Self::Medium, Self::High, Self::Critical]
+            .into_iter()
+            .find(|priority| priority.as_str() == value)
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Task {
-    pub id: String,
-    pub project_id: String,
-    pub number: i64,
+    pub id: TaskKey,
+    pub project_id: ProjectId,
+    pub number: Seq,
     pub title: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
-    pub status: String,
-    pub priority: String,
+    pub status: Status,
+    pub priority: Priority,
     pub is_epic: bool,
-    pub epic_id: Option<String>,
-    pub scope_id: Option<i64>,
+    pub epic_id: Option<TaskKey>,
+    pub scope_id: Option<ScopeId>,
     pub source_file: Option<String>,
-    pub tags: Vec<String>,
-    pub estimate: Option<String>,
+    pub tags: Vec<TagName>,
+    pub estimate: Option<Estimate>,
     pub assignee: Option<String>,
     pub due_at: Option<String>,
     pub attachments_count: i64,
@@ -126,11 +153,11 @@ pub struct Task {
     pub scope_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub short_description: Option<String>,
-    pub blocked_by: Vec<String>,
-    pub blocks: Vec<String>,
-    pub relates_to: Vec<String>,
-    pub duplicates: Vec<String>,
-    pub duplicated_by: Vec<String>,
+    pub blocked_by: Vec<TaskKey>,
+    pub blocks: Vec<TaskKey>,
+    pub relates_to: Vec<TaskKey>,
+    pub duplicates: Vec<TaskKey>,
+    pub duplicated_by: Vec<TaskKey>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub children_counts: Option<BTreeMap<String, i64>>,
 }
@@ -143,11 +170,11 @@ pub struct TaskList {
 
 #[derive(Debug, Clone, Default)]
 pub struct BlockingInfo {
-    pub blocked_by: Vec<String>,
-    pub blocks: Vec<String>,
-    pub relates_to: Vec<String>,
-    pub duplicates: Vec<String>,
-    pub duplicated_by: Vec<String>,
+    pub blocked_by: Vec<TaskKey>,
+    pub blocks: Vec<TaskKey>,
+    pub relates_to: Vec<TaskKey>,
+    pub duplicates: Vec<TaskKey>,
+    pub duplicated_by: Vec<TaskKey>,
 }
 
 #[derive(Debug, sqlx::FromRow)]
