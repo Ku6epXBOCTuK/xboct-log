@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Config {
@@ -51,10 +51,22 @@ impl Config {
                 auto_keep: backup_number(&read, "XBOCT_LOG_BACKUP_AUTO_KEEP", 48),
                 auto_interval_min: backup_number(&read, "XBOCT_LOG_BACKUP_AUTO_INTERVAL_MIN", 30),
                 disabled: read("XBOCT_LOG_BACKUP_DISABLED")
-                    .is_some_and(|value| value == "1" || value == "true" || value == "yes"),
+                    .is_some_and(|value| value != "0" && !value.eq_ignore_ascii_case("false")),
             },
             activity_keep_days: activity_keep_days(&read),
         })
+    }
+
+    pub fn resolved_media_dir(&self) -> PathBuf {
+        if self.media_dir.as_os_str().is_empty() {
+            self.db_path
+                .parent()
+                .filter(|parent| !parent.as_os_str().is_empty())
+                .unwrap_or_else(|| Path::new(""))
+                .join("media")
+        } else {
+            self.media_dir.clone()
+        }
     }
 }
 
@@ -228,9 +240,11 @@ mod tests {
             ("1", true),
             ("true", true),
             ("yes", true),
-            ("TRUE", false),
+            ("TRUE", true),
+            ("on", true),
             ("0", false),
-            ("on", false),
+            ("false", false),
+            ("FALSE", false),
         ] {
             let config = Config::from_lookup(lookup(&[
                 ("XBOCT_LOG_DB", "tasks.db"),
