@@ -51,10 +51,8 @@ const CREATE_SQLX_MIGRATIONS: &str = "CREATE TABLE IF NOT EXISTS _sqlx_migration
 
 pub(crate) async fn migrate(db: &Db) -> Result<()> {
     let node_history = table_exists(db, "schema_migrations").await?;
-    let rust_history = table_exists(db, "_sqlx_migrations").await?;
-
-    if node_history && !rust_history {
-        mark_existing_migrations_as_applied(db).await?;
+    if node_history {
+        align_rust_history(db).await?;
     }
 
     MIGRATOR
@@ -74,12 +72,10 @@ async fn table_exists(db: &Db, name: &str) -> Result<bool> {
     Ok(count > 0)
 }
 
-async fn mark_existing_migrations_as_applied(db: &Db) -> Result<()> {
-    let mut connection = db.pool().acquire().await?;
-
+async fn align_rust_history(db: &Db) -> Result<()> {
     let applied: Vec<String> =
         sqlx::query_scalar("select name from schema_migrations order by name")
-            .fetch_all(&mut *connection)
+            .fetch_all(db.pool())
             .await?;
     if !applied
         .iter()
@@ -97,8 +93,22 @@ async fn mark_existing_migrations_as_applied(db: &Db) -> Result<()> {
         .next()
         .ok_or_else(|| AppError::unexpected("the embedded migration set is empty"))?;
 
+    if table_exists(db, "_sqlx_migrations").await? {
+        let checksum: Option<Vec<u8>> =
+            sqlx::query_scalar("select checksum from _sqlx_migrations where version = ?")
+                .bind(migration.version)
+                .fetch_optional(db.pool())
+                .await?;
+        if checksum.as_deref() == Some(migration.checksum.as_ref()) {
+            return Ok(());
+        }
+        sqlx::query("drop table _sqlx_migrations")
+            .execute(db.pool())
+            .await?;
+    }
+
     sqlx::query(CREATE_SQLX_MIGRATIONS)
-        .execute(&mut *connection)
+        .execute(db.pool())
         .await?;
     sqlx::query(
         "insert into _sqlx_migrations (version, description, installed_on, success, checksum, execution_time)
@@ -107,7 +117,7 @@ async fn mark_existing_migrations_as_applied(db: &Db) -> Result<()> {
     .bind(migration.version)
     .bind(migration.description.as_ref())
     .bind(migration.checksum.as_ref())
-    .execute(&mut *connection)
+    .execute(db.pool())
     .await?;
 
     Ok(())
@@ -176,6 +186,22 @@ mod tests {
     async fn marks_a_node_database_as_applied() {
         let db = fresh_db().await;
         sqlx::query("drop table _sqlx_migrations")
+            .execute(db.pool())
+            .await
+            .unwrap();
+
+        db.migrate().await.unwrap();
+
+        let versions = applied_versions(&mut db.pool().acquire().await.unwrap())
+            .await
+            .unwrap();
+        assert_eq!(versions, vec![1]);
+    }
+
+    #[tokio::test]
+    async fn repairs_a_changed_rust_checksum() {
+        let db = fresh_db().await;
+        sqlx::query("update _sqlx_migrations set checksum = x'00'")
             .execute(db.pool())
             .await
             .unwrap();

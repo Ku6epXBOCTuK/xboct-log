@@ -38,7 +38,6 @@ export async function seedData(dataDir, source = databaseArg()) {
 	}
 	const target = new DatabaseSync(join(dataDir, APP_DB));
 	try {
-		target.exec("DROP TABLE IF EXISTS _sqlx_migrations");
 		target.exec("PRAGMA wal_checkpoint(TRUNCATE)");
 	} finally {
 		target.close();
