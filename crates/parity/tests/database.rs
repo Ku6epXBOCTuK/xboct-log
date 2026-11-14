@@ -35,7 +35,7 @@ fn newest_timestamp(text: &str) -> Option<i64> {
 #[tokio::test]
 async fn reads_the_node_database_like_the_committed_fixture() {
     let root = root();
-    let database = root.join("tests/parity/.tmp/runtime/db.sqlite");
+    let database = root.join("tests/parity/.tmp/runtime/seed.sqlite");
     if !database.exists() {
         eprintln!(
             "skipping: {} is missing, run pnpm parity:seed",

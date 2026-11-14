@@ -16,6 +16,10 @@ export function databasePath(): string {
 	return join(runtimeDir, "db.sqlite");
 }
 
+export function seedDatabasePath(): string {
+	return join(runtimeDir, "seed.sqlite");
+}
+
 export function configureRuntime(): void {
 	process.env.XBOCT_LOG_DB = databasePath();
 	process.env.XBOCT_LOG_MEDIA_DIR = join(runtimeDir, "media");

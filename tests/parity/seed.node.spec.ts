@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { runOp } from "#lib/remote/define.ts";
@@ -6,10 +6,12 @@ import { getOps } from "#lib/remote/index.ts";
 import { closeDb } from "#lib/server/db.ts";
 import type { DatabaseSync } from "node:sqlite";
 import {
+	databasePath,
 	fixtureDir,
 	freshDatabase,
 	openRuntimeDatabase,
 	runtimeDir,
+	seedDatabasePath,
 } from "./lib/runtime.ts";
 import { readDatabase } from "./lib/snapshot.ts";
 
@@ -332,6 +334,9 @@ describe("deterministic seed", () => {
 		const target = join(fixtureDir(), "db.json");
 		mkdirSync(fixtureDir(), { recursive: true });
 		writeFileSync(target, `${JSON.stringify(document, null, 2)}\n`);
+
+		db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
+		copyFileSync(databasePath(), seedDatabasePath());
 		console.log(`wrote ${target}`);
 	});
 });
