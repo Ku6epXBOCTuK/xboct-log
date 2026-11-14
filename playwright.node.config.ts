@@ -4,7 +4,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 const ROOT = import.meta.dirname;
 const E2E_DIR = join(ROOT, ".dev", "e2e");
-const DB = join(E2E_DIR, "node-ui.db");
+const DB = join(E2E_DIR, "xboct-log.db");
 mkdirSync(E2E_DIR, { recursive: true });
 try {
 	rmSync(DB, { force: true, maxRetries: 3 });

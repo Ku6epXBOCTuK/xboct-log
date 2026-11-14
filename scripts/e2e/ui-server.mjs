@@ -1,5 +1,5 @@
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { createServer, request } from "node:http";
 import { join } from "node:path";
 import {
@@ -8,6 +8,7 @@ import {
 	stopServer,
 	waitForHealth,
 } from "./lib/mcp.mjs";
+import { databaseArg, seedData } from "./lib/seed.mjs";
 
 const ROOT = join(import.meta.dirname, "..", "..");
 const E2E = join(ROOT, ".dev", "e2e");
@@ -41,7 +42,7 @@ function startNode() {
 			...process.env,
 			PORT: String(NODE_PORT),
 			HOST: "127.0.0.1",
-			XBOCT_LOG_DB: join(E2E, "node.db"),
+			XBOCT_LOG_DB: join(E2E, "xboct-log.db"),
 			XBOCT_LOG_MIGRATIONS: join(ROOT, "migrations"),
 			XBOCT_LOG_BACKUP_DIR: join(E2E, "node-backups"),
 			XBOCT_LOG_BACKUP_DISABLED: "1",
@@ -102,10 +103,26 @@ function proxy() {
 	});
 }
 
+const rustData = join(E2E, "rust-data");
+const nodeDb = join(E2E, "xboct-log.db");
+const source = databaseArg();
+
 ensureBinary();
 build();
 
-const rust = startServer({ port: RUST_PORT, dataDir: join(E2E, "rust-data") });
+rmSync(rustData, { recursive: true, force: true });
+try {
+	rmSync(nodeDb, { force: true, maxRetries: 3 });
+} catch {
+	// NOTE: windows may keep the database locked from a crashed run
+}
+if (source) {
+	console.log(`[e2e] seeding both servers from ${source}`);
+}
+await seedData(rustData, source);
+await seedData(E2E, source);
+
+const rust = startServer({ port: RUST_PORT, dataDir: rustData });
 const node = startNode();
 
 let closing = false;

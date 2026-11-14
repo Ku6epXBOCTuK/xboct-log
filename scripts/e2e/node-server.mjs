@@ -1,12 +1,13 @@
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
+import { databaseArg, seedData } from "./lib/seed.mjs";
 
 const ROOT = join(import.meta.dirname, "..", "..");
 const APP = process.env.E2E_NODE_APP ?? join(ROOT, ".dev", "node-v0.9.0");
 const E2E = join(ROOT, ".dev", "e2e");
 const PORT = Number(process.env.E2E_NODE_PORT ?? 5173);
-const DB = join(E2E, "node-ui.db");
+const DB = join(E2E, "xboct-log.db");
 
 if (!existsSync(join(APP, "package.json"))) {
 	console.log("[e2e] creating the v0.9.0 worktree");
@@ -46,6 +47,11 @@ try {
 } catch {
 	// NOTE: windows may keep the database locked from a crashed run
 }
+const source = databaseArg();
+if (source) {
+	console.log(`[e2e] seeding the node server from ${source}`);
+}
+await seedData(E2E, source);
 
 const child = spawn(process.execPath, ["build"], {
 	cwd: APP,
@@ -57,7 +63,7 @@ const child = spawn(process.execPath, ["build"], {
 		PROTOCOL_HEADER: "x-forwarded-proto",
 		XBOCT_LOG_DB: DB,
 		XBOCT_LOG_MIGRATIONS: join(APP, "migrations"),
-		XBOCT_LOG_MEDIA_DIR: join(E2E, "node-media"),
+		XBOCT_LOG_MEDIA_DIR: join(E2E, "media"),
 		XBOCT_LOG_BACKUP_DIR: join(E2E, "node-backups"),
 		XBOCT_LOG_BACKUP_DISABLED: "1",
 	},

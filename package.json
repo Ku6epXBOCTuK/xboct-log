@@ -26,6 +26,7 @@
 		"dev": "node scripts/dev.mjs",
 		"dev:vite": "vite dev",
 		"dev:seed": "node scripts/dev-seed.mjs",
+		"seed:prod": "node scripts/seed-from-prod.mjs",
 		"build": "vite build",
 		"build:ext": "npm --prefix vscode-extension run compile && npm --prefix vscode-extension run package",
 		"package:win": "powershell -ExecutionPolicy Bypass -File scripts/package-win.ps1",

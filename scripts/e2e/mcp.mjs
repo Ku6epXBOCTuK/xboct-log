@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { rmSync } from "node:fs";
+import { join } from "node:path";
 import {
 	ensureBinary,
 	errorOf,
@@ -9,6 +11,7 @@ import {
 	valueOf,
 	waitForHealth,
 } from "./lib/mcp.mjs";
+import { databaseArg, seedData } from "./lib/seed.mjs";
 
 const PORT = Number(process.env.E2E_MCP_PORT ?? 47281);
 const B64 = Buffer.from("hello from the e2e suite\n").toString("base64");
@@ -59,7 +62,12 @@ function items(value, label) {
 }
 
 ensureBinary();
-const server = startServer({ port: PORT });
+const dataDir = join(process.cwd(), ".dev", "e2e", "mcp-data");
+rmSync(dataDir, { recursive: true, force: true });
+const source = databaseArg();
+if (source) console.log(`[e2e] seeding from ${source}`);
+await seedData(dataDir, source);
+const server = startServer({ port: PORT, dataDir });
 const client = new McpClient(server.base);
 
 try {
