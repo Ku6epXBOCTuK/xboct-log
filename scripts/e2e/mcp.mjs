@@ -738,7 +738,10 @@ try {
 			}),
 			"invalid enum",
 		);
-		assert.match(error.message, /unknown variant `urgent`/);
+		assert.match(
+			error.message,
+			/priority: Invalid option: expected one of "low"\|"medium"\|"high"\|"critical"/,
+		);
 	});
 	await check("a missing task is a not found error", async () => {
 		const error = failed(

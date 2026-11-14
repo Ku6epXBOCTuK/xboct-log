@@ -356,34 +356,101 @@ fn client_label(context: &RequestContext<RoleServer>) -> Option<String> {
 
 fn validation_error(name: &str, arguments: &Value) -> Option<String> {
     let schema: Value = serde_json::from_str(tool_schema(name)?.0).ok()?;
-    let allowed: Vec<String> = schema
-        .get("properties")?
-        .as_object()?
-        .keys()
-        .cloned()
-        .collect();
-    let unknown: Vec<&str> = arguments
-        .as_object()?
+    let properties = schema.get("properties")?.as_object()?;
+    let allowed: Vec<String> = properties.keys().cloned().collect();
+    let object = arguments.as_object()?;
+    let unknown: Vec<&str> = object
         .keys()
         .filter(|key| !allowed.iter().any(|name| name == key.as_str()))
         .map(String::as_str)
         .collect();
-    if unknown.is_empty() {
+    if !unknown.is_empty() {
+        let mut message = format!(
+            "Input validation error: Invalid arguments for tool {name}: Unknown parameter(s): {}.",
+            unknown.join(", ")
+        );
+        let hints: Vec<String> = unknown
+            .iter()
+            .filter_map(|key| {
+                suggestion(key, &allowed).map(|matched| format!("{key} -> {matched}"))
+            })
+            .collect();
+        if !hints.is_empty() {
+            message.push_str(&format!(" Did you mean: {}?", hints.join(", ")));
+        }
+        message.push_str(&format!(" Allowed parameters: {}", allowed.join(", ")));
+        return Some(message);
+    }
+
+    let mut problems = Vec::new();
+    for (key, property) in properties {
+        let Some(value) = object.get(key) else {
+            continue;
+        };
+        if value.is_null() {
+            continue;
+        }
+        let Some(options) = property.get("enum").and_then(Value::as_array) else {
+            continue;
+        };
+        if options.iter().any(|option| option == value) {
+            continue;
+        }
+        let rendered: Vec<String> = options
+            .iter()
+            .map(|option| format!("\"{}\"", option.as_str().unwrap_or_default()))
+            .collect();
+        problems.push(format!(
+            "{key}: Invalid option: expected one of {}",
+            rendered.join("|")
+        ));
+    }
+    if let Some(required) = schema.get("required").and_then(Value::as_array) {
+        for field in required {
+            let Some(key) = field.as_str() else {
+                continue;
+            };
+            if object.contains_key(key) {
+                continue;
+            }
+            let Some(property) = properties.get(key) else {
+                continue;
+            };
+            if property.get("default").is_some() {
+                continue;
+            }
+            problems.push(format!(
+                "{key}: Invalid input: expected {}, received undefined",
+                expected_type(property)
+            ));
+        }
+    }
+    if problems.is_empty() {
         return None;
     }
-    let mut message = format!(
-        "Input validation error: Invalid arguments for tool {name}: Unknown parameter(s): {}.",
-        unknown.join(", ")
-    );
-    let hints: Vec<String> = unknown
-        .iter()
-        .filter_map(|key| suggestion(key, &allowed).map(|matched| format!("{key} -> {matched}")))
-        .collect();
-    if !hints.is_empty() {
-        message.push_str(&format!(" Did you mean: {}?", hints.join(", ")));
+    Some(format!(
+        "Input validation error: Invalid arguments for tool {name}: {}",
+        problems.join("; ")
+    ))
+}
+
+fn expected_type(schema: &Value) -> &str {
+    match schema.get("type") {
+        Some(Value::String(name)) => name,
+        Some(Value::Array(names)) => names
+            .iter()
+            .filter_map(Value::as_str)
+            .find(|name| *name != "null")
+            .unwrap_or("value"),
+        _ => match schema.get("anyOf").and_then(Value::as_array) {
+            Some(variants) => variants
+                .iter()
+                .find(|variant| variant.get("type").and_then(Value::as_str) != Some("null"))
+                .map(expected_type)
+                .unwrap_or("value"),
+            None => "value",
+        },
     }
-    message.push_str(&format!(" Allowed parameters: {}", allowed.join(", ")));
-    Some(message)
 }
 
 fn suggestion<'a>(key: &str, allowed: &'a [String]) -> Option<&'a str> {
