@@ -22,7 +22,9 @@ use tracing_subscriber::{
     registry::LookupSpan,
     util::SubscriberInitExt,
 };
-use xboct_log_core::{Config, Db, Events, fingerprint_path, prune_activity, start_scheduler};
+use xboct_log_core::{
+    Config, Db, Events, ensure_inbox, fingerprint_path, prune_activity, start_scheduler,
+};
 use xboct_log_server::{AppState, app};
 
 use crate::args::{APP_NAME, Options, Platform};
@@ -150,6 +152,7 @@ async fn run(options: Options) -> Result<(), String> {
     prune_activity(&db, config.activity_keep_days, Local::now())
         .await
         .map_err(|error| error.to_string())?;
+    ensure_inbox(&db).await.map_err(|error| error.to_string())?;
 
     let db = Arc::new(db);
     start_scheduler(db.clone(), config.backup_dir.clone(), config.backup.clone());

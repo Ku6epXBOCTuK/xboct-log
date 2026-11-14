@@ -10,7 +10,7 @@ use crate::tasks::{Status, count_by_status};
 use crate::{AppError, Db, Result};
 
 pub const INBOX_PROJECT_ID: &str = "inbox";
-pub const INBOX_PROJECT_PREFIX: &str = "INBOX";
+pub const INBOX_PROJECT_PREFIX: &str = "INB";
 pub const PROJECT_ID_MAX_LENGTH: usize = 40;
 pub const REPO_MAX_LENGTH: usize = 200;
 
