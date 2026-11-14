@@ -1,6 +1,9 @@
-import { getProjects } from "#lib/remote/projects.remote.ts";
-import { getScopedProjectIds, getScopes } from "#lib/remote/scopes.remote.ts";
-import { getTagDictionary, getTags } from "#lib/remote/tags.remote.ts";
+import {
+	getProjects,
+	getScopedProjectIds,
+	getScopes,
+} from "#lib/api/projects.ts";
+import { getTagDictionary, getTags } from "#lib/api/tags.ts";
 import type { LayoutLoad } from "./$types";
 
 export const load: LayoutLoad = async ({ depends }) => {

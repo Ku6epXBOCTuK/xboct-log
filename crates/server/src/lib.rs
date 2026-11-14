@@ -99,8 +99,19 @@ async fn op_endpoint(state: &AppState, headers: &HeaderMap, body: &[u8], name: &
     let ctx =
         Ctx::new(state.db.clone(), state.events.clone(), state.config.clone()).with_client(client);
     match dispatch(&ctx, name, input).await {
-        Ok(value) => Json(value).into_response(),
+        Ok(value) => ok_response(value),
         Err(error) => error_response(&error),
+    }
+}
+
+// NOTE: the published operation schemas describe list results as {items};
+// mcp wraps arrays the same way, and rest must answer in the same shape.
+fn ok_response(value: serde_json::Value) -> Response {
+    match value {
+        serde_json::Value::Array(items) => {
+            Json(serde_json::json!({ "items": items })).into_response()
+        }
+        value => Json(value).into_response(),
     }
 }
 
@@ -545,6 +556,24 @@ mod tests {
         assert_eq!(paths.len(), metadata().len());
         assert!(paths.contains_key("/api/tasks_list"));
         assert!(paths.contains_key("/api/backups_restore"));
+    }
+
+    #[tokio::test]
+    async fn wraps_list_results_in_items_like_the_published_schema() {
+        let response = ok_response(serde_json::json!([{"id": "a"}]));
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let value: Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(value["items"][0]["id"], "a");
+
+        let response = ok_response(serde_json::json!({"items": []}));
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let value: Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(value["items"], serde_json::json!([]));
     }
 
     #[tokio::test]

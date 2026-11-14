@@ -1,10 +1,10 @@
-import { sortProjects } from "#lib/projects/sort.ts";
-import { fetchFresh } from "#lib/remote/fresh.ts";
+import { fetchFresh } from "#lib/api/fresh.ts";
 import {
 	createProject,
 	getProjects,
 	updateProject,
-} from "#lib/remote/projects.remote.ts";
+} from "#lib/api/projects.ts";
+import { sortProjects } from "#lib/projects/sort.ts";
 import type { Project } from "#lib/types.ts";
 
 export interface NewProjectInput {

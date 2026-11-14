@@ -1,4 +1,6 @@
 import { getContext, setContext } from "svelte";
+import { fetchFresh } from "#lib/api/fresh.ts";
+import { getScopedProjectIds, getScopes } from "#lib/api/projects.ts";
 import { listHref } from "#lib/navigation/href.ts";
 import { parsePath } from "#lib/navigation/paths.ts";
 import {
@@ -6,8 +8,6 @@ import {
 	parseListSearch,
 	withoutListSearch,
 } from "#lib/navigation/search.ts";
-import { fetchFresh } from "#lib/remote/fresh.ts";
-import { getScopedProjectIds, getScopes } from "#lib/remote/scopes.remote.ts";
 import { createCommentsStore } from "#lib/state/comments.svelte.ts";
 import { createDraftStore } from "#lib/state/draft.svelte.ts";
 import { createFilters } from "#lib/state/filters.svelte.ts";

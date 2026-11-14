@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { getTaskRevisions } from "#lib/remote/revisions.remote.ts";
-	import { fetchFresh } from "#lib/remote/fresh.ts";
+	import { fetchFresh } from "#lib/api/fresh.ts";
+	import { getTaskRevisions } from "#lib/api/revisions.ts";
 	import { formatDateTime } from "#lib/tasks/display.ts";
 	import type { Task, TaskRevision } from "#lib/types.ts";
 

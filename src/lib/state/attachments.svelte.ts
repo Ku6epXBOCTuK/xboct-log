@@ -4,16 +4,16 @@ import {
 	getTaskAttachments,
 	moveTaskAttachment,
 	removeTaskAttachment,
-} from "#lib/remote/attachments.remote.ts";
-import { fetchFresh } from "#lib/remote/fresh.ts";
+} from "#lib/api/attachments.ts";
+import { fetchFresh } from "#lib/api/fresh.ts";
 import { createAttachmentFlash } from "#lib/state/attachment-flash.svelte.ts";
 import { createAttachmentNotice } from "#lib/state/attachment-notice.svelte.ts";
 import type { TaskStore } from "#lib/state/tasks.svelte.ts";
 import { filterFiles, rejectionMessage } from "#lib/tasks/attachment-kinds.ts";
 import {
+	type AttachmentEntry,
 	attachEach,
 	fileToBase64,
-	type AttachmentEntry,
 	type UploadOutcome,
 } from "#lib/tasks/attachments.ts";
 import { messageOf } from "#lib/tasks/display.ts";

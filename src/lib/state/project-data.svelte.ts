@@ -1,6 +1,6 @@
-import { fetchFresh } from "#lib/remote/fresh.ts";
-import { getTaskOptions } from "#lib/remote/options.remote.ts";
-import { getTags } from "#lib/remote/tags.remote.ts";
+import { fetchFresh } from "#lib/api/fresh.ts";
+import { getTaskOptions } from "#lib/api/options.ts";
+import { getTags } from "#lib/api/tags.ts";
 import type { TagEntry } from "#lib/state/tags.svelte.ts";
 import type { Task } from "#lib/types.ts";
 

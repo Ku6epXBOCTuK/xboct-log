@@ -1,17 +1,17 @@
 <script lang="ts">
 	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton.svelte";
-	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
-	import ImageViewer from "#lib/components/ui/ImageViewer.svelte";
-	import MoveAttachmentDialog from "#lib/components/attachments/MoveAttachmentDialog.svelte";
-	import { openExternal } from "#lib/host/embed.ts";
 	import {
 		copyTaskAttachment,
 		getDeletedAttachments,
 		moveTaskAttachment,
 		purgeTaskAttachment,
 		restoreTaskAttachment,
-	} from "#lib/remote/attachments.remote.ts";
-	import { fetchFresh } from "#lib/remote/fresh.ts";
+	} from "#lib/api/attachments.ts";
+	import { fetchFresh } from "#lib/api/fresh.ts";
+	import MoveAttachmentDialog from "#lib/components/attachments/MoveAttachmentDialog.svelte";
+	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
+	import ImageViewer from "#lib/components/ui/ImageViewer.svelte";
+	import { openExternal } from "#lib/host/embed.ts";
 	import { useBoard } from "#lib/state/board.svelte.ts";
 	import { formatSize, isImage } from "#lib/tasks/attachments.ts";
 	import { formatDate, messageOf } from "#lib/tasks/display.ts";

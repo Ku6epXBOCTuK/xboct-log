@@ -3,15 +3,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const getTaskOptions = vi.fn();
 const getTags = vi.fn();
 
-vi.mock("#lib/remote/options.remote.ts", () => ({
+vi.mock("#lib/api/options.ts", () => ({
 	getTaskOptions: (input: { project_id: string }) => getTaskOptions(input),
 }));
 
-vi.mock("#lib/remote/tags.remote.ts", () => ({
+vi.mock("#lib/api/tags.ts", () => ({
 	getTags: (input: { project_id: string }) => getTags(input),
 }));
 
-vi.mock("#lib/remote/fresh.ts", () => ({
+vi.mock("#lib/api/fresh.ts", () => ({
 	fetchFresh: (value: unknown) => value,
 }));
 

@@ -1,12 +1,10 @@
+import { fetchFresh } from "#lib/api/fresh.ts";
 import {
 	addBlocker as addBlockerCommand,
-	removeBlocker as removeBlockerCommand,
-} from "#lib/remote/blockers.remote.ts";
-import { fetchFresh } from "#lib/remote/fresh.ts";
-import {
 	addLink as addLinkCommand,
+	removeBlocker as removeBlockerCommand,
 	removeLink as removeLinkCommand,
-} from "#lib/remote/links.remote.ts";
+} from "#lib/api/links.ts";
 import {
 	closeTask,
 	createTask,
@@ -15,7 +13,7 @@ import {
 	getTasksByIds,
 	moveTask,
 	updateTask,
-} from "#lib/remote/tasks.remote.ts";
+} from "#lib/api/tasks.ts";
 import type { TaskPatch } from "#lib/tasks/fields.ts";
 import { pageCount, TASK_PAGE_SIZE } from "#lib/tasks/paging.ts";
 import type { TaskQueryArgs } from "#lib/tasks/query.ts";

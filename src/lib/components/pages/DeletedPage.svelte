@@ -1,12 +1,12 @@
 <script lang="ts">
+	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton.svelte";
+	import { fetchFresh } from "#lib/api/fresh.ts";
+	import { listDeletedTasks, restoreTask } from "#lib/api/tasks.ts";
 	import DeletedAttachments from "#lib/components/attachments/DeletedAttachments.svelte";
 	import SearchBar from "#lib/components/filters/SearchBar.svelte";
-	import Pager from "#lib/components/ui/Pager.svelte";
 	import TaskTable from "#lib/components/table/TaskTable.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
-	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton.svelte";
-	import { fetchFresh } from "#lib/remote/fresh.ts";
-	import { listDeletedTasks, restoreTask } from "#lib/remote/tasks.remote.ts";
+	import Pager from "#lib/components/ui/Pager.svelte";
 	import { reloadApp } from "#lib/reload.ts";
 	import { useBoard } from "#lib/state/board.svelte.ts";
 	import { createDebouncedValue } from "#lib/state/debounce.svelte.ts";
@@ -14,8 +14,8 @@
 	import { formatDateTime, messageOf } from "#lib/tasks/display.ts";
 	import {
 		defaultOrderFor,
-		sortTasks,
 		type SortOrder,
+		sortTasks,
 		type TaskSortKey,
 	} from "#lib/tasks/sort.ts";
 	import type { Task } from "#lib/types.ts";

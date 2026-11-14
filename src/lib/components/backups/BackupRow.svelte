@@ -1,8 +1,8 @@
 <script lang="ts">
-	import type { BackupItem } from "#lib/remote/contracts.ts";
+	import type { Snippet } from "svelte";
 	import { formatSize } from "#lib/tasks/attachments.ts";
 	import { formatDateTime } from "#lib/tasks/display.ts";
-	import type { Snippet } from "svelte";
+	import type { BackupItem } from "#lib/types.ts";
 	import DatabaseBackup from "~icons/lucide/database-backup";
 	import RotateCcw from "~icons/lucide/rotate-ccw";
 

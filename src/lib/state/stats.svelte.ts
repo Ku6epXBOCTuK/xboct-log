@@ -1,11 +1,11 @@
-import { fetchFresh } from "#lib/remote/fresh.ts";
-import { getTaskStats } from "#lib/remote/stats.remote.ts";
+import { fetchFresh } from "#lib/api/fresh.ts";
+import { getTaskStats } from "#lib/api/stats.ts";
 import {
 	activeCount,
-	epicActive,
 	emptyCounts,
-	summarize,
+	epicActive,
 	type StatusCounts,
+	summarize,
 } from "#lib/tasks/counts.ts";
 import type { Task } from "#lib/types.ts";
 

@@ -1,4 +1,4 @@
-import { fetchFresh } from "#lib/remote/fresh.ts";
+import { fetchFresh } from "#lib/api/fresh.ts";
 import {
 	createTag,
 	getTagDictionary,
@@ -6,7 +6,7 @@ import {
 	listTagInventoryQuery,
 	renameTagCommand,
 	updateTag,
-} from "#lib/remote/tags.remote.ts";
+} from "#lib/api/tags.ts";
 
 export interface TagEntry {
 	tag: string;

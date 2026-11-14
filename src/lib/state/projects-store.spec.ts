@@ -5,13 +5,13 @@ const getProjects = vi.fn();
 const createProject = vi.fn();
 const updateProject = vi.fn();
 
-vi.mock("#lib/remote/projects.remote.ts", () => ({
+vi.mock("#lib/api/projects.ts", () => ({
 	getProjects: (input: unknown) => getProjects(input),
 	createProject: (input: unknown) => createProject(input),
 	updateProject: (input: unknown) => updateProject(input),
 }));
 
-vi.mock("#lib/remote/fresh.ts", () => ({
+vi.mock("#lib/api/fresh.ts", () => ({
 	fetchFresh: (value: unknown) => value,
 }));
 

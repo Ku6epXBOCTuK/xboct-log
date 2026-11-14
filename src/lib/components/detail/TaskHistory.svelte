@@ -1,7 +1,7 @@
 <script lang="ts">
+	import { getTaskHistory } from "#lib/api/activity.ts";
+	import { fetchFresh } from "#lib/api/fresh.ts";
 	import ActivityTable from "#lib/components/activity/ActivityTable.svelte";
-	import { getTaskHistory } from "#lib/remote/activity.remote.ts";
-	import { fetchFresh } from "#lib/remote/fresh.ts";
 	import type { ActivityItem, Task } from "#lib/types.ts";
 
 	interface Props {

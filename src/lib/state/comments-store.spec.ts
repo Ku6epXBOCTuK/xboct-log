@@ -3,22 +3,8 @@ import type { Comment } from "#lib/types.ts";
 
 const listComments = vi.fn();
 
-interface QueryMock {
-	current: { items: Comment[] } | undefined;
-	refresh: () => Promise<void>;
-}
-
-vi.mock("#lib/remote/comments.remote.ts", () => ({
-	listComments: (input: { task_id: string }) => {
-		const query: QueryMock = {
-			current: undefined,
-			refresh: async () => {
-				const value = await listComments(input);
-				query.current = value;
-			},
-		};
-		return query;
-	},
+vi.mock("#lib/api/comments.ts", () => ({
+	listComments: (input: { task_id: string }) => listComments(input),
 }));
 
 const { createCommentsStore } = await import("./comments.svelte.ts");

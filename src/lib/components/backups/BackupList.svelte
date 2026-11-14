@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { BackupItem, RestoreOutcome } from "#lib/remote/contracts.ts";
+	import type { BackupItem, RestoreOutcome } from "#lib/types.ts";
 	import BackupRestorePanel from "./BackupRestorePanel.svelte";
 	import BackupRow from "./BackupRow.svelte";
 

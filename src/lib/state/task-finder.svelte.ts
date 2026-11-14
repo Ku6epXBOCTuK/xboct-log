@@ -1,5 +1,5 @@
-import { getTaskOptions } from "#lib/remote/options.remote.ts";
-import { fetchFresh } from "#lib/remote/fresh.ts";
+import { fetchFresh } from "#lib/api/fresh.ts";
+import { getTaskOptions } from "#lib/api/options.ts";
 import { createDebouncedValue } from "#lib/state/debounce.svelte.ts";
 import type { Task } from "#lib/types.ts";
 

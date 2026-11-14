@@ -1,5 +1,5 @@
-import { fetchFresh } from "#lib/remote/fresh.ts";
-import { listComments } from "#lib/remote/comments.remote.ts";
+import { listComments } from "#lib/api/comments.ts";
+import { fetchFresh } from "#lib/api/fresh.ts";
 import type { Comment } from "#lib/types.ts";
 
 export function createCommentsStore() {

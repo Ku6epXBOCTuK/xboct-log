@@ -246,22 +246,22 @@ SQL остаётся тем же, что в node, во всех 12 местах:
 
 ### 6. Фронтенд на REST (5 дней)
 
-1. REST-слой операций на сервере: маршруты `POST /api/<имя операции>` генерируются
+1. REST-слой операций на сервере (сделано): маршруты `POST /api/<имя операции>` генерируются
    из реестра, тело — input, ответ — output, ошибки `{kind, message}` с
    400/404/409/500, заголовок `x-xboct-client` из запроса попадает в `Ctx`.
    `GET /api/openapi.json` — из `utoipa`; если `ToSchema` не справляется с
    `flatten` и `BTreeMap<Status, i64>`, схема собирается `schemars` и это
    отдельная задача в трекере.
-2. Генерация `schema.d.ts`: бинарник пишет `openapi.json`,
+2. Генерация `schema.d.ts` (сделано): бинарник пишет `openapi.json`,
    `openapi-typescript` — `src/lib/api/schema.d.ts`; `pnpm contract:check`
    перегенерирует и падает на `git diff --exit-code`.
-3. Dev-контур: Vite-proxy `/api`, `/media`, `/deleted/media`, `/mcp` на
+3. Dev-контур (сделано): Vite-proxy `/api`, `/media`, `/deleted/media`, `/mcp` на
    `127.0.0.1:45881`; `scripts/dev.mjs` поднимает рядом
    `cargo run -p xboct-log-cli -- --port 45881 --no-open`, ждёт `/api/health`
    и только потом запускает Vite. БД и бэкапы остаются в `.dev` из env, флаг
    `--data` не передаётся. Зависимости `openapi-fetch` и `adapter-static`
    ставятся здесь.
-4. Клиент на `openapi-fetch`: `src/lib/api/client.ts` забирает таймаут и
+4. Клиент на `openapi-fetch` (сделано): `src/lib/api/client.ts` забирает таймаут и
    ретраи у `src/lib/client/remote-fetch.ts`, `src/lib/api/*.ts` повторяют
    нынешние имена (`getProjects`, `createProject`, …), поэтому в сторах и
    компонентах меняется только путь импорта. Сторы, компоненты и SSE не
@@ -269,14 +269,14 @@ SQL остаётся тем же, что в node, во всех 12 местах:
    HTTP-ошибки выполнил бы команду дважды. `tasks_list` получает дефолт
    `limit = 100`, ответы `serde_json::Value` приводятся к доменным типам на
    границе обёртки.
-5. Переключение сборки и удаление старого слоя: `adapter-static` с
+5. Переключение сборки и удаление старого слоя (осталось): `adapter-static` с
    `fallback: "index.html"` вместо `adapter-node`, `ssr = false` в корневом
    `+layout.ts`, без `experimental.remoteFunctions`. Удаление `src/lib/remote`,
    `src/routes/mcp/+server.ts`, `src/routes/api/**`, `src/routes/media/**` и их
    спек; `parity:seed` переезжает на скрипт без `#lib/remote`, фикстуры
    паритета остаются коммитнутыми. Переход на TanStack Query — не входит в
    переезд, отдельная задача в трекере.
-6. Rust отдаёт собранный SPA с диска: `crates/server/src/static_files.rs`
+6. Rust отдаёт собранный SPA с диска (сделано): `crates/server/src/static_files.rs`
    читает файлы, отдаёт `index.html` как fallback, `mime_guess` и
    cache-control. Папка по умолчанию — `build` рядом с exe, иначе `build` в
    рабочей директории; переопределяется `--web` и `XBOCT_LOG_WEB_DIR`.

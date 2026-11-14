@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { createBackup } from "#lib/remote/backup.remote.ts";
+	import { createBackup } from "#lib/api/backups.ts";
 	import { messageOf } from "#lib/tasks/display.ts";
 	import CircleCheck from "~icons/lucide/circle-check";
 	import CircleX from "~icons/lucide/circle-x";

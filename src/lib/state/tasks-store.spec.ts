@@ -8,7 +8,7 @@ const updateTask = vi.fn();
 const deleteTask = vi.fn();
 const createTask = vi.fn();
 
-vi.mock("#lib/remote/tasks.remote.ts", () => ({
+vi.mock("#lib/api/tasks.ts", () => ({
 	getTasks: (input: unknown) => getTasks(input),
 	getTasksByIds: (input: { task_ids: string[] }) => getTasksByIds(input),
 	updateTask: (input: unknown) => updateTask(input),
@@ -18,16 +18,16 @@ vi.mock("#lib/remote/tasks.remote.ts", () => ({
 	closeTask: vi.fn(),
 }));
 
-vi.mock("#lib/remote/fresh.ts", () => ({
+vi.mock("#lib/api/fresh.ts", () => ({
 	fetchFresh: (query: unknown) => query,
 }));
 
-vi.mock("#lib/remote/blockers.remote.ts", () => ({
+vi.mock("#lib/api/links.ts", () => ({
 	addBlocker: vi.fn(),
 	removeBlocker: vi.fn(),
 }));
 
-vi.mock("#lib/remote/links.remote.ts", () => ({
+vi.mock("#lib/api/links.ts", () => ({
 	addLink: vi.fn(),
 	removeLink: vi.fn(),
 }));

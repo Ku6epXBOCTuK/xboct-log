@@ -155,3 +155,23 @@ export type TaskAttachment = z.infer<typeof attachmentSchema>;
 export type DeletedAttachment = TaskAttachment & {
 	task_title: string | null;
 };
+
+export type BackupKind = "auto" | "daily" | "weekly" | "manual";
+
+export interface BackupItem {
+	kind: BackupKind;
+	name: string;
+	path: string;
+	size: number;
+	mtime: string;
+}
+
+export interface SnapshotInfo {
+	projects: number;
+	tasks: number;
+}
+
+export interface RestoreOutcome {
+	snapshot: SnapshotInfo;
+	safetyPath: string;
+}

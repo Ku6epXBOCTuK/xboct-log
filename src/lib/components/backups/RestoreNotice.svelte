@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { RestoreOutcome } from "#lib/remote/contracts.ts";
+	import type { RestoreOutcome } from "#lib/types.ts";
 
 	interface Props {
 		outcome: RestoreOutcome;

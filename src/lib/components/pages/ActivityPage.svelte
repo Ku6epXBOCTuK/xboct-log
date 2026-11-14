@@ -1,9 +1,9 @@
 <script lang="ts">
+	import { listActivityLog } from "#lib/api/activity.ts";
+	import { fetchFresh } from "#lib/api/fresh.ts";
 	import ActivityFilters from "#lib/components/activity/ActivityFilters.svelte";
 	import ActivityTable from "#lib/components/activity/ActivityTable.svelte";
 	import Pager from "#lib/components/ui/Pager.svelte";
-	import { listActivityLog } from "#lib/remote/activity.remote.ts";
-	import { fetchFresh } from "#lib/remote/fresh.ts";
 	import { useBoard } from "#lib/state/board.svelte.ts";
 	import { createPagedQuery } from "#lib/state/paged.svelte.ts";
 	import type {

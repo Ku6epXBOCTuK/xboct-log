@@ -1,12 +1,8 @@
 <script lang="ts">
+	import { addComment, deleteComment, editComment } from "#lib/api/comments.ts";
 	import CommentForm from "#lib/components/detail/CommentForm.svelte";
 	import CommentList from "#lib/components/detail/CommentList.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
-	import {
-		addComment,
-		deleteComment,
-		editComment,
-	} from "#lib/remote/comments.remote.ts";
 	import type { CommentsStore } from "#lib/state/comments.svelte.ts";
 	import { messageOf } from "#lib/tasks/display.ts";
 	import type { Comment } from "#lib/types.ts";

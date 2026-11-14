@@ -2,7 +2,7 @@ import {
 	createScope as createScopeRemote,
 	deleteScope as deleteScopeRemote,
 	updateScope as updateScopeRemote,
-} from "#lib/remote/scopes.remote.ts";
+} from "#lib/api/projects.ts";
 import type { ProjectFilter, Scope } from "#lib/types.ts";
 
 export interface NewScopeInput {

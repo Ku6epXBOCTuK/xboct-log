@@ -1,13 +1,13 @@
 <script lang="ts">
+	import { onMount } from "svelte";
+	import { listBackupFiles } from "#lib/api/backups.ts";
+	import { fetchFresh } from "#lib/api/fresh.ts";
 	import BackupList from "#lib/components/backups/BackupList.svelte";
 	import RestoreNotice from "#lib/components/backups/RestoreNotice.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
-	import { listBackupFiles } from "#lib/remote/backup.remote.ts";
-	import type { BackupItem, RestoreOutcome } from "#lib/remote/contracts.ts";
-	import { fetchFresh } from "#lib/remote/fresh.ts";
 	import { reloadApp } from "#lib/reload.ts";
 	import { messageOf } from "#lib/tasks/display.ts";
-	import { onMount } from "svelte";
+	import type { BackupItem, RestoreOutcome } from "#lib/types.ts";
 
 	const RESTORE_RESULT_KEY = "xboct-log:restore-result";
 

@@ -3,11 +3,11 @@ import type { Task } from "#lib/types.ts";
 
 const getTaskStats = vi.fn();
 
-vi.mock("#lib/remote/stats.remote.ts", () => ({
+vi.mock("#lib/api/stats.ts", () => ({
 	getTaskStats: (input: unknown) => getTaskStats(input),
 }));
 
-vi.mock("#lib/remote/fresh.ts", () => ({
+vi.mock("#lib/api/fresh.ts", () => ({
 	fetchFresh: (value: unknown) => value,
 }));
 
