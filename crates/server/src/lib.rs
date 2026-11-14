@@ -28,6 +28,7 @@ use xboct_log_ops::{Ctx, dispatch, metadata};
 
 pub mod mcp;
 mod mcp_text;
+pub mod openapi;
 
 pub const APP_NAME: &str = "xboct-log";
 const HEARTBEAT: Duration = Duration::from_secs(15);
@@ -45,6 +46,7 @@ pub fn app(state: AppState) -> Router {
     Router::new()
         .merge(ops_router())
         .route("/api/health", get(health))
+        .route("/api/openapi.json", get(openapi_document))
         .route("/api/events", get(events))
         .route("/api/backup", post(backup))
         .route("/media/{id}", get(media))
@@ -151,6 +153,10 @@ struct Health {
     version: &'static str,
     #[serde(skip_serializing_if = "Option::is_none")]
     data: Option<String>,
+}
+
+async fn openapi_document() -> Json<serde_json::Value> {
+    Json(openapi::document())
 }
 
 async fn health(State(state): State<AppState>) -> Json<Health> {
@@ -517,6 +523,21 @@ mod tests {
             .to_str()
             .unwrap()
             .to_owned()
+    }
+
+    #[tokio::test]
+    async fn serves_the_openapi_document_of_the_registry() {
+        let app = test_app().await;
+        let (status, headers, body) = app.get("/api/openapi.json").await;
+
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(header(&headers, "content-type"), "application/json");
+        let value: Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(value["openapi"], "3.1.0");
+        let paths = value["paths"].as_object().unwrap();
+        assert_eq!(paths.len(), metadata().len());
+        assert!(paths.contains_key("/api/tasks_list"));
+        assert!(paths.contains_key("/api/backups_restore"));
     }
 
     #[tokio::test]

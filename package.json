@@ -48,6 +48,8 @@
 		"parity:compare": "node scripts/parity/compare.mjs",
 		"parity:seed": "node scripts/parity/seed.mjs",
 		"parity:rust": "node scripts/parity/rust.mjs",
+		"contract:generate": "node scripts/contract/generate.mjs",
+		"contract:check": "node scripts/contract/generate.mjs --check",
 		"rust:check": "node scripts/rust/check.mjs"
 	},
 	"devDependencies": {
@@ -63,6 +65,7 @@
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-svelte": "^3.19.0",
 		"globals": "^17.6.0",
+		"openapi-typescript": "^7.13.0",
 		"svelte": "^5.57.1",
 		"svelte-check": "^4.6.0",
 		"typescript": "^6.0.3",

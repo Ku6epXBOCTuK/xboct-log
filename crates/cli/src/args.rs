@@ -11,6 +11,7 @@ pub struct Options {
     pub data: Option<PathBuf>,
     pub open: bool,
     pub portable: bool,
+    pub openapi: Option<PathBuf>,
     pub help: bool,
     pub version: bool,
 }
@@ -55,6 +56,7 @@ pub fn parse(
         data: None,
         open: true,
         portable: false,
+        openapi: None,
         help: false,
         version: false,
     };
@@ -76,6 +78,13 @@ pub fn parse(
             }
             "--no-open" => options.open = false,
             "--portable" => options.portable = true,
+            "--openapi" => {
+                index += 1;
+                let file = args
+                    .get(index)
+                    .ok_or_else(|| "--openapi needs a file to write".to_string())?;
+                options.openapi = Some(PathBuf::from(file));
+            }
             "--help" | "-h" => options.help = true,
             "--version" | "-v" => options.version = true,
             other => return Err(format!("unknown argument: {other}")),
@@ -135,6 +144,7 @@ pub fn help() -> String {
   --host <host>  address to bind (default {DEFAULT_HOST})
   --no-open      do not open the browser
   --portable     keep the data next to the application
+  --openapi <f>  write the openapi document to <f> and exit
   --version      print the version
   --help         show this text"
     )

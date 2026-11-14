@@ -19,8 +19,19 @@ const entries = tools
 	)
 	.join("\n");
 
+const operations = contract.ops.map(
+	(op) =>
+		`    (${JSON.stringify(op.name)}, ${JSON.stringify(
+			JSON.stringify(op.input),
+		)}, ${JSON.stringify(JSON.stringify(op.output ?? null))}),`,
+);
+
 const schemas = `pub const TOOLS: [(&str, &str, &str); ${tools.length}] = [
 ${entries}
+];
+
+pub const OPERATIONS: [(&str, &str, &str); ${operations.length}] = [
+${operations.join("\n")}
 ];
 `;
 

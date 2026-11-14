@@ -244,3 +244,10 @@ pub fn tool_schema(name: &str) -> Option<(&'static str, &'static str)> {
         .find(|(tool, _, _)| *tool == name)
         .map(|(_, input, output)| (*input, *output))
 }
+
+pub fn operation_schema(name: &str) -> Option<(&'static str, &'static str)> {
+    schemas::OPERATIONS
+        .iter()
+        .find(|(operation, _, _)| *operation == name)
+        .map(|(_, input, output)| (*input, *output))
+}

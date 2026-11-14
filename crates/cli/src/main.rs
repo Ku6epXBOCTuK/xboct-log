@@ -48,6 +48,12 @@ async fn main() -> ExitCode {
         println!("{}", env!("CARGO_PKG_VERSION"));
         return ExitCode::SUCCESS;
     }
+    if let Some(path) = &options.openapi {
+        return match write_openapi(path) {
+            Ok(()) => ExitCode::SUCCESS,
+            Err(message) => fail(&message),
+        };
+    }
 
     match run(options).await {
         Ok(()) => ExitCode::SUCCESS,
@@ -58,6 +64,13 @@ async fn main() -> ExitCode {
 fn fail(message: &str) -> ExitCode {
     eprintln!("{APP_NAME}: {message}");
     ExitCode::FAILURE
+}
+
+fn write_openapi(path: &Path) -> Result<(), String> {
+    let document = serde_json::to_string_pretty(&xboct_log_server::openapi::document())
+        .map_err(|error| error.to_string())?;
+    fs::write(path, format!("{document}\n"))
+        .map_err(|error| format!("cannot write {}: {error}", path.display()))
 }
 
 async fn run(options: Options) -> Result<(), String> {

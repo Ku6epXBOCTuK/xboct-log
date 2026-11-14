@@ -10,6 +10,8 @@
 			"!.dev",
 			"!.zcode",
 			"!tests/parity/fixtures",
+			"!openapi.json",
+			"!src/lib/api/schema.d.ts",
 			"!**/*.yaml",
 			"!**/*.yml",
 			"!target",
