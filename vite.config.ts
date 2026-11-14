@@ -5,6 +5,9 @@ import { sveltekit } from "@sveltejs/kit/vite";
 import Icons from "unplugin-icons/vite";
 import { defineConfig } from "vitest/config";
 
+const RUST_DEV_PORT = process.env.XBOCT_LOG_DEV_PORT ?? "45881";
+const RUST_DEV_SERVER = `http://127.0.0.1:${RUST_DEV_PORT}`;
+
 function buildVersion(): string {
 	try {
 		return execSync("git rev-parse HEAD", {
@@ -60,6 +63,12 @@ export default defineConfig(({ mode }) => {
 			dedupe: ["svelte"],
 		},
 		server: {
+			proxy: {
+				"/api": { target: RUST_DEV_SERVER, changeOrigin: true },
+				"/media": { target: RUST_DEV_SERVER, changeOrigin: true },
+				"/deleted/media": { target: RUST_DEV_SERVER, changeOrigin: true },
+				"/mcp": { target: RUST_DEV_SERVER, changeOrigin: true },
+			},
 			fs: {
 				allow: [".", join(process.cwd(), "..", "..", "ui-kit")],
 			},
