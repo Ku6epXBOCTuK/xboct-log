@@ -255,16 +255,27 @@ SQL остаётся тем же, что в node, во всех 12 местах:
 2. Генерация `schema.d.ts`: бинарник пишет `openapi.json`,
    `openapi-typescript` — `src/lib/api/schema.d.ts`; `pnpm contract:check`
    перегенерирует и падает на `git diff --exit-code`.
-3. `adapter-static` + SPA-fallback, `+layout.ts` без server load.
+3. `adapter-static` с `fallback: "index.html"` вместо `adapter-node`,
+   `ssr = false` в корневом `+layout.ts`, без `experimental.remoteFunctions`.
+   Vite-proxy `/api`, `/media`, `/deleted`, `/mcp` на `127.0.0.1:45881`;
+   `scripts/dev.mjs` поднимает рядом `cargo run -p xboct-log-cli` с `--data .dev`.
 4. Клиент на `openapi-fetch`: `src/lib/api/client.ts` забирает таймаут и
    ретраи у `src/lib/client/remote-fetch.ts`, `src/lib/api/*.ts` повторяют
    нынешние имена (`getProjects`, `createProject`, …), поэтому в сторах и
    компонентах меняется только путь импорта. Сторы, компоненты и SSE не
-   переписываются.
+   переписываются. Ретрай — только на сетевом сбое: REST теперь POST, повтор
+   HTTP-ошибки выполнил бы команду дважды. `tasks_list` получает дефолт
+   `limit = 100`, ответы `serde_json::Value` приводятся к доменным типам на
+   границе обёртки.
 5. Удаление `src/lib/remote`, `src/routes/mcp/+server.ts`, `src/routes/api/**`,
    `src/routes/media/**` и их спек; `parity:seed` переезжает на скрипт без
    `#lib/remote`, фикстуры паритета остаются коммитнутыми. Переход на
    TanStack Query — не входит в переезд, отдельная задача в трекере.
+6. Rust отдаёт собранный SPA с диска: `crates/server/src/static_files.rs`
+   читает файлы, отдаёт `index.html` как fallback, `mime_guess` и
+   cache-control. Папка по умолчанию — `build` рядом с exe, иначе `build` в
+   рабочей директории; переопределяется `--web` и `XBOCT_LOG_WEB_DIR`.
+   Пересборка Rust при изменении UI не нужна.
 
 Готово, когда: `pnpm check` чист, в SPA не осталось ни одного ручного типа ответа,
 все экраны работают на живом сервере.

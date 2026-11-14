@@ -133,10 +133,12 @@ async fn run(options: Options) -> Result<(), String> {
         .port();
 
     let db_path = data_dir.join(format!("{APP_NAME}.db"));
+    let web_dir = resolve_web_dir(&options);
     let config = Config::from_lookup(|name| match name {
         "XBOCT_LOG_DB" => Some(db_path.to_string_lossy().into_owned()),
         "XBOCT_LOG_MEDIA_DIR" => Some(media_dir.to_string_lossy().into_owned()),
         "XBOCT_LOG_BACKUP_DIR" => Some(backup_dir.to_string_lossy().into_owned()),
+        "XBOCT_LOG_WEB_DIR" => Some(web_dir.to_string_lossy().into_owned()),
         _ => std::env::var(name).ok(),
     })
     .map_err(|error| error.to_string())?;
@@ -211,6 +213,22 @@ fn resolve_data_dir(options: &Options) -> Result<PathBuf, String> {
         std::env::var(name).ok()
     });
     std::path::absolute(dir).map_err(|error| error.to_string())
+}
+
+fn resolve_web_dir(options: &Options) -> PathBuf {
+    if let Some(dir) = &options.web {
+        return dir.clone();
+    }
+    if let Some(dir) = std::env::var_os("XBOCT_LOG_WEB_DIR").filter(|dir| !dir.is_empty()) {
+        return dir.into();
+    }
+    let next_to_exe = std::env::current_exe()
+        .ok()
+        .and_then(|exe| exe.parent().map(|dir| dir.join("build")));
+    match next_to_exe.filter(|dir| dir.is_dir()) {
+        Some(dir) => dir,
+        None => PathBuf::from("build"),
+    }
 }
 
 fn install_tracing(log_file: &Path) {

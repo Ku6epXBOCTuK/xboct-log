@@ -29,6 +29,7 @@ use xboct_log_ops::{Ctx, dispatch, metadata};
 pub mod mcp;
 mod mcp_text;
 pub mod openapi;
+pub mod static_files;
 
 pub const APP_NAME: &str = "xboct-log";
 const HEARTBEAT: Duration = Duration::from_secs(15);
@@ -43,6 +44,7 @@ pub struct AppState {
 
 pub fn app(state: AppState) -> Router {
     let service = mcp_service(&state);
+    let web_dir = state.config.web_dir.clone();
     Router::new()
         .merge(ops_router())
         .route("/api/health", get(health))
@@ -54,6 +56,10 @@ pub fn app(state: AppState) -> Router {
         .route("/mcp", any(mcp_entry))
         .layer(Extension(service))
         .with_state(state)
+        .fallback(move |method: Method, uri: axum::http::Uri| {
+            let web_dir = web_dir.clone();
+            async move { static_files::serve(&web_dir, method, uri).await }
+        })
 }
 
 fn ops_router() -> Router<AppState> {
@@ -407,6 +413,7 @@ mod tests {
             db_path: dir.join("data/xboct-log.db"),
             media_dir: dir.join("media"),
             backup_dir: dir.join("backups"),
+            web_dir: dir.join("web"),
             backup: BackupConfig {
                 hour: 3,
                 minute: 0,

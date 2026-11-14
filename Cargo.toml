@@ -34,6 +34,7 @@ tokio = { version = "1.54.1", features = ["macros", "rt-multi-thread", "fs", "ti
 axum = "0.8.9"
 tower-http = "0.7.1"
 tower = "0.5.3"
+mime_guess = "2"
 rmcp = { version = "=3.9.0", features = ["server", "transport-streamable-http-server"] }
 base64 = "0.23.1"
 tracing = "0.1.41"

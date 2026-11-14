@@ -9,6 +9,7 @@ pub struct Options {
     pub port: u16,
     pub host: String,
     pub data: Option<PathBuf>,
+    pub web: Option<PathBuf>,
     pub open: bool,
     pub portable: bool,
     pub openapi: Option<PathBuf>,
@@ -54,6 +55,7 @@ pub fn parse(
         port,
         host: env_host.unwrap_or(DEFAULT_HOST).to_string(),
         data: None,
+        web: None,
         open: true,
         portable: false,
         openapi: None,
@@ -75,6 +77,13 @@ pub fn parse(
             "--data" => {
                 index += 1;
                 options.data = args.get(index).map(PathBuf::from);
+            }
+            "--web" => {
+                index += 1;
+                let dir = args
+                    .get(index)
+                    .ok_or_else(|| "--web needs a folder with the built spa".to_string())?;
+                options.web = Some(PathBuf::from(dir));
             }
             "--no-open" => options.open = false,
             "--portable" => options.portable = true,
@@ -140,6 +149,7 @@ pub fn help() -> String {
         "usage: {APP_NAME} [options]
 
   --data <dir>   folder for the database, media and backups
+  --web <dir>    folder with the built spa (default: build next to the executable)
   --port <port>  port to listen on, 0 picks a free one (default {DEFAULT_PORT})
   --host <host>  address to bind (default {DEFAULT_HOST})
   --no-open      do not open the browser
@@ -178,6 +188,8 @@ mod tests {
             "0.0.0.0",
             "--data",
             "C:/data",
+            "--web",
+            "C:/app/build",
             "--no-open",
             "--portable",
         ])
@@ -185,6 +197,7 @@ mod tests {
         assert_eq!(options.port, 0);
         assert_eq!(options.host, "0.0.0.0");
         assert_eq!(options.data, Some(PathBuf::from("C:/data")));
+        assert_eq!(options.web, Some(PathBuf::from("C:/app/build")));
         assert!(!options.open);
         assert!(options.portable);
     }

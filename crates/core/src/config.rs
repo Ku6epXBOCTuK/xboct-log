@@ -5,6 +5,7 @@ pub struct Config {
     pub db_path: PathBuf,
     pub media_dir: PathBuf,
     pub backup_dir: PathBuf,
+    pub web_dir: PathBuf,
     pub backup: BackupConfig,
     pub activity_keep_days: i64,
 }
@@ -42,6 +43,7 @@ impl Config {
             db_path: db_path.into(),
             media_dir: read("XBOCT_LOG_MEDIA_DIR").unwrap_or_default().into(),
             backup_dir: read("XBOCT_LOG_BACKUP_DIR").unwrap_or_default().into(),
+            web_dir: read("XBOCT_LOG_WEB_DIR").unwrap_or_default().into(),
             backup: BackupConfig {
                 hour: backup_number(&read, "XBOCT_LOG_BACKUP_HOUR", 3),
                 minute: backup_number(&read, "XBOCT_LOG_BACKUP_MINUTE", 0),
