@@ -50,6 +50,9 @@
 		"parity:rust": "node scripts/parity/rust.mjs",
 		"contract:generate": "node scripts/contract/generate.mjs",
 		"contract:check": "node scripts/contract/generate.mjs --check",
+		"e2e:mcp": "node scripts/e2e/mcp.mjs",
+		"e2e:ui": "playwright test",
+		"e2e": "pnpm e2e:mcp && pnpm e2e:ui",
 		"rust:check": "node scripts/rust/check.mjs"
 	},
 	"devDependencies": {
@@ -57,6 +60,7 @@
 		"@eslint/js": "^10.0.1",
 		"@iconify-json/lucide": "^1.2.143",
 		"@ku6epxboctuk/ui-kit": "link:C:/+XBOCTuK/+life_projects/ui-kit",
+		"@playwright/test": "^1.65.0",
 		"@sveltejs/adapter-node": "^6.0.0",
 		"@sveltejs/adapter-static": "^4.0.1",
 		"@sveltejs/kit": "^3.0.0",

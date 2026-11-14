@@ -81,12 +81,16 @@ if (await healthy()) {
 	console.log(`rust server ready at ${base}`);
 }
 
-const vite = spawn("pnpm", ["exec", "vite", "dev", "--port", "5173"], {
-	cwd: root,
-	stdio: "inherit",
-	env,
-	shell: true,
-});
+const vite = spawn(
+	"pnpm",
+	["exec", "vite", "dev", "--port", "5173", "--host", "127.0.0.1"],
+	{
+		cwd: root,
+		stdio: "inherit",
+		env,
+		shell: true,
+	},
+);
 
 function shutdown() {
 	killTree(vite);

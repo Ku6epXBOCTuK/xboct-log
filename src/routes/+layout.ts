@@ -6,6 +6,8 @@ import {
 import { getTagDictionary, getTags } from "#lib/api/tags.ts";
 import type { LayoutLoad } from "./$types";
 
+export const ssr = false;
+
 export const load: LayoutLoad = async ({ depends }) => {
 	depends("app:projects");
 	const projects = await getProjects({ includeArchived: true });

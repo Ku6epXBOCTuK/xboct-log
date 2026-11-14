@@ -32,6 +32,12 @@ vite.config.ts.timestamp-*
 
 # Parity harness scratch space
 /tests/parity/.tmp/
+.tmp-trace
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
 
 # Local docs
 /docs/instances.md
