@@ -2,6 +2,42 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.10.0](https://github.com/Ku6epXBOCTuK/xboct-log/compare/490b321882e5b52f708eeddf86c6d4c6fd9aa3ec..v0.10.0) - 2026-11-15
+#### Features
+- (**rust-backend**) serve every operation over rest - ([2b2bdd4](https://github.com/Ku6epXBOCTuK/xboct-log/commit/2b2bdd49a5581e1a497d853f82b2dab3237540a4)) - Ku6epXBOCTuK
+- (**rust-backend**) serve mcp from the operation registy - ([ea0f66a](https://github.com/Ku6epXBOCTuK/xboct-log/commit/ea0f66a863a016d931013386cd25f830e22bde3a)) - Ku6epXBOCTuK
+- (**rust-backend**) serve the tool schemas of the operation registry - ([86c19b3](https://github.com/Ku6epXBOCTuK/xboct-log/commit/86c19b3e15d48ceaf04ac46a7b0f23f7755c5f60)) - Ku6epXBOCTuK
+- (**rust-backend**) port the backup operations - ([cfde272](https://github.com/Ku6epXBOCTuK/xboct-log/commit/cfde272f438ef16e5413df3b1e20f408e34c9bb0)) - Ku6epXBOCTuK
+- (**rust-backend**) port the attachment operations - ([05c4afe](https://github.com/Ku6epXBOCTuK/xboct-log/commit/05c4afea398a5cdcc87608f76963b32277d29e6c)) - Ku6epXBOCTuK
+- (**rust-backend**) port the comment operations - ([2a3a681](https://github.com/Ku6epXBOCTuK/xboct-log/commit/2a3a6810f2812eceef0695620656f902887ef41e)) - Ku6epXBOCTuK
+- (**rust-backend**) port the tag operations - ([7355267](https://github.com/Ku6epXBOCTuK/xboct-log/commit/7355267abb248f40a943da8f6fc45a777f4104cb)) - Ku6epXBOCTuK
+- (**rust-backend**) port the project and scope operations - ([97cab78](https://github.com/Ku6epXBOCTuK/xboct-log/commit/97cab78517ea63f4d8e39d2b3b5a0b80a1a16394)) - Ku6epXBOCTuK
+- (**rust-backend**) record activity and publish changes from the operation dispatcher - ([4a69556](https://github.com/Ku6epXBOCTuK/xboct-log/commit/4a69556ae468722dd06d1e2eb092a116365c2c8b)) - Ku6epXBOCTuK
+- (**rust-backend**) read task history, revisions and stats - ([754092d](https://github.com/Ku6epXBOCTuK/xboct-log/commit/754092d1f21dca00b6d73f06cfe183d975fb2e85)) - Ku6epXBOCTuK
+- (**rust-backend**) link and block tasks - ([744eac9](https://github.com/Ku6epXBOCTuK/xboct-log/commit/744eac9dc42103e443b724a7b5efb23e7fb5f153)) - Ku6epXBOCTuK
+- (**rust-backend**) delete, restore, move and batch tasks - ([9016a5c](https://github.com/Ku6epXBOCTuK/xboct-log/commit/9016a5c1d1ad0388edad086b2fd9e736813b9c20)) - Ku6epXBOCTuK
+- (**rust-backend**) add the task write operations - ([7c6ca59](https://github.com/Ku6epXBOCTuK/xboct-log/commit/7c6ca596859a5279cd8e85f8c5bbe6c410a7a858)) - Ku6epXBOCTuK
+- (**rust-backend**) add the operation registry and task reads - ([376d25c](https://github.com/Ku6epXBOCTuK/xboct-log/commit/376d25c6d65cf5eca02eba8f489af60e01283082)) - Ku6epXBOCTuK
+- (**rust-backend**) launch the server from the cli - ([acc4b0d](https://github.com/Ku6epXBOCTuK/xboct-log/commit/acc4b0d35c30f512ef7a680c63612fce34b51047)) - Ku6epXBOCTuK
+- (**rust-backend**) schedule backups and prune the activity log - ([e439b0b](https://github.com/Ku6epXBOCTuK/xboct-log/commit/e439b0b9ebf56692c310c941b0144f9631649000)) - Ku6epXBOCTuK
+- (**rust-backend**) broadcast changes over the sse stream - ([3cd2176](https://github.com/Ku6epXBOCTuK/xboct-log/commit/3cd21766051ad9ade84758f1698752fe1dad6fb0)) - Ku6epXBOCTuK
+- (**rust-backend**) serve health, media and manual backups - ([8c5c99d](https://github.com/Ku6epXBOCTuK/xboct-log/commit/8c5c99d3fce4d164fff3dd1faa789340d6df3eff)) - Ku6epXBOCTuK
+- (**rust-backend**) collapse node migrations into single migration - ([51447f4](https://github.com/Ku6epXBOCTuK/xboct-log/commit/51447f46abf32da26422833c0218bc6ec499f266)) - Ku6epXBOCTuK
+- (**rust-backend**) add core config, pool and transaction guard - ([fc31b63](https://github.com/Ku6epXBOCTuK/xboct-log/commit/fc31b63f6a83cc6ff9353f29438aeb7fcfc04e9c)) - Ku6epXBOCTuK
+- (**rust-contract**) generate the openapi document and the frontend types - ([68e2b48](https://github.com/Ku6epXBOCTuK/xboct-log/commit/68e2b48c0f1add80dede6e6be62949f05395c37e)) - Ku6epXBOCTuK
+- (**rust-frontend**) load data through the generated rest api - ([11b3abb](https://github.com/Ku6epXBOCTuK/xboct-log/commit/11b3abb4d393b9679d5f475c5abb2c9f1738ce73)) - Ku6epXBOCTuK
+- (**server**) serve the spa from a directory on disk - ([208999a](https://github.com/Ku6epXBOCTuK/xboct-log/commit/208999a80fe8f0645a7e865527d6d0a44ff2e6f5)) - Ku6epXBOCTuK
+#### Bug Fixes
+- (**mcp**) persist http sessions in a file so their ids survive a restart - ([6cfe2e8](https://github.com/Ku6epXBOCTuK/xboct-log/commit/6cfe2e80824f6b490c48aba45eaa8eb9464ccccd)) - Ku6epXBOCTuK
+- (**rust-backend**) repair the migration history - ([aff3bb9](https://github.com/Ku6epXBOCTuK/xboct-log/commit/aff3bb97a031c0709fb7c1e4e658e6e929a8add0)) - Ku6epXBOCTuK
+- (**rust-backend**) answer mccp validation errors like node - ([abd4270](https://github.com/Ku6epXBOCTuK/xboct-log/commit/abd4270558adcd4005222a1a4639606053a387fe)) - Ku6epXBOCTuK
+- (**rust-backend**) creat the inbox on a fresh database - ([111249b](https://github.com/Ku6epXBOCTuK/xboct-log/commit/111249b49b28833d6fadd122e37f7a754bc01424)) - Ku6epXBOCTuK
+#### Refactoring
+- (**rust-backend**) use typed ids instead of strings - ([bfa7487](https://github.com/Ku6epXBOCTuK/xboct-log/commit/bfa7487a87e6e61fcc08af51d557adcf0a5aa362)) - Ku6epXBOCTuK
+- type the activity source and entity filters - ([f18fbe9](https://github.com/Ku6epXBOCTuK/xboct-log/commit/f18fbe98f93e49d896d3ec2a91aa15c7e109e87e)) - Ku6epXBOCTuK
+
+- - -
+
 ## [v0.9.0](https://github.com/Ku6epXBOCTuK/xboct-log/compare/7f3af8b45955c6cec11c0add0adaf8f8d0049f73..v0.9.0) - 2026-11-06
 #### Features
 - move attachments flow - ([6543e16](https://github.com/Ku6epXBOCTuK/xboct-log/commit/6543e166acddf7061292b7ea144f080191ab9683)) - Ku6epXBOCTuK
