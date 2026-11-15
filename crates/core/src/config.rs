@@ -59,6 +59,14 @@ impl Config {
         })
     }
 
+    pub fn sessions_path(&self) -> PathBuf {
+        self.db_path
+            .parent()
+            .filter(|parent| !parent.as_os_str().is_empty())
+            .unwrap_or_else(|| Path::new(""))
+            .join("mcp-sessions.json")
+    }
+
     pub fn resolved_media_dir(&self) -> PathBuf {
         if self.media_dir.as_os_str().is_empty() {
             self.db_path

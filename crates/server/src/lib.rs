@@ -16,7 +16,8 @@ use axum::{
 };
 use chrono::Local;
 use rmcp::transport::streamable_http_server::{
-    StreamableHttpServerConfig, StreamableHttpService, session::local::LocalSessionManager,
+    StreamableHttpServerConfig, StreamableHttpService,
+    session::{SessionStore, local::LocalSessionManager},
 };
 use tokio::sync::broadcast::error::RecvError;
 use tower::ServiceExt;
@@ -27,6 +28,7 @@ use xboct_log_core::{
 use xboct_log_ops::{Ctx, dispatch, metadata};
 
 pub mod mcp;
+mod mcp_sessions;
 mod mcp_text;
 pub mod openapi;
 pub mod static_files;
@@ -138,10 +140,15 @@ type McpService = StreamableHttpService<mcp::Backlog, LocalSessionManager>;
 
 fn mcp_service(state: &AppState) -> McpService {
     let backlog = mcp::Backlog::new(state.db.clone(), state.config.clone(), state.events.clone());
+    let store: Arc<dyn SessionStore> = Arc::new(mcp_sessions::FileSessionStore::open(
+        state.config.sessions_path(),
+    ));
+    let mut config = StreamableHttpServerConfig::default();
+    config.session_store = Some(store);
     StreamableHttpService::new(
         move || Ok(backlog.clone()),
         Arc::new(LocalSessionManager::default()),
-        StreamableHttpServerConfig::default(),
+        config,
     )
 }
 
