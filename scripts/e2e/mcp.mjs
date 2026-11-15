@@ -759,7 +759,7 @@ try {
 		assert.equal(error.kind, "not_found");
 	});
 	await check("an unknown tool is rejected", async () => {
-		let message = "";
+		let message;
 		try {
 			const result = await client.callTool("tasks_nope", {});
 			assert.equal(result.isError, true);

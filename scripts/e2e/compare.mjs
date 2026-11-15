@@ -117,8 +117,6 @@ function step(name, args, assign) {
 const A = `${PREFIX}-1`;
 const B = `${PREFIX}-2`;
 const EPIC = `${PREFIX}-3`;
-const bulk1 = `${PREFIX}-4`;
-const bulk2 = `${PREFIX}-5`;
 const closeA = `${PREFIX}-6`;
 const closeB = `${PREFIX}-7`;
 
