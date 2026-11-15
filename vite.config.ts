@@ -1,6 +1,7 @@
 import { execSync } from "node:child_process";
 import { join } from "node:path";
 import adapter from "@sveltejs/adapter-node";
+import adapterStatic from "@sveltejs/adapter-static";
 import { sveltekit } from "@sveltejs/kit/vite";
 import Icons from "unplugin-icons/vite";
 import { defineConfig } from "vitest/config";
@@ -51,7 +52,10 @@ export default defineConfig(({ mode }) => {
 						filename.split(/[/\\]/).includes("node_modules") ? undefined : true,
 					experimental: { async: true },
 				},
-				adapter: adapter(),
+				adapter:
+					process.env.XBOCT_LOG_STATIC === "1"
+						? adapterStatic({ fallback: "index.html" })
+						: adapter(),
 				version: { name: buildVersion(), pollInterval: 60_000 },
 				experimental: { remoteFunctions: true },
 			}),

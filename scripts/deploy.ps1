@@ -1,7 +1,3 @@
-param(
-	[switch]$Origin
-)
-
 $ErrorActionPreference = "Stop"
 
 $Repo     = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
@@ -16,13 +12,10 @@ $StartDir = (Get-Location).Path
 $EnvFile = Join-Path $BuildWt ".env"
 if (-not (Test-Path $EnvFile)) { throw "missing $EnvFile" }
 
-if ($Origin) {
-	git -C $Repo fetch origin
-	$Head = (git -C $Repo rev-parse origin/main).Trim()
-}
-else {
-	$Head = (git -C $Repo rev-parse HEAD).Trim()
-}
+# NOTE: the node line is frozen at v0.9.0; following main would deploy a
+# different version than the one the rollback snapshot points at.
+$Head = (git -C $Repo rev-parse "v0.9.0^{commit}").Trim()
+if ($LASTEXITCODE -ne 0) { throw "tag v0.9.0 not found" }
 
 $ready = $false
 if (Test-Path (Join-Path $BuildWt ".git")) {
@@ -64,7 +57,9 @@ try {
 	New-Item -ItemType Directory -Force $AppDir | Out-Null
 	New-Item -ItemType Directory -Force (Join-Path $AppDir "logs") | Out-Null
 	Copy-Item (Join-Path $BuildWt "package.json"), (Join-Path $BuildWt "pnpm-lock.yaml"), (Join-Path $BuildWt "pnpm-workspace.yaml") $AppDir -Force
-	Copy-Item (Join-Path $BuildWt "scripts\start-prod.mjs") (Join-Path $AppDir "start.mjs") -Force
+	Copy-Item (Join-Path $BuildWt "scripts\start-prod.mjs") (Join-Path $AppDir "node-app.mjs") -Force
+	Copy-Item (Join-Path $Repo "scripts\launcher.mjs") (Join-Path $AppDir "start.mjs") -Force
+	[IO.File]::WriteAllText((Join-Path $AppDir "runtime.json"), '{"mode":"node"}')
 	Copy-Item (Join-Path $Repo "scripts\restore.mjs") (Join-Path $AppDir "restore.mjs") -Force
 	Copy-Item $EnvFile (Join-Path $AppDir ".env") -Force
 
