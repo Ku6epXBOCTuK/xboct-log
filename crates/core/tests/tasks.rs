@@ -325,11 +325,11 @@ async fn applies_filters_like_the_node_registry() {
 }
 
 #[tokio::test]
-async fn sorts_titles_and_keeps_exact_matches_first() {
+async fn keeps_exact_matches_first_next_to_text_terms() {
     let db = database().await;
     let page = list_tasks(
         &db,
-        &filters(json!({"sort": "title", "id_exact": ["LOG-4"]})),
+        &filters(json!({"sort": "title", "q_any": ["port"], "id_exact": ["LOG-4"]})),
     )
     .await
     .unwrap();
@@ -338,7 +338,7 @@ async fn sorts_titles_and_keeps_exact_matches_first() {
             .iter()
             .map(|item| item["id"].as_str().unwrap())
             .collect::<Vec<_>>(),
-        ["LOG-4", "LOG-5", "LOG-2", "LOG-1", "SPA-2", "LOG-3"]
+        ["LOG-4", "LOG-2", "LOG-1"]
     );
     let paged = list_tasks(
         &db,
@@ -349,6 +349,24 @@ async fn sorts_titles_and_keeps_exact_matches_first() {
     assert_eq!(paged.total, 6);
     assert_eq!(paged.items.len(), 2);
     assert_eq!(paged.items[0]["id"], "LOG-2");
+}
+
+#[tokio::test]
+async fn matches_only_the_requested_task_when_every_term_is_exact() {
+    let db = database().await;
+    for value in [
+        json!({"id_exact": ["LOG-4"]}),
+        json!({"id_exact": ["log-4"]}),
+        json!({"number_exact": [4]}),
+    ] {
+        let page = list_tasks(&db, &filters(value.clone())).await.unwrap();
+        assert_eq!(page.total, 1, "{value}");
+        assert_eq!(page.items[0]["id"], "LOG-4", "{value}");
+    }
+    let missing = list_tasks(&db, &filters(json!({"number_exact": [99]})))
+        .await
+        .unwrap();
+    assert_eq!(missing.total, 0);
 }
 
 #[tokio::test]

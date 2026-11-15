@@ -313,6 +313,13 @@ fn push_where(qb: &mut QueryBuilder<Sqlite>, filters: &TaskFilters) {
             qb.push(")");
         }
     }
+    let exact_only = filters.q.is_none() && filters.q_any.is_none();
+    if exact_only && (filters.number_exact.is_some() || filters.id_exact.is_some()) {
+        push_and(qb, &mut first);
+        if !push_exact(qb, filters) {
+            qb.push("0");
+        }
+    }
     if let Some(title) = &filters.title {
         push_and(qb, &mut first);
         qb.push("ULOWER(tasks.title) LIKE ")
