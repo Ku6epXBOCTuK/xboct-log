@@ -22,7 +22,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           ref:
@@ -30,10 +30,10 @@ jobs:
             }}
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 26
           cache: pnpm
@@ -49,6 +49,8 @@ jobs:
           if ($app -ne $version) { throw "package.json has $app, expected $version" }
           $ext = (Get-Content vscode-extension/package.json -Raw | ConvertFrom-Json).version
           if ($ext -ne $version) { throw "vscode-extension/package.json has $ext, expected $version" }
+          $cargo = [regex]::Match((Get-Content Cargo.toml -Raw), '(?m)^version = "([^"]+)"$').Groups[1].Value
+          if ($cargo -ne $version) { throw "Cargo.toml has $cargo, expected $version" }
           "version=$version" >> $env:GITHUB_OUTPUT
 
       - name: Use ui-kit from GitHub
@@ -69,8 +71,24 @@ jobs:
       - name: Test
         run: pnpm test
 
-      - name: Build
-        run: pnpm build
+      - name: Setup Rust
+        shell: pwsh
+        run: |
+          rustup show
+          cargo --version
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "."
+
+      - name: Build static SPA
+        run: |
+          $env:XBOCT_LOG_STATIC = "1"
+          pnpm build
+
+      - name: Build binary
+        run: cargo build --release --locked -p xboct-log-cli
 
       - name: Install Inno Setup
         run: choco install innosetup --no-progress -y

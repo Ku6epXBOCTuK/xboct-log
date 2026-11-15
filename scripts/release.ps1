@@ -27,15 +27,8 @@ if (git tag --list $tag) {
 	throw "Tag $tag already exists."
 }
 
-function Set-Version([string]$file, [string]$value) {
-	$content = Get-Content $file -Raw
-	$updated = $content -replace '"version": "[^"]+"', ('"version": "' + $value + '"')
-	if ($updated -eq $content) { throw "no version field in $file" }
-	Set-Content -Path $file -Value $updated -NoNewline -Encoding utf8
-}
-
-Set-Version "package.json" $Version
-Set-Version "vscode-extension/package.json" $Version
+node scripts/bump-version.mjs $Version
+if ($LASTEXITCODE -ne 0) { throw "version bump failed" }
 
 $packageArgs = @("-Version", $Version)
 if ($SkipBuild) { $packageArgs += "-SkipBuild" }
@@ -60,4 +53,4 @@ gh release create $tag --title "Xboct Log $Version" --generate-notes @files
 if ($LASTEXITCODE -ne 0) { throw "gh release create failed" }
 
 Write-Host "release $tag published"
-Write-Host "commit the version bump yourself: package.json, vscode-extension/package.json"
+Write-Host "commit the version bump yourself: package.json, vscode-extension/package.json, Cargo.toml, Cargo.lock"

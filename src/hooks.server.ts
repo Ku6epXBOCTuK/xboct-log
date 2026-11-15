@@ -1,3 +1,4 @@
+import type { ServerInit } from "@sveltejs/kit/hooks";
 import { pruneActivity } from "#lib/server/activity.ts";
 import {
 	mediaDir,
@@ -7,12 +8,15 @@ import {
 import { getDb } from "#lib/server/db.ts";
 import { migrateDatabase } from "#lib/server/migrations.ts";
 import { defaultDbPath } from "#lib/server/paths.ts";
-import { purgeSoftDeletedTasks } from "#lib/server/purge.ts";
 import { ensureInbox } from "#lib/server/projects.ts";
+import { purgeSoftDeletedTasks } from "#lib/server/purge.ts";
 import { startScheduler } from "#lib/server/scheduler.ts";
-import type { ServerInit } from "@sveltejs/kit/hooks";
+import { building } from "$app/env";
 
 export const init: ServerInit = async () => {
+	// NOTE: the static build calls this hook once to render the spa fallback,
+	// where there is no database or data folder yet.
+	if (building) return;
 	const db = getDb();
 	await migrateDatabase(db);
 	try {

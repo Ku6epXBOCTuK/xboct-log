@@ -2,8 +2,7 @@ param(
 	[string]$Version = "",
 	[switch]$SkipBuild,
 	[switch]$Installer,
-	[switch]$NoArchive,
-	[string]$NodeDist = "latest-v26.x"
+	[switch]$NoArchive
 )
 
 $ErrorActionPreference = "Stop"
@@ -17,64 +16,55 @@ if (-not $Version) {
 
 $stageRoot = Join-Path $root ".dev\package"
 $stage = Join-Path $stageRoot "xboct-log-$Version-win-x64"
-$app = Join-Path $stage "app"
-$runtime = Join-Path $stage "runtime"
 $dist = Join-Path $root "dist"
-$cache = Join-Path $root ".dev\cache"
 
 Write-Host "packaging xboct-log $Version for win-x64"
 
+$cargoVersion = (Select-String -Path Cargo.toml -Pattern '^version = "([^"]+)"$').Matches[0].Groups[1].Value
+if ($cargoVersion -ne $Version) {
+	throw "Cargo.toml has $cargoVersion, expected $Version"
+}
+
 if (-not $SkipBuild) {
-	pnpm build
-	if ($LASTEXITCODE -ne 0) { throw "pnpm build failed" }
+	$env:XBOCT_LOG_STATIC = "1"
+	try {
+		pnpm build
+		if ($LASTEXITCODE -ne 0) { throw "pnpm build failed (exit $LASTEXITCODE)" }
+	}
+	finally {
+		Remove-Item Env:\XBOCT_LOG_STATIC -ErrorAction SilentlyContinue
+	}
+
+	cargo build --release --locked -p xboct-log-cli
+	if ($LASTEXITCODE -ne 0) { throw "cargo build failed (exit $LASTEXITCODE)" }
+}
+
+$targetDir = (cargo metadata --format-version 1 --no-deps | ConvertFrom-Json).target_directory
+$binary = Join-Path $targetDir "release\xboct-log.exe"
+if (-not (Test-Path $binary)) { throw "the rust binary is missing: $binary" }
+
+$web = Join-Path $root "build"
+if (-not (Test-Path (Join-Path $web "index.html"))) {
+	throw "build\index.html is missing; run pnpm build with XBOCT_LOG_STATIC=1"
 }
 
 if (Test-Path $stage) { Remove-Item -Recurse -Force $stage }
-New-Item -ItemType Directory -Force $app, $runtime, $dist, $cache | Out-Null
+New-Item -ItemType Directory -Force $stage, $dist | Out-Null
 
-Copy-Item bin -Destination $app -Recurse
-Copy-Item build -Destination $app -Recurse
-Copy-Item migrations -Destination $app -Recurse
+Copy-Item $binary (Join-Path $stage "xboct-log.exe")
+Copy-Item $web (Join-Path $stage "build") -Recurse
 
-$manifest = Get-Content package.json -Raw | ConvertFrom-Json
-$minimal = [ordered]@{
-	name    = "xboct-log"
-	version = $Version
-	private = $true
-	type    = "module"
-	dependencies = $manifest.dependencies
-}
-$manifestJson = $minimal | ConvertTo-Json -Depth 5
-[IO.File]::WriteAllText((Join-Path $app "package.json"), $manifestJson, [Text.UTF8Encoding]::new($false))
-
-Push-Location $app
-try {
-	pnpm install --prod --ignore-scripts --ignore-workspace --node-linker=hoisted --lockfile=false
-	if ($LASTEXITCODE -ne 0) { throw "pnpm install --prod failed in the staging app" }
-}
-finally {
-	Pop-Location
-}
-
-$nodeExe = Join-Path $cache "node-$NodeDist.exe"
-if (-not (Test-Path $nodeExe)) {
-	Write-Host "downloading node $NodeDist"
-	Invoke-WebRequest "https://nodejs.org/dist/$NodeDist/win-x64/node.exe" -OutFile $nodeExe
-}
-Copy-Item $nodeExe (Join-Path $runtime "node.exe")
-
-$launcher = @(
+$portable = @(
 	'@echo off',
 	'setlocal',
-	'"%~dp0runtime\node.exe" "%~dp0app\bin\xboct-log.mjs" %*'
+	'"%~dp0xboct-log.exe" --portable %*'
 ) -join "`r`n"
-Set-Content (Join-Path $stage "xboct-log.cmd") ($launcher + "`r`n") -Encoding ascii
-Set-Content (Join-Path $stage "xboct-log-portable.cmd") ($launcher.Replace('%*', '--portable %*') + "`r`n") -Encoding ascii
+Set-Content (Join-Path $stage "xboct-log-portable.cmd") ($portable + "`r`n") -Encoding ascii
 
 $readme = @(
 	'Xboct Log',
 	'',
-	'Start: double-click xboct-log.cmd',
+	'Start: double-click xboct-log.exe',
 	'Your data is stored in %LOCALAPPDATA%\Xboct Log',
 	'Portable mode: double-click xboct-log-portable.cmd, data stays in the data folder next to this file.',
 	'',

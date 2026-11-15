@@ -1,7 +1,7 @@
 #define AppName "Xboct Log"
 #define AppPublisher "xboct-log"
 #define AppUrl "https://github.com/Ku6epXBOCTuK/xboct-log"
-#define AppExe "xboct-log.cmd"
+#define AppExe "xboct-log.exe"
 
 #ifndef AppVersion
   #define AppVersion "0.0.0"

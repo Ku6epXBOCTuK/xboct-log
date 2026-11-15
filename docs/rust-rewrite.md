@@ -107,16 +107,15 @@ core/ops DTO  ──▶  openapi.json  ──openapi-typescript──▶  src/li
   как у Zod.
 - Все E2E и `compare` идут на свежем снимке прод-базы; устаревшая
   `_sqlx_migrations` пересоздаётся при старте, данные не трогаются.
+- Релиз собирает Rust: `XBOCT_LOG_STATIC=1 pnpm build` даёт SPA в `build`,
+  `cargo build --release --locked -p xboct-log-cli` — `xboct-log.exe`;
+  `scripts/package-win.ps1` кладёт их в zip и установщик. Node-бандл не пакуется,
+  серверные маршруты `src/routes` (`api`, `mcp`, `media`) остаются в репозитории
+  ради отката уже развёрнутых инстансов.
 
 ## Осталось
 
-1. **Переключение сборки.** `adapter-static` включается флагом
-   `XBOCT_LOG_STATIC=1`, `ssr = false`; `experimental.remoteFunctions` уходит
-   вместе с node-слоем. Пока в `src/routes` есть серверные маршруты (`api`,
-   `mcp`, `media`), статическая сборка не проходит. Удаление `src/lib/remote`,
-   `src/lib/server`, этих маршрутов, их спек и parity-харнесса — решение
-   владельца, не агента.
-2. **Выкатка на Rust.** `deploy:rust` и `rollback:node` переключают режим через
+1. **Выкатка на Rust.** `deploy:rust` и `rollback:node` переключают режим через
    `runtime.json` и не требуют прав администратора. Переключение pet-инстанса —
    решение владельца. Work остаётся на node.
 
