@@ -86,7 +86,7 @@
 		pointer-events: none;
 	}
 
-	:global(.search-input) {
+	.search-wrap :global(.ui-input.search-input) {
 		font-size: var(--text-md);
 		padding: 0 2.75rem 0 2.375rem;
 	}
