@@ -20,7 +20,6 @@
 		"LICENSE"
 	],
 	"scripts": {
-		"deploy:node": "powershell -ExecutionPolicy Bypass -File scripts/deploy.ps1",
 		"start": "node bin/xboct-log.mjs",
 		"dev": "node scripts/dev.mjs",
 		"dev:seed": "node scripts/dev-seed.mjs",
@@ -53,7 +52,6 @@
 		"e2e:ui": "playwright test",
 		"e2e": "pnpm e2e:mcp && pnpm e2e:ui",
 		"deploy:rust": "powershell -ExecutionPolicy Bypass -File scripts/deploy-rust.ps1",
-		"rollback:node": "powershell -ExecutionPolicy Bypass -File scripts/rollback-node.ps1",
 		"rust:check": "node scripts/rust/check.mjs"
 	},
 	"devDependencies": {

@@ -27,23 +27,26 @@ Three ways, pick one:
 
 - **Windows installer** — `xboct-log-<version>-win-x64-setup.exe` from
   [releases](https://github.com/Ku6epXBOCTuK/xboct-log/releases). Installs for
-  the current user, no admin rights, no Node.js needed, adds a Start Menu
-  shortcut. Data lives in `%LOCALAPPDATA%\Xboct Log`.
-- **Windows portable zip** — unpack anywhere, double-click `xboct-log.cmd` (data
-  in `%LOCALAPPDATA%\Xboct Log`) or `xboct-log-portable.cmd` (data in the `data`
-  folder next to the launcher). Node.js is bundled.
+  the current user, no admin rights, adds a Start Menu shortcut. The shortcut
+  starts the server with `--port 45881` and the data folder `%LOCALAPPDATA%\Xboct Log`.
+- **Windows portable zip** — unpack anywhere, double-click
+  `xboct-log-portable.cmd`; the data stays in the `data` folder next to the
+  launcher.
 - **npm** — for machines that already have Node.js 26:
 
   ```sh
   npm install -g xboct-log
-  xboct-log
+  xboct-log --port 45881 --data <dir>
   ```
 
 The launcher opens the board in the browser and keeps the database, media, and
-backups in one data folder. Port `45881` is the default; when it is taken the
-launcher stops with an error, and `--port 0` picks any free port instead. An
-instance of the same port that serves another data folder counts as taken. Flags:
-`--data <dir>`, `--port <port>`, `--host <host>`, `--no-open`, `--portable`.
+backups in one data folder. The port and the folder have no defaults: an
+instance is the pair, and the launcher refuses to start without both.
+`--port 0` picks any free port, `--portable` keeps the data next to the
+executable, and `XBOCT_LOG_PORT` / `XBOCT_LOG_DATA` work as well. A port that
+answers with another data folder counts as taken, and the error names both
+folders. Flags: `--data <dir>`, `--port <port>`, `--host <host>`, `--no-open`,
+`--portable`.
 
 ## Requirements
 
@@ -58,9 +61,15 @@ pnpm install
 pnpm dev
 ```
 
-`pnpm dev` runs against an isolated database: it uses `./.dev/dev.db` (override
-with `XBOCT_LOG_DEV_DB`), writes backups to `./.dev/backups`, and turns the
-scheduled backups off. The `.dev` directory is gitignored.
+`pnpm dev` starts the Rust server on `127.0.0.1:45883` with `./.dev` as the
+data folder (database `./.dev/xboct-log.db`, media and backups next to it),
+turns the scheduled backups off, and proxies `/api`, `/media` and `/mcp` from
+Vite on `127.0.0.1:5173`. The `.dev` directory is gitignored.
+
+`XBOCT_LOG_DEV_PORT` moves the server to another port. `XBOCT_LOG_DEV_DATA`
+points it at another folder, but the folder must stay inside the repository: a
+dev run must never be able to touch another instance. If the port already
+answers with a different data folder, `pnpm dev` stops and names both folders.
 
 Seed the dev database from a snapshot when you need fresh data:
 
@@ -69,43 +78,40 @@ pnpm dev:seed
 ```
 
 The script copies the newest `*.db` file from `./.dev/seed/` into
-`./.dev/dev.db`. Drop a snapshot into that folder yourself — nothing in the
-repository fetches it from the production host.
+`./.dev/xboct-log.db`. Drop a snapshot into that folder yourself — nothing in
+the repository fetches it from the production host. `pnpm seed:prod --source
+<path>` turns a database into such a snapshot, and the source is always explicit.
 
 ## Configuration
 
 Paths are runtime values: nothing is baked into the build, and a checkout needs
-no `.env`. `pnpm dev` sets everything itself (`.dev/dev.db`, `.dev/backups`),
-`pnpm build` works without any variables, and the launcher of an installed copy
-fills in the data folder.
+no `.env`. `pnpm dev` sets everything itself, `pnpm build` works without any
+variables, and the installer or the portable launcher passes the port and the
+data folder.
 
-The server variables are declared in `src/env.ts`; `.env.example` lists them.
+The server has no default port and no default data folder. It refuses to start
+without `--port <port>` and `--data <dir>` (or `XBOCT_LOG_PORT` /
+`XBOCT_LOG_DATA`), and `--portable` is the only way to derive the folder — it
+uses `data` next to the executable. One data folder holds everything:
+
+| Item     | Path                        |
+| -------- | --------------------------- |
+| database | `<data>/xboct-log.db`       |
+| media    | `<data>/media`              |
+| backups  | `<data>/backups`            |
+| logs     | `<data>/logs/xboct-log.log` |
+| instance | `<data>/instance.json`      |
+
+Each running instance reports a fingerprint of its data folder in
+`/api/health`; a server that finds a different fingerprint on its port stops
+with an error instead of attaching to someone else's data.
+
 `XBOCT_LOG_DB`, `XBOCT_LOG_MIGRATIONS`, `XBOCT_LOG_BACKUP_DIR`, and
-`XBOCT_LOG_MEDIA_DIR` have no defaults, so the server refuses to start without
-them instead of silently opening some other database. Start it through
-`bin/xboct-log.mjs` (or `xboct-log`) and it resolves them from the data folder:
-
-| Platform | Default data folder                       |
-| -------- | ----------------------------------------- |
-| Windows  | `%LOCALAPPDATA%\Xboct Log`                |
-| macOS    | `~/Library/Application Support/Xboct Log` |
-| Linux    | `$XDG_DATA_HOME/xboct-log`                |
-
-Override it with `--data <dir>` or `XBOCT_LOG_DATA`. `--portable` keeps the data
-next to the application.
-
-The bare `node build/index.js` entry point still works if you set the variables
-yourself; it is what the deployment service uses.
+`XBOCT_LOG_MEDIA_DIR` belong to the legacy Node server only (`node
+build/index.js`); the Rust binary derives all of them from `--data`.
 
 `migrate:*` scripts target the dev database (`XBOCT_LOG_DEV_DB`, default
-`./.dev/dev.db`). Production migrations run inside the server on startup.
-
-`pnpm dev:vite` is the raw Vite run with no isolation, so point it at a database
-yourself:
-
-```sh
-XBOCT_LOG_DB=./tasks.db XBOCT_LOG_MIGRATIONS=./migrations pnpm dev:vite
-```
+`./.dev/xboct-log.db`). Production migrations run inside the server on startup.
 
 ## Backups
 
@@ -152,43 +158,49 @@ pnpm restore list                        # every snapshot, newest first
 pnpm restore restore <path-to-snapshot>
 ```
 
-On the production host the same script is deployed next to the application
-folder and reads its paths from the `.env` file placed there, so it is run as a
-plain Node script with the service stopped:
-
-```sh
-node <app-dir>\restore.mjs list
-node <app-dir>\restore.mjs restore <path-to-snapshot>
-```
-
 The script refuses to run while the server still listens on the port, checks the
 snapshot with `PRAGMA integrity_check`, saves the current database into the
 `manual` folder before replacing it, writes the new file atomically, and removes
 the stale `-wal`/`-shm` files. The database path comes from `--db`, then
-`XBOCT_LOG_DB`, then the `.env` next to the script.
+`XBOCT_LOG_DB`; the backup folder from `--backups`, then `XBOCT_LOG_BACKUP_DIR`.
 
 The same list is available over MCP through the `backup_list` tool. The tool
 cannot restore anything: it only reports which snapshots exist.
 
+## Deployment
+
+The service runs `xboct-log.exe` directly. An instance that still starts through
+the old node launcher is switched once by its owner: that step rewrites a service
+configuration, so it lives outside this repository.
+
+`pnpm deploy:rust <name>` reads the rest from a per-instance file kept outside
+this repository; `scripts/instance.example` shows the only key, `SERVICE`. Set
+`XBOCT_LOG_INSTANCE_DIR` once to the folder that holds the `<name>.env` files.
+Nothing in the repository names a production port, path or service: the app
+folder, the data folder and the port are read from the service itself.
+
+Replacing the binary means stopping the service, which a regular user may not do,
+so the deploy builds and backs up as usual and then runs one elevated step through
+UAC: stop, replace, start, health check. `-DryRun` needs no elevation.
+
 ## Scripts
 
-| Command            | Description                                        |
-| ------------------ | -------------------------------------------------- |
-| `pnpm dev`         | Dev server on an isolated database                 |
-| `pnpm dev:seed`    | Seed `./.dev/dev.db` from the newest snapshot      |
-| `pnpm dev:vite`    | Raw Vite dev server, no isolation                  |
-| `pnpm build`       | Build for production (Node adapter)                |
-| `pnpm start`       | Run the built app through the launcher             |
-| `pnpm package:win` | Build the Windows zip (add `-Installer` for setup) |
-| `pnpm preview`     | Preview the production build                       |
-| `pnpm run deploy`  | Build and deploy the local `HEAD` to the service   |
-| `pnpm build:ext`   | Compile and package the VS Code extension          |
-| `pnpm check`       | Type-check with `svelte-check`                     |
-| `pnpm lint`        | Biome check and ESLint                             |
-| `pnpm format`      | Format with Biome                                  |
-| `pnpm test`        | Run unit tests with Vitest                         |
-| `pnpm migrate`     | Apply pending database migrations                  |
-| `pnpm restore`     | List snapshots or restore one (`list`, `restore`)  |
+| Command                | Description                                         |
+| ---------------------- | --------------------------------------------------- |
+| `pnpm dev`             | Dev server on an isolated database                  |
+| `pnpm dev:seed`        | Seed `./.dev/xboct-log.db` from the newest snapshot |
+| `pnpm build`           | Build for production (Node adapter)                 |
+| `pnpm start`           | Run the built app through the launcher              |
+| `pnpm package:win`     | Build the Windows zip (add `-Installer` for setup)  |
+| `pnpm preview`         | Preview the production build                        |
+| `pnpm run deploy:rust` | Deploy a named instance (see Deployment)            |
+| `pnpm build:ext`       | Compile and package the VS Code extension           |
+| `pnpm check`           | Type-check with `svelte-check`                      |
+| `pnpm lint`            | Biome check and ESLint                              |
+| `pnpm format`          | Format with Biome                                   |
+| `pnpm test`            | Run unit tests with Vitest                          |
+| `pnpm migrate`         | Apply pending database migrations                   |
+| `pnpm restore`         | List snapshots or restore one (`list`, `restore`)   |
 
 The `migrate:*` variants (`status`, `rollback`, `baseline`, `unlock`) are in
 `package.json`.
@@ -196,8 +208,9 @@ The `migrate:*` variants (`status`, `rollback`, `baseline`, `unlock`) are in
 ## MCP
 
 Every operation is exposed as an MCP tool over Streamable HTTP at `/mcp`. Point
-an MCP client at `http://127.0.0.1:45881/mcp`. There is no authentication; the
-deployment is assumed to sit behind a network boundary.
+an MCP client at `http://127.0.0.1:<port>/mcp`, where `<port>` is the port of
+that instance. There is no authentication; the deployment is assumed to sit
+behind a network boundary.
 
 Before the first write of every 30-minute window the server snapshots the
 database, so a botched agent session can be rolled back to the state before it

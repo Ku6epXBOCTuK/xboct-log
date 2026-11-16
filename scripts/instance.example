@@ -1,0 +1,7 @@
+# One file per instance, kept outside the repository.
+# Copy this template to <name>.env and point XBOCT_LOG_INSTANCE_DIR at that folder.
+# The scripts read the app folder, the data folder and the port from the service.
+# SERVICE may stay empty when the host has one xboct-log service; with several,
+# name the one this instance uses.
+
+SERVICE=
