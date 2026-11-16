@@ -23,7 +23,6 @@
 		"deploy:node": "powershell -ExecutionPolicy Bypass -File scripts/deploy.ps1",
 		"start": "node bin/xboct-log.mjs",
 		"dev": "node scripts/dev.mjs",
-		"dev:vite": "vite dev",
 		"dev:seed": "node scripts/dev-seed.mjs",
 		"seed:prod": "node scripts/seed-from-prod.mjs",
 		"build": "vite build",

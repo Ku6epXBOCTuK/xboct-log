@@ -57,16 +57,16 @@ Copy-Item $web (Join-Path $stage "build") -Recurse
 $portable = @(
 	'@echo off',
 	'setlocal',
-	'"%~dp0xboct-log.exe" --portable %*'
+	'"%~dp0xboct-log.exe" --portable --port 45881 %*'
 ) -join "`r`n"
 Set-Content (Join-Path $stage "xboct-log-portable.cmd") ($portable + "`r`n") -Encoding ascii
 
 $readme = @(
 	'Xboct Log',
 	'',
-	'Start: double-click xboct-log.exe',
-	'Your data is stored in %LOCALAPPDATA%\Xboct Log',
-	'Portable mode: double-click xboct-log-portable.cmd, data stays in the data folder next to this file.',
+	'Start: double-click xboct-log-portable.cmd',
+	'Your data stays in the data folder next to this file.',
+	'The app listens on port 45881; pass another port as the first argument if it is taken.',
 	'',
 	'Backups, media and the database live in the data folder, and are kept when the app is updated.'
 ) -join "`r`n"

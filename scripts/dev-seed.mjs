@@ -1,10 +1,10 @@
 import { existsSync, mkdirSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { DatabaseSync, backup } from "node:sqlite";
+import { backup, DatabaseSync } from "node:sqlite";
 
 const root = join(import.meta.dirname, "..", ".dev");
 const seedDir = join(root, "seed");
-const target = process.env.XBOCT_LOG_DEV_DB ?? join(root, "dev.db");
+const target = process.env.XBOCT_LOG_DEV_DB ?? join(root, "xboct-log.db");
 
 function fail(message) {
 	console.error(message);

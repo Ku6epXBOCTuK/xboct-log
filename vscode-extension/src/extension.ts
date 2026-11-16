@@ -225,7 +225,11 @@ async function startServer(): Promise<void> {
 	const args = ["--no-open", "--port", port];
 	const dataDir = configuration().get<string>("dataDir", "").trim();
 
-	if (dataDir) args.push("--data", dataDir);
+	if (!dataDir) {
+		serverFailure = `set "${VIEW_TYPE}.dataDir" to the data folder of this instance before starting the server`;
+		return;
+	}
+	args.push("--data", dataDir);
 
 	serverFailure = undefined;
 

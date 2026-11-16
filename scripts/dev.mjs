@@ -1,34 +1,50 @@
 import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 import { mkdirSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve, sep } from "node:path";
 
-const root = join(import.meta.dirname, "..");
-const dev = join(root, ".dev");
-mkdirSync(dev, { recursive: true });
-
-const port = process.env.XBOCT_LOG_DEV_PORT ?? "45881";
+const root = resolve(import.meta.dirname, "..");
+const port = process.env.XBOCT_LOG_DEV_PORT ?? "45883";
+const dataDir = resolve(process.env.XBOCT_LOG_DEV_DATA ?? join(root, ".dev"));
 const base = `http://127.0.0.1:${port}`;
+
+function fail(message) {
+	console.error(message);
+	process.exit(1);
+}
+
+if (dataDir !== root && !dataDir.startsWith(root + sep)) {
+	fail(
+		`the dev data folder must stay inside the repository (${root}), got ${dataDir}; clear XBOCT_LOG_DEV_DATA to use .dev`,
+	);
+}
+mkdirSync(dataDir, { recursive: true });
 
 const env = {
 	...process.env,
 	XBOCT_LOG_DEV_PORT: port,
-	XBOCT_LOG_PORT: port,
 	XBOCT_LOG_HOST: "127.0.0.1",
-	XBOCT_LOG_DB: process.env.XBOCT_LOG_DEV_DB ?? join(dev, "dev.db"),
-	XBOCT_LOG_MIGRATIONS: join(root, "migrations"),
-	XBOCT_LOG_BACKUP_DIR:
-		process.env.XBOCT_LOG_DEV_BACKUP_DIR ?? join(dev, "backups"),
 	XBOCT_LOG_BACKUP_DISABLED: "1",
 };
 
-async function healthy() {
+function fingerprint(path) {
+	const absolute = resolve(path).replace(/\\/g, "/");
+	const normalized =
+		process.platform === "win32" ? absolute.toLowerCase() : absolute;
+	return createHash("sha256").update(normalized).digest("hex").slice(0, 16);
+}
+
+const dataId = fingerprint(dataDir);
+
+async function inspect() {
 	try {
 		const response = await fetch(`${base}/api/health`, {
 			signal: AbortSignal.timeout(1000),
 		});
-		return response.ok;
+		if (!response.ok) return null;
+		return await response.json();
 	} catch {
-		return false;
+		return null;
 	}
 }
 
@@ -45,10 +61,16 @@ function killTree(child) {
 }
 
 let rust;
-if (await healthy()) {
+const running = await inspect();
+if (running) {
+	if (running.data !== dataId) {
+		fail(
+			`port ${port} belongs to another instance with the data fingerprint ${running.data ?? "unknown"}; the dev instance expects ${dataDir} (${dataId}); stop it or run with another XBOCT_LOG_DEV_PORT`,
+		);
+	}
 	console.log(`rust server already running at ${base}`);
 } else {
-	console.log(`starting rust server at ${base}`);
+	console.log(`starting rust server at ${base} with ${dataDir}`);
 	rust = spawn(
 		"cargo",
 		[
@@ -60,13 +82,15 @@ if (await healthy()) {
 			port,
 			"--host",
 			"127.0.0.1",
+			"--data",
+			dataDir,
 			"--no-open",
 		],
 		{ cwd: root, stdio: "inherit", env },
 	);
 
 	const deadline = Date.now() + 10 * 60_000;
-	while (!(await healthy())) {
+	while (!(await inspect())) {
 		if (rust.exitCode !== null) {
 			console.error("rust server exited before becoming healthy");
 			process.exit(rust.exitCode ?? 1);

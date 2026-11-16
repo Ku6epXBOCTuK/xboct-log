@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
 	appendFileSync,
 	existsSync,
@@ -8,15 +9,13 @@ import {
 	rmSync,
 	writeFileSync,
 } from "node:fs";
-import { createHash } from "node:crypto";
 import { createServer } from "node:http";
 import { createServer as createProbe } from "node:net";
-import { homedir, platform } from "node:os";
+import { platform } from "node:os";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 const APP_NAME = "xboct-log";
-const DEFAULT_PORT = 45881;
 const DEFAULT_HOST = "127.0.0.1";
 const appRoot = resolve(import.meta.dirname, "..");
 
@@ -27,9 +26,12 @@ function fail(message) {
 
 function parseArgs(argv) {
 	const options = {
-		port: Number(process.env.XBOCT_LOG_PORT ?? DEFAULT_PORT),
+		port:
+			process.env.XBOCT_LOG_PORT === undefined
+				? undefined
+				: Number(process.env.XBOCT_LOG_PORT),
 		host: process.env.XBOCT_LOG_HOST ?? DEFAULT_HOST,
-		data: undefined,
+		data: process.env.XBOCT_LOG_DATA || undefined,
 		open: true,
 		portable: false,
 	};
@@ -44,26 +46,20 @@ function parseArgs(argv) {
 		else if (arg === "--version" || arg === "-v") options.version = true;
 		else fail(`unknown argument: ${arg}`);
 	}
+	if (options.help || options.version) return options;
 	if (!Number.isInteger(options.port) || options.port < 0) {
-		fail("--port must be zero or a positive integer");
+		fail("--port <n> or XBOCT_LOG_PORT is required");
+	}
+	if (options.data && options.portable) {
+		fail("--data and --portable cannot be used together");
 	}
 	return options;
 }
 
-function defaultDataDir(options) {
+function dataFolder(options) {
 	if (options.data) return resolve(options.data);
-	if (process.env.XBOCT_LOG_DATA) return resolve(process.env.XBOCT_LOG_DATA);
 	if (options.portable) return join(appRoot, "data");
-	if (platform() === "win32") {
-		const base =
-			process.env.LOCALAPPDATA ?? join(homedir(), "AppData", "Local");
-		return join(base, "Xboct Log");
-	}
-	if (platform() === "darwin") {
-		return join(homedir(), "Library", "Application Support", "Xboct Log");
-	}
-	const base = process.env.XDG_DATA_HOME ?? join(homedir(), ".local", "share");
-	return join(base, APP_NAME);
+	fail("--data <dir>, --portable or XBOCT_LOG_DATA is required");
 }
 
 async function isFree(port, host) {
@@ -134,15 +130,19 @@ function fingerprintPath(path) {
 }
 
 function help() {
-	console.log(`usage: ${APP_NAME} [options]
+	console.log(`usage: ${APP_NAME} --port <port> --data <dir> [options]
 
-  --data <dir>   folder for the database, media and backups
-  --port <port>  port to listen on, 0 picks a free one (default ${DEFAULT_PORT})
+  --port <port>  port to listen on, 0 picks a free one (required)
+  --data <dir>   folder for the database, media and backups (required)
   --host <host>  address to bind (default ${DEFAULT_HOST})
   --no-open      do not open the browser
-  --portable     keep the data next to the application
+  --portable     keep the data in a data folder next to the application
   --version      print the version
-  --help         show this text`);
+  --help         show this text
+
+The port and the data folder can also come from XBOCT_LOG_PORT and
+XBOCT_LOG_DATA. An instance is identified by both, so every instance needs its
+own pair.`);
 }
 
 const options = parseArgs(process.argv.slice(2));
@@ -155,14 +155,14 @@ if (options.version) {
 	process.exit(0);
 }
 
-const dataDir = defaultDataDir(options);
+const dataDir = dataFolder(options);
 const instanceFile = join(dataDir, "instance.json");
-const logFile = join(dataDir, "logs", APP_NAME + ".log");
+const logFile = join(dataDir, "logs", `${APP_NAME}.log`);
 
 function log(line) {
 	const stamped = `${new Date().toISOString()} ${line}`;
 	try {
-		appendFileSync(logFile, stamped + "\n");
+		appendFileSync(logFile, `${stamped}\n`);
 	} catch {
 		console.error(stamped);
 	}
@@ -172,9 +172,15 @@ function log(line) {
 const dataId = fingerprintPath(dataDir);
 const running = await health(options.port);
 if (running) {
-	if (running.data !== undefined && running.data !== dataId) {
+	const expected = `${dataDir} (${dataId})`;
+	if (running.data === undefined) {
 		fail(
-			`port ${options.port} on ${options.host} is used by another ${APP_NAME} with a different data folder; stop it or pick another port with --port <n>`,
+			`port ${options.port} on ${options.host} answers but does not report its data folder, so this instance cannot confirm it is ${expected}; stop it or pick another port with --port <n>`,
+		);
+	}
+	if (running.data !== dataId) {
+		fail(
+			`port ${options.port} on ${options.host} is used by another ${APP_NAME} with the data fingerprint ${running.data}; this instance expects ${expected}; stop it or pick another port with --port <n>`,
 		);
 	}
 	const url = `http://${options.host}:${options.port}/`;
@@ -236,7 +242,7 @@ const server = createServer((request, response) => {
 	request.headers["x-forwarded-proto"] ??= "http";
 	handler(request, response);
 });
-const url = process.env.ORIGIN + "/";
+const url = `${process.env.ORIGIN}/`;
 
 server.on("error", (error) => {
 	log(`server error: ${error.message}`);

@@ -1,7 +1,6 @@
 import { cpSync, existsSync, mkdirSync, readdirSync, statSync } from "node:fs";
-import { homedir } from "node:os";
 import { join } from "node:path";
-import { DatabaseSync, backup } from "node:sqlite";
+import { backup, DatabaseSync } from "node:sqlite";
 
 const ROOT = join(import.meta.dirname, "..", "..", "..");
 export const APP_DB = "xboct-log.db";
@@ -42,9 +41,8 @@ export async function seedData(dataDir, source = databaseArg()) {
 	} finally {
 		target.close();
 	}
-	const media =
-		process.env.XBOCT_LOG_PROD_MEDIA ?? join(homedir(), ".xboct-log", "media");
-	if (existsSync(media)) {
+	const media = process.env.XBOCT_LOG_PROD_MEDIA;
+	if (media && existsSync(media)) {
 		cpSync(media, join(dataDir, "media"), { recursive: true });
 	}
 	return source;

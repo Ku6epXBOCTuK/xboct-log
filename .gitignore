@@ -40,9 +40,6 @@ vite.config.ts.timestamp-*
 /playwright-report/
 /blob-report/
 
-# Local docs
-/docs/instances.md
-
 # VS Code extension
 /vscode-extension/node_modules
 /vscode-extension/out

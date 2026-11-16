@@ -6,8 +6,7 @@ import { sveltekit } from "@sveltejs/kit/vite";
 import Icons from "unplugin-icons/vite";
 import { defineConfig } from "vitest/config";
 
-const RUST_DEV_PORT = process.env.XBOCT_LOG_DEV_PORT ?? "45881";
-const RUST_DEV_SERVER = `http://127.0.0.1:${RUST_DEV_PORT}`;
+const RUST_DEV_SERVER = `http://127.0.0.1:${process.env.XBOCT_LOG_DEV_PORT ?? ""}`;
 
 function buildVersion(): string {
 	try {
@@ -24,6 +23,11 @@ function buildVersion(): string {
 }
 
 export default defineConfig(({ mode }) => {
+	if (mode === "development" && !process.env.XBOCT_LOG_DEV_PORT) {
+		throw new Error(
+			"XBOCT_LOG_DEV_PORT is not set; start the development server with pnpm dev",
+		);
+	}
 	if (mode === "test") {
 		// NOTE: the tests must not inherit the values of the local .env, so
 		// every variable they depend on is set here instead of being filled in

@@ -1,12 +1,17 @@
 import { mkdirSync } from "node:fs";
-import { homedir } from "node:os";
 import { join } from "node:path";
-import { DatabaseSync, backup } from "node:sqlite";
+import { backup, DatabaseSync } from "node:sqlite";
 
+const args = process.argv.slice(2);
+const sourceFlag = args.includes("--source")
+	? args[args.indexOf("--source") + 1]
+	: undefined;
+const source = sourceFlag ?? process.env.XBOCT_LOG_PROD_DB;
+if (!source) {
+	console.error("--source <db> or XBOCT_LOG_PROD_DB is required");
+	process.exit(1);
+}
 const root = join(import.meta.dirname, "..");
-const source =
-	process.env.XBOCT_LOG_PROD_DB ??
-	join(homedir(), ".xboct-log", "xboct-log.db");
 const seedDir = join(root, ".dev", "seed");
 const stamp = new Date()
 	.toISOString()

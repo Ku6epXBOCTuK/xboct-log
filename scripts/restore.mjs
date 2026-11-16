@@ -10,7 +10,7 @@ import {
 } from "node:fs";
 import net from "node:net";
 import { join, resolve } from "node:path";
-import { DatabaseSync, backup } from "node:sqlite";
+import { backup, DatabaseSync } from "node:sqlite";
 
 const args = process.argv.slice(2);
 const flags = new Map();
@@ -37,7 +37,12 @@ for (let index = 0; index < args.length; index += 1) {
 
 const [command = "list", ...rest] = positional;
 
-const port = Number(flags.get("port") ?? process.env.PORT ?? 45881);
+const portFlag = flags.get("port") ?? process.env.PORT;
+if (!portFlag) {
+	console.error("--port <n> or PORT is required");
+	process.exit(1);
+}
+const port = Number(portFlag);
 
 // NOTE: an empty result stays empty instead of turning into the working
 // directory, so a missing variable cannot point the script at an arbitrary

@@ -44,12 +44,12 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Source: "{#StageDir}\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion
 
 [Icons]
-Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExe}"
+Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExe}"; Parameters: "--port 45881 --data ""{localappdata}\Xboct Log"""
 Name: "{group}\{cm:UninstallProgram,{#AppName}}"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopicon
+Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Parameters: "--port 45881 --data ""{localappdata}\Xboct Log"""; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\{#AppExe}"; Description: "Открыть {#AppName}"; Flags: postinstall nowait skipifsilent shellexec
+Filename: "{app}\{#AppExe}"; Parameters: "--port 45881 --data ""{localappdata}\Xboct Log"""; Description: "Открыть {#AppName}"; Flags: postinstall nowait skipifsilent shellexec
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}"

@@ -8,7 +8,7 @@ const LOCK_TABLE = "schema_migrations_lock";
 
 const command = process.argv[2] ?? "apply";
 const devDir = join(import.meta.dirname, "..", ".dev");
-const dbPath = process.env.XBOCT_LOG_DEV_DB ?? join(devDir, "dev.db");
+const dbPath = process.env.XBOCT_LOG_DEV_DB ?? join(devDir, "xboct-log.db");
 mkdirSync(devDir, { recursive: true });
 const migrationsDir =
 	process.env.XBOCT_LOG_MIGRATIONS ?? join(process.cwd(), "migrations");

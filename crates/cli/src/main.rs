@@ -27,7 +27,7 @@ use xboct_log_core::{
 };
 use xboct_log_server::{AppState, app};
 
-use crate::args::{APP_NAME, Options, Platform};
+use crate::args::{APP_NAME, Options};
 
 const FORCED_EXIT: Duration = Duration::from_secs(5);
 
@@ -36,8 +36,16 @@ async fn main() -> ExitCode {
     let raw: Vec<String> = std::env::args().skip(1).collect();
     let env_port = std::env::var("XBOCT_LOG_PORT").ok();
     let env_host = std::env::var("XBOCT_LOG_HOST").ok();
+    let env_data = std::env::var("XBOCT_LOG_DATA")
+        .ok()
+        .filter(|value| !value.is_empty());
 
-    let options = match args::parse(&raw, env_port.as_deref(), env_host.as_deref()) {
+    let options = match args::parse(
+        &raw,
+        env_port.as_deref(),
+        env_host.as_deref(),
+        env_data.as_deref(),
+    ) {
         Ok(options) => options,
         Err(message) => return fail(&message),
     };
@@ -84,13 +92,21 @@ async fn run(options: Options) -> Result<(), String> {
     let data_id = fingerprint_path(&data_dir);
 
     if let Some(running) = health::check(options.port).await {
-        if let Some(running_data) = running.data
-            && running_data != data_id
-        {
-            return Err(format!(
-                "port {} on {} is used by another {APP_NAME} with a different data folder; stop it or pick another port with --port <n>",
-                options.port, options.host
-            ));
+        let expected = format!("{} ({data_id})", data_dir.display());
+        match running.data {
+            Some(running_data) if running_data == data_id => {}
+            Some(running_data) => {
+                return Err(format!(
+                    "port {} on {} is used by another {APP_NAME} with the data fingerprint {running_data}; this instance expects {expected}; stop it or pick another port with --port <n>",
+                    options.port, options.host
+                ));
+            }
+            None => {
+                return Err(format!(
+                    "port {} on {} answers but does not report its data folder, so this instance cannot confirm it is {expected}; stop it or pick another port with --port <n>",
+                    options.port, options.host
+                ));
+            }
         }
         let url = format!("http://{}:{}/", options.host, options.port);
         log_line(&log_file, &format!("already running at {url}"));
@@ -204,17 +220,17 @@ async fn run(options: Options) -> Result<(), String> {
 }
 
 fn resolve_data_dir(options: &Options) -> Result<PathBuf, String> {
-    let home = std::env::var_os("USERPROFILE")
-        .or_else(|| std::env::var_os("HOME"))
-        .map(PathBuf::from)
-        .unwrap_or_default();
-    let app_root = std::env::current_exe()
-        .ok()
-        .and_then(|exe| exe.parent().map(Path::to_path_buf))
-        .unwrap_or_else(|| PathBuf::from("."));
-    let dir = args::default_data_dir(options, Platform::current(), &app_root, &home, |name| {
-        std::env::var(name).ok()
-    });
+    let dir = match &options.data {
+        Some(dir) => dir.clone(),
+        None if options.portable => {
+            let app_root = std::env::current_exe()
+                .ok()
+                .and_then(|exe| exe.parent().map(Path::to_path_buf))
+                .unwrap_or_else(|| PathBuf::from("."));
+            app_root.join("data")
+        }
+        None => return Err("--data <dir> or XBOCT_LOG_DATA is required".to_string()),
+    };
     std::path::absolute(dir).map_err(|error| error.to_string())
 }
 
