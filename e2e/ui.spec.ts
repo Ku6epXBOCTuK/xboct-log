@@ -315,3 +315,31 @@ test("the activity page shows the recorded changes", async ({ page }) => {
 	await expect(page.getByRole("heading", { name: "Activity" })).toBeVisible();
 	await expect(page.getByText("Task created").first()).toBeVisible();
 });
+
+test("the backend badge follows the reachability of the server", async ({
+	page,
+}) => {
+	await page.goto("/tasks");
+	const badge = page.getByRole("button", { name: /^Backend: Connected/ });
+	await expect(badge).toBeVisible();
+
+	await badge.hover();
+	await expect(page.getByText("Click the dot to check again")).toBeVisible();
+
+	await page.route("**/api/health", (route) => route.abort());
+	await badge.click();
+
+	await expect(
+		page.getByRole("button", { name: /^Backend: Offline/ }),
+	).toBeVisible();
+	const banner = page
+		.getByRole("alert")
+		.filter({ hasText: "Backend unreachable" });
+	await expect(banner).toBeVisible();
+
+	await page.unroute("**/api/health");
+	await banner.getByRole("button", { name: "Retry now" }).click();
+
+	await expect(banner).toHaveCount(0);
+	await expect(badge).toBeVisible();
+});

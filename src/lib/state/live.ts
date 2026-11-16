@@ -1,4 +1,8 @@
 import { CLIENT_ID } from "#lib/client/id.ts";
+import {
+	reportReachable,
+	reportUnreachable,
+} from "#lib/client/reachability.ts";
 import { reloadApp } from "#lib/reload.ts";
 import { ENTITIES, type Entity } from "#lib/types.ts";
 
@@ -124,6 +128,9 @@ export function createFreshness(): Freshness {
 
 	function start(): () => void {
 		const source = new EventSource("/api/events");
+
+		source.addEventListener("open", () => reportReachable());
+		source.addEventListener("error", () => reportUnreachable());
 
 		source.addEventListener("change", (event) => {
 			const raw = (event as MessageEvent<string>).data;

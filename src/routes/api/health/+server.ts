@@ -12,6 +12,9 @@ export function GET() {
 	const data = dataFingerprint();
 	if (data !== undefined) body.data = data;
 	return new Response(JSON.stringify(body), {
-		headers: { "content-type": "application/json" },
+		headers: {
+			"content-type": "application/json",
+			"cache-control": "no-store",
+		},
 	});
 }

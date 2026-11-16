@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CLIENT_ID } from "#lib/client/id.ts";
+import { watchReachability } from "#lib/client/reachability.ts";
 import { createFreshness, type Freshness } from "./live.ts";
 
 class FakeEventSource {
@@ -362,5 +363,19 @@ describe("createFreshness", () => {
 		await vi.advanceTimersByTimeAsync(300);
 
 		expect(handler).not.toHaveBeenCalled();
+	});
+
+	it("tells the health probe what the stream reports", () => {
+		const seen: boolean[] = [];
+		const unwatch = watchReachability((reachable) => seen.push(reachable));
+		const fresh = createFreshness();
+		const stop = fresh.start();
+
+		connected().emit("open");
+		connected().emit("error");
+
+		expect(seen).toEqual([true, false]);
+		stop();
+		unwatch();
 	});
 });

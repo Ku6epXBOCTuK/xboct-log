@@ -2,6 +2,7 @@
 	import { goto } from "$app/navigation";
 	import { page } from "$app/state";
 	import SideBar from "#lib/components/layout/SideBar.svelte";
+	import OfflineBanner from "#lib/components/ui/OfflineBanner.svelte";
 	import UpdateBanner from "#lib/components/ui/UpdateBanner.svelte";
 	import { matchesHotkey } from "#lib/hotkeys/hotkeys.ts";
 	import { listHref, taskHref } from "#lib/navigation/href.ts";
@@ -42,6 +43,11 @@
 
 	$effect(() => {
 		const stop = board.fresh.start();
+		return stop;
+	});
+
+	$effect(() => {
+		const stop = board.health.start();
 		return stop;
 	});
 
@@ -115,6 +121,7 @@
 </main>
 
 <UpdateBanner />
+<OfflineBanner />
 
 <style>
 	.app-shell {

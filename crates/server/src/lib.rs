@@ -183,13 +183,17 @@ async fn openapi_document() -> Json<serde_json::Value> {
     Json(openapi::document())
 }
 
-async fn health(State(state): State<AppState>) -> Json<Health> {
-    Json(Health {
-        ok: true,
-        app: APP_NAME,
-        version: env!("CARGO_PKG_VERSION"),
-        data: Some(data_fingerprint(&state.config.db_path)),
-    })
+async fn health(State(state): State<AppState>) -> Response {
+    (
+        [(header::CACHE_CONTROL, HeaderValue::from_static("no-store"))],
+        Json(Health {
+            ok: true,
+            app: APP_NAME,
+            version: env!("CARGO_PKG_VERSION"),
+            data: Some(data_fingerprint(&state.config.db_path)),
+        }),
+    )
+        .into_response()
 }
 
 async fn events(State(state): State<AppState>) -> Response {
@@ -590,6 +594,7 @@ mod tests {
 
         assert_eq!(status, StatusCode::OK);
         assert_eq!(header(&headers, "content-type"), "application/json");
+        assert_eq!(header(&headers, "cache-control"), "no-store");
 
         let value: Value = serde_json::from_slice(&body).unwrap();
         assert_eq!(value["ok"], true);

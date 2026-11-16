@@ -4,6 +4,7 @@
 	import { listDeletedTasks, restoreTask } from "#lib/api/tasks.ts";
 	import DeletedAttachments from "#lib/components/attachments/DeletedAttachments.svelte";
 	import SearchBar from "#lib/components/filters/SearchBar.svelte";
+	import BackendBadge from "#lib/components/layout/BackendBadge.svelte";
 	import TaskTable from "#lib/components/table/TaskTable.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import Pager from "#lib/components/ui/Pager.svelte";
@@ -119,6 +120,7 @@
 				: "Kept for 30 days, then removed"}
 		</span>
 		<div class="head-actions">
+			<BackendBadge />
 			<IconButton
 				label={theme.appearance === "light"
 					? "Switch to dark theme"

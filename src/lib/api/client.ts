@@ -1,5 +1,9 @@
 import createClient from "openapi-fetch";
 import { CLIENT_ID } from "#lib/client/id.ts";
+import {
+	reportReachable,
+	reportUnreachable,
+} from "#lib/client/reachability.ts";
 import { CLIENT_HEADER } from "#lib/types.ts";
 import type { paths } from "./schema.d.ts";
 
@@ -32,11 +36,14 @@ function retryable(error: unknown): boolean {
 async function timedFetch(request: Request): Promise<Response> {
 	for (let attempt = 0; ; attempt++) {
 		try {
-			return await globalThis.fetch(request.clone(), {
+			const response = await globalThis.fetch(request.clone(), {
 				signal: AbortSignal.timeout(TIMEOUT_MS),
 			});
+			reportReachable();
+			return response;
 		} catch (error) {
 			if (attempt >= RETRY_DELAYS_MS.length || !retryable(error)) {
+				reportUnreachable();
 				throw error;
 			}
 			await delay(RETRY_DELAYS_MS[attempt]);

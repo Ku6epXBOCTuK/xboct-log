@@ -12,6 +12,7 @@ import { createCommentsStore } from "#lib/state/comments.svelte.ts";
 import { createDraftStore } from "#lib/state/draft.svelte.ts";
 import { createFilters } from "#lib/state/filters.svelte.ts";
 import { createFreshness } from "#lib/state/live.ts";
+import { createHealth } from "#lib/state/health.svelte.ts";
 import { createProjectData } from "#lib/state/project-data.svelte.ts";
 import { createProjectStore } from "#lib/state/projects.svelte.ts";
 import { createScopeStore } from "#lib/state/scopes.svelte.ts";
@@ -23,7 +24,12 @@ import { createTheme, type ThemeName } from "#lib/state/theme.svelte.ts";
 import { createUiStore } from "#lib/state/ui.svelte.ts";
 import { TASK_PAGE_SIZE } from "#lib/tasks/paging.ts";
 import { buildTaskQuery } from "#lib/tasks/query.ts";
-import type { Project, ProjectFilter, Scope } from "#lib/types.ts";
+import {
+	ENTITIES,
+	type Project,
+	type ProjectFilter,
+	type Scope,
+} from "#lib/types.ts";
 import { goto, invalidate } from "$app/navigation";
 import { resolve } from "$app/paths";
 import { page } from "$app/state";
@@ -39,6 +45,11 @@ export interface BoardInput {
 
 export function createBoard(input: BoardInput) {
 	const fresh = createFreshness();
+	const health = createHealth({
+		onRecover: () => {
+			void fresh.invalidate([...ENTITIES, "navigation"], true);
+		},
+	});
 	const projects = createProjectStore(input.projects, () =>
 		fresh.invalidate(["navigation"], true),
 	);
@@ -120,6 +131,7 @@ export function createBoard(input: BoardInput) {
 
 	return {
 		fresh,
+		health,
 		tasks,
 		projects,
 		scopes,
