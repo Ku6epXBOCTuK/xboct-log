@@ -5,7 +5,7 @@ use sqlx::{QueryBuilder, Sqlite};
 use crate::ids::{ProjectId, ScopeId, Seq, TagName, TaskKey};
 use crate::{AppError, Db, Result};
 
-use super::filters::{NullableList, Sort, TaskFilters};
+use super::filters::{LinkFilter, Sort, TaskFilters};
 use super::model::{BlockingInfo, Estimate, Priority, Status, Task, TaskList, TaskRow};
 use super::resolve::{normalize_task_id_input, resolve_task_id};
 
@@ -196,19 +196,19 @@ fn push_where(qb: &mut QueryBuilder<Sqlite>, filters: &TaskFilters) {
         push_and(qb, &mut first);
         qb.push("tasks.is_epic = ").push_bind(i64::from(is_epic));
     }
-    if let Some(values) = &filters.epic_id {
-        push_and(qb, &mut first);
-        match values {
-            NullableList::Null => {
-                qb.push("tasks.epic_id IS NULL");
-            }
-            NullableList::Value(values) => {
-                let refs: Vec<String> = values
-                    .clone()
-                    .into_vec()
-                    .into_iter()
-                    .map(|value| normalize_task_id_input(value.as_str().trim()))
-                    .collect();
+    match &filters.epic_id {
+        LinkFilter::Any => {}
+        LinkFilter::Null => {
+            push_and(qb, &mut first);
+            qb.push("tasks.epic_id IS NULL");
+        }
+        LinkFilter::Values(values) => {
+            let refs: Vec<String> = values
+                .iter()
+                .map(|value| normalize_task_id_input(value.as_str().trim()))
+                .collect();
+            if !refs.is_empty() {
+                push_and(qb, &mut first);
                 qb.push("tasks.epic_id IN (SELECT id FROM tasks epic WHERE epic.key IN (");
                 let mut separated = qb.separated(", ");
                 for value in refs {
@@ -216,24 +216,21 @@ fn push_where(qb: &mut QueryBuilder<Sqlite>, filters: &TaskFilters) {
                 }
                 separated.push_unseparated("))");
             }
-        };
+        }
     }
-    if let Some(values) = &filters.scope_id {
-        push_and(qb, &mut first);
-        match values {
-            NullableList::Null => {
-                qb.push("tasks.scope_id IS NULL");
-            }
-            NullableList::Value(values) => {
-                let values: Vec<i64> = values
-                    .clone()
-                    .into_vec()
-                    .into_iter()
-                    .map(ScopeId::get)
-                    .collect();
+    match &filters.scope_id {
+        LinkFilter::Any => {}
+        LinkFilter::Null => {
+            push_and(qb, &mut first);
+            qb.push("tasks.scope_id IS NULL");
+        }
+        LinkFilter::Values(values) => {
+            let values: Vec<i64> = values.iter().map(|value| value.get()).collect();
+            if !values.is_empty() {
+                push_and(qb, &mut first);
                 push_in_int(qb, "tasks.scope_id", &values);
             }
-        };
+        }
     }
     if let Some(has_epic) = filters.has_epic {
         push_and(qb, &mut first);

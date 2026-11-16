@@ -1,6 +1,6 @@
 use serde_json::{Value, json};
 use xboct_log_core::{
-    AppErrorKind, Db, TaskFilters, count_epic_children_by_status, get_task, list_tasks,
+    AppErrorKind, Db, LinkFilter, TaskFilters, count_epic_children_by_status, get_task, list_tasks,
     resolve_task_id,
 };
 
@@ -305,6 +305,11 @@ async fn applies_filters_like_the_node_registry() {
         (json!({"assignee": "ivan"}), 1),
         (json!({"estimate": "S"}), 1),
         (json!({"epic_id": "LOG-1"}), 2),
+        (json!({"epic_id": null}), 4),
+        (json!({"scope_id": null}), 4),
+        (json!({"scope_id": 1}), 1),
+        (json!({"scope_id": [1, 2]}), 2),
+        (json!({"scope_id": []}), 6),
         (json!({"has_tags": false}), 3),
         (json!({"q": "detailed"}), 1),
         (json!({"title_exact": "write docs"}), 1),
@@ -322,6 +327,19 @@ async fn applies_filters_like_the_node_registry() {
         let page = list_tasks(&db, &filters(value.clone())).await.unwrap();
         assert_eq!(page.total, total, "{value}");
     }
+}
+
+#[test]
+fn tells_a_missing_link_filter_from_an_explicit_null() {
+    let absent = filters(json!({}));
+    assert_eq!(absent.scope_id, LinkFilter::Any);
+    assert_eq!(absent.epic_id, LinkFilter::Any);
+    let explicit = filters(json!({"scope_id": null, "epic_id": null}));
+    assert_eq!(explicit.scope_id, LinkFilter::Null);
+    assert_eq!(explicit.epic_id, LinkFilter::Null);
+    let values = filters(json!({"scope_id": [1, 2], "epic_id": "LOG-1"}));
+    assert!(matches!(values.scope_id, LinkFilter::Values(ref values) if values.len() == 2));
+    assert!(matches!(values.epic_id, LinkFilter::Values(ref values) if values.len() == 1));
 }
 
 #[tokio::test]

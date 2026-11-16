@@ -72,7 +72,7 @@ pub use tags::{
     set_tag_archived, tag_name_error, validate_tags,
 };
 pub use tasks::{
-    BlockingInfo, ClosedReason, Estimate, LinkType, NewTask, NullableList, OneOrList, Order,
+    BlockingInfo, ClosedReason, Estimate, LinkFilter, LinkType, NewTask, OneOrList, Order,
     Priority, SearchTerm, Sort, Status, Task, TaskFilters, TaskList, TaskPatch, UpdateOutcome,
     add_blocker, add_link, close_task, close_task_detailed, count_by_status,
     count_epic_children_by_status, create_task, delete_task, get_task, get_tasks_by_ids,

@@ -9,7 +9,7 @@ pub use extra::{
     SearchTerm, TaskMany, count_by_status, count_children_by_epic, count_tasks_by_status,
     get_tasks_by_ids, list_revisions, parse_search_query, task_options, task_stats,
 };
-pub use filters::{NullableList, OneOrList, Order, Sort, TaskFilters};
+pub use filters::{LinkFilter, OneOrList, Order, Sort, TaskFilters};
 pub use links::{
     LinkType, add_blocker, add_link, link_changes, link_task, remove_blocker, remove_link,
 };

@@ -23,11 +23,25 @@ impl<T> OneOrList<T> {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
-#[serde(untagged)]
-pub enum NullableList<T> {
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub enum LinkFilter<T> {
+    #[default]
+    Any,
     Null,
-    Value(OneOrList<T>),
+    Values(Vec<T>),
+}
+
+impl<'de, T: Deserialize<'de>> Deserialize<'de> for LinkFilter<T> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Ok(match Option::<OneOrList<T>>::deserialize(deserializer)? {
+            None => Self::Null,
+            Some(OneOrList::One(value)) => Self::Values(vec![value]),
+            Some(OneOrList::Many(values)) => Self::Values(values),
+        })
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
@@ -63,8 +77,10 @@ pub struct TaskFilters {
     pub due_after: Option<String>,
     pub tag: Option<OneOrList<TagName>>,
     pub is_epic: Option<bool>,
-    pub epic_id: Option<NullableList<TaskKey>>,
-    pub scope_id: Option<NullableList<ScopeId>>,
+    #[serde(default)]
+    pub epic_id: LinkFilter<TaskKey>,
+    #[serde(default)]
+    pub scope_id: LinkFilter<ScopeId>,
     pub has_epic: Option<bool>,
     pub has_scope: Option<bool>,
     pub has_tags: Option<bool>,
