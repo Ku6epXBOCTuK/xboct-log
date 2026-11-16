@@ -1,12 +1,14 @@
 import { execSync } from "node:child_process";
 import { join } from "node:path";
-import adapter from "@sveltejs/adapter-node";
 import adapterStatic from "@sveltejs/adapter-static";
 import { sveltekit } from "@sveltejs/kit/vite";
 import Icons from "unplugin-icons/vite";
 import { defineConfig } from "vitest/config";
 
-const RUST_DEV_SERVER = `http://127.0.0.1:${process.env.XBOCT_LOG_DEV_PORT ?? ""}`;
+// NOTE: svelte-check loads this config in development mode too, so the target
+// cannot throw when XBOCT_LOG_DEV_PORT is unset; the proxy only matters under
+// pnpm dev, which sets the port of the server it starts.
+const RUST_DEV_SERVER = `http://127.0.0.1:${process.env.XBOCT_LOG_DEV_PORT ?? "45883"}`;
 
 function buildVersion(): string {
 	try {
@@ -22,32 +24,7 @@ function buildVersion(): string {
 	}
 }
 
-export default defineConfig(({ mode }) => {
-	if (mode === "development" && !process.env.XBOCT_LOG_DEV_PORT) {
-		throw new Error(
-			"XBOCT_LOG_DEV_PORT is not set; start the development server with pnpm dev",
-		);
-	}
-	if (mode === "test") {
-		// NOTE: the tests must not inherit the values of the local .env, so
-		// every variable they depend on is set here instead of being filled in
-		// only when it is missing.
-		process.env.XBOCT_LOG_DB = ":memory:";
-		// NOTE: the tests must see the migrations of the working copy, not the
-		// deployed ones in the production directory.
-		process.env.XBOCT_LOG_MIGRATIONS = join(process.cwd(), "migrations");
-		// NOTE: the default backup directory points at the production copies,
-		// so the tests would write their snapshots there.
-		process.env.XBOCT_LOG_BACKUP_DIR = join(
-			process.cwd(),
-			".dev",
-			"test-backups",
-		);
-		// NOTE: the local .env disables the scheduled backups for development,
-		// but the tests exercise the backup code paths.
-		process.env.XBOCT_LOG_BACKUP_DISABLED = "0";
-	}
-
+export default defineConfig(() => {
 	return {
 		plugins: [
 			sveltekit({
@@ -56,12 +33,8 @@ export default defineConfig(({ mode }) => {
 						filename.split(/[/\\]/).includes("node_modules") ? undefined : true,
 					experimental: { async: true },
 				},
-				adapter:
-					process.env.XBOCT_LOG_STATIC === "1"
-						? adapterStatic({ fallback: "index.html" })
-						: adapter(),
+				adapter: adapterStatic({ fallback: "index.html" }),
 				version: { name: buildVersion(), pollInterval: 60_000 },
-				experimental: { remoteFunctions: true },
 			}),
 			Icons({ compiler: "svelte" }),
 		],
@@ -98,21 +71,6 @@ export default defineConfig(({ mode }) => {
 						exclude: ["src/**/*.svelte.{test,spec}.{js,ts}"],
 					},
 				},
-				...(process.env.XBOCT_LOG_PARITY === "1"
-					? [
-							{
-								extends: "./vite.config.ts",
-								test: {
-									name: "parity",
-									environment: "node",
-									testTimeout: 60_000,
-									sequence: { shuffle: false },
-									fileParallelism: false,
-									include: ["tests/parity/**/*.spec.ts"],
-								},
-							},
-						]
-					: []),
 			],
 		},
 	};

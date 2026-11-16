@@ -1,39 +1,20 @@
+import type { components } from "./schema.d.ts";
 import type {
 	ActivityChange,
 	Estimate,
 	Priority,
+	Scope,
 	Status,
 	Task,
-} from "../../types";
-import type { ErrorKind } from "../errors";
+} from "#lib/types.ts";
 
-export interface TaskRow {
-	id: string;
-	key: string;
-	project_id: string;
-	number: number;
-	title: string;
-	description: string;
-	status: string;
-	priority: string;
-	is_epic: number;
-	epic_id: string | null;
-	epic_key?: string | null;
-	scope_id: number | null;
-	source_file: string | null;
-	tags: string;
-	estimate: string | null;
-	assignee: string | null;
-	due_at: string | null;
-	created_at: string;
-	updated_at: string;
-	closed_at: string | null;
-	closed_reason: string | null;
-	blocked_reason: string | null;
-	deleted_at: string | null;
-	project_name?: string;
-	scope_name?: string;
-	attachments_count?: number;
+export type BatchError = components["schemas"]["Error"];
+
+export type TaskChange = ActivityChange;
+
+export interface ReleasedLink {
+	task_id: string;
+	changes: ActivityChange[];
 }
 
 export interface NewTask {
@@ -69,16 +50,6 @@ export interface TaskPatch {
 	assignee?: string | null;
 	due_at?: string | null;
 	blocked_reason?: string | null;
-}
-
-export type TaskChange = ActivityChange;
-
-export interface TaskUpdateOutcome {
-	task: Task;
-	changes: TaskChange[];
-	released?: ReleasedLink[];
-	closed_epic?: Task;
-	reopened_epic?: Task;
 }
 
 export interface TaskQuery {
@@ -127,14 +98,12 @@ export interface TaskQuery {
 	include_description?: boolean;
 }
 
-export interface TasksByIds {
-	items: Task[];
-	missing: string[];
-}
-
-export interface ReleasedLink {
-	task_id: string;
-	changes: ActivityChange[];
+export interface TaskUpdateOutcome {
+	task: Task;
+	changes: TaskChange[];
+	released?: ReleasedLink[];
+	closed_epic?: Task;
+	reopened_epic?: Task;
 }
 
 export interface DeleteTaskOutcome {
@@ -144,9 +113,9 @@ export interface DeleteTaskOutcome {
 	released: ReleasedLink[];
 }
 
-export interface BatchError {
-	kind: ErrorKind;
-	message: string;
+export interface TasksByIds {
+	items: Task[];
+	missing: string[];
 }
 
 export type BatchItem =
@@ -172,3 +141,28 @@ export type CreateBatchItem =
 			released: ReleasedLink[];
 	  }
 	| { index: number; id: null; ok: false; error: BatchError };
+
+export interface TagCount {
+	tag: string;
+	count: number;
+	active: number;
+}
+
+export interface TagRecord {
+	name: string;
+	archived: boolean;
+	created_at: string;
+}
+
+export interface TagInventoryEntry extends TagRecord {
+	count: number;
+	active: number;
+	backlog: number;
+}
+
+export interface ScopeDeleteReport {
+	scope: Scope;
+	task_ids: string[];
+	epic_ids: string[];
+	dry_run: boolean;
+}

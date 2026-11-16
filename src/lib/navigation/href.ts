@@ -55,3 +55,11 @@ export function taskHrefFor(
 	const task = find(id);
 	return task === undefined ? null : taskHref(task.project_id, task.id);
 }
+
+export function mediaHref(id: string): string {
+	return `/media/${encodeURIComponent(id)}`;
+}
+
+export function deletedMediaHref(id: string): string {
+	return `/deleted/media/${encodeURIComponent(id)}`;
+}

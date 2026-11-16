@@ -1,4 +1,4 @@
-import type { ScopeDeleteReport } from "#lib/server/scopes.ts";
+import type { ScopeDeleteReport } from "#lib/api/types.ts";
 import type { Project, Scope, Status } from "#lib/types.ts";
 import { client, unwrap } from "./client.ts";
 

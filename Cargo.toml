@@ -4,7 +4,6 @@ members = [
     "crates/ops",
     "crates/server",
     "crates/cli",
-    "crates/parity",
 ]
 resolver = "3"
 
@@ -18,7 +17,6 @@ publish = false
 xboct-log-core = { path = "crates/core" }
 xboct-log-ops = { path = "crates/ops" }
 xboct-log-server = { path = "crates/server" }
-xboct-log-parity = { path = "crates/parity" }
 libsqlite3-sys = { version = "=0.37.0", default-features = false, features = ["bundled"] }
 icu_casemap = { version = "2.4.0", default-features = false, features = ["compiled_data"] }
 icu_locale_core = "2.4.0"

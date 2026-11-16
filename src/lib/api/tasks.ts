@@ -7,7 +7,7 @@ import type {
 	TaskQuery,
 	TaskUpdateOutcome,
 	TasksByIds,
-} from "#lib/server/tasks/types.ts";
+} from "#lib/api/types.ts";
 import type { ClosedReason, Task } from "#lib/types.ts";
 import { client, unwrap } from "./client.ts";
 

@@ -26,14 +26,8 @@ if ($cargoVersion -ne $Version) {
 }
 
 if (-not $SkipBuild) {
-	$env:XBOCT_LOG_STATIC = "1"
-	try {
-		pnpm build
-		if ($LASTEXITCODE -ne 0) { throw "pnpm build failed (exit $LASTEXITCODE)" }
-	}
-	finally {
-		Remove-Item Env:\XBOCT_LOG_STATIC -ErrorAction SilentlyContinue
-	}
+	pnpm build
+	if ($LASTEXITCODE -ne 0) { throw "pnpm build failed (exit $LASTEXITCODE)" }
 
 	cargo build --release --locked -p xboct-log-cli
 	if ($LASTEXITCODE -ne 0) { throw "cargo build failed (exit $LASTEXITCODE)" }
@@ -45,7 +39,7 @@ if (-not (Test-Path $binary)) { throw "the rust binary is missing: $binary" }
 
 $web = Join-Path $root "build"
 if (-not (Test-Path (Join-Path $web "index.html"))) {
-	throw "build\index.html is missing; run pnpm build with XBOCT_LOG_STATIC=1"
+	throw "build\index.html is missing; run pnpm build"
 }
 
 if (Test-Path $stage) { Remove-Item -Recurse -Force $stage }

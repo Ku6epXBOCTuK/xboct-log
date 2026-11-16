@@ -3,13 +3,13 @@
 	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
 	import CopyImageButton from "#lib/components/ui/CopyImageButton.svelte";
 	import ImageViewer from "#lib/components/ui/ImageViewer.svelte";
+	import { mediaHref } from "#lib/navigation/href.ts";
 	import { openExternal, openMedia } from "#lib/host/embed.ts";
 	import {
 		formatSize,
 		isImage,
 		type AttachmentEntry,
 	} from "#lib/tasks/attachments.ts";
-	import { resolve } from "$app/paths";
 	import ArrowRightLeft from "~icons/lucide/arrow-right-left";
 	import Paperclip from "~icons/lucide/paperclip";
 	import Trash2 from "~icons/lucide/trash-2";
@@ -35,13 +35,11 @@
 	);
 	const src = $derived(
 		entry.kind === "saved" && isImage(entry.attachment.mime_type)
-			? resolve("/media/[id]", { id: entry.attachment.id })
+			? mediaHref(entry.attachment.id)
 			: undefined,
 	);
 	const href = $derived(
-		entry.kind === "saved"
-			? resolve("/media/[id]", { id: entry.attachment.id })
-			: undefined,
+		entry.kind === "saved" ? mediaHref(entry.attachment.id) : undefined,
 	);
 
 	let preview = $state<string | undefined>();

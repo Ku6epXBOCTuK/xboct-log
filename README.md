@@ -23,7 +23,7 @@ Built with SvelteKit and Svelte 5.
 
 ## Install
 
-Three ways, pick one:
+Two ways, pick one:
 
 - **Windows installer** — `xboct-log-<version>-win-x64-setup.exe` from
   [releases](https://github.com/Ku6epXBOCTuK/xboct-log/releases). Installs for
@@ -32,16 +32,10 @@ Three ways, pick one:
 - **Windows portable zip** — unpack anywhere, double-click
   `xboct-log-portable.cmd`; the data stays in the `data` folder next to the
   launcher.
-- **npm** — for machines that already have Node.js 26:
 
-  ```sh
-  npm install -g xboct-log
-  xboct-log --port 45881 --data <dir>
-  ```
-
-The launcher opens the board in the browser and keeps the database, media, and
+The binary opens the board in the browser and keeps the database, media, and
 backups in one data folder. The port and the folder have no defaults: an
-instance is the pair, and the launcher refuses to start without both.
+instance is the pair, and the server refuses to start without both.
 `--port 0` picks any free port, `--portable` keeps the data next to the
 executable, and `XBOCT_LOG_PORT` / `XBOCT_LOG_DATA` work as well. A port that
 answers with another data folder counts as taken, and the error names both
@@ -51,8 +45,8 @@ folders. Flags: `--data <dir>`, `--port <port>`, `--host <host>`, `--no-open`,
 ## Requirements
 
 - To run a release build: nothing but the download.
-- To run from source: Node.js 26 or newer (for the built-in `node:sqlite`
-  module) and pnpm.
+- To run from source: Node.js 26 or newer with pnpm for the SvelteKit build,
+  and the Rust toolchain for the server.
 
 ## Getting started
 
@@ -106,12 +100,7 @@ Each running instance reports a fingerprint of its data folder in
 `/api/health`; a server that finds a different fingerprint on its port stops
 with an error instead of attaching to someone else's data.
 
-`XBOCT_LOG_DB`, `XBOCT_LOG_MIGRATIONS`, `XBOCT_LOG_BACKUP_DIR`, and
-`XBOCT_LOG_MEDIA_DIR` belong to the legacy Node server only (`node
-build/index.js`); the Rust binary derives all of them from `--data`.
-
-`migrate:*` scripts target the dev database (`XBOCT_LOG_DEV_DB`, default
-`./.dev/xboct-log.db`). Production migrations run inside the server on startup.
+Database migrations are built into the binary and run on startup.
 
 ## Backups
 
@@ -169,11 +158,7 @@ cannot restore anything: it only reports which snapshots exist.
 
 ## Deployment
 
-The service runs `xboct-log.exe` directly. An instance that still starts through
-the old node launcher is switched once by its owner: that step rewrites a service
-configuration, so it lives outside this repository.
-
-`pnpm deploy:rust <name>` reads the rest from a per-instance file kept outside
+The service runs `xboct-log.exe` directly. `pnpm deploy:rust <name>` reads the rest from a per-instance file kept outside
 this repository; `scripts/instance.example` shows the only key, `SERVICE`. Set
 `XBOCT_LOG_INSTANCE_DIR` once to the folder that holds the `<name>.env` files.
 Nothing in the repository names a production port, path or service: the app
@@ -189,8 +174,7 @@ UAC: stop, replace, start, health check. `-DryRun` needs no elevation.
 | ---------------------- | --------------------------------------------------- |
 | `pnpm dev`             | Dev server on an isolated database                  |
 | `pnpm dev:seed`        | Seed `./.dev/xboct-log.db` from the newest snapshot |
-| `pnpm build`           | Build for production (Node adapter)                 |
-| `pnpm start`           | Run the built app through the launcher              |
+| `pnpm build`           | Build the static SPA served by the binary           |
 | `pnpm package:win`     | Build the Windows zip (add `-Installer` for setup)  |
 | `pnpm preview`         | Preview the production build                        |
 | `pnpm run deploy:rust` | Deploy a named instance (see Deployment)            |
@@ -199,11 +183,7 @@ UAC: stop, replace, start, health check. `-DryRun` needs no elevation.
 | `pnpm lint`            | Biome check and ESLint                              |
 | `pnpm format`          | Format with Biome                                   |
 | `pnpm test`            | Run unit tests with Vitest                          |
-| `pnpm migrate`         | Apply pending database migrations                   |
 | `pnpm restore`         | List snapshots or restore one (`list`, `restore`)   |
-
-The `migrate:*` variants (`status`, `rollback`, `baseline`, `unlock`) are in
-`package.json`.
 
 ## MCP
 
@@ -231,8 +211,8 @@ are in `vscode-extension/README.md`.
 
 ## Notes
 
-Architecture map, non-obvious invariants, and deployment details are in
-[`docs/notes.md`](./docs/notes.md).
+How the Rust server replaced the Node one, and what the external contract looks
+like, is in [`docs/rust-rewrite.md`](./docs/rust-rewrite.md).
 
 ## License
 

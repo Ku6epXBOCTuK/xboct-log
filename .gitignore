@@ -30,8 +30,6 @@ vite.config.ts.timestamp-*
 # refs
 /refs/
 
-# Parity harness scratch space
-/tests/parity/.tmp/
 /.tmp/
 .tmp-trace
 

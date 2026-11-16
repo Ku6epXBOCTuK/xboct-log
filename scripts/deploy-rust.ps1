@@ -71,7 +71,6 @@ if (-not $SkipBuild) {
 	Push-Location $Repo
 	try {
 		Write-Host "building the spa"
-		$env:XBOCT_LOG_STATIC = "1"
 		pnpm build
 		if ($LASTEXITCODE -ne 0) { throw "pnpm build failed (exit $LASTEXITCODE)" }
 
@@ -80,7 +79,6 @@ if (-not $SkipBuild) {
 		if ($LASTEXITCODE -ne 0) { throw "cargo build failed (exit $LASTEXITCODE)" }
 	}
 	finally {
-		Remove-Item Env:\XBOCT_LOG_STATIC -ErrorAction SilentlyContinue
 		Pop-Location
 	}
 }
@@ -91,7 +89,7 @@ if (-not (Test-Path $binary)) { throw "the rust binary is missing: $binary" }
 
 $web = Join-Path $Repo "build"
 if (-not (Test-Path (Join-Path $web "index.html"))) {
-	throw "build\index.html is missing; run pnpm build with XBOCT_LOG_STATIC=1"
+	throw "build\index.html is missing; run pnpm build"
 }
 
 if (-not $AllowStaleBuild) {
@@ -102,7 +100,7 @@ if (-not $AllowStaleBuild) {
 		Get-Item (Join-Path $Repo "vite.config.ts"), (Join-Path $Repo "package.json")
 	) | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
 	if ($null -ne $newest -and $newest.LastWriteTimeUtc -gt $index.LastWriteTimeUtc) {
-		throw "build\index.html is older than $($newest.FullName); rebuild with XBOCT_LOG_STATIC=1 pnpm build or pass -AllowStaleBuild"
+		throw "build\index.html is older than $($newest.FullName); rebuild with pnpm build or pass -AllowStaleBuild"
 	}
 }
 

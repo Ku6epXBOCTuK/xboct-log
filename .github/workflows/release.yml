@@ -83,9 +83,7 @@ jobs:
           workspaces: "."
 
       - name: Build static SPA
-        run: |
-          $env:XBOCT_LOG_STATIC = "1"
-          pnpm build
+        run: pnpm build
 
       - name: Build binary
         run: cargo build --release --locked -p xboct-log-cli

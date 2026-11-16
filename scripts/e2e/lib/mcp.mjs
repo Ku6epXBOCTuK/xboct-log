@@ -39,7 +39,7 @@ export function ensureBinary() {
 	binaryPath = null;
 }
 
-export function startServer({ port, dataDir, env = {} }) {
+export function startServer({ port, dataDir, env = {}, args = [] }) {
 	const data = dataDir ?? mkdtempSync(join(tmpdir(), "xboct-log-e2e-"));
 	mkdirSync(data, { recursive: true });
 	const child = spawn(
@@ -52,6 +52,7 @@ export function startServer({ port, dataDir, env = {} }) {
 			"--data",
 			data,
 			"--no-open",
+			...args,
 		],
 		{
 			cwd: ROOT,

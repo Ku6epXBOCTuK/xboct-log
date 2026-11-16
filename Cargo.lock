@@ -2199,23 +2199,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "xboct-log-parity"
-version = "0.10.0"
-dependencies = [
- "axum",
- "chrono",
- "regex",
- "serde",
- "serde_json",
- "sqlx",
- "tokio",
- "tower",
- "xboct-log-core",
- "xboct-log-ops",
- "xboct-log-server",
-]
-
-[[package]]
 name = "xboct-log-server"
 version = "0.10.0"
 dependencies = [

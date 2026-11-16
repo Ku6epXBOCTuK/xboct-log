@@ -12,11 +12,11 @@
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import ImageViewer from "#lib/components/ui/ImageViewer.svelte";
 	import { openExternal } from "#lib/host/embed.ts";
+	import { deletedMediaHref } from "#lib/navigation/href.ts";
 	import { useBoard } from "#lib/state/board.svelte.ts";
 	import { formatSize, isImage } from "#lib/tasks/attachments.ts";
 	import { formatDate, messageOf } from "#lib/tasks/display.ts";
 	import type { DeletedAttachment } from "#lib/types.ts";
-	import { resolve } from "$app/paths";
 	import ArchiveRestore from "~icons/lucide/archive-restore";
 	import ArrowRightLeft from "~icons/lucide/arrow-right-left";
 	import Paperclip from "~icons/lucide/paperclip";
@@ -37,7 +37,7 @@
 	let doneTo = $state<Record<string, string>>({});
 
 	function fileUrl(item: DeletedAttachment): string {
-		return resolve("/deleted/media/[id]", { id: item.id });
+		return deletedMediaHref(item.id);
 	}
 
 	function open(item: DeletedAttachment) {

@@ -1,8 +1,4 @@
-import type {
-	TagCount,
-	TagInventoryEntry,
-	TagRecord,
-} from "#lib/server/tasks/tags.ts";
+import type { TagCount, TagInventoryEntry, TagRecord } from "#lib/api/types.ts";
 import type { Status } from "#lib/types.ts";
 import { client, unwrap } from "./client.ts";
 
