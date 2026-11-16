@@ -24,7 +24,6 @@
 		"format": "biome format --write .",
 		"test:unit": "vitest",
 		"test": "npm run test:unit -- --run",
-		"restore": "node --env-file-if-exists=.env scripts/restore.mjs",
 		"contract:generate": "node scripts/contract/generate.mjs",
 		"contract:check": "node scripts/contract/generate.mjs --check",
 		"e2e:mcp": "node scripts/e2e/mcp.mjs",

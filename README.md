@@ -137,21 +137,21 @@ overwrites a production copy.
 ### Restoring
 
 Restoring replaces the live database file, so the server has to be stopped
-first. The restore is a CLI script rather than an app feature: it has to work
+first. The command lives in the binary rather than in the app: it has to work
 when the application itself is broken.
 
-In development, the script in this repository works on the dev database:
-
 ```sh
-pnpm restore list                        # every snapshot, newest first
-pnpm restore restore <path-to-snapshot>
+xboct-log restore list --data <dir>                     # newest first
+xboct-log restore apply <path-to-snapshot> --data <dir>
 ```
 
-The script refuses to run while the server still listens on the port, checks the
-snapshot with `PRAGMA integrity_check`, saves the current database into the
+`--data` is the folder the instance was started with, so the database
+(`xboct-log.db`) and the backup folder (`backups`) are found without any other
+setting; `--db` and `--backups` override them. The command refuses to run while
+the server still listens on the port from `instance.json` (or `--port`), checks
+the snapshot with `PRAGMA integrity_check`, saves the current database into the
 `manual` folder before replacing it, writes the new file atomically, and removes
-the stale `-wal`/`-shm` files. The database path comes from `--db`, then
-`XBOCT_LOG_DB`; the backup folder from `--backups`, then `XBOCT_LOG_BACKUP_DIR`.
+the stale `-wal`/`-shm` files.
 
 The same list is available over MCP through the `backup_list` tool. The tool
 cannot restore anything: it only reports which snapshots exist.
@@ -183,7 +183,6 @@ UAC: stop, replace, start, health check. `-DryRun` needs no elevation.
 | `pnpm lint`            | Biome check and ESLint                              |
 | `pnpm format`          | Format with Biome                                   |
 | `pnpm test`            | Run unit tests with Vitest                          |
-| `pnpm restore`         | List snapshots or restore one (`list`, `restore`)   |
 
 ## MCP
 

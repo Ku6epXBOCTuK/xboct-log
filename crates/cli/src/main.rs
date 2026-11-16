@@ -3,6 +3,7 @@
 mod args;
 mod health;
 mod instance;
+mod restore;
 
 use std::{
     fs,
@@ -27,7 +28,7 @@ use xboct_log_core::{
 };
 use xboct_log_server::{AppState, app};
 
-use crate::args::{APP_NAME, Options};
+use crate::args::{APP_NAME, Invocation, Options};
 
 const FORCED_EXIT: Duration = Duration::from_secs(5);
 
@@ -40,34 +41,37 @@ async fn main() -> ExitCode {
         .ok()
         .filter(|value| !value.is_empty());
 
-    let options = match args::parse(
+    let invocation = match args::parse(
         &raw,
         env_port.as_deref(),
         env_host.as_deref(),
         env_data.as_deref(),
     ) {
-        Ok(options) => options,
+        Ok(invocation) => invocation,
         Err(message) => return fail(&message),
     };
 
-    if options.help {
-        println!("{}", args::help());
-        return ExitCode::SUCCESS;
-    }
-    if options.version {
-        println!("{}", env!("CARGO_PKG_VERSION"));
-        return ExitCode::SUCCESS;
-    }
-    if let Some(path) = &options.openapi {
-        return match write_openapi(path) {
+    match invocation {
+        Invocation::Help => {
+            println!("{}", args::help());
+            ExitCode::SUCCESS
+        }
+        Invocation::Version => {
+            println!("{}", env!("CARGO_PKG_VERSION"));
+            ExitCode::SUCCESS
+        }
+        Invocation::Openapi(path) => match write_openapi(&path) {
             Ok(()) => ExitCode::SUCCESS,
             Err(message) => fail(&message),
-        };
-    }
-
-    match run(options).await {
-        Ok(()) => ExitCode::SUCCESS,
-        Err(message) => fail(&message),
+        },
+        Invocation::Restore(options) => match restore::run(options).await {
+            Ok(()) => ExitCode::SUCCESS,
+            Err(message) => fail(&message),
+        },
+        Invocation::Serve(options) => match run(options).await {
+            Ok(()) => ExitCode::SUCCESS,
+            Err(message) => fail(&message),
+        },
     }
 }
 

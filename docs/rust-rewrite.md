@@ -104,7 +104,7 @@ core/ops DTO  ──▶  openapi.json  ──openapi-typescript──▶  src/li
 - Ошибки валидации MCP совпадают с node: отсутствующее обязательное поле и
   неверный enum дают `unknown` и текст вида `Input validation error: ...`,
   как у Zod.
-- Все E2E и `compare` идут на свежем снимке прод-базы; устаревшая
+- Все E2E идут на свежем снимке прод-базы; устаревшая
   `_sqlx_migrations` пересоздаётся при старте, данные не трогаются.
 - Релиз собирает Rust: `pnpm build` даёт SPA в `build`,
   `cargo build --release --locked -p xboct-log-cli` — `xboct-log.exe`;
@@ -114,13 +114,14 @@ core/ops DTO  ──▶  openapi.json  ──openapi-typescript──▶  src/li
   `migrations/*.js` и паритет-харнесс. Node остался только сборщиком SvelteKit.
   Типы, которые фронтенд брал из серверных модулей, перенесены в
   `src/lib/api/types.ts`.
+- Офлайн-восстановление переехало из `scripts/restore.mjs` в
+  `xboct-log restore list|apply`: работает при остановленном сервере, берёт базу
+  и папку бэкапов из `--data`, проверяет снимок, кладёт текущую базу в `manual`,
+  подменяет файл атомарно и убирает `-wal`/`-shm`.
 
 ## Осталось
 
-1. **Офлайн-восстановление базы (LOG-348).** Пока живы node-скрипт
-   `scripts/restore.mjs` и `pnpm restore`; команда должна переехать в
-   `xboct-log.exe` как `restore list|apply`.
-2. **Эпик LOG-312** — отхождения от rust-way, разбирается после перевода в
+1. **Эпик LOG-312** — отхождения от rust-way, разбирается после перевода в
    продакшен.
 
 ## E2E

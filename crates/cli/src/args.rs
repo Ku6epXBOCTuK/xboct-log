@@ -4,6 +4,15 @@ pub const APP_NAME: &str = "xboct-log";
 pub const DEFAULT_HOST: &str = "127.0.0.1";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Invocation {
+    Serve(Options),
+    Restore(Restore),
+    Openapi(PathBuf),
+    Help,
+    Version,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Options {
     pub port: u16,
     pub host: String,
@@ -11,9 +20,21 @@ pub struct Options {
     pub web: Option<PathBuf>,
     pub open: bool,
     pub portable: bool,
-    pub openapi: Option<PathBuf>,
-    pub help: bool,
-    pub version: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Restore {
+    pub action: RestoreAction,
+    pub data: Option<PathBuf>,
+    pub db: Option<PathBuf>,
+    pub backups: Option<PathBuf>,
+    pub port: Option<u16>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RestoreAction {
+    List,
+    Apply { source: PathBuf },
 }
 
 pub fn parse(
@@ -21,22 +42,23 @@ pub fn parse(
     env_port: Option<&str>,
     env_host: Option<&str>,
     env_data: Option<&str>,
-) -> Result<Options, String> {
+) -> Result<Invocation, String> {
+    if args.first().map(String::as_str) == Some("restore") {
+        return parse_restore(&args[1..], env_port, env_data);
+    }
+
     let mut port = match env_port {
         Some(value) => Some(parse_port(value)?),
         None => None,
     };
-    let mut options = Options {
-        port: 0,
-        host: env_host.unwrap_or(DEFAULT_HOST).to_string(),
-        data: env_data.map(PathBuf::from),
-        web: None,
-        open: true,
-        portable: false,
-        openapi: None,
-        help: false,
-        version: false,
-    };
+    let mut host = env_host.unwrap_or(DEFAULT_HOST).to_string();
+    let mut data = env_data.map(PathBuf::from);
+    let mut web = None;
+    let mut open = true;
+    let mut portable = false;
+    let mut openapi = None;
+    let mut help = false;
+    let mut version = false;
 
     let mut index = 0;
     while index < args.len() {
@@ -47,50 +69,139 @@ pub fn parse(
             }
             "--host" => {
                 index += 1;
-                options.host = args.get(index).cloned().unwrap_or_default();
+                host = args.get(index).cloned().unwrap_or_default();
             }
             "--data" => {
                 index += 1;
-                options.data = match args.get(index) {
-                    Some(value) => Some(PathBuf::from(value)),
-                    None => return Err("--data needs a folder".to_string()),
-                };
+                data = Some(data_folder(args.get(index))?);
             }
             "--web" => {
                 index += 1;
-                let dir = args
-                    .get(index)
-                    .ok_or_else(|| "--web needs a folder with the built spa".to_string())?;
-                options.web = Some(PathBuf::from(dir));
+                web = Some(option_path(args.get(index), "--web")?);
             }
-            "--no-open" => options.open = false,
-            "--portable" => options.portable = true,
+            "--no-open" => open = false,
+            "--portable" => portable = true,
             "--openapi" => {
                 index += 1;
-                let file = args
-                    .get(index)
-                    .ok_or_else(|| "--openapi needs a file to write".to_string())?;
-                options.openapi = Some(PathBuf::from(file));
+                openapi = Some(option_path(args.get(index), "--openapi")?);
             }
-            "--help" | "-h" => options.help = true,
-            "--version" | "-v" => options.version = true,
+            "--help" | "-h" => help = true,
+            "--version" | "-v" => version = true,
             other => return Err(format!("unknown argument: {other}")),
         }
         index += 1;
     }
 
-    if options.help || options.version || options.openapi.is_some() {
-        return Ok(options);
+    if help {
+        return Ok(Invocation::Help);
     }
-    if options.data.is_some() && options.portable {
+    if version {
+        return Ok(Invocation::Version);
+    }
+    if let Some(path) = openapi {
+        return Ok(Invocation::Openapi(path));
+    }
+    if data.is_some() && portable {
         return Err("--data and --portable cannot be used together".to_string());
     }
-    options.port = port.ok_or("--port <n> or XBOCT_LOG_PORT is required")?;
-    if options.data.is_none() && !options.portable {
+    let port = port.ok_or("--port <n> or XBOCT_LOG_PORT is required")?;
+    if data.is_none() && !portable {
         return Err("--data <dir>, --portable or XBOCT_LOG_DATA is required".to_string());
     }
 
-    Ok(options)
+    Ok(Invocation::Serve(Options {
+        port,
+        host,
+        data,
+        web,
+        open,
+        portable,
+    }))
+}
+
+fn parse_restore(
+    args: &[String],
+    env_port: Option<&str>,
+    env_data: Option<&str>,
+) -> Result<Invocation, String> {
+    let mut data = env_data
+        .filter(|value| !value.is_empty())
+        .map(PathBuf::from);
+    let mut db = env_value("XBOCT_LOG_DB").map(PathBuf::from);
+    let mut backups = env_value("XBOCT_LOG_BACKUP_DIR").map(PathBuf::from);
+    let mut port = env_port.map(parse_port).transpose()?;
+    let mut positionals: Vec<&str> = Vec::new();
+
+    let mut index = 0;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--data" => {
+                index += 1;
+                data = Some(data_folder(args.get(index))?);
+            }
+            "--db" => {
+                index += 1;
+                db = Some(option_path(args.get(index), "--db")?);
+            }
+            "--backups" => {
+                index += 1;
+                backups = Some(option_path(args.get(index), "--backups")?);
+            }
+            "--port" => {
+                index += 1;
+                port = Some(parse_port(args.get(index).map_or("", String::as_str))?);
+            }
+            "--help" | "-h" => return Ok(Invocation::Help),
+            other if other.starts_with('-') => return Err(format!("unknown argument: {other}")),
+            other => positionals.push(other),
+        }
+        index += 1;
+    }
+
+    let action = match positionals.first().copied().unwrap_or("list") {
+        "list" => {
+            if let Some(extra) = positionals.get(1) {
+                return Err(format!("unexpected argument: {extra}"));
+            }
+            RestoreAction::List
+        }
+        "apply" => {
+            let source = positionals
+                .get(1)
+                .ok_or("restore apply needs the path of a snapshot")?;
+            if let Some(extra) = positionals.get(2) {
+                return Err(format!("unexpected argument: {extra}"));
+            }
+            RestoreAction::Apply {
+                source: PathBuf::from(source),
+            }
+        }
+        other => return Err(format!("unknown command: restore {other}")),
+    };
+
+    Ok(Invocation::Restore(Restore {
+        action,
+        data,
+        db,
+        backups,
+        port,
+    }))
+}
+
+fn env_value(name: &str) -> Option<String> {
+    std::env::var(name).ok().filter(|value| !value.is_empty())
+}
+
+fn data_folder(value: Option<&String>) -> Result<PathBuf, String> {
+    value
+        .map(PathBuf::from)
+        .ok_or_else(|| "--data needs a folder".to_string())
+}
+
+fn option_path(value: Option<&String>, flag: &str) -> Result<PathBuf, String> {
+    value
+        .map(PathBuf::from)
+        .ok_or_else(|| format!("{flag} needs a path"))
 }
 
 fn parse_port(value: &str) -> Result<u16, String> {
@@ -102,6 +213,8 @@ fn parse_port(value: &str) -> Result<u16, String> {
 pub fn help() -> String {
     format!(
         "usage: {APP_NAME} --port <port> --data <dir> [options]
+       {APP_NAME} restore list --data <dir>
+       {APP_NAME} restore apply <snapshot> --data <dir> [options]
 
   --port <port>  port to listen on, 0 picks a free one (required)
   --data <dir>   folder for the database, media and backups (required)
@@ -113,6 +226,14 @@ pub fn help() -> String {
   --version      print the version
   --help         show this text
 
+restore
+  list           list the snapshots in the backup folder
+  apply <snap>   replace the database with a snapshot while the server is stopped
+  --db <file>    database file (default: <data>/{APP_NAME}.db)
+  --backups <d>  backup folder (default: <data>/backups)
+  --port <n>     port of the server, refused while it answers
+                 (default: the port in <data>/instance.json)
+
 The port and the data folder can also come from XBOCT_LOG_PORT and
 XBOCT_LOG_DATA. An instance is identified by both, so every instance needs its
 own pair."
@@ -123,9 +244,16 @@ own pair."
 mod tests {
     use super::*;
 
-    fn parse_args(args: &[&str]) -> Result<Options, String> {
+    fn parse_args(args: &[&str]) -> Result<Invocation, String> {
         let owned: Vec<String> = args.iter().map(|value| (*value).to_string()).collect();
         parse(&owned, None, None, None)
+    }
+
+    fn serve(args: &[&str]) -> Options {
+        match parse_args(args).unwrap() {
+            Invocation::Serve(options) => options,
+            other => panic!("expected a serve invocation, got {other:?}"),
+        }
     }
 
     fn explicit(args: &[&str]) -> Vec<String> {
@@ -149,7 +277,7 @@ mod tests {
 
     #[test]
     fn reads_every_flag() {
-        let options = parse_args(&[
+        let options = serve(&[
             "--port",
             "0",
             "--host",
@@ -159,8 +287,7 @@ mod tests {
             "--web",
             "C:/app/build",
             "--no-open",
-        ])
-        .unwrap();
+        ]);
         assert_eq!(options.port, 0);
         assert_eq!(options.host, "0.0.0.0");
         assert_eq!(options.data, Some(PathBuf::from("C:/data")));
@@ -170,7 +297,7 @@ mod tests {
 
     #[test]
     fn keeps_the_data_folder_next_to_a_portable_application() {
-        let options = parse_args(&["--port", "1234", "--portable"]).unwrap();
+        let options = serve(&["--port", "1234", "--portable"]);
         assert!(options.portable);
         assert_eq!(options.data, None);
     }
@@ -183,20 +310,27 @@ mod tests {
 
     #[test]
     fn takes_the_port_and_host_from_the_environment() {
-        let options = parse(
+        let options = match parse(
             &explicit(&["--data", "C:/data"]),
             Some("1234"),
             Some("127.0.0.2"),
             None,
         )
-        .unwrap();
+        .unwrap()
+        {
+            Invocation::Serve(options) => options,
+            other => panic!("expected a serve invocation, got {other:?}"),
+        };
         assert_eq!(options.port, 1234);
         assert_eq!(options.host, "127.0.0.2");
     }
 
     #[test]
     fn takes_the_data_folder_from_the_environment() {
-        let options = parse(&explicit(&[]), Some("1234"), None, Some("C:/data")).unwrap();
+        let options = match parse(&explicit(&[]), Some("1234"), None, Some("C:/data")).unwrap() {
+            Invocation::Serve(options) => options,
+            other => panic!("expected a serve invocation, got {other:?}"),
+        };
         assert_eq!(options.data, Some(PathBuf::from("C:/data")));
         assert!(!options.portable);
     }
@@ -215,13 +349,11 @@ mod tests {
 
     #[test]
     fn skips_the_identity_checks_for_metadata_flags() {
-        assert!(parse_args(&["--help"]).unwrap().help);
-        assert!(parse_args(&["--version"]).unwrap().version);
-        assert!(
-            parse_args(&["--openapi", "openapi.json"])
-                .unwrap()
-                .openapi
-                .is_some()
+        assert_eq!(parse_args(&["--help"]).unwrap(), Invocation::Help);
+        assert_eq!(parse_args(&["--version"]).unwrap(), Invocation::Version);
+        assert_eq!(
+            parse_args(&["--openapi", "openapi.json"]).unwrap(),
+            Invocation::Openapi(PathBuf::from("openapi.json"))
         );
     }
 
@@ -246,5 +378,71 @@ mod tests {
         );
         assert_eq!(parse_args(&["--port"]).unwrap_err(), message);
         assert_eq!(parse(&[], Some("x"), None, None).unwrap_err(), message);
+    }
+
+    fn restore(args: &[&str]) -> Restore {
+        match parse_args(args).unwrap() {
+            Invocation::Restore(options) => options,
+            other => panic!("expected a restore invocation, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn lists_the_snapshots_by_default() {
+        let options = restore(&["restore", "--data", "C:/data"]);
+        assert_eq!(options.action, RestoreAction::List);
+        assert_eq!(options.data, Some(PathBuf::from("C:/data")));
+        assert_eq!(options.db, None);
+        assert_eq!(options.backups, None);
+    }
+
+    #[test]
+    fn reads_the_restore_flags() {
+        let options = restore(&[
+            "restore",
+            "apply",
+            "C:/snaps/manual/xboct-log.db",
+            "--data",
+            "C:/data",
+            "--db",
+            "C:/elsewhere/tasks.db",
+            "--backups",
+            "C:/snaps",
+            "--port",
+            "45881",
+        ]);
+        assert_eq!(
+            options.action,
+            RestoreAction::Apply {
+                source: PathBuf::from("C:/snaps/manual/xboct-log.db")
+            }
+        );
+        assert_eq!(options.db, Some(PathBuf::from("C:/elsewhere/tasks.db")));
+        assert_eq!(options.backups, Some(PathBuf::from("C:/snaps")));
+        assert_eq!(options.port, Some(45881));
+    }
+
+    #[test]
+    fn rejects_a_restore_apply_without_a_snapshot() {
+        assert_eq!(
+            parse_args(&["restore", "apply"]).unwrap_err(),
+            "restore apply needs the path of a snapshot"
+        );
+    }
+
+    #[test]
+    fn rejects_an_unknown_restore_command() {
+        assert_eq!(
+            parse_args(&["restore", "drop"]).unwrap_err(),
+            "unknown command: restore drop"
+        );
+        assert_eq!(
+            parse_args(&["restore", "--nope"]).unwrap_err(),
+            "unknown argument: --nope"
+        );
+        assert_eq!(
+            parse_args(&["restore", "list", "extra"]).unwrap_err(),
+            "unexpected argument: extra"
+        );
     }
 }

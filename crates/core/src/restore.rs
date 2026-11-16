@@ -308,6 +308,49 @@ async fn copy_tables_inner(connection: &mut SqliteConnection) -> Result<()> {
     Ok(())
 }
 
+async fn copy_closed_database(db_path: &Path, target: &Path) -> Result<()> {
+    let db = Db::open(db_path).await?;
+    let copied = crate::backup::copy_database(&db, target).await;
+    db.close().await;
+    copied
+}
+
+pub async fn restore_snapshot_offline(
+    source: &Path,
+    db_path: &Path,
+    backup_dir: &Path,
+    now: DateTime<Local>,
+) -> Result<RestoreOutcome> {
+    let _guard = RestoreGuard::acquire()?;
+    let snapshot = inspect_snapshot(source).await?;
+
+    let staged = PathBuf::from(format!("{}.new", db_path.display()));
+    stage_snapshot(source, &staged).await?;
+
+    let mut safety_path = String::new();
+    if db_path.is_file() {
+        let manual_dir = backup_dir.join(BackupKind::Manual.directory());
+        std::fs::create_dir_all(&manual_dir)?;
+        let safety = manual_dir.join(safety_name(now));
+        if let Err(error) = copy_closed_database(db_path, &safety).await {
+            let _ = std::fs::remove_file(&staged);
+            return Err(error);
+        }
+        safety_path = safety.to_string_lossy().into_owned();
+    }
+
+    if let Err(error) = std::fs::rename(&staged, db_path) {
+        let _ = std::fs::remove_file(&staged);
+        return Err(AppError::from(error));
+    }
+    drop_sidecars(db_path);
+
+    Ok(RestoreOutcome {
+        snapshot,
+        safety_path,
+    })
+}
+
 pub async fn restore_backup(
     db: &Db,
     db_path: &Path,
@@ -343,4 +386,100 @@ pub async fn restore_backup(
         snapshot,
         safety_path: safety_path.to_string_lossy().into_owned(),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn at(hour: u32) -> DateTime<Local> {
+        chrono::TimeZone::with_ymd_and_hms(&Local, 2026, 1, 4, hour, 0, 0)
+            .single()
+            .unwrap()
+    }
+
+    async fn migrated(path: &Path) {
+        let db = Db::open(path).await.unwrap();
+        db.migrate().await.unwrap();
+        db.close().await;
+    }
+
+    async fn project_count(path: &Path) -> i64 {
+        let db = Db::open(path).await.unwrap();
+        let count = sqlx::query_scalar("SELECT COUNT(*) FROM projects")
+            .fetch_one(db.pool())
+            .await
+            .unwrap();
+        db.close().await;
+        count
+    }
+
+    #[tokio::test]
+    async fn replaces_the_database_with_the_snapshot() {
+        let dir = crate::test_support::scratch_dir("restore-offline");
+        std::fs::create_dir_all(&dir).unwrap();
+        let source = dir.join("snapshot.db");
+        migrated(&source).await;
+
+        let db_path = dir.join("xboct-log.db");
+        migrated(&db_path).await;
+        let live = Db::open(&db_path).await.unwrap();
+        crate::projects::ensure_inbox(&live).await.unwrap();
+        live.close().await;
+        assert_eq!(project_count(&db_path).await, 1);
+
+        let outcome = restore_snapshot_offline(&source, &db_path, &dir.join("backups"), at(4))
+            .await
+            .unwrap();
+
+        assert_eq!(outcome.snapshot.projects, 0);
+        assert_eq!(project_count(&db_path).await, 0);
+        let safety = PathBuf::from(&outcome.safety_path);
+        assert!(safety.is_file());
+        assert_eq!(project_count(&safety).await, 1);
+        assert!(!dir.join("xboct-log.db.new").exists());
+        assert!(!dir.join("xboct-log.db-wal").exists());
+
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[tokio::test]
+    async fn restores_without_a_previous_database() {
+        let dir = crate::test_support::scratch_dir("restore-offline-fresh");
+        std::fs::create_dir_all(&dir).unwrap();
+        let source = dir.join("snapshot.db");
+        migrated(&source).await;
+        let db_path = dir.join("xboct-log.db");
+
+        let outcome = restore_snapshot_offline(&source, &db_path, &dir.join("backups"), at(4))
+            .await
+            .unwrap();
+
+        assert!(outcome.safety_path.is_empty());
+        assert_eq!(project_count(&db_path).await, 0);
+
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[tokio::test]
+    async fn refuses_a_file_that_is_not_a_snapshot() {
+        let dir = crate::test_support::scratch_dir("restore-offline-bad");
+        std::fs::create_dir_all(&dir).unwrap();
+        let source = dir.join("notes.db");
+        std::fs::write(&source, b"not a database").unwrap();
+        let db_path = dir.join("xboct-log.db");
+        std::fs::write(&db_path, b"kept").unwrap();
+
+        let error = restore_snapshot_offline(&source, &db_path, &dir.join("backups"), at(4))
+            .await
+            .unwrap_err();
+
+        assert_eq!(
+            error.to_string(),
+            format!("not a SQLite database: {}", source.display())
+        );
+        assert_eq!(std::fs::read(&db_path).unwrap(), b"kept");
+
+        let _ = std::fs::remove_dir_all(dir);
+    }
 }

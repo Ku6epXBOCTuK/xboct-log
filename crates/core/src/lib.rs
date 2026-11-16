@@ -57,7 +57,10 @@ pub use projects::{
     normalize_prefix, normalize_repo, project_details, project_id_error, project_prefix_error,
     project_with_counts, repo_error, resolve_project_ref, update_project,
 };
-pub use restore::{RestoreOutcome, SnapshotInfo, inspect_snapshot, resolve_backup, restore_backup};
+pub use restore::{
+    RestoreOutcome, SnapshotInfo, inspect_snapshot, resolve_backup, restore_backup,
+    restore_snapshot_offline,
+};
 pub use scheduler::{
     catch_up, ms_until_next, run_scheduled, scheduled_for, start as start_scheduler,
 };
