@@ -1,10 +1,12 @@
+use schemars::JsonSchema;
+
 use serde::Deserialize;
 use serde_json::Value;
 use sqlx::{QueryBuilder, Sqlite};
 
 use crate::{ActivitySource, AppError, Db, OpName, ProjectId, Result};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum ActivityEntity {
     Task,
@@ -24,23 +26,33 @@ impl ActivityEntity {
     }
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ActivitySearch {
+    #[schemars(description = "Surface of the change.")]
     #[serde(default)]
     pub source: Option<ActivitySource>,
+    #[schemars(description = "Operation name, for example tasks_update.")]
     #[serde(default)]
     pub op: Option<OpName>,
+    #[schemars(description = "Entity type of the changed object.")]
     #[serde(default)]
     pub entity: Option<ActivityEntity>,
+    #[schemars(
+        description = "Project id: keeps the project's own events, events of its tasks and of its scopes."
+    )]
     #[serde(default)]
     pub project_id: Option<ProjectId>,
+    #[schemars(description = "Start of the period as an ISO date-time.")]
     #[serde(default)]
     pub from: Option<String>,
+    #[schemars(description = "End of the period as an ISO date-time.")]
     #[serde(default)]
     pub to: Option<String>,
+    #[schemars(description = "Maximum number of events to return (default 50, max 200).")]
     #[serde(default)]
     pub limit: Option<i64>,
+    #[schemars(description = "Number of events to skip, for pagination.")]
     #[serde(default)]
     pub offset: Option<i64>,
 }
@@ -87,7 +99,7 @@ fn clamp_limit(limit: Option<i64>) -> i64 {
     limit.unwrap_or(50).clamp(1, 200)
 }
 
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, JsonSchema)]
 pub struct ActivityItem {
     pub ts: String,
     pub source: String,
@@ -99,7 +111,7 @@ pub struct ActivityItem {
     pub changes: Vec<Value>,
 }
 
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, JsonSchema)]
 pub struct HistoryItem {
     pub ts: String,
     pub source: String,
@@ -109,14 +121,14 @@ pub struct HistoryItem {
     pub changes: Vec<Value>,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, JsonSchema)]
 pub struct ActivityPage {
     pub items: Vec<ActivityItem>,
     pub total: i64,
     pub ops: Vec<String>,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, JsonSchema)]
 pub struct HistoryPage {
     pub items: Vec<HistoryItem>,
     pub total: i64,

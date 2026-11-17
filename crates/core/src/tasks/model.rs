@@ -1,11 +1,14 @@
 use std::collections::BTreeMap;
 
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::ids::{ProjectId, ScopeId, Seq, TagName, TaskKey};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema,
+)]
 #[serde(rename_all = "kebab-case")]
 pub enum Status {
     Backlog,
@@ -51,7 +54,7 @@ impl Status {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub enum Priority {
     Low,
@@ -80,7 +83,7 @@ impl Priority {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub enum Estimate {
     #[serde(rename = "S")]
     Small,
@@ -125,7 +128,7 @@ impl Priority {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub enum ClosedReason {
     Fixed,
@@ -154,7 +157,7 @@ impl ClosedReason {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct Task {
     pub id: TaskKey,
     pub project_id: ProjectId,
@@ -194,33 +197,34 @@ pub struct Task {
     pub children_counts: Option<BTreeMap<String, i64>>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct TaskList {
+    #[schemars(with = "Vec<Task>")]
     pub items: Vec<serde_json::Value>,
     pub total: i64,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct Change {
     pub field: String,
     pub from: Value,
     pub to: Value,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct ReleasedLink {
     pub task_id: TaskKey,
     pub changes: Vec<Change>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, JsonSchema)]
 pub struct Created {
     #[serde(flatten)]
     pub task: Task,
     pub warnings: Vec<String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, JsonSchema)]
 pub struct Updated {
     #[serde(flatten)]
     pub task: Task,
@@ -232,7 +236,7 @@ pub struct Updated {
     pub reopened_epic: Option<Task>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, JsonSchema)]
 pub struct Closed {
     #[serde(flatten)]
     pub task: Task,
@@ -243,7 +247,7 @@ pub struct Closed {
     pub closed_epic: Option<Task>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, JsonSchema)]
 pub struct Deleted {
     pub id: TaskKey,
     pub deleted_at: String,
@@ -251,17 +255,18 @@ pub struct Deleted {
     pub released: Vec<ReleasedLink>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, JsonSchema)]
 pub struct Linked {
     #[serde(flatten)]
     pub task: Task,
     pub changes: Vec<Change>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, JsonSchema)]
 pub struct TaskStats {
     pub tasks: BTreeMap<Status, i64>,
     // NOTE: epics come from the list projection, which trades description for short_description
+    #[schemars(with = "Vec<Task>")]
     pub epics: Vec<Value>,
 }
 

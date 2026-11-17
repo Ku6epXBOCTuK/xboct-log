@@ -1,3 +1,5 @@
+use schemars::JsonSchema;
+
 use serde::{Deserialize, Serialize};
 use xboct_log_core::{
     Attachment, AttachmentCheck, AttachmentId, DeletedAttachment, Entity, MovedAttachment, OpName,
@@ -9,49 +11,77 @@ use xboct_log_core::{
 use crate::descriptions;
 use crate::{Ctx, Kind, Op, Result};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ListInput {
+    #[schemars(
+        description = "Task id in the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'); the prefix is matched case-insensitively, so 'log-82' works too. A bare task number (e.g. '82') is rejected: numbers are unique only inside a project, so resolve the project prefix first and pass 'LOG-82'. When nothing matches, the error suggests close ids."
+    )]
     pub task_id: TaskKey,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct OptionalTaskInput {
+    #[schemars(
+        description = "Task id in the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'); the prefix is matched case-insensitively, so 'log-82' works too. A bare task number (e.g. '82') is rejected: numbers are unique only inside a project, so resolve the project prefix first and pass 'LOG-82'. When nothing matches, the error suggests close ids."
+    )]
     #[serde(default)]
     pub task_id: Option<TaskKey>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct AddInput {
+    #[schemars(
+        description = "Task id in the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'); the prefix is matched case-insensitively, so 'log-82' works too. A bare task number (e.g. '82') is rejected: numbers are unique only inside a project, so resolve the project prefix first and pass 'LOG-82'. When nothing matches, the error suggests close ids."
+    )]
     pub task_id: TaskKey,
+    #[schemars(description = "The name of the file as it should be shown, with its extension.")]
     pub filename: String,
+    #[schemars(
+        description = "A path to the file on the machine where the app runs. Use it instead of content_base64 when the file is already there."
+    )]
     #[serde(default)]
     pub path: Option<String>,
+    #[schemars(description = "The content of the file encoded as base64.")]
     #[serde(default)]
     pub content_base64: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct AttachmentInput {
+    #[schemars(description = "The `id` of an attachment from attachments_list.")]
     pub attachment_id: AttachmentId,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct DeletedAttachmentInput {
+    #[schemars(description = "The `id` of an attachment from attachments_deleted_list.")]
+    pub attachment_id: AttachmentId,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct MoveInput {
+    #[schemars(
+        description = "The `id` of an attachment from attachments_list or attachments_deleted_list."
+    )]
     pub attachment_id: AttachmentId,
+    #[schemars(
+        description = "Task id in the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'); the prefix is matched case-insensitively, so 'log-82' works too. A bare task number (e.g. '82') is rejected: numbers are unique only inside a project, so resolve the project prefix first and pass 'LOG-82'. When nothing matches, the error suggests close ids."
+    )]
     pub task_id: TaskKey,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, JsonSchema)]
 pub struct Items<Item> {
     pub items: Vec<Item>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, JsonSchema)]
 pub struct Created<Item> {
     pub item: Item,
 }
@@ -175,7 +205,7 @@ impl Op for AttachmentsRestore {
     const NAME: OpName = OpName::AttachmentsRestore;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
-    type Input = AttachmentInput;
+    type Input = DeletedAttachmentInput;
     type Output = Attachment;
 
     fn description() -> &'static str {
@@ -259,7 +289,7 @@ impl Op for AttachmentsPurge {
     const NAME: OpName = OpName::AttachmentsPurge;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
-    type Input = AttachmentInput;
+    type Input = DeletedAttachmentInput;
     type Output = PurgedAttachment;
 
     fn description() -> &'static str {

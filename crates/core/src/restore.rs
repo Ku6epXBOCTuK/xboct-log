@@ -1,3 +1,5 @@
+use schemars::JsonSchema;
+
 use std::{
     path::{Path, PathBuf},
     sync::atomic::{AtomicBool, Ordering},
@@ -30,13 +32,13 @@ impl Drop for RestoreGuard {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
 pub struct SnapshotInfo {
     pub projects: i64,
     pub tasks: i64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
 pub struct RestoreOutcome {
     pub snapshot: SnapshotInfo,
     #[serde(rename = "safetyPath")]

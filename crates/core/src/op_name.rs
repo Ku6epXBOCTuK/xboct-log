@@ -1,6 +1,16 @@
 macro_rules! op_names {
     ($($variant:ident => $name:literal),+ $(,)?) => {
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+        #[derive(
+            Debug,
+            Clone,
+            Copy,
+            PartialEq,
+            Eq,
+            Hash,
+            serde::Serialize,
+            serde::Deserialize,
+            schemars::JsonSchema,
+        )]
         #[serde(rename_all = "snake_case")]
         pub enum OpName {
             $($variant),+

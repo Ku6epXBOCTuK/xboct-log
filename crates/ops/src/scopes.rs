@@ -1,3 +1,5 @@
+use schemars::JsonSchema;
+
 use serde::Deserialize;
 use xboct_log_core::{
     AppError, Entity, OpName, ProjectId, Result, Scope, ScopeDeleteReport, ScopeId,
@@ -15,7 +17,7 @@ fn required_project(value: &str) -> Result<ProjectId> {
     Ok(ProjectId::new(trimmed))
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Deserialize, JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct ListInput {
     pub project_id: Option<String>,
@@ -53,7 +55,7 @@ impl Op for ScopesList {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct GetInput {
     pub scope_id: ScopeId,
@@ -102,11 +104,11 @@ impl Op for ScopesProjectIds {
     }
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Deserialize, JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct EmptyInput {}
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct CreateInput {
     pub project_id: String,
@@ -137,13 +139,13 @@ impl Op for ScopesCreate {
     }
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Deserialize, JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct PatchInput {
     pub name: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct UpdateInput {
     pub scope_id: ScopeId,
@@ -173,10 +175,13 @@ impl Op for ScopesUpdate {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct DeleteInput {
     pub scope_id: ScopeId,
+    #[schemars(
+        description = "Preview the deletion instead of performing it: returns the scope and the ids of the tasks and epics that would lose the scope."
+    )]
     pub dry_run: Option<bool>,
 }
 

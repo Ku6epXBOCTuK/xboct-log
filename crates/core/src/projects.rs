@@ -1,3 +1,5 @@
+use schemars::JsonSchema;
+
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
 
@@ -14,7 +16,7 @@ pub const INBOX_PROJECT_PREFIX: &str = "INB";
 pub const PROJECT_ID_MAX_LENGTH: usize = 40;
 pub const REPO_MAX_LENGTH: usize = 200;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
 pub struct Project {
     pub id: ProjectId,
     pub name: String,
@@ -39,7 +41,7 @@ pub struct ProjectPatch {
     pub repo: Option<Option<String>>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct ProjectWithCounts {
     #[serde(flatten)]
     pub project: Project,
@@ -47,7 +49,7 @@ pub struct ProjectWithCounts {
     pub epic_counts: BTreeMap<Status, i64>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct ScopeCount {
     pub scope_id: ScopeId,
     pub name: String,
@@ -55,7 +57,7 @@ pub struct ScopeCount {
     pub epics: i64,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct ProjectDetails {
     #[serde(flatten)]
     pub project: Project,

@@ -3,6 +3,7 @@
 use std::{future::Future, sync::Arc};
 
 use chrono::Local;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use xboct_log_core::{
     ActivitySource, AutoBackup, Config, Db, Entity, Events, OpName, Result, maybe_auto_backup,
@@ -16,10 +17,38 @@ pub mod comments;
 mod descriptions;
 mod entries;
 pub mod projects;
-pub mod schemas;
 pub mod scopes;
 pub mod tags;
 pub mod tasks;
+
+pub fn schema_of<T: JsonSchema>() -> serde_json::Value {
+    serde_json::to_value(schemars::schema_for!(T)).unwrap_or(serde_json::Value::Null)
+}
+
+pub fn patch_fields(name: &str) -> &'static [&'static str] {
+    match name {
+        "projects_update" => &["name", "archived", "repo"],
+        "scopes_update" => &["name"],
+        "tags_update" => &["archived"],
+        "tasks_update" => &[
+            "title",
+            "description",
+            "status",
+            "priority",
+            "is_epic",
+            "epic_id",
+            "scope_id",
+            "scope",
+            "source_file",
+            "tags",
+            "estimate",
+            "assignee",
+            "due_at",
+            "blocked_reason",
+        ],
+        _ => &[],
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -74,8 +103,8 @@ pub trait Op {
     const KIND: Kind;
     const MCP: bool;
 
-    type Input: DeserializeOwned + Send;
-    type Output: Serialize + Send;
+    type Input: DeserializeOwned + Send + JsonSchema;
+    type Output: Serialize + Send + JsonSchema;
 
     fn description() -> &'static str;
 
@@ -140,6 +169,39 @@ macro_rules! ops {
 					entity: <$op as $crate::Op>::entity(),
 				}),+
 			]
+		}
+
+		pub fn operation_schema(
+			name: &str,
+		) -> ::std::option::Option<(
+			&'static str,
+			::serde_json::Value,
+			::serde_json::Value,
+		)> {
+			$(
+				if name == <$op as $crate::Op>::NAME.as_str() {
+					return ::std::option::Option::Some((
+						<$op as $crate::Op>::NAME.as_str(),
+						$crate::schema_of::<<$op as $crate::Op>::Input>(),
+						$crate::schema_of::<<$op as $crate::Op>::Output>(),
+					));
+				}
+			)+
+			::std::option::Option::None
+		}
+
+		pub fn tool_schema(
+			name: &str,
+		) -> ::std::option::Option<(::serde_json::Value, ::serde_json::Value)> {
+			$(
+				if <$op as $crate::Op>::MCP && name == <$op as $crate::Op>::NAME.as_str() {
+					return ::std::option::Option::Some((
+						$crate::schema_of::<<$op as $crate::Op>::Input>(),
+						$crate::schema_of::<<$op as $crate::Op>::Output>(),
+					));
+				}
+			)+
+			::std::option::Option::None
 		}
 
 		pub async fn dispatch(
@@ -237,17 +299,3 @@ crate::ops![
     TagsUpdate,
     TagsRename,
 ];
-
-pub fn tool_schema(name: &str) -> Option<(&'static str, &'static str)> {
-    schemas::TOOLS
-        .iter()
-        .find(|(tool, _, _)| *tool == name)
-        .map(|(_, input, output)| (*input, *output))
-}
-
-pub fn operation_schema(name: &str) -> Option<(&'static str, &'static str)> {
-    schemas::OPERATIONS
-        .iter()
-        .find(|(operation, _, _)| *operation == name)
-        .map(|(_, input, output)| (*input, *output))
-}

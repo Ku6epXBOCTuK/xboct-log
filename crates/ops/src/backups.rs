@@ -1,3 +1,5 @@
+use schemars::JsonSchema;
+
 use std::path::PathBuf;
 
 use chrono::Local;
@@ -9,23 +11,23 @@ use xboct_log_core::{
 
 use crate::{Ctx, Kind, descriptions};
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct EmptyInput {}
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct TargetInput {
     pub kind: BackupKind,
     pub name: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, JsonSchema)]
 pub struct BackupCreated {
     pub path: PathBuf,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, JsonSchema)]
 pub struct BackupList {
     pub items: Vec<xboct_log_core::BackupFile>,
 }

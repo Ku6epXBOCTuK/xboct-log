@@ -2291,6 +2291,7 @@ dependencies = [
  "icu_locale_core",
  "libsqlite3-sys",
  "regex",
+ "schemars",
  "serde",
  "serde_json",
  "sha2 0.10.9",
@@ -2306,6 +2307,7 @@ name = "xboct-log-ops"
 version = "0.10.0"
 dependencies = [
  "chrono",
+ "schemars",
  "serde",
  "serde_json",
  "sqlx",
@@ -2325,6 +2327,7 @@ dependencies = [
  "futures-util",
  "mime_guess",
  "rmcp",
+ "schemars",
  "serde",
  "serde_json",
  "sqlx",

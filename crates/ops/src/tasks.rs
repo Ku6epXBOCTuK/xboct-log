@@ -1,3 +1,5 @@
+use schemars::JsonSchema;
+
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use xboct_log_core::{
@@ -30,7 +32,7 @@ impl Op for TasksList {
 
 pub struct TasksGet;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct GetInput {
     pub task_id: TaskKey,
@@ -87,8 +89,9 @@ impl Op for TasksCreate {
 
 pub struct TasksUpdate;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 pub struct UpdateInput {
+    #[schemars(description = "Full task id, e.g. 'LOG-82'.")]
     pub task_id: TaskKey,
     #[serde(default)]
     pub patch: Option<Value>,
@@ -124,9 +127,10 @@ impl Op for TasksUpdate {
 
 pub struct TasksClose;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct CloseInput {
+    #[schemars(description = "Full task id, e.g. 'LOG-82'.")]
     pub task_id: TaskKey,
     pub reason: ClosedReason,
 }
@@ -152,13 +156,13 @@ impl Op for TasksClose {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, JsonSchema)]
 pub struct BatchError {
     pub kind: xboct_log_core::AppErrorKind,
     pub message: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, JsonSchema)]
 pub struct BatchOk {
     pub index: usize,
     pub id: Option<String>,
@@ -173,7 +177,7 @@ pub struct BatchOk {
     pub reopened_epic: Option<Task>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, JsonSchema)]
 pub struct BatchFailure {
     pub index: usize,
     pub id: Option<String>,
@@ -181,14 +185,14 @@ pub struct BatchFailure {
     pub error: BatchError,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, JsonSchema)]
 #[serde(untagged)]
 pub enum BatchItem {
     Ok(Box<BatchOk>),
     Failed(BatchFailure),
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, JsonSchema)]
 pub struct BatchSummary {
     pub items: Vec<BatchItem>,
     pub succeeded: i64,
@@ -251,7 +255,7 @@ fn update_item(
 
 pub struct TasksDelete;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct DeleteInput {
     pub task_id: TaskKey,
@@ -303,10 +307,11 @@ impl Op for TasksRestore {
 
 pub struct TasksMove;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct MoveInput {
     pub task_id: TaskKey,
+    #[schemars(description = "Destination project id (e.g. 'eit').")]
     pub project_id: ProjectId,
 }
 
@@ -333,7 +338,7 @@ impl Op for TasksMove {
 
 pub struct TasksCreateMany;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct CreateManyInput {
     pub items: Vec<NewTask>,
@@ -380,7 +385,7 @@ impl Op for TasksCreateMany {
 
 pub struct TasksUpdateMany;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 pub struct UpdateManyInput {
     pub items: Vec<UpdateInput>,
 }
@@ -432,7 +437,7 @@ impl Op for TasksUpdateMany {
 
 pub struct TasksCloseMany;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct CloseManyInput {
     pub items: Vec<CloseInput>,
@@ -471,25 +476,40 @@ impl Op for TasksCloseMany {
     }
 }
 
-#[derive(Debug, Clone, Copy, Deserialize)]
+#[derive(Debug, Clone, Copy, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum LinkKindInput {
     RelatesTo,
     Duplicates,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct LinkInput {
+    #[schemars(
+        description = "Task id of the source task in the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). A bare number is rejected: numbers are unique only inside a project."
+    )]
     pub task_id: TaskKey,
+    #[schemars(
+        description = "Link type: 'relates_to' is symmetric (one record, visible from both tasks); 'duplicates' is directed (id duplicates target). Blocking uses tasks_add_blocker instead."
+    )]
     pub link_type: LinkKindInput,
+    #[schemars(
+        description = "Task id of the target task in the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). A bare number is rejected: numbers are unique only inside a project."
+    )]
     pub target: TaskKey,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct BlockerInput {
+    #[schemars(
+        description = "Task id of the blocked task in the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). A bare number is rejected: numbers are unique only inside a project."
+    )]
     pub task_id: TaskKey,
+    #[schemars(
+        description = "Task id of the blocking task in the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). A bare number is rejected: numbers are unique only inside a project."
+    )]
     pub blocked_by: TaskKey,
 }
 
@@ -617,13 +637,18 @@ impl Op for TasksRemoveBlocker {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct OptionsInput {
+    #[schemars(description = "Project id: the tasks of this project only.")]
     #[serde(default)]
     project_id: Option<ProjectId>,
+    #[schemars(
+        description = "Search over the whole backlog: words are OR-ed, =12 and =LOG-12 match one task exactly."
+    )]
     #[serde(default)]
     q: Option<String>,
+    #[schemars(description = "Item cap, 50 by default.")]
     #[serde(default)]
     limit: Option<i64>,
 }
@@ -657,7 +682,7 @@ impl Op for TasksOptions {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct StatsInput {}
 
@@ -679,12 +704,16 @@ impl Op for TasksStats {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct RevisionsInput {
     task_id: TaskKey,
+    #[schemars(
+        description = "Keep only the revisions of this field. Omit it to get both descriptions and comments."
+    )]
     #[serde(default)]
     field: Option<String>,
+    #[schemars(description = "Maximum number of revisions to return (default 50, max 200).")]
     #[serde(default)]
     limit: Option<i64>,
 }
@@ -726,15 +755,19 @@ impl Op for TasksRevisionsList {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct DeletedListInput {
+    #[schemars(description = "Project id: keeps only the deleted tasks of that project.")]
     #[serde(default)]
     project_id: Option<ProjectId>,
+    #[schemars(description = "Text to search in the id, the title and the description.")]
     #[serde(default)]
     q: Option<String>,
+    #[schemars(description = "Maximum number of tasks to return (default 50, max 200).")]
     #[serde(default)]
     limit: Option<i64>,
+    #[schemars(description = "Number of tasks to skip, for pagination.")]
     #[serde(default)]
     offset: Option<i64>,
 }
@@ -777,9 +810,10 @@ impl Op for TasksDeletedList {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct GetManyInput {
+    #[schemars(description = "List of task IDs to fetch.")]
     task_ids: Vec<TaskKey>,
 }
 

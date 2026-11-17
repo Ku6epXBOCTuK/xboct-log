@@ -15,16 +15,27 @@ use rmcp::model::{
 use rmcp::service::RequestContext;
 use serde_json::{Map, Value, json};
 use xboct_log_core::{
-    ActivitySource, AppError, Attachment, AttachmentContents, AutoBackup, Config, Db, Events,
-    attachment_by_id, attachment_format, list_all_attachments, read_attachment_file,
+    ActivitySource, AppError, Attachment, AttachmentContents, AttachmentId, AutoBackup, Config, Db,
+    Events, attachment_by_id, attachment_format, list_all_attachments, read_attachment_file,
 };
-use xboct_log_ops::{Ctx, dispatch, metadata, tool_schema};
+use xboct_log_ops::{Ctx, dispatch, metadata, patch_fields, schema_of, tool_schema};
 
 use crate::mcp_text;
 
 const ATTACHMENT_INDEX_URI: &str = "xboct-log://attachments";
 const ATTACHMENT_URI_PREFIX: &str = "xboct-log://attachment/";
 const CLIENT_LABEL_MAX_LENGTH: usize = 80;
+
+#[derive(serde::Serialize, schemars::JsonSchema)]
+struct ReadAttachmentInput {
+    #[schemars(description = "The `id` field of an item from attachments_list.")]
+    attachment_id: AttachmentId,
+}
+
+#[derive(serde::Serialize, schemars::JsonSchema)]
+struct ReadAttachmentOutput {
+    item: Attachment,
+}
 
 #[derive(Clone)]
 pub struct Backlog {
@@ -106,19 +117,17 @@ impl ServerHandler for Backlog {
                     Some(Cow::Borrowed(info.description)),
                     parse_schema(input),
                 )
-                .with_raw_output_schema(parse_schema(output)),
+                .with_raw_output_schema(parse_schema(wrap_items(output))),
             );
         }
-        if let Some((input, output)) = tool_schema("attachments_read") {
-            tools.push(
-                Tool::new_with_raw(
-                    "attachments_read",
-                    Some(Cow::Borrowed(mcp_text::ATTACHMENTS_READ_DESCRIPTION)),
-                    parse_schema(input),
-                )
-                .with_raw_output_schema(parse_schema(output)),
-            );
-        }
+        tools.push(
+            Tool::new_with_raw(
+                "attachments_read",
+                Some(Cow::Borrowed(mcp_text::ATTACHMENTS_READ_DESCRIPTION)),
+                parse_schema(schema_of::<ReadAttachmentInput>()),
+            )
+            .with_raw_output_schema(parse_schema(schema_of::<ReadAttachmentOutput>())),
+        );
         Ok(ListToolsResult::with_all_items(tools))
     }
 
@@ -129,10 +138,10 @@ impl ServerHandler for Backlog {
     ) -> Result<CallToolResponse, McpError> {
         let name = request.name.clone();
         let arguments = Value::Object(request.arguments.unwrap_or_default());
+        let arguments = normalize_arguments(name.as_ref(), arguments);
         if let Some(message) = validation_error(name.as_ref(), &arguments) {
             return Ok(bare_failure(&message).into());
         }
-        let arguments = normalize_arguments(name.as_ref(), arguments);
         let result = if name == "attachments_read" {
             self.call_attachments_read(&arguments).await
         } else {
@@ -305,12 +314,54 @@ fn attachment_mime(file_name: &str) -> String {
         .unwrap_or_else(|| "application/octet-stream".to_string())
 }
 
-fn parse_schema(text: &str) -> Arc<JsonObject> {
-    let mut parsed: Value = serde_json::from_str(text).unwrap_or(Value::Null);
-    crate::schema::describe_ops(&mut parsed);
-    match parsed {
+fn parse_schema(mut schema: Value) -> Arc<JsonObject> {
+    if let Value::Object(map) = &mut schema {
+        map.remove("$schema");
+    }
+    match schema {
         Value::Object(map) => Arc::new(map),
         _ => Arc::new(JsonObject::new()),
+    }
+}
+
+fn wrap_items(schema: Value) -> Value {
+    if schema.get("type").and_then(Value::as_str) == Some("array") {
+        return json!({
+            "type": "object",
+            "properties": { "items": schema },
+            "required": ["items"],
+            "additionalProperties": false,
+        });
+    }
+    schema
+}
+
+fn deref<'a>(mut schema: &'a Value, root: &'a Value) -> &'a Value {
+    loop {
+        if let Some(reference) = schema.get("$ref").and_then(Value::as_str) {
+            let Some(name) = reference.rsplit('/').next() else {
+                return schema;
+            };
+            let Some(target) = root
+                .get("$defs")
+                .or_else(|| root.get("definitions"))
+                .and_then(|defs| defs.get(name))
+            else {
+                return schema;
+            };
+            schema = target;
+            continue;
+        }
+        let Some(variants) = schema.get("anyOf").and_then(Value::as_array) else {
+            return schema;
+        };
+        let mut concrete = variants
+            .iter()
+            .filter(|variant| variant.get("type").and_then(Value::as_str) != Some("null"));
+        let (Some(only), None) = (concrete.next(), concrete.next()) else {
+            return schema;
+        };
+        schema = only;
     }
 }
 
@@ -356,7 +407,7 @@ fn client_label(context: &RequestContext<RoleServer>) -> Option<String> {
 }
 
 fn validation_error(name: &str, arguments: &Value) -> Option<String> {
-    let schema: Value = serde_json::from_str(tool_schema(name)?.0).ok()?;
+    let schema = tool_schema(name)?.0;
     let properties = schema.get("properties")?.as_object()?;
     let allowed: Vec<String> = properties.keys().cloned().collect();
     let object = arguments.as_object()?;
@@ -391,7 +442,10 @@ fn validation_error(name: &str, arguments: &Value) -> Option<String> {
         if value.is_null() {
             continue;
         }
-        let Some(options) = property.get("enum").and_then(Value::as_array) else {
+        let Some(options) = deref(property, &schema)
+            .get("enum")
+            .and_then(Value::as_array)
+        else {
             continue;
         };
         if options.iter().any(|option| option == value) {
@@ -414,7 +468,8 @@ fn validation_error(name: &str, arguments: &Value) -> Option<String> {
             if object.contains_key(key) {
                 continue;
             }
-            let Some(property) = properties.get(key) else {
+            let Some(property) = properties.get(key).map(|property| deref(property, &schema))
+            else {
                 continue;
             };
             if property.get("default").is_some() {
@@ -509,31 +564,6 @@ fn normalize_arguments(name: &str, arguments: Value) -> Value {
     Value::Object(arguments)
 }
 
-fn patch_fields(name: &str) -> &'static [&'static str] {
-    match name {
-        "projects_update" => &["name", "archived", "repo"],
-        "scopes_update" => &["name"],
-        "tags_update" => &["archived"],
-        "tasks_update" => &[
-            "title",
-            "description",
-            "status",
-            "priority",
-            "is_epic",
-            "epic_id",
-            "scope_id",
-            "scope",
-            "source_file",
-            "tags",
-            "estimate",
-            "assignee",
-            "due_at",
-            "blocked_reason",
-        ],
-        _ => &[],
-    }
-}
-
 fn flatten_patch(arguments: &mut Map<String, Value>, fields: &[&str]) {
     let keys: Vec<String> = arguments
         .keys()
@@ -569,8 +599,11 @@ mod tests {
     #[test]
     fn lists_the_operation_names_in_the_activity_filter() {
         let (input, _) = tool_schema("activity_list").expect("activity_list schema");
-        let schema = parse_schema(input);
-        let names: Vec<&str> = OpName::ALL.iter().map(|name| name.as_str()).collect();
-        assert_eq!(schema["properties"]["op"]["enum"], json!(names));
+        let op = deref(&input["properties"]["op"], &input);
+        let names: Vec<String> = OpName::ALL
+            .iter()
+            .map(|name| name.as_str().to_string())
+            .collect();
+        assert_eq!(op["enum"], json!(names));
     }
 }

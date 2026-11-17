@@ -1,3 +1,5 @@
+use schemars::JsonSchema;
+
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
@@ -9,7 +11,7 @@ use crate::{
 
 pub const MAX_COMMENT_BODY_LENGTH: usize = 20_000;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct Comment {
     pub id: String,
     pub task_id: TaskKey,

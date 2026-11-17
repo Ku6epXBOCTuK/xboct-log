@@ -1,3 +1,5 @@
+use schemars::JsonSchema;
+
 use serde::Deserialize;
 use xboct_log_core::{
     AppError, Entity, NewProject, OpName, Project, ProjectDetails, ProjectPatch, ProjectWithCounts,
@@ -7,11 +9,17 @@ use xboct_log_core::{
 
 use crate::{Ctx, Kind, Op};
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Deserialize, JsonSchema)]
 #[serde(default, deny_unknown_fields, rename_all = "camelCase")]
 pub struct ListInput {
     pub include_archived: Option<bool>,
+    #[schemars(
+        description = "Case-insensitive substring match on the project name, id, prefix or repo."
+    )]
     pub q: Option<String>,
+    #[schemars(
+        description = "Exact repository lookup, canonical host/owner/name. Accepts a git URL and normalizes it."
+    )]
     pub repo: Option<String>,
 }
 
@@ -83,7 +91,7 @@ impl Op for ProjectsList {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct GetInput {
     pub project_id: String,
@@ -115,12 +123,15 @@ impl Op for ProjectsGet {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct CreateInput {
     pub project_id: String,
     pub name: String,
     pub prefix: String,
+    #[schemars(
+        description = "Git repository as host/owner/name; a full URL or SSH form is normalized. Optional."
+    )]
     pub repo: Option<Option<String>>,
 }
 
@@ -158,11 +169,17 @@ impl Op for ProjectsCreate {
     }
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Deserialize, JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct PatchInput {
+    #[serde(default)]
     pub name: Option<String>,
+    #[serde(default)]
     pub archived: Option<bool>,
+    #[serde(default)]
+    #[schemars(
+        description = "Git repository as host/owner/name; a full URL or SSH form is normalized. null clears it."
+    )]
     pub repo: Option<Option<String>>,
 }
 
@@ -176,7 +193,7 @@ impl From<PatchInput> for ProjectPatch {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct UpdateInput {
     pub project_id: String,

@@ -1,15 +1,17 @@
+use schemars::JsonSchema;
+
 use serde::{Deserialize, Serialize};
 use xboct_log_core::{Comment, Entity, OpName, Result, TaskKey};
 
 use crate::{Ctx, Kind, Op};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ListInput {
     pub task_id: TaskKey,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, JsonSchema)]
 pub struct CommentList {
     pub items: Vec<Comment>,
     pub total: usize,
@@ -39,10 +41,13 @@ impl Op for CommentsList {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct AddInput {
     pub task_id: TaskKey,
+    #[schemars(
+        description = "Comment text as Markdown for the human reader of the task: what changed and why, in a few sentences. Markdown is rendered, so format it; a short log, config or command output is welcome in a fenced code block when it carries the point. Keep source code in the repository - name the file and describe the algorithm. A raw dump goes to an attachment, and walls of text stay out."
+    )]
     pub body: String,
 }
 
@@ -69,10 +74,14 @@ impl Op for CommentsAdd {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct EditInput {
+    #[schemars(description = "The `id` of a comment from tasks_comments_list.")]
     pub comment_id: String,
+    #[schemars(
+        description = "Comment text as Markdown for the human reader of the task: what changed and why, in a few sentences. Markdown is rendered, so format it; a short log, config or command output is welcome in a fenced code block when it carries the point. Keep source code in the repository - name the file and describe the algorithm. A raw dump goes to an attachment, and walls of text stay out."
+    )]
     pub body: String,
 }
 
@@ -99,9 +108,10 @@ impl Op for CommentsEdit {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct DeleteInput {
+    #[schemars(description = "The `id` of a comment from tasks_comments_list.")]
     pub comment_id: String,
 }
 

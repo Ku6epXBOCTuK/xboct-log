@@ -1,3 +1,5 @@
+use schemars::JsonSchema;
+
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
@@ -13,7 +15,7 @@ use super::sql::{count_epic_children_by_status, task_by_key};
 pub const BLOCKED_REASON_MAX_LENGTH: usize = 200;
 const REVISION_MERGE_MS: i64 = 30 * 60_000;
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct NewTask {
     pub project_id: ProjectId,
@@ -26,27 +28,54 @@ pub struct NewTask {
     pub priority: Option<Priority>,
     #[serde(default)]
     pub is_epic: Option<bool>,
+    #[schemars(
+        description = "Epic id in the full 'PREFIX-NUMBER' form (e.g. 'LOG-5'); a bare number such as '5' is unique only inside a project. The epic belongs to the same project as the task. Epics are flat: only a non-epic task carries epic_id, and an epic itself never has one."
+    )]
     #[serde(default)]
     pub epic_id: Option<Option<TaskKey>>,
+    #[schemars(
+        description = "Scope id; it must belong to the same project as the task. Prefer scope (the name) when you know it; scopes_list {project_id} lists the ids."
+    )]
     #[serde(default)]
     pub scope_id: Option<Option<ScopeId>>,
+    #[schemars(
+        description = "Scope name inside the task's project, e.g. 'ui'. Prefer it over scope_id when you know the name: it is matched case-insensitively, and an unknown name fails with the list of the project's scopes instead of creating one. Passing both scope and scope_id is allowed only when they name the same scope."
+    )]
     #[serde(default)]
     pub scope: Option<Option<String>>,
+    #[schemars(
+        description = "File or document the task came from; provenance only, never verified, several tasks may share it."
+    )]
     #[serde(default)]
     pub source_file: Option<Option<String>>,
+    #[schemars(
+        description = "Tags of the task, optional. They are a closed list: see tags_list and create a missing one with tags_create {name}. Names are lowercased."
+    )]
     #[serde(default)]
     pub tags: Option<Vec<TagName>>,
+    #[schemars(
+        description = "Size of the task: 'S', 'M' or 'L'. null leaves the task without an estimate."
+    )]
     #[serde(default)]
     pub estimate: Option<Option<Estimate>>,
+    #[schemars(
+        description = "Person responsible for the task, a free-form name. null leaves the task unassigned."
+    )]
     #[serde(default)]
     pub assignee: Option<Option<String>>,
+    #[schemars(
+        description = "Due date of the task as YYYY-MM-DD; a full ISO timestamp is accepted and cut to the day. null leaves the task without a due date."
+    )]
     #[serde(default)]
     pub due_at: Option<Option<String>>,
+    #[schemars(
+        description = "Why the task is blocked, one line of free text. Use it when the blocker is outside the tracker (waiting for a release, an answer, an access). Only allowed on a task with status 'blocked'; null clears it."
+    )]
     #[serde(default)]
     pub blocked_reason: Option<Option<String>>,
 }
 
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct TaskPatch {
     #[serde(default)]
@@ -59,22 +88,47 @@ pub struct TaskPatch {
     pub priority: Option<Priority>,
     #[serde(default)]
     pub is_epic: Option<bool>,
+    #[schemars(
+        description = "Epic id in the full 'PREFIX-NUMBER' form (e.g. 'LOG-5'); a bare number such as '5' is unique only inside a project. The epic belongs to the same project as the task. Epics are flat: only a non-epic task carries epic_id, and an epic itself never has one."
+    )]
     #[serde(default)]
     pub epic_id: Option<Option<TaskKey>>,
+    #[schemars(
+        description = "Scope id; it must belong to the same project as the task. Prefer scope (the name) when you know it. null clears the scope."
+    )]
     #[serde(default)]
     pub scope_id: Option<Option<ScopeId>>,
+    #[schemars(
+        description = "Scope name inside the task's project, e.g. 'ui'; matched case-insensitively. null clears the scope. Prefer it over scope_id when you know the name; passing both is allowed only when they name the same scope."
+    )]
     #[serde(default)]
     pub scope: Option<Option<String>>,
+    #[schemars(
+        description = "File or document the task came from; provenance only, never verified, several tasks may share it."
+    )]
     #[serde(default)]
     pub source_file: Option<Option<String>>,
+    #[schemars(
+        description = "Tags of the task, optional; an empty array clears them. They are a closed list: see tags_list and create a missing one with tags_create {name}. Names are lowercased."
+    )]
     #[serde(default)]
     pub tags: Option<Vec<TagName>>,
+    #[schemars(description = "Size of the task: 'S', 'M' or 'L'. null clears the estimate.")]
     #[serde(default)]
     pub estimate: Option<Option<Estimate>>,
+    #[schemars(
+        description = "Person responsible for the task, a free-form name. null clears the assignee."
+    )]
     #[serde(default)]
     pub assignee: Option<Option<String>>,
+    #[schemars(
+        description = "Due date of the task as YYYY-MM-DD; a full ISO timestamp is accepted and cut to the day. null clears the due date."
+    )]
     #[serde(default)]
     pub due_at: Option<Option<String>>,
+    #[schemars(
+        description = "Why the task is blocked, one line of free text. Use it when the blocker is outside the tracker (waiting for a release, an answer, an access). Only allowed on a task with status 'blocked'; null clears it."
+    )]
     #[serde(default)]
     pub blocked_reason: Option<Option<String>>,
 }
@@ -98,7 +152,7 @@ impl TaskPatch {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, JsonSchema)]
 pub struct UpdateOutcome {
     pub task: Task,
     pub changes: Vec<Change>,

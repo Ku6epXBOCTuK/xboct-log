@@ -1112,6 +1112,343 @@ export interface components {
             kind: string;
             message: string;
         };
+        HistoryItem: {
+            ts: string;
+            source: string;
+            client?: string | null;
+            op: string;
+            fields: string[];
+            changes: unknown[];
+        };
+        /** @enum {string} */
+        ActivitySource: "ui" | "mcp" | "cli";
+        /** @enum {string} */
+        OpName: "tasks_history" | "activity_list" | "attachments_list" | "attachments_deleted_list" | "attachments_add" | "attachments_delete" | "attachments_restore" | "attachments_move" | "attachments_copy" | "attachments_purge" | "attachments_verify" | "backup_create" | "backup_list" | "backups_inspect" | "backups_restore" | "tasks_add_blocker" | "tasks_remove_blocker" | "tasks_add_link" | "tasks_remove_link" | "tasks_comments_list" | "tasks_comments_add" | "tasks_comments_edit" | "tasks_comments_delete" | "tasks_options" | "projects_list" | "projects_get" | "projects_create" | "projects_update" | "tasks_revisions_list" | "scopes_list" | "scopes_get" | "scopes_project_ids" | "scopes_create" | "scopes_update" | "scopes_delete" | "tasks_stats" | "tasks_list" | "tasks_deleted_list" | "tasks_get_many" | "tasks_get" | "tasks_create" | "tasks_create_many" | "tasks_update" | "tasks_update_many" | "tasks_close" | "tasks_close_many" | "tasks_delete" | "tasks_restore" | "tasks_move" | "tags_list" | "tags_dictionary" | "tags_inventory" | "tags_create" | "tags_update" | "tags_rename";
+        /** @enum {string} */
+        ActivityEntity: "task" | "project" | "scope" | "tag";
+        ActivityItem: {
+            ts: string;
+            source: string;
+            client?: string | null;
+            op: string;
+            entity: string;
+            entity_id: string;
+            fields: string[];
+            changes: unknown[];
+        };
+        Attachment: {
+            id: components["schemas"]["AttachmentId"];
+            task_id: string;
+            file_name: string;
+            mime_type?: string | null;
+            /** Format: int64 */
+            size: number;
+            created_at: string;
+            uri: string;
+            missing: boolean;
+            deleted_at?: string | null;
+        };
+        AttachmentId: string;
+        DeletedAttachment: {
+            id: components["schemas"]["AttachmentId"];
+            task_id: string;
+            file_name: string;
+            mime_type?: string | null;
+            /** Format: int64 */
+            size: number;
+            created_at: string;
+            uri: string;
+            missing: boolean;
+            deleted_at?: string | null;
+            task_title?: string | null;
+        };
+        BackupFile: {
+            kind: components["schemas"]["BackupKind"];
+            name: string;
+            path: string;
+            /** Format: uint64 */
+            size: number;
+            mtime: string;
+        };
+        /** @enum {string} */
+        BackupKind: "daily" | "weekly" | "manual" | "auto";
+        SnapshotInfo: {
+            /** Format: int64 */
+            projects: number;
+            /** Format: int64 */
+            tasks: number;
+        };
+        /** @enum {string} */
+        Status: "backlog" | "open" | "in-progress" | "blocked" | "done" | "cancelled";
+        /** @enum {string} */
+        Priority: "low" | "medium" | "high" | "critical";
+        /** @enum {string} */
+        Estimate: "S" | "M" | "L";
+        Change: {
+            field: string;
+            from: unknown;
+            to: unknown;
+        };
+        /** @enum {string} */
+        LinkKindInput: "relates_to" | "duplicates";
+        Comment: {
+            id: string;
+            task_id: string;
+            body: string;
+            created_at: string;
+            edited_at?: string | null;
+            deleted_at?: string | null;
+        };
+        Task: {
+            id: string;
+            project_id: string;
+            /** Format: int64 */
+            number: number;
+            title: string;
+            description?: string | null;
+            status: components["schemas"]["Status"];
+            priority: components["schemas"]["Priority"];
+            is_epic: boolean;
+            epic_id?: string | null;
+            /** Format: int64 */
+            scope_id?: number | null;
+            source_file?: string | null;
+            tags: string[];
+            estimate?: components["schemas"]["Estimate"] | null;
+            assignee?: string | null;
+            due_at?: string | null;
+            /** Format: int64 */
+            attachments_count: number;
+            created_at: string;
+            updated_at: string;
+            closed_at?: string | null;
+            closed_reason?: string | null;
+            blocked_reason?: string | null;
+            deleted_at?: string | null;
+            project_name?: string | null;
+            scope_name?: string | null;
+            short_description?: string | null;
+            blocked_by: string[];
+            blocks: string[];
+            relates_to: string[];
+            duplicates: string[];
+            duplicated_by: string[];
+            children_counts?: {
+                [key: string]: number;
+            } | null;
+        };
+        ProjectWithCounts: {
+            id: string;
+            name: string;
+            prefix: string;
+            repo?: string | null;
+            created_at: string;
+            archived_at?: string | null;
+            task_counts: {
+                /** Format: int64 */
+                backlog?: number;
+                /** Format: int64 */
+                blocked?: number;
+                /** Format: int64 */
+                cancelled?: number;
+                /** Format: int64 */
+                done?: number;
+                /** Format: int64 */
+                "in-progress"?: number;
+                /** Format: int64 */
+                open?: number;
+            };
+            epic_counts: {
+                /** Format: int64 */
+                backlog?: number;
+                /** Format: int64 */
+                blocked?: number;
+                /** Format: int64 */
+                cancelled?: number;
+                /** Format: int64 */
+                done?: number;
+                /** Format: int64 */
+                "in-progress"?: number;
+                /** Format: int64 */
+                open?: number;
+            };
+        };
+        ScopeCount: {
+            /** Format: int64 */
+            scope_id: number;
+            name: string;
+            /** Format: int64 */
+            tasks: number;
+            /** Format: int64 */
+            epics: number;
+        };
+        PatchInput: {
+            name?: string | null;
+            archived?: boolean | null;
+            /** @description Git repository as host/owner/name; a full URL or SSH form is normalized. null clears it. */
+            repo?: string | null;
+        };
+        Revision: {
+            /** Format: int64 */
+            id: number;
+            task_id: string;
+            field: string;
+            ref_id?: string | null;
+            body: string;
+            created_at: string;
+        };
+        ScopeWithCounts: {
+            /** Format: int64 */
+            id: number;
+            project_id: string;
+            name: string;
+            created_at: string;
+            /** Format: int64 */
+            task_count: number;
+            /** Format: int64 */
+            tasks_total: number;
+            /** Format: int64 */
+            epics_count: number;
+        };
+        PatchInput2: {
+            name?: string | null;
+        };
+        Scope: {
+            /** Format: int64 */
+            id: number;
+            project_id: string;
+            name: string;
+            created_at: string;
+        };
+        OneOrList: string | string[];
+        OneOrList2: components["schemas"]["Status"] | components["schemas"]["Status"][];
+        OneOrList3: components["schemas"]["Priority"] | components["schemas"]["Priority"][];
+        OneOrList4: components["schemas"]["Estimate"] | components["schemas"]["Estimate"][];
+        LinkFilter_for_string: components["schemas"]["OneOrList"] | null;
+        LinkFilter_for_int64: components["schemas"]["OneOrList5"] | null;
+        OneOrList5: number | number[];
+        /** @enum {string} */
+        Sort: "updated_at" | "created_at" | "closed_at" | "priority" | "status" | "project" | "number" | "title";
+        /** @enum {string} */
+        Order: "asc" | "desc";
+        NewTask: {
+            project_id: string;
+            title: string;
+            description?: string | null;
+            status?: components["schemas"]["Status"] | null;
+            priority?: components["schemas"]["Priority"] | null;
+            is_epic?: boolean | null;
+            /** @description Epic id in the full 'PREFIX-NUMBER' form (e.g. 'LOG-5'); a bare number such as '5' is unique only inside a project. The epic belongs to the same project as the task. Epics are flat: only a non-epic task carries epic_id, and an epic itself never has one. */
+            epic_id?: string | null;
+            /**
+             * Format: int64
+             * @description Scope id; it must belong to the same project as the task. Prefer scope (the name) when you know it; scopes_list {project_id} lists the ids.
+             */
+            scope_id?: number | null;
+            /** @description Scope name inside the task's project, e.g. 'ui'. Prefer it over scope_id when you know the name: it is matched case-insensitively, and an unknown name fails with the list of the project's scopes instead of creating one. Passing both scope and scope_id is allowed only when they name the same scope. */
+            scope?: string | null;
+            /** @description File or document the task came from; provenance only, never verified, several tasks may share it. */
+            source_file?: string | null;
+            /** @description Tags of the task, optional. They are a closed list: see tags_list and create a missing one with tags_create {name}. Names are lowercased. */
+            tags?: string[] | null;
+            /** @description Size of the task: 'S', 'M' or 'L'. null leaves the task without an estimate. */
+            estimate?: components["schemas"]["Estimate"] | null;
+            /** @description Person responsible for the task, a free-form name. null leaves the task unassigned. */
+            assignee?: string | null;
+            /** @description Due date of the task as YYYY-MM-DD; a full ISO timestamp is accepted and cut to the day. null leaves the task without a due date. */
+            due_at?: string | null;
+            /** @description Why the task is blocked, one line of free text. Use it when the blocker is outside the tracker (waiting for a release, an answer, an access). Only allowed on a task with status 'blocked'; null clears it. */
+            blocked_reason?: string | null;
+        };
+        BatchItem: components["schemas"]["BatchOk"] | components["schemas"]["BatchFailure"];
+        BatchOk: {
+            /** Format: uint */
+            index: number;
+            id?: string | null;
+            ok: boolean;
+            task: components["schemas"]["Task"];
+            changes: components["schemas"]["Change"][];
+            released: components["schemas"]["ReleasedLink"][];
+            warnings: string[];
+            closed_epic?: components["schemas"]["Task"] | null;
+            reopened_epic?: components["schemas"]["Task"] | null;
+        };
+        ReleasedLink: {
+            task_id: string;
+            changes: components["schemas"]["Change"][];
+        };
+        BatchFailure: {
+            /** Format: uint */
+            index: number;
+            id?: string | null;
+            ok: boolean;
+            error: components["schemas"]["BatchError"];
+        };
+        BatchError: {
+            kind: components["schemas"]["AppErrorKind"];
+            message: string;
+        };
+        /** @enum {string} */
+        AppErrorKind: "validation" | "not_found" | "conflict" | "unexpected";
+        UpdateInput: {
+            /** @description Full task id, e.g. 'LOG-82'. */
+            task_id: string;
+            patch?: unknown;
+            title?: string | null;
+            description?: string | null;
+            status?: components["schemas"]["Status"] | null;
+            priority?: components["schemas"]["Priority"] | null;
+            is_epic?: boolean | null;
+            /** @description Epic id in the full 'PREFIX-NUMBER' form (e.g. 'LOG-5'); a bare number such as '5' is unique only inside a project. The epic belongs to the same project as the task. Epics are flat: only a non-epic task carries epic_id, and an epic itself never has one. */
+            epic_id?: string | null;
+            /**
+             * Format: int64
+             * @description Scope id; it must belong to the same project as the task. Prefer scope (the name) when you know it. null clears the scope.
+             */
+            scope_id?: number | null;
+            /** @description Scope name inside the task's project, e.g. 'ui'; matched case-insensitively. null clears the scope. Prefer it over scope_id when you know the name; passing both is allowed only when they name the same scope. */
+            scope?: string | null;
+            /** @description File or document the task came from; provenance only, never verified, several tasks may share it. */
+            source_file?: string | null;
+            /** @description Tags of the task, optional; an empty array clears them. They are a closed list: see tags_list and create a missing one with tags_create {name}. Names are lowercased. */
+            tags?: string[] | null;
+            /** @description Size of the task: 'S', 'M' or 'L'. null clears the estimate. */
+            estimate?: components["schemas"]["Estimate"] | null;
+            /** @description Person responsible for the task, a free-form name. null clears the assignee. */
+            assignee?: string | null;
+            /** @description Due date of the task as YYYY-MM-DD; a full ISO timestamp is accepted and cut to the day. null clears the due date. */
+            due_at?: string | null;
+            /** @description Why the task is blocked, one line of free text. Use it when the blocker is outside the tracker (waiting for a release, an answer, an access). Only allowed on a task with status 'blocked'; null clears it. */
+            blocked_reason?: string | null;
+        };
+        /** @enum {string} */
+        ClosedReason: "fixed" | "wontfix" | "obsolete" | "duplicate" | "not-reproduced";
+        CloseInput: {
+            /** @description Full task id, e.g. 'LOG-82'. */
+            task_id: string;
+            reason: components["schemas"]["ClosedReason"];
+        };
+        TagCount: {
+            tag: string;
+            /** Format: int64 */
+            count: number;
+            /** Format: int64 */
+            active: number;
+        };
+        TagInventoryEntry: {
+            name: string;
+            archived: boolean;
+            created_at: string;
+            /** Format: int64 */
+            count: number;
+            /** Format: int64 */
+            active: number;
+            /** Format: int64 */
+            backlog: number;
+        };
+        PatchInput3: {
+            archived: boolean;
+        };
     };
     responses: never;
     parameters: never;
@@ -1131,10 +1468,9 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @description Task id in the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'); the prefix is matched case-insensitively, so 'log-82' works too. A bare task number (e.g. '82') is rejected: numbers are unique only inside a project, so resolve the project prefix first and pass 'LOG-82'. When nothing matches, the error suggests close ids. */
                     task_id: string;
-                    /** @description Maximum number of events to return (default 50, max 200). */
-                    limit?: number;
+                    /** Format: int64 */
+                    limit?: number | null;
                 };
             };
         };
@@ -1146,18 +1482,9 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        items: ({
-                            ts: string;
-                            source: string;
-                            client: string | null;
-                            op: string;
-                            fields: string[];
-                        } & {
-                            [key: string]: unknown;
-                        })[];
+                        items: components["schemas"]["HistoryItem"][];
+                        /** Format: int64 */
                         total: number;
-                    } & {
-                        [key: string]: unknown;
                     };
                 };
             };
@@ -1209,31 +1536,28 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /**
-                     * @description Surface of the change.
-                     * @enum {string}
-                     */
-                    source?: "ui" | "mcp" | "cli";
-                    /**
-                     * @description Operation name, for example tasks_update.
-                     * @enum {string}
-                     */
-                    op?: "tasks_history" | "activity_list" | "attachments_list" | "attachments_deleted_list" | "attachments_add" | "attachments_delete" | "attachments_restore" | "attachments_move" | "attachments_copy" | "attachments_purge" | "attachments_verify" | "backup_create" | "backup_list" | "backups_inspect" | "backups_restore" | "tasks_add_blocker" | "tasks_remove_blocker" | "tasks_add_link" | "tasks_remove_link" | "tasks_comments_list" | "tasks_comments_add" | "tasks_comments_edit" | "tasks_comments_delete" | "tasks_options" | "projects_list" | "projects_get" | "projects_create" | "projects_update" | "tasks_revisions_list" | "scopes_list" | "scopes_get" | "scopes_project_ids" | "scopes_create" | "scopes_update" | "scopes_delete" | "tasks_stats" | "tasks_list" | "tasks_deleted_list" | "tasks_get_many" | "tasks_get" | "tasks_create" | "tasks_create_many" | "tasks_update" | "tasks_update_many" | "tasks_close" | "tasks_close_many" | "tasks_delete" | "tasks_restore" | "tasks_move" | "tags_list" | "tags_dictionary" | "tags_inventory" | "tags_create" | "tags_update" | "tags_rename";
-                    /**
-                     * @description Entity type of the changed object.
-                     * @enum {string}
-                     */
-                    entity?: "task" | "project" | "scope" | "tag";
+                    /** @description Surface of the change. */
+                    source?: components["schemas"]["ActivitySource"] | null;
+                    /** @description Operation name, for example tasks_update. */
+                    op?: components["schemas"]["OpName"] | null;
+                    /** @description Entity type of the changed object. */
+                    entity?: components["schemas"]["ActivityEntity"] | null;
                     /** @description Project id: keeps the project's own events, events of its tasks and of its scopes. */
-                    project_id?: string;
+                    project_id?: string | null;
                     /** @description Start of the period as an ISO date-time. */
-                    from?: string;
+                    from?: string | null;
                     /** @description End of the period as an ISO date-time. */
-                    to?: string;
-                    /** @description Maximum number of events to return (default 50, max 200). */
-                    limit?: number;
-                    /** @description Number of events to skip, for pagination. */
-                    offset?: number;
+                    to?: string | null;
+                    /**
+                     * Format: int64
+                     * @description Maximum number of events to return (default 50, max 200).
+                     */
+                    limit?: number | null;
+                    /**
+                     * Format: int64
+                     * @description Number of events to skip, for pagination.
+                     */
+                    offset?: number | null;
                 };
             };
         };
@@ -1245,19 +1569,10 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        items: ({
-                            ts: string;
-                            source: string;
-                            client: string | null;
-                            op: string;
-                            fields: string[];
-                        } & {
-                            [key: string]: unknown;
-                        })[];
+                        items: components["schemas"]["ActivityItem"][];
+                        /** Format: int64 */
                         total: number;
                         ops: string[];
-                    } & {
-                        [key: string]: unknown;
                     };
                 };
             };
@@ -1322,17 +1637,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        items: ({
-                            id: string;
-                            task_id: string;
-                            file_name: string;
-                            size: number;
-                            uri: string;
-                        } & {
-                            [key: string]: unknown;
-                        })[];
-                    } & {
-                        [key: string]: unknown;
+                        items: components["schemas"]["Attachment"][];
                     };
                 };
             };
@@ -1385,7 +1690,7 @@ export interface operations {
             content: {
                 "application/json": {
                     /** @description Task id in the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'); the prefix is matched case-insensitively, so 'log-82' works too. A bare task number (e.g. '82') is rejected: numbers are unique only inside a project, so resolve the project prefix first and pass 'LOG-82'. When nothing matches, the error suggests close ids. */
-                    task_id?: string;
+                    task_id?: string | null;
                 };
             };
         };
@@ -1397,18 +1702,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        items: ({
-                            id: string;
-                            task_id: string;
-                            file_name: string;
-                            size: number;
-                            uri: string;
-                            task_title: string | null;
-                        } & {
-                            [key: string]: unknown;
-                        })[];
-                    } & {
-                        [key: string]: unknown;
+                        items: components["schemas"]["DeletedAttachment"][];
                     };
                 };
             };
@@ -1465,9 +1759,9 @@ export interface operations {
                     /** @description The name of the file as it should be shown, with its extension. */
                     filename: string;
                     /** @description A path to the file on the machine where the app runs. Use it instead of content_base64 when the file is already there. */
-                    path?: string;
+                    path?: string | null;
                     /** @description The content of the file encoded as base64. */
-                    content_base64?: string;
+                    content_base64?: string | null;
                 };
             };
         };
@@ -1479,17 +1773,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        item: {
-                            id: string;
-                            task_id: string;
-                            file_name: string;
-                            size: number;
-                            uri: string;
-                        } & {
-                            [key: string]: unknown;
-                        };
-                    } & {
-                        [key: string]: unknown;
+                        item: components["schemas"]["Attachment"];
                     };
                 };
             };
@@ -1541,11 +1825,8 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /**
-                     * Format: uuid
-                     * @description The `id` of an attachment from attachments_list.
-                     */
-                    attachment_id: string;
+                    /** @description The `id` of an attachment from attachments_list. */
+                    attachment_id: components["schemas"]["AttachmentId"];
                 };
             };
         };
@@ -1557,13 +1838,16 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        id: string;
+                        id: components["schemas"]["AttachmentId"];
                         task_id: string;
                         file_name: string;
+                        mime_type?: string | null;
+                        /** Format: int64 */
                         size: number;
+                        created_at: string;
                         uri: string;
-                    } & {
-                        [key: string]: unknown;
+                        missing: boolean;
+                        deleted_at?: string | null;
                     };
                 };
             };
@@ -1615,11 +1899,8 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /**
-                     * Format: uuid
-                     * @description The `id` of an attachment from attachments_deleted_list.
-                     */
-                    attachment_id: string;
+                    /** @description The `id` of an attachment from attachments_deleted_list. */
+                    attachment_id: components["schemas"]["AttachmentId"];
                 };
             };
         };
@@ -1631,13 +1912,16 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        id: string;
+                        id: components["schemas"]["AttachmentId"];
                         task_id: string;
                         file_name: string;
+                        mime_type?: string | null;
+                        /** Format: int64 */
                         size: number;
+                        created_at: string;
                         uri: string;
-                    } & {
-                        [key: string]: unknown;
+                        missing: boolean;
+                        deleted_at?: string | null;
                     };
                 };
             };
@@ -1689,11 +1973,8 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /**
-                     * Format: uuid
-                     * @description The `id` of an attachment from attachments_list or attachments_deleted_list.
-                     */
-                    attachment_id: string;
+                    /** @description The `id` of an attachment from attachments_list or attachments_deleted_list. */
+                    attachment_id: components["schemas"]["AttachmentId"];
                     /** @description Task id in the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'); the prefix is matched case-insensitively, so 'log-82' works too. A bare task number (e.g. '82') is rejected: numbers are unique only inside a project, so resolve the project prefix first and pass 'LOG-82'. When nothing matches, the error suggests close ids. */
                     task_id: string;
                 };
@@ -1707,19 +1988,9 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        item: {
-                            id: string;
-                            task_id: string;
-                            file_name: string;
-                            size: number;
-                            uri: string;
-                        } & {
-                            [key: string]: unknown;
-                        };
+                        item: components["schemas"]["Attachment"];
                         previous_task_id: string;
                         was_deleted: boolean;
-                    } & {
-                        [key: string]: unknown;
                     };
                 };
             };
@@ -1771,11 +2042,8 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /**
-                     * Format: uuid
-                     * @description The `id` of an attachment from attachments_list or attachments_deleted_list.
-                     */
-                    attachment_id: string;
+                    /** @description The `id` of an attachment from attachments_list or attachments_deleted_list. */
+                    attachment_id: components["schemas"]["AttachmentId"];
                     /** @description Task id in the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'); the prefix is matched case-insensitively, so 'log-82' works too. A bare task number (e.g. '82') is rejected: numbers are unique only inside a project, so resolve the project prefix first and pass 'LOG-82'. When nothing matches, the error suggests close ids. */
                     task_id: string;
                 };
@@ -1789,17 +2057,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        item: {
-                            id: string;
-                            task_id: string;
-                            file_name: string;
-                            size: number;
-                            uri: string;
-                        } & {
-                            [key: string]: unknown;
-                        };
-                    } & {
-                        [key: string]: unknown;
+                        item: components["schemas"]["Attachment"];
                     };
                 };
             };
@@ -1851,11 +2109,8 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /**
-                     * Format: uuid
-                     * @description The `id` of an attachment from attachments_deleted_list.
-                     */
-                    attachment_id: string;
+                    /** @description The `id` of an attachment from attachments_deleted_list. */
+                    attachment_id: components["schemas"]["AttachmentId"];
                 };
             };
         };
@@ -1867,12 +2122,10 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        id: string;
+                        id: components["schemas"]["AttachmentId"];
                         task_id: string;
                         file_name: string;
                         file_removed: boolean;
-                    } & {
-                        [key: string]: unknown;
                     };
                 };
             };
@@ -1925,7 +2178,7 @@ export interface operations {
             content: {
                 "application/json": {
                     /** @description Task id in the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'); the prefix is matched case-insensitively, so 'log-82' works too. A bare task number (e.g. '82') is rejected: numbers are unique only inside a project, so resolve the project prefix first and pass 'LOG-82'. When nothing matches, the error suggests close ids. */
-                    task_id?: string;
+                    task_id?: string | null;
                 };
             };
         };
@@ -1937,26 +2190,8 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        ok: ({
-                            id: string;
-                            task_id: string;
-                            file_name: string;
-                            size: number;
-                            uri: string;
-                        } & {
-                            [key: string]: unknown;
-                        })[];
-                        missing: ({
-                            id: string;
-                            task_id: string;
-                            file_name: string;
-                            size: number;
-                            uri: string;
-                        } & {
-                            [key: string]: unknown;
-                        })[];
-                    } & {
-                        [key: string]: unknown;
+                        ok: components["schemas"]["Attachment"][];
+                        missing: components["schemas"]["Attachment"][];
                     };
                 };
             };
@@ -2019,8 +2254,6 @@ export interface operations {
                 content: {
                     "application/json": {
                         path: string;
-                    } & {
-                        [key: string]: unknown;
                     };
                 };
             };
@@ -2082,18 +2315,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        items: ({
-                            /** @enum {string} */
-                            kind: "auto" | "daily" | "weekly" | "manual";
-                            name: string;
-                            path: string;
-                            size: number;
-                            mtime: string;
-                        } & {
-                            [key: string]: unknown;
-                        })[];
-                    } & {
-                        [key: string]: unknown;
+                        items: components["schemas"]["BackupFile"][];
                     };
                 };
             };
@@ -2145,8 +2367,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @enum {string} */
-                    kind: "auto" | "daily" | "weekly" | "manual";
+                    kind: components["schemas"]["BackupKind"];
                     name: string;
                 };
             };
@@ -2159,10 +2380,10 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
+                        /** Format: int64 */
                         projects: number;
+                        /** Format: int64 */
                         tasks: number;
-                    } & {
-                        [key: string]: unknown;
                     };
                 };
             };
@@ -2214,8 +2435,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @enum {string} */
-                    kind: "auto" | "daily" | "weekly" | "manual";
+                    kind: components["schemas"]["BackupKind"];
                     name: string;
                 };
             };
@@ -2228,15 +2448,8 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        snapshot: {
-                            projects: number;
-                            tasks: number;
-                        } & {
-                            [key: string]: unknown;
-                        };
+                        snapshot: components["schemas"]["SnapshotInfo"];
                         safetyPath: string;
-                    } & {
-                        [key: string]: unknown;
                     };
                 };
             };
@@ -2304,15 +2517,42 @@ export interface operations {
                 content: {
                     "application/json": {
                         id: string;
-                        title: string;
-                        number: number;
                         project_id: string;
-                        /** @enum {string} */
-                        status: "backlog" | "open" | "in-progress" | "blocked" | "done" | "cancelled";
-                        /** @enum {string} */
-                        priority: "low" | "medium" | "high" | "critical";
-                    } & {
-                        [key: string]: unknown;
+                        /** Format: int64 */
+                        number: number;
+                        title: string;
+                        description?: string | null;
+                        status: components["schemas"]["Status"];
+                        priority: components["schemas"]["Priority"];
+                        is_epic: boolean;
+                        epic_id?: string | null;
+                        /** Format: int64 */
+                        scope_id?: number | null;
+                        source_file?: string | null;
+                        tags: string[];
+                        estimate?: components["schemas"]["Estimate"] | null;
+                        assignee?: string | null;
+                        due_at?: string | null;
+                        /** Format: int64 */
+                        attachments_count: number;
+                        created_at: string;
+                        updated_at: string;
+                        closed_at?: string | null;
+                        closed_reason?: string | null;
+                        blocked_reason?: string | null;
+                        deleted_at?: string | null;
+                        project_name?: string | null;
+                        scope_name?: string | null;
+                        short_description?: string | null;
+                        blocked_by: string[];
+                        blocks: string[];
+                        relates_to: string[];
+                        duplicates: string[];
+                        duplicated_by: string[];
+                        children_counts?: {
+                            [key: string]: number;
+                        } | null;
+                        changes: components["schemas"]["Change"][];
                     };
                 };
             };
@@ -2380,15 +2620,42 @@ export interface operations {
                 content: {
                     "application/json": {
                         id: string;
-                        title: string;
-                        number: number;
                         project_id: string;
-                        /** @enum {string} */
-                        status: "backlog" | "open" | "in-progress" | "blocked" | "done" | "cancelled";
-                        /** @enum {string} */
-                        priority: "low" | "medium" | "high" | "critical";
-                    } & {
-                        [key: string]: unknown;
+                        /** Format: int64 */
+                        number: number;
+                        title: string;
+                        description?: string | null;
+                        status: components["schemas"]["Status"];
+                        priority: components["schemas"]["Priority"];
+                        is_epic: boolean;
+                        epic_id?: string | null;
+                        /** Format: int64 */
+                        scope_id?: number | null;
+                        source_file?: string | null;
+                        tags: string[];
+                        estimate?: components["schemas"]["Estimate"] | null;
+                        assignee?: string | null;
+                        due_at?: string | null;
+                        /** Format: int64 */
+                        attachments_count: number;
+                        created_at: string;
+                        updated_at: string;
+                        closed_at?: string | null;
+                        closed_reason?: string | null;
+                        blocked_reason?: string | null;
+                        deleted_at?: string | null;
+                        project_name?: string | null;
+                        scope_name?: string | null;
+                        short_description?: string | null;
+                        blocked_by: string[];
+                        blocks: string[];
+                        relates_to: string[];
+                        duplicates: string[];
+                        duplicated_by: string[];
+                        children_counts?: {
+                            [key: string]: number;
+                        } | null;
+                        changes: components["schemas"]["Change"][];
                     };
                 };
             };
@@ -2442,11 +2709,8 @@ export interface operations {
                 "application/json": {
                     /** @description Task id of the source task in the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). A bare number is rejected: numbers are unique only inside a project. */
                     task_id: string;
-                    /**
-                     * @description Link type: 'relates_to' is symmetric (one record, visible from both tasks); 'duplicates' is directed (id duplicates target). Blocking uses tasks_add_blocker instead.
-                     * @enum {string}
-                     */
-                    link_type: "relates_to" | "duplicates";
+                    /** @description Link type: 'relates_to' is symmetric (one record, visible from both tasks); 'duplicates' is directed (id duplicates target). Blocking uses tasks_add_blocker instead. */
+                    link_type: components["schemas"]["LinkKindInput"];
                     /** @description Task id of the target task in the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). A bare number is rejected: numbers are unique only inside a project. */
                     target: string;
                 };
@@ -2461,15 +2725,42 @@ export interface operations {
                 content: {
                     "application/json": {
                         id: string;
-                        title: string;
-                        number: number;
                         project_id: string;
-                        /** @enum {string} */
-                        status: "backlog" | "open" | "in-progress" | "blocked" | "done" | "cancelled";
-                        /** @enum {string} */
-                        priority: "low" | "medium" | "high" | "critical";
-                    } & {
-                        [key: string]: unknown;
+                        /** Format: int64 */
+                        number: number;
+                        title: string;
+                        description?: string | null;
+                        status: components["schemas"]["Status"];
+                        priority: components["schemas"]["Priority"];
+                        is_epic: boolean;
+                        epic_id?: string | null;
+                        /** Format: int64 */
+                        scope_id?: number | null;
+                        source_file?: string | null;
+                        tags: string[];
+                        estimate?: components["schemas"]["Estimate"] | null;
+                        assignee?: string | null;
+                        due_at?: string | null;
+                        /** Format: int64 */
+                        attachments_count: number;
+                        created_at: string;
+                        updated_at: string;
+                        closed_at?: string | null;
+                        closed_reason?: string | null;
+                        blocked_reason?: string | null;
+                        deleted_at?: string | null;
+                        project_name?: string | null;
+                        scope_name?: string | null;
+                        short_description?: string | null;
+                        blocked_by: string[];
+                        blocks: string[];
+                        relates_to: string[];
+                        duplicates: string[];
+                        duplicated_by: string[];
+                        children_counts?: {
+                            [key: string]: number;
+                        } | null;
+                        changes: components["schemas"]["Change"][];
                     };
                 };
             };
@@ -2523,11 +2814,8 @@ export interface operations {
                 "application/json": {
                     /** @description Task id of the source task in the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). A bare number is rejected: numbers are unique only inside a project. */
                     task_id: string;
-                    /**
-                     * @description Link type: 'relates_to' is symmetric (one record, visible from both tasks); 'duplicates' is directed (id duplicates target). Blocking uses tasks_add_blocker instead.
-                     * @enum {string}
-                     */
-                    link_type: "relates_to" | "duplicates";
+                    /** @description Link type: 'relates_to' is symmetric (one record, visible from both tasks); 'duplicates' is directed (id duplicates target). Blocking uses tasks_add_blocker instead. */
+                    link_type: components["schemas"]["LinkKindInput"];
                     /** @description Task id of the target task in the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). A bare number is rejected: numbers are unique only inside a project. */
                     target: string;
                 };
@@ -2542,15 +2830,42 @@ export interface operations {
                 content: {
                     "application/json": {
                         id: string;
-                        title: string;
-                        number: number;
                         project_id: string;
-                        /** @enum {string} */
-                        status: "backlog" | "open" | "in-progress" | "blocked" | "done" | "cancelled";
-                        /** @enum {string} */
-                        priority: "low" | "medium" | "high" | "critical";
-                    } & {
-                        [key: string]: unknown;
+                        /** Format: int64 */
+                        number: number;
+                        title: string;
+                        description?: string | null;
+                        status: components["schemas"]["Status"];
+                        priority: components["schemas"]["Priority"];
+                        is_epic: boolean;
+                        epic_id?: string | null;
+                        /** Format: int64 */
+                        scope_id?: number | null;
+                        source_file?: string | null;
+                        tags: string[];
+                        estimate?: components["schemas"]["Estimate"] | null;
+                        assignee?: string | null;
+                        due_at?: string | null;
+                        /** Format: int64 */
+                        attachments_count: number;
+                        created_at: string;
+                        updated_at: string;
+                        closed_at?: string | null;
+                        closed_reason?: string | null;
+                        blocked_reason?: string | null;
+                        deleted_at?: string | null;
+                        project_name?: string | null;
+                        scope_name?: string | null;
+                        short_description?: string | null;
+                        blocked_by: string[];
+                        blocks: string[];
+                        relates_to: string[];
+                        duplicates: string[];
+                        duplicated_by: string[];
+                        children_counts?: {
+                            [key: string]: number;
+                        } | null;
+                        changes: components["schemas"]["Change"][];
                     };
                 };
             };
@@ -2602,7 +2917,6 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @description Task id in the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'); the prefix is matched case-insensitively, so 'log-82' works too. A bare task number (e.g. '82') is rejected: numbers are unique only inside a project, so resolve the project prefix first and pass 'LOG-82'. When nothing matches, the error suggests close ids. */
                     task_id: string;
                 };
             };
@@ -2615,16 +2929,9 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        items: ({
-                            id: string;
-                            task_id: string;
-                            body: string;
-                        } & {
-                            [key: string]: unknown;
-                        })[];
+                        items: components["schemas"]["Comment"][];
+                        /** Format: uint */
                         total: number;
-                    } & {
-                        [key: string]: unknown;
                     };
                 };
             };
@@ -2676,7 +2983,6 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @description Task id in the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'); the prefix is matched case-insensitively, so 'log-82' works too. A bare task number (e.g. '82') is rejected: numbers are unique only inside a project, so resolve the project prefix first and pass 'LOG-82'. When nothing matches, the error suggests close ids. */
                     task_id: string;
                     /** @description Comment text as Markdown for the human reader of the task: what changed and why, in a few sentences. Markdown is rendered, so format it; a short log, config or command output is welcome in a fenced code block when it carries the point. Keep source code in the repository - name the file and describe the algorithm. A raw dump goes to an attachment, and walls of text stay out. */
                     body: string;
@@ -2694,8 +3000,9 @@ export interface operations {
                         id: string;
                         task_id: string;
                         body: string;
-                    } & {
-                        [key: string]: unknown;
+                        created_at: string;
+                        edited_at?: string | null;
+                        deleted_at?: string | null;
                     };
                 };
             };
@@ -2765,8 +3072,9 @@ export interface operations {
                         id: string;
                         task_id: string;
                         body: string;
-                    } & {
-                        [key: string]: unknown;
+                        created_at: string;
+                        edited_at?: string | null;
+                        deleted_at?: string | null;
                     };
                 };
             };
@@ -2834,8 +3142,9 @@ export interface operations {
                         id: string;
                         task_id: string;
                         body: string;
-                    } & {
-                        [key: string]: unknown;
+                        created_at: string;
+                        edited_at?: string | null;
+                        deleted_at?: string | null;
                     };
                 };
             };
@@ -2888,11 +3197,14 @@ export interface operations {
             content: {
                 "application/json": {
                     /** @description Project id: the tasks of this project only. */
-                    project_id?: string;
+                    project_id?: string | null;
                     /** @description Search over the whole backlog: words are OR-ed, =12 and =LOG-12 match one task exactly. */
-                    q?: string;
-                    /** @description Item cap, 50 by default. */
-                    limit?: number;
+                    q?: string | null;
+                    /**
+                     * Format: int64
+                     * @description Item cap, 50 by default.
+                     */
+                    limit?: number | null;
                 };
             };
         };
@@ -2904,48 +3216,9 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        items: ({
-                            id?: string;
-                            project_id?: string;
-                            number?: number;
-                            title?: string;
-                            description?: string;
-                            /** @enum {string} */
-                            status?: "backlog" | "open" | "in-progress" | "blocked" | "done" | "cancelled";
-                            /** @enum {string} */
-                            priority?: "low" | "medium" | "high" | "critical";
-                            is_epic?: boolean;
-                            epic_id?: string | null;
-                            scope_id?: number | null;
-                            source_file?: string | null;
-                            tags?: string[];
-                            estimate?: ("S" | "M" | "L") | null;
-                            assignee?: string | null;
-                            due_at?: string | null;
-                            attachments_count?: number;
-                            created_at?: string;
-                            updated_at?: string;
-                            closed_at?: string | null;
-                            closed_reason?: ("fixed" | "wontfix" | "obsolete" | "duplicate" | "not-reproduced") | null;
-                            blocked_reason?: string | null;
-                            deleted_at?: string | null;
-                            project_name?: string;
-                            scope_name?: string;
-                            short_description?: string;
-                            blocked_by?: string[];
-                            blocks?: string[];
-                            relates_to?: string[];
-                            duplicates?: string[];
-                            duplicated_by?: string[];
-                            children_counts?: {
-                                [key: string]: number;
-                            };
-                        } & {
-                            [key: string]: unknown;
-                        })[];
+                        items: components["schemas"]["Task"][];
+                        /** Format: int64 */
                         total: number;
-                    } & {
-                        [key: string]: unknown;
                     };
                 };
             };
@@ -2997,11 +3270,11 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    includeArchived?: boolean;
+                    includeArchived?: boolean | null;
                     /** @description Case-insensitive substring match on the project name, id, prefix or repo. */
-                    q?: string;
+                    q?: string | null;
                     /** @description Exact repository lookup, canonical host/owner/name. Accepts a git URL and normalizes it. */
-                    repo?: string;
+                    repo?: string | null;
                 };
             };
         };
@@ -3012,17 +3285,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        items: ({
-                            id: string;
-                            name: string;
-                            prefix: string;
-                        } & {
-                            [key: string]: unknown;
-                        })[];
-                    } & {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ProjectWithCounts"][];
                 };
             };
             /** @description The input is not valid */
@@ -3088,8 +3351,38 @@ export interface operations {
                         id: string;
                         name: string;
                         prefix: string;
-                    } & {
-                        [key: string]: unknown;
+                        repo?: string | null;
+                        created_at: string;
+                        archived_at?: string | null;
+                        task_counts: {
+                            /** Format: int64 */
+                            backlog?: number;
+                            /** Format: int64 */
+                            blocked?: number;
+                            /** Format: int64 */
+                            cancelled?: number;
+                            /** Format: int64 */
+                            done?: number;
+                            /** Format: int64 */
+                            "in-progress"?: number;
+                            /** Format: int64 */
+                            open?: number;
+                        };
+                        epic_counts: {
+                            /** Format: int64 */
+                            backlog?: number;
+                            /** Format: int64 */
+                            blocked?: number;
+                            /** Format: int64 */
+                            cancelled?: number;
+                            /** Format: int64 */
+                            done?: number;
+                            /** Format: int64 */
+                            "in-progress"?: number;
+                            /** Format: int64 */
+                            open?: number;
+                        };
+                        scope_counts: components["schemas"]["ScopeCount"][];
                     };
                 };
             };
@@ -3160,8 +3453,9 @@ export interface operations {
                         id: string;
                         name: string;
                         prefix: string;
-                    } & {
-                        [key: string]: unknown;
+                        repo?: string | null;
+                        created_at: string;
+                        archived_at?: string | null;
                     };
                 };
             };
@@ -3214,12 +3508,7 @@ export interface operations {
             content: {
                 "application/json": {
                     project_id: string;
-                    patch: {
-                        name?: string;
-                        archived?: boolean;
-                        /** @description Git repository as host/owner/name; a full URL or SSH form is normalized. null clears it. */
-                        repo?: string | null;
-                    };
+                    patch: components["schemas"]["PatchInput"];
                 };
             };
         };
@@ -3234,8 +3523,9 @@ export interface operations {
                         id: string;
                         name: string;
                         prefix: string;
-                    } & {
-                        [key: string]: unknown;
+                        repo?: string | null;
+                        created_at: string;
+                        archived_at?: string | null;
                     };
                 };
             };
@@ -3287,15 +3577,14 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @description Task id in the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'); the prefix is matched case-insensitively, so 'log-82' works too. A bare task number (e.g. '82') is rejected: numbers are unique only inside a project, so resolve the project prefix first and pass 'LOG-82'. When nothing matches, the error suggests close ids. */
                     task_id: string;
+                    /** @description Keep only the revisions of this field. Omit it to get both descriptions and comments. */
+                    field?: string | null;
                     /**
-                     * @description Keep only the revisions of this field. Omit it to get both descriptions and comments.
-                     * @enum {string}
+                     * Format: int64
+                     * @description Maximum number of revisions to return (default 50, max 200).
                      */
-                    field?: "description" | "comment";
-                    /** @description Maximum number of revisions to return (default 50, max 200). */
-                    limit?: number;
+                    limit?: number | null;
                 };
             };
         };
@@ -3307,17 +3596,9 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        items: ({
-                            id: number;
-                            task_id: string;
-                            field: string;
-                            body: string;
-                        } & {
-                            [key: string]: unknown;
-                        })[];
+                        items: components["schemas"]["Revision"][];
+                        /** Format: int64 */
                         total: number;
-                    } & {
-                        [key: string]: unknown;
                     };
                 };
             };
@@ -3369,7 +3650,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    project_id?: string;
+                    project_id?: string | null;
                 };
             };
         };
@@ -3380,17 +3661,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        items: ({
-                            id: number;
-                            project_id: string;
-                            name: string;
-                        } & {
-                            [key: string]: unknown;
-                        })[];
-                    } & {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ScopeWithCounts"][];
                 };
             };
             /** @description The input is not valid */
@@ -3441,6 +3712,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
+                    /** Format: int64 */
                     scope_id: number;
                 };
             };
@@ -3453,11 +3725,17 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
+                        /** Format: int64 */
                         id: number;
                         project_id: string;
                         name: string;
-                    } & {
-                        [key: string]: unknown;
+                        created_at: string;
+                        /** Format: int64 */
+                        task_count: number;
+                        /** Format: int64 */
+                        tasks_total: number;
+                        /** Format: int64 */
+                        epics_count: number;
                     };
                 };
             };
@@ -3518,11 +3796,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        items: string[];
-                    } & {
-                        [key: string]: unknown;
-                    };
+                    "application/json": string[];
                 };
             };
             /** @description The input is not valid */
@@ -3586,11 +3860,11 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
+                        /** Format: int64 */
                         id: number;
                         project_id: string;
                         name: string;
-                    } & {
-                        [key: string]: unknown;
+                        created_at: string;
                     };
                 };
             };
@@ -3642,10 +3916,9 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
+                    /** Format: int64 */
                     scope_id: number;
-                    patch: {
-                        name: string;
-                    };
+                    patch: components["schemas"]["PatchInput2"];
                 };
             };
         };
@@ -3657,11 +3930,11 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
+                        /** Format: int64 */
                         id: number;
                         project_id: string;
                         name: string;
-                    } & {
-                        [key: string]: unknown;
+                        created_at: string;
                     };
                 };
             };
@@ -3713,9 +3986,10 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
+                    /** Format: int64 */
                     scope_id: number;
                     /** @description Preview the deletion instead of performing it: returns the scope and the ids of the tasks and epics that would lose the scope. */
-                    dry_run?: boolean;
+                    dry_run?: boolean | null;
                 };
             };
         };
@@ -3727,18 +4001,10 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        scope: {
-                            id: number;
-                            project_id: string;
-                            name: string;
-                        } & {
-                            [key: string]: unknown;
-                        };
+                        scope: components["schemas"]["Scope"];
                         task_ids: string[];
                         epic_ids: string[];
                         dry_run: boolean;
-                    } & {
-                        [key: string]: unknown;
                     };
                 };
             };
@@ -3801,49 +4067,20 @@ export interface operations {
                 content: {
                     "application/json": {
                         tasks: {
-                            [key: string]: number;
+                            /** Format: int64 */
+                            backlog?: number;
+                            /** Format: int64 */
+                            blocked?: number;
+                            /** Format: int64 */
+                            cancelled?: number;
+                            /** Format: int64 */
+                            done?: number;
+                            /** Format: int64 */
+                            "in-progress"?: number;
+                            /** Format: int64 */
+                            open?: number;
                         };
-                        epics: ({
-                            id?: string;
-                            project_id?: string;
-                            number?: number;
-                            title?: string;
-                            description?: string;
-                            /** @enum {string} */
-                            status?: "backlog" | "open" | "in-progress" | "blocked" | "done" | "cancelled";
-                            /** @enum {string} */
-                            priority?: "low" | "medium" | "high" | "critical";
-                            is_epic?: boolean;
-                            epic_id?: string | null;
-                            scope_id?: number | null;
-                            source_file?: string | null;
-                            tags?: string[];
-                            estimate?: ("S" | "M" | "L") | null;
-                            assignee?: string | null;
-                            due_at?: string | null;
-                            attachments_count?: number;
-                            created_at?: string;
-                            updated_at?: string;
-                            closed_at?: string | null;
-                            closed_reason?: ("fixed" | "wontfix" | "obsolete" | "duplicate" | "not-reproduced") | null;
-                            blocked_reason?: string | null;
-                            deleted_at?: string | null;
-                            project_name?: string;
-                            scope_name?: string;
-                            short_description?: string;
-                            blocked_by?: string[];
-                            blocks?: string[];
-                            relates_to?: string[];
-                            duplicates?: string[];
-                            duplicated_by?: string[];
-                            children_counts?: {
-                                [key: string]: number;
-                            };
-                        } & {
-                            [key: string]: unknown;
-                        })[];
-                    } & {
-                        [key: string]: unknown;
+                        epics: components["schemas"]["Task"][];
                     };
                 };
             };
@@ -3896,77 +4133,77 @@ export interface operations {
             content: {
                 "application/json": {
                     /** @description Filter by project id (e.g. 'eit'). Accepts one id or a list of ids; a list matches tasks of any of them. */
-                    project_id?: string[];
+                    project_id?: components["schemas"]["OneOrList"] | null;
                     /** @description Exclude projects: only tasks of other projects are returned. Accepts one id or a list of ids. Combine with project_id to get 'every project except X'. */
-                    exclude_project_id?: string[];
-                    status?: ("backlog" | "open" | "in-progress" | "blocked" | "done" | "cancelled")[];
-                    priority?: ("low" | "medium" | "high" | "critical")[];
+                    exclude_project_id?: components["schemas"]["OneOrList"] | null;
+                    status?: components["schemas"]["OneOrList2"] | null;
+                    priority?: components["schemas"]["OneOrList3"] | null;
                     /** @description Filter by estimate: one value or a list of them. Tasks without an estimate are not matched. */
-                    estimate?: ("S" | "M" | "L")[];
+                    estimate?: components["schemas"]["OneOrList4"] | null;
                     /** @description Filter by assignee: one name or a list of them, matched case-insensitively. Tasks without an assignee are not matched. */
-                    assignee?: string[];
+                    assignee?: components["schemas"]["OneOrList"] | null;
                     /** @description Filter by due date: only tasks due strictly before this date (YYYY-MM-DD). Tasks without a due date are not matched. */
-                    due_before?: string;
+                    due_before?: string | null;
                     /** @description Filter by due date: only tasks due on or after this date (YYYY-MM-DD). Tasks without a due date are not matched. */
-                    due_after?: string;
+                    due_after?: string | null;
                     /** @description Exact tag match, case-insensitive; no wildcards. Use q to match a partial tag. */
-                    tag?: string[];
-                    is_epic?: boolean;
+                    tag?: components["schemas"]["OneOrList"] | null;
+                    is_epic?: boolean | null;
                     /** @description Filter by epic. Accepts the full epic id (e.g. 'LOG-5') or a list of them; a list matches tasks of any of the given epics. null matches tasks without an epic. */
-                    epic_id?: string[] | null;
+                    epic_id?: components["schemas"]["LinkFilter_for_string"];
                     /** @description Filter by scope id. Accepts one scope id or a list of them; a list matches tasks of any of the given scopes. null matches tasks without a scope. */
-                    scope_id?: (number | number[]) | null;
+                    scope_id?: components["schemas"]["LinkFilter_for_int64"];
                     /** @description Filter by the presence of an epic: true matches tasks that belong to an epic, false matches tasks without one. */
-                    has_epic?: boolean;
+                    has_epic?: boolean | null;
                     /** @description Filter by the presence of a scope: true matches tasks with a scope assigned, false matches tasks without one. */
-                    has_scope?: boolean;
+                    has_scope?: boolean | null;
                     /** @description Filter by the presence of tags: true matches tasks with at least one tag, false matches tasks without tags. */
-                    has_tags?: boolean;
+                    has_tags?: boolean | null;
                     /** @description Filter by the blocked_by list: returns tasks whose blocked_by list contains the given task (the tasks it blocks). */
-                    blocked_by?: string;
+                    blocked_by?: string | null;
                     /** @description Filter by the blocks list: returns tasks whose blocks list contains the given task (the tasks blocking it). */
-                    blocks?: string;
+                    blocks?: string | null;
                     /** @description Case-insensitive substring search across title, description, id, the id of the epic and tags. Tags match by substring: q='est:' finds tasks with a tag like 'est:L'. Use tag for a whole-tag match. */
-                    q?: string;
+                    q?: string | null;
                     /** @description Search terms combined with OR: a task matches when any term matches its title, description, id, epic id or tags as a substring. Combined with the other filters by AND. Use it instead of q for multi-word input. */
-                    q_any?: string[];
+                    q_any?: string[] | null;
                     /** @description Exact task numbers (the part after the prefix, e.g. 29 for LOG-29). A task matches any of them. Exact hits are returned first and are OR-ed with q_any and id_exact. */
-                    number_exact?: number[];
+                    number_exact?: number[] | null;
                     /** @description Exact full task ids (e.g. 'LOG-29'), matched case-insensitively. A task matches any of them. Exact hits are returned first and are OR-ed with q_any and number_exact. */
-                    id_exact?: string[];
+                    id_exact?: string[] | null;
                     /** @description Case-insensitive substring match on the task title. */
-                    title?: string;
+                    title?: string | null;
                     /** @description Case-insensitive exact match on the task title. */
-                    title_exact?: string;
+                    title_exact?: string | null;
                     /** @description Case-insensitive substring match on the source file path of the task (e.g. 'backlog.md'). Tasks without a source file are excluded. */
-                    source_file?: string;
+                    source_file?: string | null;
                     /** @description Comma-separated list of fields to reduce response size (e.g. id,number,title,status). Supported fields: id, project_id, number, title, description, status, priority, is_epic, epic_id, scope_id, source_file, tags, estimate, assignee, due_at, attachments_count, created_at, updated_at, closed_at, closed_reason, blocked_reason, deleted_at, project_name, scope_name, short_description, blocked_by, blocks, relates_to, duplicates, duplicated_by. Requesting 'description' also returns the full text and drops short_description. id, project_id and number are always present, so a follow-up call can still address the task. project_name is present only with include_project, scope_name only with include_scope. Unknown field names are ignored; if no name matches, the whole task is returned. */
-                    fields?: string;
+                    fields?: string | null;
                     /** @description Include the full description. By default each task carries short_description (first line, trimmed, truncated to ~120 chars) instead of the full text; with include_description the full text is returned and short_description is omitted. */
-                    include_description?: boolean;
+                    include_description?: boolean | null;
                     /** @description Attach the project name (project_name) to each task. Does not filter by project archival; use project_archived for that. */
-                    include_project?: boolean;
+                    include_project?: boolean | null;
                     /** @description Attach the scope name (scope_name) to each task. */
-                    include_scope?: boolean;
+                    include_scope?: boolean | null;
                     /** @description Filter by project archival: false - active projects only, true - archived projects only. Omitted - both. */
-                    project_archived?: boolean;
-                    /**
-                     * @description Sort key. 'number' orders by the per-project task number (ascending by default), 'title' orders by title case-insensitively (ascending by default), 'status' by the workflow order backlog, open, in-progress, blocked, done, cancelled and 'project' by project name; 'updated_at' and 'created_at' default to descending, 'priority' to ascending. 'closed_at' orders by the closing date and keeps the tasks that are not closed at the end.
-                     * @enum {string}
-                     */
-                    sort?: "updated_at" | "created_at" | "closed_at" | "priority" | "status" | "project" | "number" | "title";
-                    /**
-                     * @description Sort direction. Defaults to asc for priority, status, project, number and title, desc for the date keys.
-                     * @enum {string}
-                     */
-                    order?: "asc" | "desc";
+                    project_archived?: boolean | null;
+                    /** @description Sort key. 'number' orders by the per-project task number (ascending by default), 'title' orders by title case-insensitively (ascending by default), 'status' by the workflow order backlog, open, in-progress, blocked, done, cancelled and 'project' by project name; 'updated_at' and 'created_at' default to descending, 'priority' to ascending. 'closed_at' orders by the closing date and keeps the tasks that are not closed at the end. */
+                    sort?: components["schemas"]["Sort"] | null;
+                    /** @description Sort direction. Defaults to asc for priority, status, project, number and title, desc for the date keys. */
+                    order?: components["schemas"]["Order"] | null;
                     /** @description Include soft-deleted tasks. By default they are hidden; with true the deleted_at field is populated. */
-                    include_deleted?: boolean;
+                    include_deleted?: boolean | null;
+                    deleted_only?: boolean | null;
                     /**
+                     * Format: uint32
                      * @description Maximum number of tasks to return (default 100, max 1000). Combine with offset and the response total to paginate.
                      * @default 100
                      */
-                    limit: number;
+                    limit?: number;
+                    /**
+                     * Format: uint32
+                     * @default 0
+                     */
                     offset?: number;
                 };
             };
@@ -3979,48 +4216,9 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        items: ({
-                            id?: string;
-                            project_id?: string;
-                            number?: number;
-                            title?: string;
-                            description?: string;
-                            /** @enum {string} */
-                            status?: "backlog" | "open" | "in-progress" | "blocked" | "done" | "cancelled";
-                            /** @enum {string} */
-                            priority?: "low" | "medium" | "high" | "critical";
-                            is_epic?: boolean;
-                            epic_id?: string | null;
-                            scope_id?: number | null;
-                            source_file?: string | null;
-                            tags?: string[];
-                            estimate?: ("S" | "M" | "L") | null;
-                            assignee?: string | null;
-                            due_at?: string | null;
-                            attachments_count?: number;
-                            created_at?: string;
-                            updated_at?: string;
-                            closed_at?: string | null;
-                            closed_reason?: ("fixed" | "wontfix" | "obsolete" | "duplicate" | "not-reproduced") | null;
-                            blocked_reason?: string | null;
-                            deleted_at?: string | null;
-                            project_name?: string;
-                            scope_name?: string;
-                            short_description?: string;
-                            blocked_by?: string[];
-                            blocks?: string[];
-                            relates_to?: string[];
-                            duplicates?: string[];
-                            duplicated_by?: string[];
-                            children_counts?: {
-                                [key: string]: number;
-                            };
-                        } & {
-                            [key: string]: unknown;
-                        })[];
+                        items: components["schemas"]["Task"][];
+                        /** Format: int64 */
                         total: number;
-                    } & {
-                        [key: string]: unknown;
                     };
                 };
             };
@@ -4073,13 +4271,19 @@ export interface operations {
             content: {
                 "application/json": {
                     /** @description Project id: keeps only the deleted tasks of that project. */
-                    project_id?: string;
+                    project_id?: string | null;
                     /** @description Text to search in the id, the title and the description. */
-                    q?: string;
-                    /** @description Maximum number of tasks to return (default 50, max 200). */
-                    limit?: number;
-                    /** @description Number of tasks to skip, for pagination. */
-                    offset?: number;
+                    q?: string | null;
+                    /**
+                     * Format: int64
+                     * @description Maximum number of tasks to return (default 50, max 200).
+                     */
+                    limit?: number | null;
+                    /**
+                     * Format: int64
+                     * @description Number of tasks to skip, for pagination.
+                     */
+                    offset?: number | null;
                 };
             };
         };
@@ -4091,48 +4295,9 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        items: ({
-                            id?: string;
-                            project_id?: string;
-                            number?: number;
-                            title?: string;
-                            description?: string;
-                            /** @enum {string} */
-                            status?: "backlog" | "open" | "in-progress" | "blocked" | "done" | "cancelled";
-                            /** @enum {string} */
-                            priority?: "low" | "medium" | "high" | "critical";
-                            is_epic?: boolean;
-                            epic_id?: string | null;
-                            scope_id?: number | null;
-                            source_file?: string | null;
-                            tags?: string[];
-                            estimate?: ("S" | "M" | "L") | null;
-                            assignee?: string | null;
-                            due_at?: string | null;
-                            attachments_count?: number;
-                            created_at?: string;
-                            updated_at?: string;
-                            closed_at?: string | null;
-                            closed_reason?: ("fixed" | "wontfix" | "obsolete" | "duplicate" | "not-reproduced") | null;
-                            blocked_reason?: string | null;
-                            deleted_at?: string | null;
-                            project_name?: string;
-                            scope_name?: string;
-                            short_description?: string;
-                            blocked_by?: string[];
-                            blocks?: string[];
-                            relates_to?: string[];
-                            duplicates?: string[];
-                            duplicated_by?: string[];
-                            children_counts?: {
-                                [key: string]: number;
-                            };
-                        } & {
-                            [key: string]: unknown;
-                        })[];
+                        items: components["schemas"]["Task"][];
+                        /** Format: int64 */
                         total: number;
-                    } & {
-                        [key: string]: unknown;
                     };
                 };
             };
@@ -4197,21 +4362,8 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        items: ({
-                            id: string;
-                            title: string;
-                            number: number;
-                            project_id: string;
-                            /** @enum {string} */
-                            status: "backlog" | "open" | "in-progress" | "blocked" | "done" | "cancelled";
-                            /** @enum {string} */
-                            priority: "low" | "medium" | "high" | "critical";
-                        } & {
-                            [key: string]: unknown;
-                        })[];
+                        items: components["schemas"]["Task"][];
                         missing: string[];
-                    } & {
-                        [key: string]: unknown;
                     };
                 };
             };
@@ -4263,7 +4415,6 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @description Task id in the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'); the prefix is matched case-insensitively, so 'log-82' works too. A bare task number (e.g. '82') is rejected: numbers are unique only inside a project, so resolve the project prefix first and pass 'LOG-82'. When nothing matches, the error suggests close ids. */
                     task_id: string;
                 };
             };
@@ -4277,15 +4428,41 @@ export interface operations {
                 content: {
                     "application/json": {
                         id: string;
-                        title: string;
-                        number: number;
                         project_id: string;
-                        /** @enum {string} */
-                        status: "backlog" | "open" | "in-progress" | "blocked" | "done" | "cancelled";
-                        /** @enum {string} */
-                        priority: "low" | "medium" | "high" | "critical";
-                    } & {
-                        [key: string]: unknown;
+                        /** Format: int64 */
+                        number: number;
+                        title: string;
+                        description?: string | null;
+                        status: components["schemas"]["Status"];
+                        priority: components["schemas"]["Priority"];
+                        is_epic: boolean;
+                        epic_id?: string | null;
+                        /** Format: int64 */
+                        scope_id?: number | null;
+                        source_file?: string | null;
+                        tags: string[];
+                        estimate?: components["schemas"]["Estimate"] | null;
+                        assignee?: string | null;
+                        due_at?: string | null;
+                        /** Format: int64 */
+                        attachments_count: number;
+                        created_at: string;
+                        updated_at: string;
+                        closed_at?: string | null;
+                        closed_reason?: string | null;
+                        blocked_reason?: string | null;
+                        deleted_at?: string | null;
+                        project_name?: string | null;
+                        scope_name?: string | null;
+                        short_description?: string | null;
+                        blocked_by: string[];
+                        blocks: string[];
+                        relates_to: string[];
+                        duplicates: string[];
+                        duplicated_by: string[];
+                        children_counts?: {
+                            [key: string]: number;
+                        } | null;
                     };
                 };
             };
@@ -4339,27 +4516,25 @@ export interface operations {
                 "application/json": {
                     project_id: string;
                     title: string;
-                    /** @description Task description as Markdown: headings, lists, tables, quotes, links and fenced code blocks are rendered in the UI, so use them. A short log, config or command output is welcome in a fenced block when it carries the point; raw dumps go to an attachment instead. Keep source code in the repository - name the file and describe the algorithm. Stay short, no walls of text, and keep the first line a plain sentence: it becomes the one-line preview in lists. */
-                    description?: string;
-                    /**
-                     * @default backlog
-                     * @enum {string}
-                     */
-                    status: "backlog" | "open" | "in-progress" | "blocked" | "done" | "cancelled";
-                    /** @enum {string} */
-                    priority?: "low" | "medium" | "high" | "critical";
-                    is_epic?: boolean;
+                    description?: string | null;
+                    status?: components["schemas"]["Status"] | null;
+                    priority?: components["schemas"]["Priority"] | null;
+                    is_epic?: boolean | null;
+                    /** @description Epic id in the full 'PREFIX-NUMBER' form (e.g. 'LOG-5'); a bare number such as '5' is unique only inside a project. The epic belongs to the same project as the task. Epics are flat: only a non-epic task carries epic_id, and an epic itself never has one. */
                     epic_id?: string | null;
-                    /** @description Scope id; it must belong to the same project as the task. Prefer scope (the name) when you know it; scopes_list {project_id} lists the ids. */
+                    /**
+                     * Format: int64
+                     * @description Scope id; it must belong to the same project as the task. Prefer scope (the name) when you know it; scopes_list {project_id} lists the ids.
+                     */
                     scope_id?: number | null;
                     /** @description Scope name inside the task's project, e.g. 'ui'. Prefer it over scope_id when you know the name: it is matched case-insensitively, and an unknown name fails with the list of the project's scopes instead of creating one. Passing both scope and scope_id is allowed only when they name the same scope. */
                     scope?: string | null;
                     /** @description File or document the task came from; provenance only, never verified, several tasks may share it. */
                     source_file?: string | null;
                     /** @description Tags of the task, optional. They are a closed list: see tags_list and create a missing one with tags_create {name}. Names are lowercased. */
-                    tags?: string[];
+                    tags?: string[] | null;
                     /** @description Size of the task: 'S', 'M' or 'L'. null leaves the task without an estimate. */
-                    estimate?: ("S" | "M" | "L") | null;
+                    estimate?: components["schemas"]["Estimate"] | null;
                     /** @description Person responsible for the task, a free-form name. null leaves the task unassigned. */
                     assignee?: string | null;
                     /** @description Due date of the task as YYYY-MM-DD; a full ISO timestamp is accepted and cut to the day. null leaves the task without a due date. */
@@ -4378,16 +4553,42 @@ export interface operations {
                 content: {
                     "application/json": {
                         id: string;
-                        title: string;
-                        number: number;
                         project_id: string;
-                        /** @enum {string} */
-                        status: "backlog" | "open" | "in-progress" | "blocked" | "done" | "cancelled";
-                        /** @enum {string} */
-                        priority: "low" | "medium" | "high" | "critical";
+                        /** Format: int64 */
+                        number: number;
+                        title: string;
+                        description?: string | null;
+                        status: components["schemas"]["Status"];
+                        priority: components["schemas"]["Priority"];
+                        is_epic: boolean;
+                        epic_id?: string | null;
+                        /** Format: int64 */
+                        scope_id?: number | null;
+                        source_file?: string | null;
+                        tags: string[];
+                        estimate?: components["schemas"]["Estimate"] | null;
+                        assignee?: string | null;
+                        due_at?: string | null;
+                        /** Format: int64 */
+                        attachments_count: number;
+                        created_at: string;
+                        updated_at: string;
+                        closed_at?: string | null;
+                        closed_reason?: string | null;
+                        blocked_reason?: string | null;
+                        deleted_at?: string | null;
+                        project_name?: string | null;
+                        scope_name?: string | null;
+                        short_description?: string | null;
+                        blocked_by: string[];
+                        blocks: string[];
+                        relates_to: string[];
+                        duplicates: string[];
+                        duplicated_by: string[];
+                        children_counts?: {
+                            [key: string]: number;
+                        } | null;
                         warnings: string[];
-                    } & {
-                        [key: string]: unknown;
                     };
                 };
             };
@@ -4439,37 +4640,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    items: {
-                        project_id: string;
-                        title: string;
-                        /** @description Task description as Markdown: headings, lists, tables, quotes, links and fenced code blocks are rendered in the UI, so use them. A short log, config or command output is welcome in a fenced block when it carries the point; raw dumps go to an attachment instead. Keep source code in the repository - name the file and describe the algorithm. Stay short, no walls of text, and keep the first line a plain sentence: it becomes the one-line preview in lists. */
-                        description?: string;
-                        /**
-                         * @default backlog
-                         * @enum {string}
-                         */
-                        status: "backlog" | "open" | "in-progress" | "blocked" | "done" | "cancelled";
-                        /** @enum {string} */
-                        priority?: "low" | "medium" | "high" | "critical";
-                        is_epic?: boolean;
-                        epic_id?: string | null;
-                        /** @description Scope id; it must belong to the same project as the task. Prefer scope (the name) when you know it; scopes_list {project_id} lists the ids. */
-                        scope_id?: number | null;
-                        /** @description Scope name inside the task's project, e.g. 'ui'. Prefer it over scope_id when you know the name: it is matched case-insensitively, and an unknown name fails with the list of the project's scopes instead of creating one. Passing both scope and scope_id is allowed only when they name the same scope. */
-                        scope?: string | null;
-                        /** @description File or document the task came from; provenance only, never verified, several tasks may share it. */
-                        source_file?: string | null;
-                        /** @description Tags of the task, optional. They are a closed list: see tags_list and create a missing one with tags_create {name}. Names are lowercased. */
-                        tags?: string[];
-                        /** @description Size of the task: 'S', 'M' or 'L'. null leaves the task without an estimate. */
-                        estimate?: ("S" | "M" | "L") | null;
-                        /** @description Person responsible for the task, a free-form name. null leaves the task unassigned. */
-                        assignee?: string | null;
-                        /** @description Due date of the task as YYYY-MM-DD; a full ISO timestamp is accepted and cut to the day. null leaves the task without a due date. */
-                        due_at?: string | null;
-                        /** @description Why the task is blocked, one line of free text. Use it when the blocker is outside the tracker (waiting for a release, an answer, an access). Only allowed on a task with status 'blocked'; null clears it. */
-                        blocked_reason?: string | null;
-                    }[];
+                    items: components["schemas"]["NewTask"][];
                 };
             };
         };
@@ -4481,17 +4652,11 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        items: ({
-                            index: number;
-                            id: string | null;
-                            ok: boolean;
-                        } & {
-                            [key: string]: unknown;
-                        })[];
+                        items: components["schemas"]["BatchItem"][];
+                        /** Format: int64 */
                         succeeded: number;
+                        /** Format: int64 */
                         failed: number;
-                    } & {
-                        [key: string]: unknown;
                     };
                 };
             };
@@ -4543,35 +4708,35 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @description Task id in the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'); the prefix is matched case-insensitively, so 'log-82' works too. A bare task number (e.g. '82') is rejected: numbers are unique only inside a project, so resolve the project prefix first and pass 'LOG-82'. When nothing matches, the error suggests close ids. */
+                    /** @description Full task id, e.g. 'LOG-82'. */
                     task_id: string;
-                    patch?: {
-                        title?: string;
-                        /** @description Task description as Markdown: headings, lists, tables, quotes, links and fenced code blocks are rendered in the UI, so use them. A short log, config or command output is welcome in a fenced block when it carries the point; raw dumps go to an attachment instead. Keep source code in the repository - name the file and describe the algorithm. Stay short, no walls of text, and keep the first line a plain sentence: it becomes the one-line preview in lists. */
-                        description?: string;
-                        /** @enum {string} */
-                        status?: "backlog" | "open" | "in-progress" | "blocked" | "done" | "cancelled";
-                        /** @enum {string} */
-                        priority?: "low" | "medium" | "high" | "critical";
-                        is_epic?: boolean;
-                        epic_id?: string | null;
-                        /** @description Scope id; it must belong to the same project as the task. Prefer scope (the name) when you know it. null clears the scope. */
-                        scope_id?: number | null;
-                        /** @description Scope name inside the task's project, e.g. 'ui'; matched case-insensitively. null clears the scope. Prefer it over scope_id when you know the name; passing both is allowed only when they name the same scope. */
-                        scope?: string | null;
-                        /** @description File or document the task came from; provenance only, never verified, several tasks may share it. */
-                        source_file?: string | null;
-                        /** @description Tags of the task, optional; an empty array clears them. They are a closed list: see tags_list and create a missing one with tags_create {name}. Names are lowercased. */
-                        tags?: string[];
-                        /** @description Size of the task: 'S', 'M' or 'L'. null clears the estimate. */
-                        estimate?: ("S" | "M" | "L") | null;
-                        /** @description Person responsible for the task, a free-form name. null clears the assignee. */
-                        assignee?: string | null;
-                        /** @description Due date of the task as YYYY-MM-DD; a full ISO timestamp is accepted and cut to the day. null clears the due date. */
-                        due_at?: string | null;
-                        /** @description Why the task is blocked, one line of free text. Use it when the blocker is outside the tracker (waiting for a release, an answer, an access). Only allowed on a task with status 'blocked'; null clears it. */
-                        blocked_reason?: string | null;
-                    };
+                    patch?: unknown;
+                    title?: string | null;
+                    description?: string | null;
+                    status?: components["schemas"]["Status"] | null;
+                    priority?: components["schemas"]["Priority"] | null;
+                    is_epic?: boolean | null;
+                    /** @description Epic id in the full 'PREFIX-NUMBER' form (e.g. 'LOG-5'); a bare number such as '5' is unique only inside a project. The epic belongs to the same project as the task. Epics are flat: only a non-epic task carries epic_id, and an epic itself never has one. */
+                    epic_id?: string | null;
+                    /**
+                     * Format: int64
+                     * @description Scope id; it must belong to the same project as the task. Prefer scope (the name) when you know it. null clears the scope.
+                     */
+                    scope_id?: number | null;
+                    /** @description Scope name inside the task's project, e.g. 'ui'; matched case-insensitively. null clears the scope. Prefer it over scope_id when you know the name; passing both is allowed only when they name the same scope. */
+                    scope?: string | null;
+                    /** @description File or document the task came from; provenance only, never verified, several tasks may share it. */
+                    source_file?: string | null;
+                    /** @description Tags of the task, optional; an empty array clears them. They are a closed list: see tags_list and create a missing one with tags_create {name}. Names are lowercased. */
+                    tags?: string[] | null;
+                    /** @description Size of the task: 'S', 'M' or 'L'. null clears the estimate. */
+                    estimate?: components["schemas"]["Estimate"] | null;
+                    /** @description Person responsible for the task, a free-form name. null clears the assignee. */
+                    assignee?: string | null;
+                    /** @description Due date of the task as YYYY-MM-DD; a full ISO timestamp is accepted and cut to the day. null clears the due date. */
+                    due_at?: string | null;
+                    /** @description Why the task is blocked, one line of free text. Use it when the blocker is outside the tracker (waiting for a release, an answer, an access). Only allowed on a task with status 'blocked'; null clears it. */
+                    blocked_reason?: string | null;
                 };
             };
         };
@@ -4584,15 +4749,45 @@ export interface operations {
                 content: {
                     "application/json": {
                         id: string;
-                        title: string;
-                        number: number;
                         project_id: string;
-                        /** @enum {string} */
-                        status: "backlog" | "open" | "in-progress" | "blocked" | "done" | "cancelled";
-                        /** @enum {string} */
-                        priority: "low" | "medium" | "high" | "critical";
-                    } & {
-                        [key: string]: unknown;
+                        /** Format: int64 */
+                        number: number;
+                        title: string;
+                        description?: string | null;
+                        status: components["schemas"]["Status"];
+                        priority: components["schemas"]["Priority"];
+                        is_epic: boolean;
+                        epic_id?: string | null;
+                        /** Format: int64 */
+                        scope_id?: number | null;
+                        source_file?: string | null;
+                        tags: string[];
+                        estimate?: components["schemas"]["Estimate"] | null;
+                        assignee?: string | null;
+                        due_at?: string | null;
+                        /** Format: int64 */
+                        attachments_count: number;
+                        created_at: string;
+                        updated_at: string;
+                        closed_at?: string | null;
+                        closed_reason?: string | null;
+                        blocked_reason?: string | null;
+                        deleted_at?: string | null;
+                        project_name?: string | null;
+                        scope_name?: string | null;
+                        short_description?: string | null;
+                        blocked_by: string[];
+                        blocks: string[];
+                        relates_to: string[];
+                        duplicates: string[];
+                        duplicated_by: string[];
+                        children_counts?: {
+                            [key: string]: number;
+                        } | null;
+                        changes: components["schemas"]["Change"][];
+                        warnings: string[];
+                        closed_epic?: components["schemas"]["Task"] | null;
+                        reopened_epic?: components["schemas"]["Task"] | null;
                     };
                 };
             };
@@ -4644,37 +4839,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    items: {
-                        /** @description Full task id, e.g. 'LOG-82'. */
-                        task_id: string;
-                        patch: {
-                            title?: string;
-                            /** @description Task description as Markdown: headings, lists, tables, quotes, links and fenced code blocks are rendered in the UI, so use them. A short log, config or command output is welcome in a fenced block when it carries the point; raw dumps go to an attachment instead. Keep source code in the repository - name the file and describe the algorithm. Stay short, no walls of text, and keep the first line a plain sentence: it becomes the one-line preview in lists. */
-                            description?: string;
-                            /** @enum {string} */
-                            status?: "backlog" | "open" | "in-progress" | "blocked" | "done" | "cancelled";
-                            /** @enum {string} */
-                            priority?: "low" | "medium" | "high" | "critical";
-                            is_epic?: boolean;
-                            epic_id?: string | null;
-                            /** @description Scope id; it must belong to the same project as the task. Prefer scope (the name) when you know it. null clears the scope. */
-                            scope_id?: number | null;
-                            /** @description Scope name inside the task's project, e.g. 'ui'; matched case-insensitively. null clears the scope. Prefer it over scope_id when you know the name; passing both is allowed only when they name the same scope. */
-                            scope?: string | null;
-                            /** @description File or document the task came from; provenance only, never verified, several tasks may share it. */
-                            source_file?: string | null;
-                            /** @description Tags of the task, optional; an empty array clears them. They are a closed list: see tags_list and create a missing one with tags_create {name}. Names are lowercased. */
-                            tags?: string[];
-                            /** @description Size of the task: 'S', 'M' or 'L'. null clears the estimate. */
-                            estimate?: ("S" | "M" | "L") | null;
-                            /** @description Person responsible for the task, a free-form name. null clears the assignee. */
-                            assignee?: string | null;
-                            /** @description Due date of the task as YYYY-MM-DD; a full ISO timestamp is accepted and cut to the day. null clears the due date. */
-                            due_at?: string | null;
-                            /** @description Why the task is blocked, one line of free text. Use it when the blocker is outside the tracker (waiting for a release, an answer, an access). Only allowed on a task with status 'blocked'; null clears it. */
-                            blocked_reason?: string | null;
-                        };
-                    }[];
+                    items: components["schemas"]["UpdateInput"][];
                 };
             };
         };
@@ -4686,17 +4851,11 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        items: ({
-                            index: number;
-                            id: string | null;
-                            ok: boolean;
-                        } & {
-                            [key: string]: unknown;
-                        })[];
+                        items: components["schemas"]["BatchItem"][];
+                        /** Format: int64 */
                         succeeded: number;
+                        /** Format: int64 */
                         failed: number;
-                    } & {
-                        [key: string]: unknown;
                     };
                 };
             };
@@ -4748,10 +4907,9 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @description Task id in the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'); the prefix is matched case-insensitively, so 'log-82' works too. A bare task number (e.g. '82') is rejected: numbers are unique only inside a project, so resolve the project prefix first and pass 'LOG-82'. When nothing matches, the error suggests close ids. */
+                    /** @description Full task id, e.g. 'LOG-82'. */
                     task_id: string;
-                    /** @enum {string} */
-                    reason: "fixed" | "wontfix" | "obsolete" | "duplicate" | "not-reproduced";
+                    reason: components["schemas"]["ClosedReason"];
                 };
             };
         };
@@ -4764,15 +4922,45 @@ export interface operations {
                 content: {
                     "application/json": {
                         id: string;
-                        title: string;
-                        number: number;
                         project_id: string;
-                        /** @enum {string} */
-                        status: "backlog" | "open" | "in-progress" | "blocked" | "done" | "cancelled";
-                        /** @enum {string} */
-                        priority: "low" | "medium" | "high" | "critical";
-                    } & {
-                        [key: string]: unknown;
+                        /** Format: int64 */
+                        number: number;
+                        title: string;
+                        description?: string | null;
+                        status: components["schemas"]["Status"];
+                        priority: components["schemas"]["Priority"];
+                        is_epic: boolean;
+                        epic_id?: string | null;
+                        /** Format: int64 */
+                        scope_id?: number | null;
+                        source_file?: string | null;
+                        tags: string[];
+                        estimate?: components["schemas"]["Estimate"] | null;
+                        assignee?: string | null;
+                        due_at?: string | null;
+                        /** Format: int64 */
+                        attachments_count: number;
+                        created_at: string;
+                        updated_at: string;
+                        closed_at?: string | null;
+                        closed_reason?: string | null;
+                        blocked_reason?: string | null;
+                        deleted_at?: string | null;
+                        project_name?: string | null;
+                        scope_name?: string | null;
+                        short_description?: string | null;
+                        blocked_by: string[];
+                        blocks: string[];
+                        relates_to: string[];
+                        duplicates: string[];
+                        duplicated_by: string[];
+                        children_counts?: {
+                            [key: string]: number;
+                        } | null;
+                        changes: components["schemas"]["Change"][];
+                        released: components["schemas"]["ReleasedLink"][];
+                        warnings: string[];
+                        closed_epic?: components["schemas"]["Task"] | null;
                     };
                 };
             };
@@ -4824,12 +5012,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    items: {
-                        /** @description Full task id, e.g. 'LOG-82'. */
-                        task_id: string;
-                        /** @enum {string} */
-                        reason: "fixed" | "wontfix" | "obsolete" | "duplicate" | "not-reproduced";
-                    }[];
+                    items: components["schemas"]["CloseInput"][];
                 };
             };
         };
@@ -4841,17 +5024,11 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        items: ({
-                            index: number;
-                            id: string | null;
-                            ok: boolean;
-                        } & {
-                            [key: string]: unknown;
-                        })[];
+                        items: components["schemas"]["BatchItem"][];
+                        /** Format: int64 */
                         succeeded: number;
+                        /** Format: int64 */
                         failed: number;
-                    } & {
-                        [key: string]: unknown;
                     };
                 };
             };
@@ -4903,7 +5080,6 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @description Task id in the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'); the prefix is matched case-insensitively, so 'log-82' works too. A bare task number (e.g. '82') is rejected: numbers are unique only inside a project, so resolve the project prefix first and pass 'LOG-82'. When nothing matches, the error suggests close ids. */
                     task_id: string;
                 };
             };
@@ -4918,8 +5094,8 @@ export interface operations {
                     "application/json": {
                         id: string;
                         deleted_at: string;
-                    } & {
-                        [key: string]: unknown;
+                        changes: components["schemas"]["Change"][];
+                        released: components["schemas"]["ReleasedLink"][];
                     };
                 };
             };
@@ -4971,7 +5147,6 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @description Task id in the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'); the prefix is matched case-insensitively, so 'log-82' works too. A bare task number (e.g. '82') is rejected: numbers are unique only inside a project, so resolve the project prefix first and pass 'LOG-82'. When nothing matches, the error suggests close ids. */
                     task_id: string;
                 };
             };
@@ -4985,15 +5160,41 @@ export interface operations {
                 content: {
                     "application/json": {
                         id: string;
-                        title: string;
-                        number: number;
                         project_id: string;
-                        /** @enum {string} */
-                        status: "backlog" | "open" | "in-progress" | "blocked" | "done" | "cancelled";
-                        /** @enum {string} */
-                        priority: "low" | "medium" | "high" | "critical";
-                    } & {
-                        [key: string]: unknown;
+                        /** Format: int64 */
+                        number: number;
+                        title: string;
+                        description?: string | null;
+                        status: components["schemas"]["Status"];
+                        priority: components["schemas"]["Priority"];
+                        is_epic: boolean;
+                        epic_id?: string | null;
+                        /** Format: int64 */
+                        scope_id?: number | null;
+                        source_file?: string | null;
+                        tags: string[];
+                        estimate?: components["schemas"]["Estimate"] | null;
+                        assignee?: string | null;
+                        due_at?: string | null;
+                        /** Format: int64 */
+                        attachments_count: number;
+                        created_at: string;
+                        updated_at: string;
+                        closed_at?: string | null;
+                        closed_reason?: string | null;
+                        blocked_reason?: string | null;
+                        deleted_at?: string | null;
+                        project_name?: string | null;
+                        scope_name?: string | null;
+                        short_description?: string | null;
+                        blocked_by: string[];
+                        blocks: string[];
+                        relates_to: string[];
+                        duplicates: string[];
+                        duplicated_by: string[];
+                        children_counts?: {
+                            [key: string]: number;
+                        } | null;
                     };
                 };
             };
@@ -5045,7 +5246,6 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @description Task id in the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'); the prefix is matched case-insensitively, so 'log-82' works too. A bare task number (e.g. '82') is rejected: numbers are unique only inside a project, so resolve the project prefix first and pass 'LOG-82'. When nothing matches, the error suggests close ids. */
                     task_id: string;
                     /** @description Destination project id (e.g. 'eit'). */
                     project_id: string;
@@ -5061,15 +5261,41 @@ export interface operations {
                 content: {
                     "application/json": {
                         id: string;
-                        title: string;
-                        number: number;
                         project_id: string;
-                        /** @enum {string} */
-                        status: "backlog" | "open" | "in-progress" | "blocked" | "done" | "cancelled";
-                        /** @enum {string} */
-                        priority: "low" | "medium" | "high" | "critical";
-                    } & {
-                        [key: string]: unknown;
+                        /** Format: int64 */
+                        number: number;
+                        title: string;
+                        description?: string | null;
+                        status: components["schemas"]["Status"];
+                        priority: components["schemas"]["Priority"];
+                        is_epic: boolean;
+                        epic_id?: string | null;
+                        /** Format: int64 */
+                        scope_id?: number | null;
+                        source_file?: string | null;
+                        tags: string[];
+                        estimate?: components["schemas"]["Estimate"] | null;
+                        assignee?: string | null;
+                        due_at?: string | null;
+                        /** Format: int64 */
+                        attachments_count: number;
+                        created_at: string;
+                        updated_at: string;
+                        closed_at?: string | null;
+                        closed_reason?: string | null;
+                        blocked_reason?: string | null;
+                        deleted_at?: string | null;
+                        project_name?: string | null;
+                        scope_name?: string | null;
+                        short_description?: string | null;
+                        blocked_by: string[];
+                        blocks: string[];
+                        relates_to: string[];
+                        duplicates: string[];
+                        duplicated_by: string[];
+                        children_counts?: {
+                            [key: string]: number;
+                        } | null;
                     };
                 };
             };
@@ -5122,9 +5348,9 @@ export interface operations {
             content: {
                 "application/json": {
                     /** @description Count only the tags of these projects. Accepts one id or a list of ids. */
-                    project_id?: string[];
+                    project_id?: components["schemas"]["OneOrList"] | null;
                     /** @description Count only the tags of tasks in these statuses. Accepts one status or a list of statuses. */
-                    status?: ("backlog" | "open" | "in-progress" | "blocked" | "done" | "cancelled")[];
+                    status?: components["schemas"]["OneOrList2"] | null;
                 };
             };
         };
@@ -5136,16 +5362,9 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        items: ({
-                            tag: string;
-                            count: number;
-                            active: number;
-                        } & {
-                            [key: string]: unknown;
-                        })[];
+                        items: components["schemas"]["TagCount"][];
+                        /** Format: uint */
                         total: number;
-                    } & {
-                        [key: string]: unknown;
                     };
                 };
             };
@@ -5208,8 +5427,6 @@ export interface operations {
                 content: {
                     "application/json": {
                         items: string[];
-                    } & {
-                        [key: string]: unknown;
                     };
                 };
             };
@@ -5271,19 +5488,9 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        items: ({
-                            name: string;
-                            archived: boolean;
-                            created_at: string;
-                            count: number;
-                            active: number;
-                            backlog: number;
-                        } & {
-                            [key: string]: unknown;
-                        })[];
+                        items: components["schemas"]["TagInventoryEntry"][];
+                        /** Format: uint */
                         total: number;
-                    } & {
-                        [key: string]: unknown;
                     };
                 };
             };
@@ -5350,8 +5557,6 @@ export interface operations {
                         name: string;
                         archived: boolean;
                         created_at: string;
-                    } & {
-                        [key: string]: unknown;
                     };
                 };
             };
@@ -5404,9 +5609,7 @@ export interface operations {
             content: {
                 "application/json": {
                     name: string;
-                    patch: {
-                        archived: boolean;
-                    };
+                    patch: components["schemas"]["PatchInput3"];
                 };
             };
         };
@@ -5421,8 +5624,6 @@ export interface operations {
                         name: string;
                         archived: boolean;
                         created_at: string;
-                    } & {
-                        [key: string]: unknown;
                     };
                 };
             };
@@ -5490,8 +5691,6 @@ export interface operations {
                         name: string;
                         archived: boolean;
                         created_at: string;
-                    } & {
-                        [key: string]: unknown;
                     };
                 };
             };

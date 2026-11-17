@@ -1,10 +1,12 @@
+use schemars::JsonSchema;
+
 use std::path::{Path, PathBuf};
 
 use chrono::{DateTime, Datelike, Local, Timelike};
 
 use crate::{AppError, BackupConfig, Db, Result};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum BackupKind {
     Daily,
@@ -126,7 +128,7 @@ pub async fn copy_database(db: &Db, target: &Path) -> Result<()> {
     Ok(())
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, JsonSchema)]
 pub struct BackupFile {
     pub kind: BackupKind,
     pub name: String,

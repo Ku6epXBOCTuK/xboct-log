@@ -1,3 +1,5 @@
+use schemars::JsonSchema;
+
 use std::path::Path;
 
 use serde::Serialize;
@@ -26,7 +28,7 @@ struct Row {
     deleted_at: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
 pub struct Attachment {
     pub id: AttachmentId,
     pub task_id: TaskKey,
@@ -39,21 +41,21 @@ pub struct Attachment {
     pub deleted_at: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
 pub struct DeletedAttachment {
     #[serde(flatten)]
     pub attachment: Attachment,
     pub task_title: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
 pub struct MovedAttachment {
     pub item: Attachment,
     pub previous_task_id: TaskKey,
     pub was_deleted: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
 pub struct PurgedAttachment {
     pub id: AttachmentId,
     pub task_id: TaskKey,
@@ -61,7 +63,7 @@ pub struct PurgedAttachment {
     pub file_removed: bool,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, JsonSchema)]
 pub struct AttachmentCheck {
     pub ok: Vec<Attachment>,
     pub missing: Vec<Attachment>,

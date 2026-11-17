@@ -1,3 +1,5 @@
+use schemars::JsonSchema;
+
 use serde::Serialize;
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
@@ -224,7 +226,7 @@ pub fn revision_item(row: &(i64, String, String, Option<String>, String, String)
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct Revision {
     pub id: i64,
     pub task_id: TaskKey,
@@ -234,7 +236,7 @@ pub struct Revision {
     pub created_at: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, JsonSchema)]
 pub struct RevisionsPage {
     pub items: Vec<Revision>,
     pub total: i64,
@@ -264,7 +266,7 @@ pub async fn list_revisions(
     Ok(RevisionsPage { items, total })
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, JsonSchema)]
 pub struct TaskMany {
     pub items: Vec<Task>,
     pub missing: Vec<String>,

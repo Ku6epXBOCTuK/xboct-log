@@ -126,6 +126,12 @@ core/ops DTO  ──▶  openapi.json  ──openapi-typescript──▶  src/li
   флагов и ошибки форматирует clap, `restore` стал подкомандой, а
   `XBOCT_LOG_PORT`/`XBOCT_LOG_HOST`/`XBOCT_LOG_DATA` подставляются как значения по
   умолчанию — флаг всегда сильнее env.
+- Схемы MCP-инструментов и OpenAPI строятся из тех же типов, что и код:
+  `#[derive(JsonSchema)]` на DTO в `crates/core` и входах операций, описания
+  переехали в `#[schemars(description)]`, а снапшот `crates/ops/src/schemas.rs`
+  удалён. `$defs` собираются в `components.schemas` при публикации, имена
+  разводятся по содержимому, `null`-дефолты срезаются — `schema.d.ts`
+  перегенерирован.
 
 ## Осталось
 

@@ -1,3 +1,5 @@
+use schemars::JsonSchema;
+
 use serde::Deserialize;
 use xboct_log_core::{
     ActivityPage, ActivitySearch, Entity, HistoryPage, OpName, Result, TaskKey, list_activity,
@@ -6,7 +8,7 @@ use xboct_log_core::{
 
 use crate::{Ctx, Kind, Op};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct HistoryInput {
     pub task_id: TaskKey,

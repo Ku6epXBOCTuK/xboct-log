@@ -1,3 +1,5 @@
+use schemars::JsonSchema;
+
 use serde::{Deserialize, Serialize};
 use xboct_log_core::{
     Entity, OneOrList, OpName, ProjectId, Result, Status, TagCount, TagInventoryEntry, TagName,
@@ -7,14 +9,20 @@ use xboct_log_core::{
 
 use crate::{Ctx, Kind, Op};
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Deserialize, JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct ListInput {
+    #[schemars(
+        description = "Count only the tags of these projects. Accepts one id or a list of ids."
+    )]
     pub project_id: Option<OneOrList<ProjectId>>,
+    #[schemars(
+        description = "Count only the tags of tasks in these statuses. Accepts one status or a list of statuses."
+    )]
     pub status: Option<OneOrList<Status>>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, JsonSchema)]
 pub struct TagListOutput {
     pub items: Vec<TagCount>,
     pub total: usize,
@@ -50,11 +58,11 @@ impl Op for TagsList {
     }
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Deserialize, JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct EmptyInput {}
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, JsonSchema)]
 pub struct DictionaryOutput {
     pub items: Vec<TagName>,
 }
@@ -84,7 +92,7 @@ impl Op for TagsDictionary {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, JsonSchema)]
 pub struct InventoryOutput {
     pub items: Vec<TagInventoryEntry>,
     pub total: usize,
@@ -113,7 +121,7 @@ impl Op for TagsInventory {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct CreateInput {
     pub name: String,
@@ -142,13 +150,13 @@ impl Op for TagsCreate {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct PatchInput {
     pub archived: bool,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct UpdateInput {
     pub name: String,
@@ -178,7 +186,7 @@ impl Op for TagsUpdate {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct RenameInput {
     pub name: String,

@@ -1,3 +1,5 @@
+use schemars::JsonSchema;
+
 use std::collections::BTreeMap;
 
 use serde::Serialize;
@@ -7,7 +9,7 @@ use crate::ids::{ProjectId, ScopeId, TaskKey};
 use crate::tasks::Status;
 use crate::{AppError, Db, Result};
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
 pub struct Scope {
     pub id: ScopeId,
     pub project_id: ProjectId,
@@ -22,7 +24,7 @@ pub struct ScopeCounts {
     pub epics: i64,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct ScopeWithCounts {
     #[serde(flatten)]
     pub scope: Scope,
@@ -42,7 +44,7 @@ impl ScopeWithCounts {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct ScopeDeleteReport {
     pub scope: Scope,
     pub task_ids: Vec<TaskKey>,

@@ -1,12 +1,15 @@
 use std::{borrow::Borrow, fmt};
 
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::AppError;
 
 macro_rules! text_newtype {
     ($name:ident) => {
-        #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+        #[derive(
+            Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, JsonSchema,
+        )]
         #[serde(transparent)]
         pub struct $name(String);
 
@@ -128,7 +131,6 @@ impl TagName {
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
 #[serde(transparent)]
 pub struct AttachmentId(String);
-
 impl AttachmentId {
     pub fn new(value: impl Into<String>) -> Self {
         Self(value.into())
@@ -150,6 +152,16 @@ impl<'de> Deserialize<'de> for AttachmentId {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let raw = String::deserialize(deserializer)?;
         Self::parse(&raw).map_err(serde::de::Error::custom)
+    }
+}
+
+impl JsonSchema for AttachmentId {
+    fn schema_name() -> std::borrow::Cow<'static, str> {
+        "AttachmentId".into()
+    }
+
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        String::json_schema(generator)
     }
 }
 
@@ -177,7 +189,9 @@ impl From<AttachmentId> for String {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, JsonSchema,
+)]
 #[serde(transparent)]
 pub struct ScopeId(i64);
 
@@ -209,7 +223,9 @@ impl std::fmt::Display for ScopeId {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, JsonSchema,
+)]
 #[serde(transparent)]
 pub struct Seq(i64);
 

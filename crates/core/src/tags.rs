@@ -1,3 +1,5 @@
+use schemars::JsonSchema;
+
 use std::collections::BTreeMap;
 
 use serde::Serialize;
@@ -9,21 +11,21 @@ use crate::{AppError, Db, Result};
 
 pub const TAG_NAME_MAX_LENGTH: usize = 20;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
 pub struct TagCount {
     pub tag: TagName,
     pub count: i64,
     pub active: i64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
 pub struct TagRecord {
     pub name: TagName,
     pub archived: bool,
     pub created_at: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
 pub struct TagInventoryEntry {
     #[serde(flatten)]
     pub tag: TagRecord,
