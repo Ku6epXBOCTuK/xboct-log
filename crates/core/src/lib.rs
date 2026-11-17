@@ -16,6 +16,7 @@ mod migrations;
 pub mod op_name;
 pub mod paths;
 pub mod projects;
+pub mod request_log;
 pub mod restore;
 pub mod scheduler;
 pub mod scopes;
@@ -59,6 +60,11 @@ pub use projects::{
     ProjectWithCounts, ScopeCount, create_project, ensure_inbox, get_project, list_projects,
     normalize_prefix, normalize_repo, project_details, project_id_error, project_prefix_error,
     project_with_counts, repo_error, resolve_project_ref, update_project,
+};
+pub use request_log::{
+    RequestLogEntry, RequestLogExport, RequestLogItem, RequestLogPage, RequestLogSearch,
+    RequestStatus, export_request_log, params_hash, prune_request_log, record_request,
+    redact_params, search_request_log, validate_request_log_search,
 };
 pub use restore::{
     RestoreOutcome, SnapshotInfo, inspect_snapshot, resolve_backup, restore_backup,

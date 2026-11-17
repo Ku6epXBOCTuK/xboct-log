@@ -44,6 +44,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/request_log_list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Read the log of MCP tool calls, kept for analysing how agents use the tracker
+         * @description Read the log of MCP tool calls, kept for analysing how agents use the tracker. Every call is recorded, including reads, validation failures and failed operations. Long text fields (description, comment body, attachment content_base64) are replaced with <omitted>, other parameters are kept. Filter by op, status, client, params_hash and the from/to period; paginate with limit (default 50, max 200) and offset. params_hash is stable for the same tool name and parameters, so group by it to find repeated calls. Returns: {items, total}, newest first; each item is {ts, client, op, params_hash, params, status, error_kind, error_message, duration_ms}. The log is kept 30 days by default (XBOCT_LOG_REQUEST_LOG_KEEP_DAYS).
+         */
+        post: operations["request_log_list"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/request_log_export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Export the MCP tool-call log as newline-delimited JSON, one call per line, oldest first
+         * @description Export the MCP tool-call log as newline-delimited JSON, one call per line, oldest first. Accepts the same filters as request_log_list; limit defaults to 10000 (max 10000) and offset skips rows. Long text fields are omitted the same way. Returns: {content, count} - content is the JSONL text, count is the number of lines.
+         */
+        post: operations["request_log_export"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/attachments_list": {
         parameters: {
             query?: never;
@@ -1123,7 +1163,7 @@ export interface components {
         /** @enum {string} */
         ActivitySource: "ui" | "mcp" | "cli";
         /** @enum {string} */
-        OpName: "tasks_history" | "activity_list" | "attachments_list" | "attachments_deleted_list" | "attachments_add" | "attachments_delete" | "attachments_restore" | "attachments_move" | "attachments_copy" | "attachments_purge" | "attachments_verify" | "backup_create" | "backup_list" | "backups_inspect" | "backups_restore" | "tasks_add_blocker" | "tasks_remove_blocker" | "tasks_add_link" | "tasks_remove_link" | "tasks_comments_list" | "tasks_comments_add" | "tasks_comments_edit" | "tasks_comments_delete" | "tasks_options" | "projects_list" | "projects_get" | "projects_create" | "projects_update" | "tasks_revisions_list" | "scopes_list" | "scopes_get" | "scopes_project_ids" | "scopes_create" | "scopes_update" | "scopes_delete" | "tasks_stats" | "tasks_list" | "tasks_deleted_list" | "tasks_get_many" | "tasks_get" | "tasks_create" | "tasks_create_many" | "tasks_update" | "tasks_update_many" | "tasks_close" | "tasks_close_many" | "tasks_delete" | "tasks_restore" | "tasks_move" | "tags_list" | "tags_dictionary" | "tags_inventory" | "tags_create" | "tags_update" | "tags_rename";
+        OpName: "tasks_history" | "activity_list" | "request_log_list" | "request_log_export" | "attachments_list" | "attachments_deleted_list" | "attachments_add" | "attachments_delete" | "attachments_restore" | "attachments_move" | "attachments_copy" | "attachments_purge" | "attachments_verify" | "backup_create" | "backup_list" | "backups_inspect" | "backups_restore" | "tasks_add_blocker" | "tasks_remove_blocker" | "tasks_add_link" | "tasks_remove_link" | "tasks_comments_list" | "tasks_comments_add" | "tasks_comments_edit" | "tasks_comments_delete" | "tasks_options" | "projects_list" | "projects_get" | "projects_create" | "projects_update" | "tasks_revisions_list" | "scopes_list" | "scopes_get" | "scopes_project_ids" | "scopes_create" | "scopes_update" | "scopes_delete" | "tasks_stats" | "tasks_list" | "tasks_deleted_list" | "tasks_get_many" | "tasks_get" | "tasks_create" | "tasks_create_many" | "tasks_update" | "tasks_update_many" | "tasks_close" | "tasks_close_many" | "tasks_delete" | "tasks_restore" | "tasks_move" | "tags_list" | "tags_dictionary" | "tags_inventory" | "tags_create" | "tags_update" | "tags_rename";
         /** @enum {string} */
         ActivityEntity: "task" | "project" | "scope" | "tag";
         ActivityItem: {
@@ -1135,6 +1175,20 @@ export interface components {
             entity_id: string;
             fields: string[];
             changes: unknown[];
+        };
+        /** @enum {string} */
+        RequestStatus: "ok" | "error";
+        RequestLogItem: {
+            ts: string;
+            client?: string | null;
+            op: string;
+            params_hash: string;
+            params: unknown;
+            status: components["schemas"]["RequestStatus"];
+            error_kind?: string | null;
+            error_message?: string | null;
+            /** Format: int64 */
+            duration_ms: number;
         };
         Attachment: {
             id: components["schemas"]["AttachmentId"];
@@ -1573,6 +1627,180 @@ export interface operations {
                         /** Format: int64 */
                         total: number;
                         ops: string[];
+                    };
+                };
+            };
+            /** @description The input is not valid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The thing does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The change clashes with the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The operation failed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    request_log_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Tool name, for example tasks_list. */
+                    op?: string | null;
+                    /** @description Only successful or only failed calls. */
+                    status?: components["schemas"]["RequestStatus"] | null;
+                    /** @description MCP client label. */
+                    client?: string | null;
+                    /** @description Fingerprint of the tool name and parameters, for repeated calls. */
+                    params_hash?: string | null;
+                    /** @description Start of the period as an ISO date-time. */
+                    from?: string | null;
+                    /** @description End of the period as an ISO date-time. */
+                    to?: string | null;
+                    /**
+                     * Format: int64
+                     * @description Maximum number of calls to return (default 50, max 200).
+                     */
+                    limit?: number | null;
+                    /**
+                     * Format: int64
+                     * @description Number of calls to skip, for pagination.
+                     */
+                    offset?: number | null;
+                };
+            };
+        };
+        responses: {
+            /** @description The result of the operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["RequestLogItem"][];
+                        /** Format: int64 */
+                        total: number;
+                    };
+                };
+            };
+            /** @description The input is not valid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The thing does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The change clashes with the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The operation failed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    request_log_export: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Tool name, for example tasks_list. */
+                    op?: string | null;
+                    /** @description Only successful or only failed calls. */
+                    status?: components["schemas"]["RequestStatus"] | null;
+                    /** @description MCP client label. */
+                    client?: string | null;
+                    /** @description Fingerprint of the tool name and parameters, for repeated calls. */
+                    params_hash?: string | null;
+                    /** @description Start of the period as an ISO date-time. */
+                    from?: string | null;
+                    /** @description End of the period as an ISO date-time. */
+                    to?: string | null;
+                    /**
+                     * Format: int64
+                     * @description Maximum number of calls to return (default 50, max 200).
+                     */
+                    limit?: number | null;
+                    /**
+                     * Format: int64
+                     * @description Number of calls to skip, for pagination.
+                     */
+                    offset?: number | null;
+                };
+            };
+        };
+        responses: {
+            /** @description The result of the operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        content: string;
+                        /** Format: int64 */
+                        count: number;
                     };
                 };
             };

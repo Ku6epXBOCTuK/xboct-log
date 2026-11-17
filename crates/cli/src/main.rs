@@ -24,7 +24,8 @@ use tracing_subscriber::{
     util::SubscriberInitExt,
 };
 use xboct_log_core::{
-    Config, Db, Events, ensure_inbox, fingerprint_path, prune_activity, start_scheduler,
+    Config, Db, Events, ensure_inbox, fingerprint_path, prune_activity, prune_request_log,
+    start_scheduler,
 };
 use xboct_log_server::{AppState, app};
 
@@ -170,6 +171,9 @@ async fn run(options: Options) -> Result<(), String> {
         .map_err(|error| error.to_string())?;
     db.migrate().await.map_err(|error| error.to_string())?;
     prune_activity(&db, config.activity_keep_days, Local::now())
+        .await
+        .map_err(|error| error.to_string())?;
+    prune_request_log(&db, config.request_log_keep_days, Local::now())
         .await
         .map_err(|error| error.to_string())?;
     ensure_inbox(&db).await.map_err(|error| error.to_string())?;

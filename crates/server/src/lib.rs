@@ -447,6 +447,7 @@ mod tests {
                 disabled: false,
             },
             activity_keep_days: 365,
+            request_log_keep_days: 30,
         };
         let state = AppState {
             db: Arc::new(db),

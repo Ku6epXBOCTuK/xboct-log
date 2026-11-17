@@ -17,6 +17,7 @@ pub mod comments;
 mod descriptions;
 mod entries;
 pub mod projects;
+pub mod request_log;
 pub mod scopes;
 pub mod tags;
 pub mod tasks;
@@ -231,6 +232,7 @@ pub use attachments::{
 pub use backups::{BackupCreate, BackupListOp, BackupsInspect, BackupsRestore};
 pub use comments::{CommentsAdd, CommentsDelete, CommentsEdit, CommentsList};
 pub use projects::{ProjectsCreate, ProjectsGet, ProjectsList, ProjectsUpdate};
+pub use request_log::{RequestLogExport, RequestLogList};
 pub use scopes::{
     ScopesCreate, ScopesDelete, ScopesGet, ScopesList, ScopesProjectIds, ScopesUpdate,
 };
@@ -245,6 +247,8 @@ pub use tasks::{
 crate::ops![
     TasksHistory,
     ActivitiesList,
+    RequestLogList,
+    RequestLogExport,
     AttachmentsList,
     AttachmentsDeletedList,
     AttachmentsAdd,

@@ -37,6 +37,8 @@ macro_rules! op_names {
 op_names![
     TasksHistory => "tasks_history",
     ActivityList => "activity_list",
+    RequestLogList => "request_log_list",
+    RequestLogExport => "request_log_export",
     AttachmentsList => "attachments_list",
     AttachmentsDeletedList => "attachments_deleted_list",
     AttachmentsAdd => "attachments_add",

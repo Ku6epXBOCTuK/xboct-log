@@ -37,6 +37,8 @@ fn lists_the_registered_operations() {
         vec![
             "tasks_history",
             "activity_list",
+            "request_log_list",
+            "request_log_export",
             "attachments_list",
             "attachments_deleted_list",
             "attachments_add",

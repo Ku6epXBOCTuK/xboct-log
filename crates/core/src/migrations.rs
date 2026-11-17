@@ -156,7 +156,7 @@ mod tests {
             .fetch_all(db.pool())
             .await
             .unwrap();
-        assert_eq!(rust_rows, vec![1]);
+        assert_eq!(rust_rows, vec![1, 2]);
 
         let columns: Vec<String> =
             sqlx::query_scalar("select name from pragma_table_info('tasks')")
@@ -179,7 +179,7 @@ mod tests {
         let versions = applied_versions(&mut db.pool().acquire().await.unwrap())
             .await
             .unwrap();
-        assert_eq!(versions, vec![1]);
+        assert_eq!(versions, vec![1, 2]);
     }
 
     #[tokio::test]
@@ -195,7 +195,7 @@ mod tests {
         let versions = applied_versions(&mut db.pool().acquire().await.unwrap())
             .await
             .unwrap();
-        assert_eq!(versions, vec![1]);
+        assert_eq!(versions, vec![1, 2]);
     }
 
     #[tokio::test]
@@ -211,7 +211,7 @@ mod tests {
         let versions = applied_versions(&mut db.pool().acquire().await.unwrap())
             .await
             .unwrap();
-        assert_eq!(versions, vec![1]);
+        assert_eq!(versions, vec![1, 2]);
     }
 
     #[tokio::test]

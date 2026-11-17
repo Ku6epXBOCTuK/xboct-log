@@ -1,8 +1,10 @@
 use std::borrow::Cow;
 use std::sync::Arc;
+use std::time::Instant;
 
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
+use chrono::Local;
 use rmcp::ErrorData as McpError;
 use rmcp::RoleServer;
 use rmcp::handler::server::ServerHandler;
@@ -16,7 +18,8 @@ use rmcp::service::RequestContext;
 use serde_json::{Map, Value, json};
 use xboct_log_core::{
     ActivitySource, AppError, Attachment, AttachmentContents, AttachmentId, AutoBackup, Config, Db,
-    Events, attachment_by_id, attachment_format, list_all_attachments, read_attachment_file,
+    Events, RequestLogEntry, RequestStatus, attachment_by_id, attachment_format,
+    list_all_attachments, read_attachment_file, record_request,
 };
 use xboct_log_ops::{Ctx, dispatch, metadata, patch_fields, schema_of, tool_schema};
 
@@ -136,26 +139,59 @@ impl ServerHandler for Backlog {
         request: CallToolRequestParams,
         context: RequestContext<RoleServer>,
     ) -> Result<CallToolResponse, McpError> {
+        let started = Instant::now();
         let name = request.name.clone();
         let arguments = Value::Object(request.arguments.unwrap_or_default());
         let arguments = normalize_arguments(name.as_ref(), arguments);
-        if let Some(message) = validation_error(name.as_ref(), &arguments) {
-            return Ok(bare_failure(&message).into());
-        }
-        let result = if name == "attachments_read" {
-            self.call_attachments_read(&arguments).await
+        let client = client_label(&context);
+
+        let (result, status, error_kind, error_message): (
+            CallToolResponse,
+            RequestStatus,
+            Option<String>,
+            Option<String>,
+        ) = if let Some(message) = validation_error(name.as_ref(), &arguments) {
+            (
+                bare_failure(&message).into(),
+                RequestStatus::Error,
+                Some("validation".to_string()),
+                Some(message),
+            )
         } else {
-            let ctx = self.context(client_label(&context));
-            match dispatch(&ctx, name.as_ref(), arguments).await {
-                Ok(Value::Array(items)) => success(json!({ "items": items })),
-                Ok(value) => success(value),
-                Err(error) => failure(&error),
-            }
+            let tool_result = if name == "attachments_read" {
+                self.call_attachments_read(&arguments).await
+            } else {
+                let ctx = self.context(client.clone());
+                match dispatch(&ctx, name.as_ref(), arguments.clone()).await {
+                    Ok(Value::Array(items)) => success(json!({ "items": items })),
+                    Ok(value) => success(value),
+                    Err(error) => failure(&error),
+                }
+            };
+            let (status, error_kind, error_message) = match failure_details(&tool_result) {
+                Some((kind, message)) => (RequestStatus::Error, Some(kind), Some(message)),
+                None => (RequestStatus::Ok, None, None),
+            };
+            (tool_result.into(), status, error_kind, error_message)
         };
+
         if name.starts_with("attachments_") {
             let _ = context.peer.notify_resource_list_changed().await;
         }
-        Ok(result.into())
+
+        let entry = RequestLogEntry {
+            op: name.to_string(),
+            client,
+            params: arguments,
+            status,
+            error_kind,
+            error_message,
+            duration_ms: started.elapsed().as_millis() as i64,
+        };
+        if let Err(error) = record_request(&self.db, &entry, Local::now()).await {
+            tracing::warn!(?error, op = %entry.op, "request log write failed");
+        }
+        Ok(result)
     }
 
     async fn list_resources(
@@ -285,6 +321,18 @@ fn failure(error: &AppError) -> CallToolResult {
     result.structured_content = Some(payload);
     result.result_type = None;
     result
+}
+
+fn failure_details(result: &CallToolResult) -> Option<(String, String)> {
+    if result.is_error != Some(true) {
+        return None;
+    }
+    let payload = result.structured_content.as_ref()?;
+    let error = payload.get("error")?;
+    Some((
+        error.get("kind")?.as_str()?.to_string(),
+        error.get("message")?.as_str()?.to_string(),
+    ))
 }
 
 fn bare_failure(message: &str) -> CallToolResult {
@@ -605,5 +653,15 @@ mod tests {
             .map(|name| name.as_str().to_string())
             .collect();
         assert_eq!(op["enum"], json!(names));
+    }
+
+    #[test]
+    fn reads_the_error_kind_and_message_from_a_failed_call() {
+        let result = failure(&AppError::validation("bad input"));
+        assert_eq!(
+            failure_details(&result),
+            Some(("validation".to_string(), "bad input".to_string()))
+        );
+        assert_eq!(failure_details(&success(json!({"ok": true}))), None);
     }
 }

@@ -8,6 +8,7 @@ pub struct Config {
     pub web_dir: PathBuf,
     pub backup: BackupConfig,
     pub activity_keep_days: i64,
+    pub request_log_keep_days: i64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -56,6 +57,7 @@ impl Config {
                     .is_some_and(|value| value != "0" && !value.eq_ignore_ascii_case("false")),
             },
             activity_keep_days: activity_keep_days(&read),
+            request_log_keep_days: request_log_keep_days(&read),
         })
     }
 
@@ -91,6 +93,13 @@ fn activity_keep_days(lookup: &impl Fn(&str) -> Option<String>) -> i64 {
         .and_then(|value| parse_int(&value))
         .unwrap_or(365);
     if days > 0 { days } else { 365 }
+}
+
+fn request_log_keep_days(lookup: &impl Fn(&str) -> Option<String>) -> i64 {
+    let days = lookup("XBOCT_LOG_REQUEST_LOG_KEEP_DAYS")
+        .and_then(|value| parse_int(&value))
+        .unwrap_or(30);
+    if days > 0 { days } else { 30 }
 }
 
 fn parse_int(value: &str) -> Option<i64> {
@@ -165,6 +174,7 @@ mod tests {
             }
         );
         assert_eq!(config.activity_keep_days, 365);
+        assert_eq!(config.request_log_keep_days, 30);
     }
 
     #[test]
@@ -182,6 +192,7 @@ mod tests {
             ("XBOCT_LOG_BACKUP_AUTO_INTERVAL_MIN", "45"),
             ("XBOCT_LOG_BACKUP_DISABLED", "yes"),
             ("XBOCT_LOG_ACTIVITY_KEEP_DAYS", "30"),
+            ("XBOCT_LOG_REQUEST_LOG_KEEP_DAYS", "14"),
         ]))
         .unwrap();
 
@@ -196,6 +207,7 @@ mod tests {
         assert_eq!(config.backup.auto_interval_min, 45);
         assert!(config.backup.disabled);
         assert_eq!(config.activity_keep_days, 30);
+        assert_eq!(config.request_log_keep_days, 14);
     }
 
     #[test]
@@ -241,6 +253,19 @@ mod tests {
             .unwrap();
 
             assert_eq!(config.activity_keep_days, 365);
+        }
+    }
+
+    #[test]
+    fn replaces_a_non_positive_request_log_window() {
+        for value in ["0", "-5", "never"] {
+            let config = Config::from_lookup(lookup(&[
+                ("XBOCT_LOG_DB", "tasks.db"),
+                ("XBOCT_LOG_REQUEST_LOG_KEEP_DAYS", value),
+            ]))
+            .unwrap();
+
+            assert_eq!(config.request_log_keep_days, 30);
         }
     }
 

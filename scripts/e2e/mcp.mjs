@@ -85,7 +85,7 @@ try {
 	};
 
 	await check("tools/list exposes every registered tool", () => {
-		assert.equal(tools.length, 53);
+		assert.equal(tools.length, 55);
 		const names = new Set(tools.map((tool) => tool.name));
 		for (const name of [
 			"tasks_create",
@@ -483,6 +483,25 @@ try {
 		);
 		assert.ok(items(activity, "activity_list").length >= 1);
 		assert.ok(activity.ops.length >= 1);
+	});
+	await check("request_log_list", async () => {
+		const log = ok(
+			await client.callTool("request_log_list", {
+				op: "tasks_list",
+				limit: 50,
+			}),
+			"request_log_list",
+		);
+		assert.ok(log.total >= 1);
+		assert.ok(log.items.some((item) => item.op === "tasks_list"));
+	});
+	await check("request_log_export", async () => {
+		const exported = ok(
+			await client.callTool("request_log_export", { limit: 100 }),
+			"request_log_export",
+		);
+		assert.ok(exported.count >= 1);
+		assert.equal(exported.content.trim().split("\n").length, exported.count);
 	});
 	await check("tasks_stats", async () => {
 		const stats = ok(await client.callTool("tasks_stats", {}), "tasks_stats");
