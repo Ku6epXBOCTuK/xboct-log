@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use crate::ids::{ProjectId, ScopeId, Seq, TagName, TaskKey};
 
@@ -197,6 +198,71 @@ pub struct Task {
 pub struct TaskList {
     pub items: Vec<serde_json::Value>,
     pub total: i64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct Change {
+    pub field: String,
+    pub from: Value,
+    pub to: Value,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ReleasedLink {
+    pub task_id: TaskKey,
+    pub changes: Vec<Change>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct Created {
+    #[serde(flatten)]
+    pub task: Task,
+    pub warnings: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct Updated {
+    #[serde(flatten)]
+    pub task: Task,
+    pub changes: Vec<Change>,
+    pub warnings: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub closed_epic: Option<Task>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reopened_epic: Option<Task>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct Closed {
+    #[serde(flatten)]
+    pub task: Task,
+    pub changes: Vec<Change>,
+    pub released: Vec<ReleasedLink>,
+    pub warnings: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub closed_epic: Option<Task>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct Deleted {
+    pub id: TaskKey,
+    pub deleted_at: String,
+    pub changes: Vec<Change>,
+    pub released: Vec<ReleasedLink>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct Linked {
+    #[serde(flatten)]
+    pub task: Task,
+    pub changes: Vec<Change>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TaskStats {
+    pub tasks: BTreeMap<Status, i64>,
+    // NOTE: epics come from the list projection, which trades description for short_description
+    pub epics: Vec<Value>,
 }
 
 #[derive(Debug, Clone, Default)]

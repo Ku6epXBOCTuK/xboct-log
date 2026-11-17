@@ -25,6 +25,10 @@ fn new_task(value: Value) -> NewTask {
     serde_json::from_value(value).expect("task")
 }
 
+mod common;
+
+use common::jsonv;
+
 fn patch(value: Value) -> TaskPatch {
     serde_json::from_value(value).expect("patch")
 }
@@ -104,7 +108,7 @@ async fn answers_options_and_stats() {
     assert_eq!(searched.items.len(), 1);
     assert_eq!(searched.items[0]["id"], "SPA-1");
 
-    let stats = task_stats(&db).await.expect("stats");
+    let stats = jsonv(task_stats(&db).await.expect("stats"));
     assert_eq!(stats["tasks"].as_object().expect("tasks").len(), 6);
     let epics = stats["epics"].as_array().expect("epics");
     assert_eq!(epics.len(), 1);
@@ -126,9 +130,11 @@ async fn reads_revisions_many_and_deleted() {
         .await
         .expect("update");
 
-    let revisions = list_revisions(&db, "LOG-1", Some("description"), None)
-        .await
-        .expect("revisions");
+    let revisions = jsonv(
+        list_revisions(&db, "LOG-1", Some("description"), None)
+            .await
+            .expect("revisions"),
+    );
     assert_eq!(revisions["total"], 1);
     assert_eq!(revisions["items"][0]["body"], "old body");
     assert_eq!(revisions["items"][0]["task_id"], "LOG-1");

@@ -6,7 +6,7 @@ use crate::ids::TaskKey;
 use crate::{AppError, Db, Result};
 
 use super::filters::TaskFilters;
-use super::model::Status;
+use super::model::{Status, Task, TaskStats};
 use super::resolve::resolve_task_id;
 use super::sql::{list_tasks, task_by_key};
 
@@ -138,7 +138,7 @@ pub async fn count_children_by_epic(db: &Db) -> Result<BTreeMap<String, BTreeMap
     Ok(counts)
 }
 
-pub async fn task_stats(db: &Db) -> Result<Value> {
+pub async fn task_stats(db: &Db) -> Result<TaskStats> {
     let tasks = count_tasks_by_status(db).await?;
     let children = count_children_by_epic(db).await?;
     let filters: TaskFilters = serde_json::from_value(json!({
@@ -160,7 +160,10 @@ pub async fn task_stats(db: &Db) -> Result<Value> {
             epic
         })
         .collect();
-    Ok(json!({ "tasks": tasks, "epics": items }))
+    Ok(TaskStats {
+        tasks,
+        epics: items,
+    })
 }
 
 pub async fn task_options(
@@ -210,15 +213,31 @@ pub async fn task_options(
     super::sql::list_tasks_unchecked(db, &filters).await
 }
 
-pub fn revision_item(row: &(i64, String, String, Option<String>, String, String)) -> Value {
-    json!({
-        "id": row.0,
-        "task_id": row.1,
-        "field": row.2,
-        "ref_id": row.3,
-        "body": row.4,
-        "created_at": row.5,
-    })
+pub fn revision_item(row: &(i64, String, String, Option<String>, String, String)) -> Revision {
+    Revision {
+        id: row.0,
+        task_id: TaskKey::from(row.1.clone()),
+        field: row.2.clone(),
+        ref_id: row.3.clone(),
+        body: row.4.clone(),
+        created_at: row.5.clone(),
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct Revision {
+    pub id: i64,
+    pub task_id: TaskKey,
+    pub field: String,
+    pub ref_id: Option<String>,
+    pub body: String,
+    pub created_at: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct RevisionsPage {
+    pub items: Vec<Revision>,
+    pub total: i64,
 }
 
 pub async fn list_revisions(
@@ -226,7 +245,7 @@ pub async fn list_revisions(
     task_id: &str,
     field: Option<&str>,
     limit: Option<i64>,
-) -> Result<Value> {
+) -> Result<RevisionsPage> {
     let key = resolve_task_id(db, task_id).await?;
     let rows: Vec<(i64, String, String, Option<String>, String, String)> = sqlx::query_as(
         "SELECT r.id, tasks.key AS task_id, r.field, r.ref_id, r.body, r.created_at FROM task_revisions r JOIN tasks ON tasks.id = r.task_id WHERE tasks.key = ? ORDER BY r.id ASC",
@@ -235,19 +254,19 @@ pub async fn list_revisions(
     .fetch_all(db.pool())
     .await?;
     let limit = limit.unwrap_or(50).clamp(1, 200) as usize;
-    let items: Vec<Value> = rows
+    let items: Vec<Revision> = rows
         .iter()
         .filter(|row| field.is_none_or(|wanted| row.2 == wanted))
         .take(limit)
         .map(revision_item)
         .collect();
-    let total = items.len();
-    Ok(json!({ "items": items, "total": total }))
+    let total = items.len() as i64;
+    Ok(RevisionsPage { items, total })
 }
 
 #[derive(Debug, Serialize)]
 pub struct TaskMany {
-    pub items: Vec<Value>,
+    pub items: Vec<Task>,
     pub missing: Vec<String>,
 }
 
@@ -270,7 +289,7 @@ pub async fn get_tasks_by_ids(db: &Db, ids: &[String]) -> Result<TaskMany> {
         match resolved {
             Some(key) => {
                 let task = read_task(db, &key).await?;
-                items.push(serde_json::to_value(task)?);
+                items.push(task);
             }
             None => missing.push(id.clone()),
         }

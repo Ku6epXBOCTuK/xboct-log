@@ -4,6 +4,10 @@ use xboct_log_core::{
     record_activity, search_activity, task_stats,
 };
 
+mod common;
+
+use common::jsonv;
+
 async fn database() -> Db {
     let db = Db::open(":memory:").await.expect("open");
     db.migrate().await.expect("migrate");
@@ -74,16 +78,20 @@ async fn lists_the_newest_activity_first_and_paginates() {
         .await;
     }
 
-    let all = list_activity(&db, "task", "LOG-1", None, None)
-        .await
-        .expect("list");
+    let all = jsonv(
+        list_activity(&db, "task", "LOG-1", None, None)
+            .await
+            .expect("list"),
+    );
     assert_eq!(all["total"], 3);
     assert_eq!(all["items"][0]["op"], "tasks_update_2");
     assert_eq!(all["items"][2]["op"], "tasks_update_0");
 
-    let page = list_activity(&db, "task", "LOG-1", Some(1), Some(1))
-        .await
-        .expect("page");
+    let page = jsonv(
+        list_activity(&db, "task", "LOG-1", Some(1), Some(1))
+            .await
+            .expect("page"),
+    );
     assert_eq!(page["total"], 3);
     assert_eq!(page["items"].as_array().map(Vec::len), Some(1));
     assert_eq!(page["items"][0]["op"], "tasks_update_1");
@@ -93,12 +101,14 @@ async fn lists_the_newest_activity_first_and_paginates() {
 #[tokio::test]
 async fn follows_a_task_after_it_moves() {
     let db = database().await;
-    let _task = create_task(
-        &db,
-        serde_json::from_value(json!({"project_id": "log", "title": "Move me"})).expect("task"),
-    )
-    .await
-    .expect("create");
+    let _task = jsonv(
+        create_task(
+            &db,
+            serde_json::from_value(json!({"project_id": "log", "title": "Move me"})).expect("task"),
+        )
+        .await
+        .expect("create"),
+    );
     let uuid: String = sqlx::query_scalar("SELECT id FROM tasks WHERE key = 'LOG-1'")
         .fetch_one(db.pool())
         .await
@@ -121,19 +131,25 @@ async fn follows_a_task_after_it_moves() {
     )
     .await;
 
-    let history = list_activity(&db, "task", "SPA-1", None, None)
-        .await
-        .expect("history");
+    let history = jsonv(
+        list_activity(&db, "task", "SPA-1", None, None)
+            .await
+            .expect("history"),
+    );
     assert_eq!(history["total"], 2, "{history}");
 
-    let stale = list_activity(&db, "task", "LOG-1", None, None)
-        .await
-        .expect("stale");
+    let stale = jsonv(
+        list_activity(&db, "task", "LOG-1", None, None)
+            .await
+            .expect("stale"),
+    );
     assert_eq!(stale["total"], 1, "the old key only finds its own row");
 
-    let other = list_activity(&db, "task", "LOG-99", None, None)
-        .await
-        .expect("other");
+    let other = jsonv(
+        list_activity(&db, "task", "LOG-99", None, None)
+            .await
+            .expect("other"),
+    );
     assert_eq!(other["total"], 0);
 }
 
@@ -183,39 +199,51 @@ async fn searches_activity_by_source_op_entity_and_project() {
     )
     .await;
 
-    let by_source = search_activity(&db, &search(json!({"source": "mcp"})))
-        .await
-        .expect("source");
+    let by_source = jsonv(
+        search_activity(&db, &search(json!({"source": "mcp"})))
+            .await
+            .expect("source"),
+    );
     assert_eq!(by_source["total"], 1);
     assert_eq!(by_source["items"][0]["op"], "tasks_create");
 
-    let by_op = search_activity(&db, &search(json!({"op": "projects_update"})))
-        .await
-        .expect("op");
+    let by_op = jsonv(
+        search_activity(&db, &search(json!({"op": "projects_update"})))
+            .await
+            .expect("op"),
+    );
     assert_eq!(by_op["total"], 1);
     assert_eq!(by_op["items"][0]["entity"], "project");
 
-    let by_entity = search_activity(&db, &search(json!({"entity": "task"})))
-        .await
-        .expect("entity");
+    let by_entity = jsonv(
+        search_activity(&db, &search(json!({"entity": "task"})))
+            .await
+            .expect("entity"),
+    );
     assert_eq!(by_entity["total"], 3);
 
-    let by_project = search_activity(&db, &search(json!({"project_id": "log"})))
-        .await
-        .expect("project");
+    let by_project = jsonv(
+        search_activity(&db, &search(json!({"project_id": "log"})))
+            .await
+            .expect("project"),
+    );
     assert_eq!(by_project["total"], 3);
 
-    let by_window = search_activity(
-        &db,
-        &search(json!({"from": "2026-02-02T00:00:00.000Z", "to": "2026-02-02T23:59:59.999Z"})),
-    )
-    .await
-    .expect("window");
+    let by_window = jsonv(
+        search_activity(
+            &db,
+            &search(json!({"from": "2026-02-02T00:00:00.000Z", "to": "2026-02-02T23:59:59.999Z"})),
+        )
+        .await
+        .expect("window"),
+    );
     assert_eq!(by_window["total"], 1);
 
-    let page = search_activity(&db, &search(json!({"limit": 1, "offset": 1})))
-        .await
-        .expect("page");
+    let page = jsonv(
+        search_activity(&db, &search(json!({"limit": 1, "offset": 1})))
+            .await
+            .expect("page"),
+    );
     assert_eq!(page["total"], 4);
     assert_eq!(page["items"].as_array().map(Vec::len), Some(1));
     assert_eq!(
@@ -223,28 +251,34 @@ async fn searches_activity_by_source_op_entity_and_project() {
         json!(["projects_update", "tasks_create", "tasks_update"])
     );
 
-    let unfiltered = search_activity(&db, &search(json!({}))).await.expect("all");
+    let unfiltered = jsonv(search_activity(&db, &search(json!({}))).await.expect("all"));
     assert_eq!(unfiltered["items"][0]["op"], "tasks_update_legacy");
 }
 
 #[tokio::test]
 async fn lists_the_status_of_every_epic_child() {
     let db = database().await;
-    let epic = create_task(
-        &db,
-        serde_json::from_value(json!({"project_id": "log", "title": "Epic", "is_epic": true}))
-            .expect("epic"),
-    )
-    .await
-    .expect("create epic");
+    let epic = jsonv(
+        create_task(
+            &db,
+            serde_json::from_value(json!({"project_id": "log", "title": "Epic", "is_epic": true}))
+                .expect("epic"),
+        )
+        .await
+        .expect("create epic"),
+    );
     let epic_id = epic["id"].as_str().expect("id").to_string();
-    let child = create_task(
-        &db,
-        serde_json::from_value(json!({"project_id": "log", "title": "Child", "epic_id": epic_id}))
+    let child = jsonv(
+        create_task(
+            &db,
+            serde_json::from_value(
+                json!({"project_id": "log", "title": "Child", "epic_id": epic_id}),
+            )
             .expect("child"),
-    )
-    .await
-    .expect("create child");
+        )
+        .await
+        .expect("create child"),
+    );
     assert_eq!(child["epic_id"], epic_id);
     create_task(
         &db,
@@ -258,7 +292,7 @@ async fn lists_the_status_of_every_epic_child() {
     .await
     .expect("create lonely");
 
-    let stats = task_stats(&db).await.expect("stats");
+    let stats = jsonv(task_stats(&db).await.expect("stats"));
     let epics = stats["epics"].as_array().expect("epics");
     let counted = epics
         .iter()
@@ -284,12 +318,15 @@ async fn lists_the_status_of_every_epic_child() {
 #[tokio::test]
 async fn records_activity_and_reports_its_total() {
     let db = database().await;
-    let task = create_task(
-        &db,
-        serde_json::from_value(json!({"project_id": "log", "title": "Record me"})).expect("task"),
-    )
-    .await
-    .expect("create");
+    let task = jsonv(
+        create_task(
+            &db,
+            serde_json::from_value(json!({"project_id": "log", "title": "Record me"}))
+                .expect("task"),
+        )
+        .await
+        .expect("create"),
+    );
     let id = task["id"].as_str().expect("id").to_string();
 
     record_activity(
@@ -307,9 +344,11 @@ async fn records_activity_and_reports_its_total() {
     .await
     .expect("record");
 
-    let history = list_activity(&db, "task", "LOG-1", None, None)
-        .await
-        .expect("history");
+    let history = jsonv(
+        list_activity(&db, "task", "LOG-1", None, None)
+            .await
+            .expect("history"),
+    );
     assert_eq!(history["total"], 1);
     assert_eq!(history["items"][0]["fields"], json!(["status"]));
 }

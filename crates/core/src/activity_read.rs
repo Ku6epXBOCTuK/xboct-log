@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use serde_json::{Value, json};
+use serde_json::Value;
 use sqlx::{QueryBuilder, Sqlite};
 
 use crate::{ActivitySource, AppError, Db, OpName, ProjectId, Result};
@@ -54,12 +54,15 @@ async fn has_table(db: &Db) -> Result<bool> {
     Ok(exists.is_some())
 }
 
-fn parse_fields(raw: &str) -> Vec<Value> {
+fn parse_fields(raw: &str) -> Vec<String> {
     match serde_json::from_str::<Value>(raw) {
         Ok(Value::Array(items)) => items
             .into_iter()
-            .filter(Value::is_string)
-            .collect::<Vec<Value>>(),
+            .filter_map(|item| match item {
+                Value::String(text) => Some(text),
+                _ => None,
+            })
+            .collect(),
         _ => Vec::new(),
     }
 }
@@ -82,6 +85,41 @@ fn parse_changes(raw: Option<&str>) -> Vec<Value> {
 
 fn clamp_limit(limit: Option<i64>) -> i64 {
     limit.unwrap_or(50).clamp(1, 200)
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct ActivityItem {
+    pub ts: String,
+    pub source: String,
+    pub client: Option<String>,
+    pub op: String,
+    pub entity: String,
+    pub entity_id: String,
+    pub fields: Vec<String>,
+    pub changes: Vec<Value>,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct HistoryItem {
+    pub ts: String,
+    pub source: String,
+    pub client: Option<String>,
+    pub op: String,
+    pub fields: Vec<String>,
+    pub changes: Vec<Value>,
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct ActivityPage {
+    pub items: Vec<ActivityItem>,
+    pub total: i64,
+    pub ops: Vec<String>,
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct HistoryPage {
+    pub items: Vec<HistoryItem>,
+    pub total: i64,
 }
 
 fn push_search(query: &mut QueryBuilder<Sqlite>, search: &ActivitySearch) {
@@ -156,9 +194,13 @@ type HistoryRow = (
     Option<String>,
 );
 
-pub async fn search_activity(db: &Db, search: &ActivitySearch) -> Result<Value> {
+pub async fn search_activity(db: &Db, search: &ActivitySearch) -> Result<ActivityPage> {
     if !has_table(db).await? {
-        return Ok(json!({ "items": [], "total": 0, "ops": [] }));
+        return Ok(ActivityPage {
+            items: Vec::new(),
+            total: 0,
+            ops: Vec::new(),
+        });
     }
     let limit = clamp_limit(search.limit);
     let offset = search.offset.unwrap_or(0).max(0);
@@ -177,19 +219,17 @@ pub async fn search_activity(db: &Db, search: &ActivitySearch) -> Result<Value> 
         .push(" OFFSET ")
         .push_bind(offset);
     let rows: Vec<SearchRow> = query.build_query_as().fetch_all(db.pool()).await?;
-    let items: Vec<Value> = rows
+    let items: Vec<ActivityItem> = rows
         .into_iter()
-        .map(|row| {
-            json!({
-                "ts": row.0,
-                "source": row.1,
-                "client": row.2,
-                "op": row.3,
-                "entity": row.4,
-                "entity_id": row.5,
-                "fields": parse_fields(&row.6),
-                "changes": parse_changes(row.7.as_deref()),
-            })
+        .map(|row| ActivityItem {
+            ts: row.0,
+            source: row.1,
+            client: row.2,
+            op: row.3,
+            entity: row.4,
+            entity_id: row.5,
+            fields: parse_fields(&row.6),
+            changes: parse_changes(row.7.as_deref()),
         })
         .collect();
 
@@ -203,7 +243,7 @@ pub async fn search_activity(db: &Db, search: &ActivitySearch) -> Result<Value> 
         names.push_unseparated(") ORDER BY op");
     }
     let ops: Vec<String> = ops_query.build_query_scalar().fetch_all(db.pool()).await?;
-    Ok(json!({ "items": items, "total": total, "ops": ops }))
+    Ok(ActivityPage { items, total, ops })
 }
 
 pub async fn list_activity(
@@ -212,9 +252,12 @@ pub async fn list_activity(
     entity_id: &str,
     limit: Option<i64>,
     offset: Option<i64>,
-) -> Result<Value> {
+) -> Result<HistoryPage> {
     if !has_table(db).await? {
-        return Ok(json!({ "items": [], "total": 0 }));
+        return Ok(HistoryPage {
+            items: Vec::new(),
+            total: 0,
+        });
     }
     let mut count = QueryBuilder::<Sqlite>::new("SELECT COUNT(*) FROM activity WHERE 1 = 1");
     push_history(&mut count, entity, entity_id);
@@ -230,20 +273,18 @@ pub async fn list_activity(
         .push(" OFFSET ")
         .push_bind(offset.unwrap_or(0).max(0));
     let rows: Vec<HistoryRow> = query.build_query_as().fetch_all(db.pool()).await?;
-    let items: Vec<Value> = rows
+    let items: Vec<HistoryItem> = rows
         .into_iter()
-        .map(|row| {
-            json!({
-                "ts": row.0,
-                "source": row.1,
-                "client": row.2,
-                "op": row.3,
-                "fields": parse_fields(&row.4),
-                "changes": parse_changes(row.5.as_deref()),
-            })
+        .map(|row| HistoryItem {
+            ts: row.0,
+            source: row.1,
+            client: row.2,
+            op: row.3,
+            fields: parse_fields(&row.4),
+            changes: parse_changes(row.5.as_deref()),
         })
         .collect();
-    Ok(json!({ "items": items, "total": total }))
+    Ok(HistoryPage { items, total })
 }
 
 pub fn validate_activity_search(search: &ActivitySearch) -> Result<()> {

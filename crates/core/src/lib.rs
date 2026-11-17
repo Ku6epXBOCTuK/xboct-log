@@ -26,7 +26,8 @@ mod test_support;
 
 pub use activity::{ActivityEntry, prune_activity, record_activity};
 pub use activity_read::{
-    ActivityEntity, ActivitySearch, list_activity, search_activity, validate_activity_search,
+    ActivityEntity, ActivityItem, ActivityPage, ActivitySearch, HistoryItem, HistoryPage,
+    list_activity, search_activity, validate_activity_search,
 };
 pub use attachments::{
     ATTACHMENT_PURGE_KEEP_DAYS, Attachment, AttachmentCheck, DeletedAttachment,
@@ -77,9 +78,10 @@ pub use tags::{
     set_tag_archived, tag_name_error, validate_tags,
 };
 pub use tasks::{
-    BlockingInfo, ClosedReason, Estimate, LinkFilter, LinkType, NewTask, OneOrList, Order,
-    Priority, SearchTerm, Sort, Status, Task, TaskFilters, TaskList, TaskPatch, UpdateOutcome,
-    add_blocker, add_link, close_task, close_task_detailed, count_by_status,
+    BlockingInfo, Change, Closed, ClosedReason, Created, Deleted, Estimate, LinkFilter, LinkType,
+    Linked, NewTask, OneOrList, Order, Priority, ReleasedLink, Revision, RevisionsPage, SearchTerm,
+    Sort, Status, Task, TaskFilters, TaskList, TaskMany, TaskPatch, TaskStats, UpdateOutcome,
+    Updated, add_blocker, add_link, close_task, close_task_detailed, count_by_status,
     count_epic_children_by_status, create_task, delete_task, get_task, get_tasks_by_ids,
     link_changes, list_revisions, list_tasks, move_task, normalize_task_id_input, now_iso,
     parse_search_query, remove_blocker, remove_link, resolve_task_id, resolve_task_id_any,

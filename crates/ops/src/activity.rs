@@ -1,8 +1,7 @@
 use serde::Deserialize;
-use serde_json::Value;
 use xboct_log_core::{
-    ActivitySearch, Entity, OpName, Result, TaskKey, list_activity, resolve_task_id,
-    search_activity, validate_activity_search,
+    ActivityPage, ActivitySearch, Entity, HistoryPage, OpName, Result, TaskKey, list_activity,
+    resolve_task_id, search_activity, validate_activity_search,
 };
 
 use crate::{Ctx, Kind, Op};
@@ -22,7 +21,7 @@ impl Op for TasksHistory {
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
     type Input = HistoryInput;
-    type Output = Value;
+    type Output = HistoryPage;
 
     fn description() -> &'static str {
         crate::descriptions::TASKS_HISTORY
@@ -45,7 +44,7 @@ impl Op for ActivitiesList {
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
     type Input = ActivitySearch;
-    type Output = Value;
+    type Output = ActivityPage;
 
     fn description() -> &'static str {
         crate::descriptions::ACTIVITY_LIST

@@ -1,12 +1,12 @@
 use std::collections::HashSet;
 
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::json;
 
 use crate::ids::TaskKey;
 use crate::{AppError, Db, Result};
 
-use super::model::Task;
+use super::model::{Change, Task};
 use super::resolve::resolve_task_id;
 use super::sql::get_task;
 use super::write::release_blocked_status;
@@ -195,7 +195,7 @@ pub async fn remove_blocker(db: &Db, blocked_key: &str, blocker_key: &str) -> Re
     remove_link(db, LinkType::Blocks, blocker_key, blocked_key).await
 }
 
-pub fn link_changes(before: &Task, after: &Task, field: &str) -> Vec<Value> {
+pub fn link_changes(before: &Task, after: &Task, field: &str) -> Vec<Change> {
     let (from, to) = match field {
         "relates_to" => (json!(before.relates_to), json!(after.relates_to)),
         "duplicates" => (json!(before.duplicates), json!(after.duplicates)),
@@ -203,14 +203,18 @@ pub fn link_changes(before: &Task, after: &Task, field: &str) -> Vec<Value> {
     };
     let mut changes = Vec::new();
     if from != to {
-        changes.push(json!({ "field": field, "from": from, "to": to }));
+        changes.push(Change {
+            field: field.to_string(),
+            from,
+            to,
+        });
     }
     if before.status != after.status {
-        changes.push(json!({
-            "field": "status",
-            "from": before.status,
-            "to": after.status,
-        }));
+        changes.push(Change {
+            field: "status".to_string(),
+            from: json!(before.status),
+            to: json!(after.status),
+        });
     }
     changes
 }

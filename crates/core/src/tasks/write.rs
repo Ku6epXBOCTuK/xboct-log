@@ -4,7 +4,9 @@ use serde_json::{Value, json};
 use crate::ids::{ProjectId, ScopeId, TagName, TaskKey};
 use crate::{AppError, Db, Result, Tx};
 
-use super::model::{Estimate, Priority, Status, Task};
+use super::model::{
+    Change, Closed, Created, Deleted, Estimate, Priority, ReleasedLink, Status, Task, Updated,
+};
 use super::resolve::{resolve_epic_id, resolve_scope_ref};
 use super::sql::{count_epic_children_by_status, task_by_key};
 
@@ -96,16 +98,10 @@ impl TaskPatch {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
-pub struct ReleasedLink {
-    pub task_id: TaskKey,
-    pub changes: Vec<Value>,
-}
-
 #[derive(Debug, Serialize)]
 pub struct UpdateOutcome {
     pub task: Task,
-    pub changes: Vec<Value>,
+    pub changes: Vec<Change>,
     pub released: Vec<ReleasedLink>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub closed_epic: Option<Task>,
@@ -155,8 +151,12 @@ pub fn now_iso() -> String {
     chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
 }
 
-fn change(field: &str, from: Value, to: Value) -> Value {
-    json!({ "field": field, "from": from, "to": to })
+fn change(field: &str, from: Value, to: Value) -> Change {
+    Change {
+        field: field.to_string(),
+        from,
+        to,
+    }
 }
 
 async fn project_prefix(db: &Db, project_id: &str) -> Result<Option<String>> {
@@ -235,7 +235,7 @@ async fn read_task(db: &Db, key: &TaskKey) -> Result<Task> {
         .ok_or_else(|| AppError::unexpected(format!("task {key} disappeared while writing")))
 }
 
-pub async fn create_task(db: &Db, input: NewTask) -> Result<Value> {
+pub async fn create_task(db: &Db, input: NewTask) -> Result<Created> {
     let project = project_prefix(db, input.project_id.as_str()).await?;
     let Some(prefix) = project else {
         return Err(AppError::not_found(format!(
@@ -364,11 +364,7 @@ pub async fn create_task(db: &Db, input: NewTask) -> Result<Value> {
 
     let task = read_task(db, &TaskKey::from(key)).await?;
     let warnings = warnings_for(db, &task).await?;
-    let mut output = serde_json::to_value(&task)?;
-    if let Value::Object(object) = &mut output {
-        object.insert("warnings".to_string(), json!(warnings));
-    }
-    Ok(output)
+    Ok(Created { task, warnings })
 }
 
 async fn allocate_number_tx(tx: &mut Tx, project_id: &str) -> Result<i64> {
@@ -510,7 +506,7 @@ pub async fn update_task_detailed(db: &Db, id: &str, patch: TaskPatch) -> Result
     }
     let target = super::resolve::resolve_task_id(db, id).await?;
     let current = read_task(db, &target).await?;
-    let mut changes: Vec<Value> = Vec::new();
+    let mut changes: Vec<Change> = Vec::new();
     let mut sets: Vec<String> = Vec::new();
     let mut params: Vec<Option<String>> = Vec::new();
     let now = now_iso();
@@ -838,21 +834,16 @@ pub async fn update_task_detailed(db: &Db, id: &str, patch: TaskPatch) -> Result
     })
 }
 
-pub async fn update_task(db: &Db, id: &str, patch: TaskPatch) -> Result<Value> {
+pub async fn update_task(db: &Db, id: &str, patch: TaskPatch) -> Result<Updated> {
     let outcome = update_task_detailed(db, id, patch).await?;
     let warnings = warnings_for(db, &outcome.task).await?;
-    let mut output = serde_json::to_value(&outcome.task)?;
-    if let Value::Object(object) = &mut output {
-        object.insert("changes".to_string(), json!(outcome.changes));
-        object.insert("warnings".to_string(), json!(warnings));
-        if let Some(epic) = outcome.closed_epic {
-            object.insert("closed_epic".to_string(), serde_json::to_value(epic)?);
-        }
-        if let Some(epic) = outcome.reopened_epic {
-            object.insert("reopened_epic".to_string(), serde_json::to_value(epic)?);
-        }
-    }
-    Ok(output)
+    Ok(Updated {
+        task: outcome.task,
+        changes: outcome.changes,
+        warnings,
+        closed_epic: outcome.closed_epic,
+        reopened_epic: outcome.reopened_epic,
+    })
 }
 
 pub async fn close_task_detailed(
@@ -900,19 +891,16 @@ pub async fn close_task_detailed(
     })
 }
 
-pub async fn close_task(db: &Db, id: &str, reason: super::model::ClosedReason) -> Result<Value> {
+pub async fn close_task(db: &Db, id: &str, reason: super::model::ClosedReason) -> Result<Closed> {
     let outcome = close_task_detailed(db, id, reason).await?;
     let warnings = warnings_for(db, &outcome.task).await?;
-    let mut output = serde_json::to_value(&outcome.task)?;
-    if let Value::Object(object) = &mut output {
-        object.insert("changes".to_string(), json!(outcome.changes));
-        object.insert("released".to_string(), json!(outcome.released));
-        object.insert("warnings".to_string(), json!(warnings));
-        if let Some(epic) = outcome.closed_epic {
-            object.insert("closed_epic".to_string(), serde_json::to_value(epic)?);
-        }
-    }
-    Ok(output)
+    Ok(Closed {
+        task: outcome.task,
+        changes: outcome.changes,
+        released: outcome.released,
+        warnings,
+        closed_epic: outcome.closed_epic,
+    })
 }
 
 async fn list_blocked_by(db: &Db, key: &str) -> Result<Vec<TaskKey>> {
@@ -927,7 +915,7 @@ async fn list_blocked_by(db: &Db, key: &str) -> Result<Vec<TaskKey>> {
     Ok(keys)
 }
 
-pub async fn delete_task(db: &Db, id: &str) -> Result<Value> {
+pub async fn delete_task(db: &Db, id: &str) -> Result<Deleted> {
     let target = super::resolve::resolve_task_id(db, id).await?;
     let info = super::sql::blocking_info_for(db, &[target.to_string()])
         .await?
@@ -996,15 +984,15 @@ pub async fn delete_task(db: &Db, id: &str) -> Result<Value> {
             changes: vec![change("epic_id", json!(target), Value::Null)],
         });
     }
-    Ok(json!({
-        "id": target,
-        "deleted_at": now,
-        "changes": [
+    Ok(Deleted {
+        id: target,
+        deleted_at: now.clone(),
+        changes: vec![
             change("deleted_at", Value::Null, json!(now)),
             change("blocked_by", json!(blocker_ids), json!([])),
         ],
-        "released": released,
-    }))
+        released,
+    })
 }
 
 pub async fn restore_task(db: &Db, id: &str) -> Result<Task> {

@@ -1,9 +1,10 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use xboct_log_core::{
-    AppError, ClosedReason, Entity, NewTask, OpName, ProjectId, Result, TaskKey, TaskList,
-    TaskPatch, close_task, close_task_detailed, count_epic_children_by_status, create_task,
-    get_task, list_tasks, update_task, warnings_for,
+    AppError, Change, Closed, ClosedReason, Created, Deleted, Entity, Linked, NewTask, OpName,
+    ProjectId, ReleasedLink, Result, RevisionsPage, Task, TaskKey, TaskList, TaskMany, TaskPatch,
+    TaskStats, Updated, close_task, close_task_detailed, count_epic_children_by_status,
+    create_task, get_task, list_tasks, update_task, warnings_for,
 };
 
 use crate::{Ctx, Kind, Op};
@@ -41,7 +42,7 @@ impl Op for TasksGet {
     const MCP: bool = true;
 
     type Input = GetInput;
-    type Output = Value;
+    type Output = Task;
 
     fn description() -> &'static str {
         crate::descriptions::TASKS_GET
@@ -52,18 +53,12 @@ impl Op for TasksGet {
     }
 
     async fn run(ctx: &Ctx, input: Self::Input) -> Result<Self::Output> {
-        let task = get_task(&ctx.db, input.task_id.as_str()).await?;
-        let epic = task.is_epic;
-        let key = task.id.clone();
-        let mut value =
-            serde_json::to_value(task).map_err(|error| AppError::unexpected(error.to_string()))?;
-        if epic {
-            let counts = count_epic_children_by_status(&ctx.db, key.as_str()).await?;
-            if let Value::Object(object) = &mut value {
-                object.insert("children_counts".to_string(), json!(counts));
-            }
+        let mut task = get_task(&ctx.db, input.task_id.as_str()).await?;
+        if task.is_epic {
+            let counts = count_epic_children_by_status(&ctx.db, task.id.as_str()).await?;
+            task.children_counts = Some(counts);
         }
-        Ok(value)
+        Ok(task)
     }
 }
 
@@ -75,7 +70,7 @@ impl Op for TasksCreate {
     const MCP: bool = true;
 
     type Input = NewTask;
-    type Output = Value;
+    type Output = Created;
 
     fn description() -> &'static str {
         crate::descriptions::TASKS_CREATE
@@ -107,7 +102,7 @@ impl Op for TasksUpdate {
     const MCP: bool = true;
 
     type Input = UpdateInput;
-    type Output = Value;
+    type Output = Updated;
 
     fn description() -> &'static str {
         crate::descriptions::TASKS_UPDATE
@@ -142,7 +137,7 @@ impl Op for TasksClose {
     const MCP: bool = true;
 
     type Input = CloseInput;
-    type Output = Value;
+    type Output = Closed;
 
     fn description() -> &'static str {
         crate::descriptions::TASKS_CLOSE
@@ -157,13 +152,60 @@ impl Op for TasksClose {
     }
 }
 
-fn summary(items: Vec<Value>) -> Value {
+#[derive(Debug, Serialize)]
+pub struct BatchError {
+    pub kind: xboct_log_core::AppErrorKind,
+    pub message: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct BatchOk {
+    pub index: usize,
+    pub id: Option<String>,
+    pub ok: bool,
+    pub task: Task,
+    pub changes: Vec<Change>,
+    pub released: Vec<ReleasedLink>,
+    pub warnings: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub closed_epic: Option<Task>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reopened_epic: Option<Task>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct BatchFailure {
+    pub index: usize,
+    pub id: Option<String>,
+    pub ok: bool,
+    pub error: BatchError,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(untagged)]
+pub enum BatchItem {
+    Ok(Box<BatchOk>),
+    Failed(BatchFailure),
+}
+
+#[derive(Debug, Serialize)]
+pub struct BatchSummary {
+    pub items: Vec<BatchItem>,
+    pub succeeded: i64,
+    pub failed: i64,
+}
+
+fn summary(items: Vec<BatchItem>) -> BatchSummary {
     let succeeded = items
         .iter()
-        .filter(|item| item.get("ok") == Some(&Value::Bool(true)))
+        .filter(|item| matches!(item, BatchItem::Ok(_)))
         .count() as i64;
     let failed = items.len() as i64 - succeeded;
-    json!({ "items": items, "succeeded": succeeded, "failed": failed })
+    BatchSummary {
+        items,
+        succeeded,
+        failed,
+    }
 }
 
 fn validate_items(count: usize) -> Result<()> {
@@ -176,12 +218,15 @@ fn validate_items(count: usize) -> Result<()> {
     }
 }
 
-fn batch_error(index: usize, id: Option<&str>, error: &AppError) -> Value {
-    json!({
-        "index": index,
-        "id": id,
-        "ok": false,
-        "error": { "kind": error.kind(), "message": error.message() },
+fn batch_error(index: usize, id: Option<&str>, error: &AppError) -> BatchItem {
+    BatchItem::Failed(BatchFailure {
+        index,
+        id: id.map(str::to_string),
+        ok: false,
+        error: BatchError {
+            kind: error.kind(),
+            message: error.message().to_string(),
+        },
     })
 }
 
@@ -190,25 +235,18 @@ fn update_item(
     id: &str,
     outcome: xboct_log_core::tasks::UpdateOutcome,
     warnings: Vec<String>,
-) -> Value {
-    let mut item = json!({
-        "index": index,
-        "id": id,
-        "ok": true,
-        "task": outcome.task,
-        "changes": outcome.changes,
-        "released": outcome.released,
-        "warnings": warnings,
-    });
-    if let Value::Object(object) = &mut item {
-        if let Some(epic) = outcome.closed_epic {
-            object.insert("closed_epic".to_string(), json!(epic));
-        }
-        if let Some(epic) = outcome.reopened_epic {
-            object.insert("reopened_epic".to_string(), json!(epic));
-        }
-    }
-    item
+) -> BatchItem {
+    BatchItem::Ok(Box::new(BatchOk {
+        index,
+        id: Some(id.to_string()),
+        ok: true,
+        task: outcome.task,
+        changes: outcome.changes,
+        released: outcome.released,
+        warnings,
+        closed_epic: outcome.closed_epic,
+        reopened_epic: outcome.reopened_epic,
+    }))
 }
 
 pub struct TasksDelete;
@@ -225,7 +263,7 @@ impl Op for TasksDelete {
     const MCP: bool = true;
 
     type Input = DeleteInput;
-    type Output = Value;
+    type Output = Deleted;
 
     fn description() -> &'static str {
         crate::descriptions::TASKS_DELETE
@@ -248,7 +286,7 @@ impl Op for TasksRestore {
     const MCP: bool = true;
 
     type Input = DeleteInput;
-    type Output = Value;
+    type Output = Task;
 
     fn description() -> &'static str {
         crate::descriptions::TASKS_RESTORE
@@ -259,8 +297,7 @@ impl Op for TasksRestore {
     }
 
     async fn run(ctx: &Ctx, input: Self::Input) -> Result<Self::Output> {
-        let task = xboct_log_core::restore_task(&ctx.db, input.task_id.as_str()).await?;
-        Ok(serde_json::to_value(task)?)
+        xboct_log_core::restore_task(&ctx.db, input.task_id.as_str()).await
     }
 }
 
@@ -279,7 +316,7 @@ impl Op for TasksMove {
     const MCP: bool = true;
 
     type Input = MoveInput;
-    type Output = Value;
+    type Output = Task;
 
     fn description() -> &'static str {
         crate::descriptions::TASKS_MOVE
@@ -290,10 +327,7 @@ impl Op for TasksMove {
     }
 
     async fn run(ctx: &Ctx, input: Self::Input) -> Result<Self::Output> {
-        let task =
-            xboct_log_core::move_task(&ctx.db, input.task_id.as_str(), input.project_id.as_str())
-                .await?;
-        Ok(serde_json::to_value(task)?)
+        xboct_log_core::move_task(&ctx.db, input.task_id.as_str(), input.project_id.as_str()).await
     }
 }
 
@@ -311,7 +345,7 @@ impl Op for TasksCreateMany {
     const MCP: bool = true;
 
     type Input = CreateManyInput;
-    type Output = Value;
+    type Output = BatchSummary;
 
     fn description() -> &'static str {
         crate::descriptions::TASKS_CREATE_MANY
@@ -326,24 +360,17 @@ impl Op for TasksCreateMany {
         let mut items = Vec::with_capacity(input.items.len());
         for (index, task) in input.items.into_iter().enumerate() {
             match create_task(&ctx.db, task).await {
-                Ok(value) => {
-                    let mut value = value;
-                    let warnings = match &mut value {
-                        Value::Object(object) => {
-                            object.remove("warnings").unwrap_or_else(|| json!([]))
-                        }
-                        _ => json!([]),
-                    };
-                    items.push(json!({
-                        "index": index,
-                        "id": value.get("id").cloned().unwrap_or(Value::Null),
-                        "ok": true,
-                        "task": value,
-                        "changes": [],
-                        "released": [],
-                        "warnings": warnings,
-                    }));
-                }
+                Ok(created) => items.push(BatchItem::Ok(Box::new(BatchOk {
+                    index,
+                    id: Some(created.task.id.to_string()),
+                    ok: true,
+                    task: created.task,
+                    changes: Vec::new(),
+                    released: Vec::new(),
+                    warnings: created.warnings,
+                    closed_epic: None,
+                    reopened_epic: None,
+                }))),
                 Err(error) => items.push(batch_error(index, None, &error)),
             }
         }
@@ -364,7 +391,7 @@ impl Op for TasksUpdateMany {
     const MCP: bool = true;
 
     type Input = UpdateManyInput;
-    type Output = Value;
+    type Output = BatchSummary;
 
     fn description() -> &'static str {
         crate::descriptions::TASKS_UPDATE_MANY
@@ -417,7 +444,7 @@ impl Op for TasksCloseMany {
     const MCP: bool = true;
 
     type Input = CloseManyInput;
-    type Output = Value;
+    type Output = BatchSummary;
 
     fn description() -> &'static str {
         crate::descriptions::TASKS_CLOSE_MANY
@@ -466,12 +493,8 @@ pub struct BlockerInput {
     pub blocked_by: TaskKey,
 }
 
-fn linked_output(task: xboct_log_core::Task, changes: Vec<Value>) -> Result<Value> {
-    let mut value = serde_json::to_value(task)?;
-    if let Value::Object(object) = &mut value {
-        object.insert("changes".to_string(), json!(changes));
-    }
-    Ok(value)
+fn linked_output(task: Task, changes: Vec<Change>) -> Linked {
+    Linked { task, changes }
 }
 
 pub struct TasksAddLink;
@@ -482,7 +505,7 @@ impl Op for TasksAddLink {
     const MCP: bool = true;
 
     type Input = LinkInput;
-    type Output = Value;
+    type Output = Linked;
 
     fn description() -> &'static str {
         crate::descriptions::TASKS_ADD_LINK
@@ -502,7 +525,7 @@ impl Op for TasksAddLink {
             .await?;
         let after = get_task(&ctx.db, input.task_id.as_str()).await?;
         let changes = xboct_log_core::link_changes(&before, &after, field);
-        linked_output(after, changes)
+        Ok(linked_output(after, changes))
     }
 }
 
@@ -514,7 +537,7 @@ impl Op for TasksRemoveLink {
     const MCP: bool = true;
 
     type Input = LinkInput;
-    type Output = Value;
+    type Output = Linked;
 
     fn description() -> &'static str {
         crate::descriptions::TASKS_REMOVE_LINK
@@ -534,7 +557,7 @@ impl Op for TasksRemoveLink {
             .await?;
         let after = get_task(&ctx.db, input.task_id.as_str()).await?;
         let changes = xboct_log_core::link_changes(&before, &after, field);
-        linked_output(after, changes)
+        Ok(linked_output(after, changes))
     }
 }
 
@@ -546,7 +569,7 @@ impl Op for TasksAddBlocker {
     const MCP: bool = true;
 
     type Input = BlockerInput;
-    type Output = Value;
+    type Output = Linked;
 
     fn description() -> &'static str {
         crate::descriptions::TASKS_ADD_BLOCKER
@@ -562,7 +585,7 @@ impl Op for TasksAddBlocker {
             .await?;
         let after = get_task(&ctx.db, input.task_id.as_str()).await?;
         let changes = xboct_log_core::link_changes(&before, &after, "blocked_by");
-        linked_output(after, changes)
+        Ok(linked_output(after, changes))
     }
 }
 
@@ -574,7 +597,7 @@ impl Op for TasksRemoveBlocker {
     const MCP: bool = true;
 
     type Input = BlockerInput;
-    type Output = Value;
+    type Output = Linked;
 
     fn description() -> &'static str {
         crate::descriptions::TASKS_REMOVE_BLOCKER
@@ -590,7 +613,7 @@ impl Op for TasksRemoveBlocker {
             .await?;
         let after = get_task(&ctx.db, input.task_id.as_str()).await?;
         let changes = xboct_log_core::link_changes(&before, &after, "blocked_by");
-        linked_output(after, changes)
+        Ok(linked_output(after, changes))
     }
 }
 
@@ -645,7 +668,7 @@ impl Op for TasksStats {
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
     type Input = StatsInput;
-    type Output = Value;
+    type Output = TaskStats;
 
     fn description() -> &'static str {
         crate::descriptions::TASKS_STATS
@@ -673,7 +696,7 @@ impl Op for TasksRevisionsList {
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
     type Input = RevisionsInput;
-    type Output = Value;
+    type Output = RevisionsPage;
 
     fn description() -> &'static str {
         crate::descriptions::TASKS_REVISIONS_LIST
@@ -767,7 +790,7 @@ impl Op for TasksGetMany {
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
     type Input = GetManyInput;
-    type Output = Value;
+    type Output = TaskMany;
 
     fn description() -> &'static str {
         crate::descriptions::TASKS_GET_MANY
@@ -780,6 +803,6 @@ impl Op for TasksGetMany {
             .map(|key| key.as_str().to_string())
             .collect();
         let many = xboct_log_core::get_tasks_by_ids(&ctx.db, &ids).await?;
-        Ok(serde_json::to_value(many)?)
+        Ok(many)
     }
 }

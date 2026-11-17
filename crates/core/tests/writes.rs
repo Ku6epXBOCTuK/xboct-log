@@ -29,21 +29,27 @@ fn patch(value: Value) -> TaskPatch {
     serde_json::from_value(value).expect("patch")
 }
 
+mod common;
+
+use common::jsonv;
+
 #[tokio::test]
 async fn creates_a_task_with_the_node_defaults() {
     let db = open().await;
-    let created = create_task(
-        &db,
-        new_task(json!({
-            "project_id": "log",
-            "title": "  Port create  ",
-            "tags": ["Bug", " bug ", "docs"],
-            "estimate": "M",
-            "due_at": "2026-12-01"
-        })),
-    )
-    .await
-    .expect("create");
+    let created = jsonv(
+        create_task(
+            &db,
+            new_task(json!({
+                "project_id": "log",
+                "title": "  Port create  ",
+                "tags": ["Bug", " bug ", "docs"],
+                "estimate": "M",
+                "due_at": "2026-12-01"
+            })),
+        )
+        .await
+        .expect("create"),
+    );
 
     assert_eq!(created["id"], "LOG-1");
     assert_eq!(created["title"], "Port create");
@@ -104,13 +110,15 @@ async fn updates_fields_and_records_a_revision() {
     .await
     .expect("create");
 
-    let updated = update_task(
-        &db,
-        "LOG-1",
-        patch(json!({"status": "in-progress", "description": "new body", "priority": "high"})),
-    )
-    .await
-    .expect("update");
+    let updated = jsonv(
+        update_task(
+            &db,
+            "LOG-1",
+            patch(json!({"status": "in-progress", "description": "new body", "priority": "high"})),
+        )
+        .await
+        .expect("update"),
+    );
 
     assert_eq!(updated["status"], "in-progress");
     assert_eq!(updated["priority"], "high");
@@ -152,9 +160,11 @@ async fn closes_a_task_and_releases_its_blocked_links() {
     .await
     .expect("link");
 
-    let closed = close_task(&db, "LOG-1", ClosedReason::Fixed)
-        .await
-        .expect("close");
+    let closed = jsonv(
+        close_task(&db, "LOG-1", ClosedReason::Fixed)
+            .await
+            .expect("close"),
+    );
     assert_eq!(closed["status"], "done");
     assert_eq!(closed["closed_reason"], "fixed");
     assert!(closed["closed_at"].is_string());
@@ -181,15 +191,19 @@ async fn closes_the_epic_after_its_last_child() {
     .await
     .expect("child");
 
-    let closed = close_task(&db, "LOG-2", ClosedReason::Fixed)
-        .await
-        .expect("close");
+    let closed = jsonv(
+        close_task(&db, "LOG-2", ClosedReason::Fixed)
+            .await
+            .expect("close"),
+    );
     assert_eq!(closed["closed_epic"]["id"], "LOG-1");
     assert_eq!(closed["closed_epic"]["status"], "done");
 
-    let reopened = update_task(&db, "LOG-2", patch(json!({"status": "open"})))
-        .await
-        .expect("reopen");
+    let reopened = jsonv(
+        update_task(&db, "LOG-2", patch(json!({"status": "open"})))
+            .await
+            .expect("reopen"),
+    );
     assert_eq!(reopened["reopened_epic"]["id"], "LOG-1");
     assert_eq!(reopened["reopened_epic"]["status"], "open");
 }
@@ -231,9 +245,11 @@ async fn warns_about_a_blocked_task_without_a_reason() {
 
     let task = xboct_log_core::get_task(&db, "LOG-1").await.expect("read");
     assert_eq!(task.status, Status::Blocked);
-    let updated = update_task(&db, "LOG-1", patch(json!({"priority": "high"})))
-        .await
-        .expect("update");
+    let updated = jsonv(
+        update_task(&db, "LOG-1", patch(json!({"priority": "high"})))
+            .await
+            .expect("update"),
+    );
     assert_eq!(
         updated["warnings"][0],
         "task is blocked with no blocker task and no blocked_reason: say what or who it waits for, or add a blocker"
@@ -243,18 +259,22 @@ async fn warns_about_a_blocked_task_without_a_reason() {
 #[tokio::test]
 async fn deletes_releases_restores_and_moves() {
     let db = open().await;
-    let blocker = create_task(
-        &db,
-        new_task(json!({"project_id": "log", "title": "Blocker"})),
-    )
-    .await
-    .expect("create blocker");
-    let blocked = create_task(
-        &db,
-        new_task(json!({"project_id": "log", "title": "Blocked"})),
-    )
-    .await
-    .expect("create blocked");
+    let blocker = jsonv(
+        create_task(
+            &db,
+            new_task(json!({"project_id": "log", "title": "Blocker"})),
+        )
+        .await
+        .expect("create blocker"),
+    );
+    let blocked = jsonv(
+        create_task(
+            &db,
+            new_task(json!({"project_id": "log", "title": "Blocked"})),
+        )
+        .await
+        .expect("create blocked"),
+    );
     assert_eq!(blocker["id"], "LOG-1");
     assert_eq!(blocked["id"], "LOG-2");
 
@@ -271,7 +291,7 @@ async fn deletes_releases_restores_and_moves() {
     .await
     .expect("block");
 
-    let deleted = delete_task(&db, "LOG-1").await.expect("delete");
+    let deleted = jsonv(delete_task(&db, "LOG-1").await.expect("delete"));
     assert_eq!(deleted["id"], "LOG-1");
     assert!(deleted["deleted_at"].is_string());
     assert_eq!(deleted["changes"][0]["field"], "deleted_at");
@@ -316,7 +336,7 @@ async fn detaches_epic_children_on_delete() {
     .await
     .expect("child");
 
-    let deleted = delete_task(&db, "LOG-1").await.expect("delete");
+    let deleted = jsonv(delete_task(&db, "LOG-1").await.expect("delete"));
     let released = deleted["released"].as_array().expect("released");
     assert_eq!(released[0]["task_id"], "LOG-2");
     assert_eq!(released[0]["changes"][0]["field"], "epic_id");
