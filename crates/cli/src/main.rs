@@ -52,8 +52,8 @@ async fn main() -> ExitCode {
     };
 
     match invocation {
-        Invocation::Help => {
-            println!("{}", args::help());
+        Invocation::Help(text) => {
+            print!("{text}");
             ExitCode::SUCCESS
         }
         Invocation::Version => {

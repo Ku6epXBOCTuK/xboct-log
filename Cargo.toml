@@ -21,6 +21,7 @@ libsqlite3-sys = { version = "=0.37.0", default-features = false, features = ["b
 icu_casemap = { version = "2.4.0", default-features = false, features = ["compiled_data"] }
 icu_locale_core = "2.4.0"
 sqlx = { version = "=0.9.0", default-features = false, features = ["runtime-tokio", "sqlite-bundled", "macros", "migrate", "json", "uuid", "chrono"] }
+clap = { version = "4.6.8", features = ["derive"] }
 chrono = { version = "0.4.45", default-features = false, features = ["clock", "std"] }
 sha2 = "0.10.9"
 regex = "1.12.2"

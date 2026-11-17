@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+use clap::{Args, Parser, Subcommand, error::ErrorKind};
+
 pub const APP_NAME: &str = "xboct-log";
 pub const DEFAULT_HOST: &str = "127.0.0.1";
 
@@ -8,7 +10,7 @@ pub enum Invocation {
     Serve(Options),
     Restore(Restore),
     Openapi(PathBuf),
-    Help,
+    Help(String),
     Version,
 }
 
@@ -37,6 +39,125 @@ pub enum RestoreAction {
     Apply { source: PathBuf },
 }
 
+#[derive(Debug, Parser)]
+#[command(
+    name = APP_NAME,
+    version,
+    disable_help_subcommand = true,
+    after_help = "The port and the data folder can also come from XBOCT_LOG_PORT and\nXBOCT_LOG_DATA. An instance is identified by both, so every instance needs its\nown pair."
+)]
+struct Cli {
+    #[arg(
+        long,
+        value_name = "port",
+        allow_hyphen_values = true,
+        help = "port to listen on, 0 picks a free one"
+    )]
+    port: Option<u16>,
+    #[arg(
+        long,
+        value_name = "dir",
+        conflicts_with = "portable",
+        help = "folder for the database, media and backups"
+    )]
+    data: Option<PathBuf>,
+    #[arg(long, help = "keep the data in a data folder next to the executable")]
+    portable: bool,
+    #[arg(
+        long,
+        value_name = "dir",
+        help = "folder with the built spa (default: build next to the executable)"
+    )]
+    web: Option<PathBuf>,
+    #[arg(
+        long,
+        value_name = "host",
+        default_value = DEFAULT_HOST,
+        help = "address to bind (default 127.0.0.1)"
+    )]
+    host: String,
+    #[arg(long = "no-open", help = "do not open the browser")]
+    no_open: bool,
+    #[arg(
+        long,
+        value_name = "file",
+        help = "write the openapi document to <file> and exit"
+    )]
+    openapi: Option<PathBuf>,
+    #[command(subcommand)]
+    command: Option<Command>,
+}
+
+#[derive(Debug, Subcommand)]
+enum Command {
+    #[command(
+        about = "list the snapshots or replace the database with a snapshot while the server is stopped"
+    )]
+    Restore(RestoreArgs),
+}
+
+#[derive(Debug, Args)]
+struct RestoreArgs {
+    #[command(subcommand)]
+    action: Option<RestoreCommand>,
+    #[arg(
+        long,
+        value_name = "dir",
+        global = true,
+        help = "folder for the database, media and backups"
+    )]
+    data: Option<PathBuf>,
+    #[arg(
+        long,
+        value_name = "file",
+        global = true,
+        help = "database file (default: <data>/xboct-log.db)"
+    )]
+    db: Option<PathBuf>,
+    #[arg(
+        long,
+        value_name = "dir",
+        global = true,
+        help = "backup folder (default: <data>/backups)"
+    )]
+    backups: Option<PathBuf>,
+    #[arg(
+        long,
+        value_name = "port",
+        global = true,
+        allow_hyphen_values = true,
+        help = "port of the server, refused while it answers (default: the port in <data>/instance.json)"
+    )]
+    port: Option<u16>,
+}
+
+#[derive(Debug, Subcommand)]
+enum RestoreCommand {
+    #[command(about = "list the snapshots in the backup folder")]
+    List,
+    #[command(about = "replace the database with a snapshot while the server is stopped")]
+    Apply {
+        #[arg(value_name = "snapshot", help = "path to the snapshot")]
+        source: PathBuf,
+    },
+}
+
+enum ReadError {
+    Help(String),
+    Version,
+    Message(String),
+}
+
+impl ReadError {
+    fn into_result(self) -> Result<Invocation, String> {
+        match self {
+            ReadError::Help(text) => Ok(Invocation::Help(text)),
+            ReadError::Version => Ok(Invocation::Version),
+            ReadError::Message(message) => Err(message),
+        }
+    }
+}
+
 pub fn parse(
     args: &[String],
     env_port: Option<&str>,
@@ -44,78 +165,39 @@ pub fn parse(
     env_data: Option<&str>,
 ) -> Result<Invocation, String> {
     if args.first().map(String::as_str) == Some("restore") {
-        return parse_restore(&args[1..], env_port, env_data);
+        return parse_restore(args, env_port, env_data);
     }
 
-    let mut port = match env_port {
-        Some(value) => Some(parse_port(value)?),
-        None => None,
+    let argv = with_defaults(
+        args,
+        &[
+            ("--port", env_port),
+            ("--host", env_host),
+            ("--data", env_data),
+        ],
+    );
+    let cli = match read(argv) {
+        Ok(cli) => cli,
+        Err(error) => return error.into_result(),
     };
-    let mut host = env_host.unwrap_or(DEFAULT_HOST).to_string();
-    let mut data = env_data.map(PathBuf::from);
-    let mut web = None;
-    let mut open = true;
-    let mut portable = false;
-    let mut openapi = None;
-    let mut help = false;
-    let mut version = false;
 
-    let mut index = 0;
-    while index < args.len() {
-        match args[index].as_str() {
-            "--port" => {
-                index += 1;
-                port = Some(parse_port(args.get(index).map_or("", String::as_str))?);
-            }
-            "--host" => {
-                index += 1;
-                host = args.get(index).cloned().unwrap_or_default();
-            }
-            "--data" => {
-                index += 1;
-                data = Some(data_folder(args.get(index))?);
-            }
-            "--web" => {
-                index += 1;
-                web = Some(option_path(args.get(index), "--web")?);
-            }
-            "--no-open" => open = false,
-            "--portable" => portable = true,
-            "--openapi" => {
-                index += 1;
-                openapi = Some(option_path(args.get(index), "--openapi")?);
-            }
-            "--help" | "-h" => help = true,
-            "--version" | "-v" => version = true,
-            other => return Err(format!("unknown argument: {other}")),
-        }
-        index += 1;
-    }
-
-    if help {
-        return Ok(Invocation::Help);
-    }
-    if version {
-        return Ok(Invocation::Version);
-    }
-    if let Some(path) = openapi {
+    if let Some(path) = cli.openapi {
         return Ok(Invocation::Openapi(path));
     }
-    if data.is_some() && portable {
-        return Err("--data and --portable cannot be used together".to_string());
-    }
-    let port = port.ok_or("--port <n> or XBOCT_LOG_PORT is required")?;
-    if data.is_none() && !portable {
+    let port = cli
+        .port
+        .ok_or_else(|| "--port <n> or XBOCT_LOG_PORT is required".to_string())?;
+    if cli.data.is_none() && !cli.portable {
         return Err("--data <dir>, --portable or XBOCT_LOG_DATA is required".to_string());
     }
 
     Ok(Invocation::Serve(Options {
         port,
-        host,
-        data,
-        web,
-        open,
-        portable,
+        host: cli.host,
+        data: cli.data,
+        web: cli.web,
+        open: !cli.no_open,
+        portable: cli.portable,
     }))
 }
 
@@ -124,129 +206,83 @@ fn parse_restore(
     env_port: Option<&str>,
     env_data: Option<&str>,
 ) -> Result<Invocation, String> {
-    let mut data = env_data
-        .filter(|value| !value.is_empty())
-        .map(PathBuf::from);
-    let mut db = env_value("XBOCT_LOG_DB").map(PathBuf::from);
-    let mut backups = env_value("XBOCT_LOG_BACKUP_DIR").map(PathBuf::from);
-    let mut port = env_port.map(parse_port).transpose()?;
-    let mut positionals: Vec<&str> = Vec::new();
-
-    let mut index = 0;
-    while index < args.len() {
-        match args[index].as_str() {
-            "--data" => {
-                index += 1;
-                data = Some(data_folder(args.get(index))?);
-            }
-            "--db" => {
-                index += 1;
-                db = Some(option_path(args.get(index), "--db")?);
-            }
-            "--backups" => {
-                index += 1;
-                backups = Some(option_path(args.get(index), "--backups")?);
-            }
-            "--port" => {
-                index += 1;
-                port = Some(parse_port(args.get(index).map_or("", String::as_str))?);
-            }
-            "--help" | "-h" => return Ok(Invocation::Help),
-            other if other.starts_with('-') => return Err(format!("unknown argument: {other}")),
-            other => positionals.push(other),
-        }
-        index += 1;
-    }
-
-    let action = match positionals.first().copied().unwrap_or("list") {
-        "list" => {
-            if let Some(extra) = positionals.get(1) {
-                return Err(format!("unexpected argument: {extra}"));
-            }
-            RestoreAction::List
-        }
-        "apply" => {
-            let source = positionals
-                .get(1)
-                .ok_or("restore apply needs the path of a snapshot")?;
-            if let Some(extra) = positionals.get(2) {
-                return Err(format!("unexpected argument: {extra}"));
-            }
-            RestoreAction::Apply {
-                source: PathBuf::from(source),
-            }
-        }
-        other => return Err(format!("unknown command: restore {other}")),
+    let db = env_value("XBOCT_LOG_DB");
+    let backups = env_value("XBOCT_LOG_BACKUP_DIR");
+    let argv = with_defaults(
+        args,
+        &[
+            ("--port", env_port),
+            ("--data", env_data),
+            ("--db", db.as_deref()),
+            ("--backups", backups.as_deref()),
+        ],
+    );
+    let cli = match read(argv) {
+        Ok(cli) => cli,
+        Err(error) => return error.into_result(),
+    };
+    let Some(Command::Restore(restore)) = cli.command else {
+        return Err("restore needs a command".to_string());
+    };
+    let action = match restore.action {
+        None | Some(RestoreCommand::List) => RestoreAction::List,
+        Some(RestoreCommand::Apply { source }) => RestoreAction::Apply { source },
     };
 
     Ok(Invocation::Restore(Restore {
         action,
-        data,
-        db,
-        backups,
-        port,
+        data: restore.data,
+        db: restore.db,
+        backups: restore.backups,
+        port: restore.port,
     }))
+}
+
+fn with_defaults(args: &[String], defaults: &[(&str, Option<&str>)]) -> Vec<String> {
+    let mut argv = Vec::with_capacity(1 + args.len() + 2 * defaults.len());
+    argv.push(APP_NAME.to_string());
+    argv.extend(args.iter().cloned());
+    for (flag, value) in defaults {
+        let Some(value) = value.filter(|value| !value.is_empty()) else {
+            continue;
+        };
+        if argv
+            .iter()
+            .any(|arg| arg == flag || arg.starts_with(&format!("{flag}=")))
+        {
+            continue;
+        }
+        argv.push((*flag).to_string());
+        argv.push((*value).to_string());
+    }
+    argv
+}
+
+fn read(argv: Vec<String>) -> Result<Cli, ReadError> {
+    match Cli::try_parse_from(argv) {
+        Ok(cli) => Ok(cli),
+        Err(error) => match error.kind() {
+            ErrorKind::DisplayHelp => Err(ReadError::Help(error.to_string())),
+            ErrorKind::DisplayVersion => Err(ReadError::Version),
+            _ => Err(ReadError::Message(error.to_string().trim_end().to_string())),
+        },
+    }
 }
 
 fn env_value(name: &str) -> Option<String> {
     std::env::var(name).ok().filter(|value| !value.is_empty())
 }
 
-fn data_folder(value: Option<&String>) -> Result<PathBuf, String> {
-    value
-        .map(PathBuf::from)
-        .ok_or_else(|| "--data needs a folder".to_string())
-}
-
-fn option_path(value: Option<&String>, flag: &str) -> Result<PathBuf, String> {
-    value
-        .map(PathBuf::from)
-        .ok_or_else(|| format!("{flag} needs a path"))
-}
-
-fn parse_port(value: &str) -> Result<u16, String> {
-    value
-        .parse::<u16>()
-        .map_err(|_| "--port must be zero or a positive integer".to_string())
-}
-
-pub fn help() -> String {
-    format!(
-        "usage: {APP_NAME} --port <port> --data <dir> [options]
-       {APP_NAME} restore list --data <dir>
-       {APP_NAME} restore apply <snapshot> --data <dir> [options]
-
-  --port <port>  port to listen on, 0 picks a free one (required)
-  --data <dir>   folder for the database, media and backups (required)
-  --portable     keep the data in a data folder next to the executable
-  --web <dir>    folder with the built spa (default: build next to the executable)
-  --host <host>  address to bind (default {DEFAULT_HOST})
-  --no-open      do not open the browser
-  --openapi <f>  write the openapi document to <f> and exit
-  --version      print the version
-  --help         show this text
-
-restore
-  list           list the snapshots in the backup folder
-  apply <snap>   replace the database with a snapshot while the server is stopped
-  --db <file>    database file (default: <data>/{APP_NAME}.db)
-  --backups <d>  backup folder (default: <data>/backups)
-  --port <n>     port of the server, refused while it answers
-                 (default: the port in <data>/instance.json)
-
-The port and the data folder can also come from XBOCT_LOG_PORT and
-XBOCT_LOG_DATA. An instance is identified by both, so every instance needs its
-own pair."
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    fn explicit(args: &[&str]) -> Vec<String> {
+        args.iter().map(|value| (*value).to_string()).collect()
+    }
+
     fn parse_args(args: &[&str]) -> Result<Invocation, String> {
-        let owned: Vec<String> = args.iter().map(|value| (*value).to_string()).collect();
-        parse(&owned, None, None, None)
+        parse(&explicit(args), None, None, None)
     }
 
     fn serve(args: &[&str]) -> Options {
@@ -256,8 +292,11 @@ mod tests {
         }
     }
 
-    fn explicit(args: &[&str]) -> Vec<String> {
-        args.iter().map(|value| (*value).to_string()).collect()
+    fn restore(args: &[&str]) -> Restore {
+        match parse_args(args).unwrap() {
+            Invocation::Restore(options) => options,
+            other => panic!("expected a restore invocation, got {other:?}"),
+        }
     }
 
     #[test]
@@ -296,6 +335,13 @@ mod tests {
     }
 
     #[test]
+    fn takes_the_flag_value_from_an_equals_sign() {
+        let options = serve(&["--port=1234", "--data=C:/data"]);
+        assert_eq!(options.port, 1234);
+        assert_eq!(options.data, Some(PathBuf::from("C:/data")));
+    }
+
+    #[test]
     fn keeps_the_data_folder_next_to_a_portable_application() {
         let options = serve(&["--port", "1234", "--portable"]);
         assert!(options.portable);
@@ -305,7 +351,8 @@ mod tests {
     #[test]
     fn rejects_a_portable_application_with_a_data_folder() {
         let error = parse_args(&["--port", "1234", "--portable", "--data", "./here"]).unwrap_err();
-        assert_eq!(error, "--data and --portable cannot be used together");
+        assert!(error.contains("cannot be used with"));
+        assert!(error.contains("--portable"));
     }
 
     #[test]
@@ -336,6 +383,23 @@ mod tests {
     }
 
     #[test]
+    fn keeps_the_flag_over_the_environment() {
+        let options = match parse(
+            &explicit(&["--port", "2000", "--data", "C:/flag"]),
+            Some("1234"),
+            None,
+            Some("C:/env"),
+        )
+        .unwrap()
+        {
+            Invocation::Serve(options) => options,
+            other => panic!("expected a serve invocation, got {other:?}"),
+        };
+        assert_eq!(options.port, 2000);
+        assert_eq!(options.data, Some(PathBuf::from("C:/flag")));
+    }
+
+    #[test]
     fn rejects_a_portable_application_with_a_data_folder_from_the_environment() {
         let error = parse(
             &explicit(&["--portable"]),
@@ -344,12 +408,17 @@ mod tests {
             Some("C:/data"),
         )
         .unwrap_err();
-        assert_eq!(error, "--data and --portable cannot be used together");
+        assert!(error.contains("cannot be used with"));
     }
 
     #[test]
     fn skips_the_identity_checks_for_metadata_flags() {
-        assert_eq!(parse_args(&["--help"]).unwrap(), Invocation::Help);
+        let help = match parse_args(&["--help"]).unwrap() {
+            Invocation::Help(text) => text,
+            other => panic!("expected help, got {other:?}"),
+        };
+        assert!(help.contains("--portable"));
+        assert!(help.contains("restore"));
         assert_eq!(parse_args(&["--version"]).unwrap(), Invocation::Version);
         assert_eq!(
             parse_args(&["--openapi", "openapi.json"]).unwrap(),
@@ -359,32 +428,24 @@ mod tests {
 
     #[test]
     fn rejects_an_unknown_argument() {
-        assert_eq!(
-            parse_args(&["--portable=1"]).unwrap_err(),
-            "unknown argument: --portable=1"
-        );
+        let error = parse_args(&["--nope"]).unwrap_err();
+        assert!(error.contains("--nope"));
+        assert!(error.contains("unexpected argument"));
     }
 
     #[test]
     fn rejects_a_broken_port() {
-        let message = "--port must be zero or a positive integer";
-        assert_eq!(
-            parse_args(&["--port", "-1", "--data", "."]).unwrap_err(),
-            message
-        );
-        assert_eq!(
-            parse_args(&["--port", "abc", "--data", "."]).unwrap_err(),
-            message
-        );
-        assert_eq!(parse_args(&["--port"]).unwrap_err(), message);
-        assert_eq!(parse(&[], Some("x"), None, None).unwrap_err(), message);
-    }
-
-    fn restore(args: &[&str]) -> Restore {
-        match parse_args(args).unwrap() {
-            Invocation::Restore(options) => options,
-            other => panic!("expected a restore invocation, got {other:?}"),
+        for args in [
+            &["--port", "-1", "--data", "."],
+            &["--port", "abc", "--data", "."],
+        ] {
+            let error = parse_args(args).unwrap_err();
+            assert!(error.contains("invalid value"), "{error}");
         }
+        let missing = parse_args(&["--port"]).unwrap_err();
+        assert!(missing.contains("a value is required"), "{missing}");
+        let environment = parse(&[], Some("x"), None, Some(".")).unwrap_err();
+        assert!(environment.contains("invalid value"), "{environment}");
     }
 
     #[test]
@@ -423,26 +484,30 @@ mod tests {
     }
 
     #[test]
-    fn rejects_a_restore_apply_without_a_snapshot() {
+    fn reads_the_restore_flags_before_the_command() {
+        let options = restore(&["restore", "--data", "C:/data", "apply", "C:/snap.db"]);
         assert_eq!(
-            parse_args(&["restore", "apply"]).unwrap_err(),
-            "restore apply needs the path of a snapshot"
+            options.action,
+            RestoreAction::Apply {
+                source: PathBuf::from("C:/snap.db")
+            }
         );
+        assert_eq!(options.data, Some(PathBuf::from("C:/data")));
+    }
+
+    #[test]
+    fn rejects_a_restore_apply_without_a_snapshot() {
+        let error = parse_args(&["restore", "apply"]).unwrap_err();
+        assert!(error.contains("<snapshot>"), "{error}");
     }
 
     #[test]
     fn rejects_an_unknown_restore_command() {
-        assert_eq!(
-            parse_args(&["restore", "drop"]).unwrap_err(),
-            "unknown command: restore drop"
-        );
-        assert_eq!(
-            parse_args(&["restore", "--nope"]).unwrap_err(),
-            "unknown argument: --nope"
-        );
-        assert_eq!(
-            parse_args(&["restore", "list", "extra"]).unwrap_err(),
-            "unexpected argument: extra"
-        );
+        let command = parse_args(&["restore", "drop"]).unwrap_err();
+        assert!(command.contains("unrecognized subcommand"), "{command}");
+        let flag = parse_args(&["restore", "--nope"]).unwrap_err();
+        assert!(flag.contains("unexpected argument"), "{flag}");
+        let extra = parse_args(&["restore", "list", "extra"]).unwrap_err();
+        assert!(extra.contains("unexpected argument"), "{extra}");
     }
 }

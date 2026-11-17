@@ -14,6 +14,7 @@ xboct-log-core = { workspace = true }
 xboct-log-server = { workspace = true }
 axum.workspace = true
 tokio.workspace = true
+clap.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 chrono.workspace = true
