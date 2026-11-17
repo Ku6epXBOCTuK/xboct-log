@@ -81,6 +81,7 @@ fn schema(text: &str) -> Value {
     if let Value::Object(object) = &mut value {
         object.remove("$schema");
     }
+    crate::schema::describe_ops(&mut value);
     value
 }
 
@@ -103,5 +104,17 @@ mod tests {
             assert!(output.is_object(), "{} has no output schema", info.name);
         }
         assert_eq!(document["components"]["schemas"]["Error"]["type"], "object");
+    }
+
+    #[test]
+    fn publishes_the_operation_names_in_the_activity_filter() {
+        let document = document();
+        let schema = &document["paths"]["/api/activity_list"]["post"]["requestBody"]["content"]["application/json"]
+            ["schema"];
+        let names: Vec<&str> = xboct_log_core::OpName::ALL
+            .iter()
+            .map(|name| name.as_str())
+            .collect();
+        assert_eq!(schema["properties"]["op"]["enum"], json!(names));
     }
 }

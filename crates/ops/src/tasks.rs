@@ -1,9 +1,9 @@
 use serde::Deserialize;
 use serde_json::{Value, json};
 use xboct_log_core::{
-    AppError, ClosedReason, Entity, NewTask, ProjectId, Result, TaskKey, TaskList, TaskPatch,
-    close_task, close_task_detailed, count_epic_children_by_status, create_task, get_task,
-    list_tasks, update_task, warnings_for,
+    AppError, ClosedReason, Entity, NewTask, OpName, ProjectId, Result, TaskKey, TaskList,
+    TaskPatch, close_task, close_task_detailed, count_epic_children_by_status, create_task,
+    get_task, list_tasks, update_task, warnings_for,
 };
 
 use crate::{Ctx, Kind, Op};
@@ -11,7 +11,7 @@ use crate::{Ctx, Kind, Op};
 pub struct TasksList;
 
 impl Op for TasksList {
-    const NAME: &'static str = "tasks_list";
+    const NAME: OpName = OpName::TasksList;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
 
@@ -36,7 +36,7 @@ pub struct GetInput {
 }
 
 impl Op for TasksGet {
-    const NAME: &'static str = "tasks_get";
+    const NAME: OpName = OpName::TasksGet;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
 
@@ -70,7 +70,7 @@ impl Op for TasksGet {
 pub struct TasksCreate;
 
 impl Op for TasksCreate {
-    const NAME: &'static str = "tasks_create";
+    const NAME: OpName = OpName::TasksCreate;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
 
@@ -102,7 +102,7 @@ pub struct UpdateInput {
 }
 
 impl Op for TasksUpdate {
-    const NAME: &'static str = "tasks_update";
+    const NAME: OpName = OpName::TasksUpdate;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
 
@@ -137,7 +137,7 @@ pub struct CloseInput {
 }
 
 impl Op for TasksClose {
-    const NAME: &'static str = "tasks_close";
+    const NAME: OpName = OpName::TasksClose;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
 
@@ -220,7 +220,7 @@ pub struct DeleteInput {
 }
 
 impl Op for TasksDelete {
-    const NAME: &'static str = "tasks_delete";
+    const NAME: OpName = OpName::TasksDelete;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
 
@@ -243,7 +243,7 @@ impl Op for TasksDelete {
 pub struct TasksRestore;
 
 impl Op for TasksRestore {
-    const NAME: &'static str = "tasks_restore";
+    const NAME: OpName = OpName::TasksRestore;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
 
@@ -274,7 +274,7 @@ pub struct MoveInput {
 }
 
 impl Op for TasksMove {
-    const NAME: &'static str = "tasks_move";
+    const NAME: OpName = OpName::TasksMove;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
 
@@ -306,7 +306,7 @@ pub struct CreateManyInput {
 }
 
 impl Op for TasksCreateMany {
-    const NAME: &'static str = "tasks_create_many";
+    const NAME: OpName = OpName::TasksCreateMany;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
 
@@ -359,7 +359,7 @@ pub struct UpdateManyInput {
 }
 
 impl Op for TasksUpdateMany {
-    const NAME: &'static str = "tasks_update_many";
+    const NAME: OpName = OpName::TasksUpdateMany;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
 
@@ -412,7 +412,7 @@ pub struct CloseManyInput {
 }
 
 impl Op for TasksCloseMany {
-    const NAME: &'static str = "tasks_close_many";
+    const NAME: OpName = OpName::TasksCloseMany;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
 
@@ -477,7 +477,7 @@ fn linked_output(task: xboct_log_core::Task, changes: Vec<Value>) -> Result<Valu
 pub struct TasksAddLink;
 
 impl Op for TasksAddLink {
-    const NAME: &'static str = "tasks_add_link";
+    const NAME: OpName = OpName::TasksAddLink;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
 
@@ -509,7 +509,7 @@ impl Op for TasksAddLink {
 pub struct TasksRemoveLink;
 
 impl Op for TasksRemoveLink {
-    const NAME: &'static str = "tasks_remove_link";
+    const NAME: OpName = OpName::TasksRemoveLink;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
 
@@ -541,7 +541,7 @@ impl Op for TasksRemoveLink {
 pub struct TasksAddBlocker;
 
 impl Op for TasksAddBlocker {
-    const NAME: &'static str = "tasks_add_blocker";
+    const NAME: OpName = OpName::TasksAddBlocker;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
 
@@ -569,7 +569,7 @@ impl Op for TasksAddBlocker {
 pub struct TasksRemoveBlocker;
 
 impl Op for TasksRemoveBlocker {
-    const NAME: &'static str = "tasks_remove_blocker";
+    const NAME: OpName = OpName::TasksRemoveBlocker;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
 
@@ -608,7 +608,7 @@ pub struct OptionsInput {
 pub struct TasksOptions;
 
 impl Op for TasksOptions {
-    const NAME: &'static str = "tasks_options";
+    const NAME: OpName = OpName::TasksOptions;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
     type Input = OptionsInput;
@@ -641,7 +641,7 @@ pub struct StatsInput {}
 pub struct TasksStats;
 
 impl Op for TasksStats {
-    const NAME: &'static str = "tasks_stats";
+    const NAME: OpName = OpName::TasksStats;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
     type Input = StatsInput;
@@ -669,7 +669,7 @@ pub struct RevisionsInput {
 pub struct TasksRevisionsList;
 
 impl Op for TasksRevisionsList {
-    const NAME: &'static str = "tasks_revisions_list";
+    const NAME: OpName = OpName::TasksRevisionsList;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
     type Input = RevisionsInput;
@@ -719,7 +719,7 @@ pub struct DeletedListInput {
 pub struct TasksDeletedList;
 
 impl Op for TasksDeletedList {
-    const NAME: &'static str = "tasks_deleted_list";
+    const NAME: OpName = OpName::TasksDeletedList;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
     type Input = DeletedListInput;
@@ -763,7 +763,7 @@ pub struct GetManyInput {
 pub struct TasksGetMany;
 
 impl Op for TasksGetMany {
-    const NAME: &'static str = "tasks_get_many";
+    const NAME: OpName = OpName::TasksGetMany;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
     type Input = GetManyInput;

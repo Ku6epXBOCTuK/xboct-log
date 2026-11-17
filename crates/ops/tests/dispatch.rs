@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
 use serde_json::json;
-use xboct_log_core::{ActivitySource, AppErrorKind, Config, Db, Entity, Events, ServerEvent};
+use xboct_log_core::{
+    ActivitySource, AppErrorKind, Config, Db, Entity, Events, OpName, ServerEvent,
+};
 use xboct_log_ops::{Ctx, Kind, dispatch, metadata};
 
 async fn context() -> Ctx {
@@ -170,6 +172,9 @@ fn lists_the_registered_operations() {
     assert_eq!(find("projects_create").entity, Some(Entity::Projects));
     assert_eq!(find("scopes_create").entity, Some(Entity::Scopes));
     assert_eq!(find("tasks_comments_add").entity, Some(Entity::Comments));
+
+    let all: Vec<&str> = OpName::ALL.iter().map(|name| name.as_str()).collect();
+    assert_eq!(all, names);
 }
 
 #[tokio::test]
@@ -209,6 +214,16 @@ async fn rejects_unknown_operations_and_fields() {
         field.message().contains("unknown field"),
         "{}",
         field.message()
+    );
+
+    let op = dispatch(&ctx, "activity_list", json!({ "op": "tasks_missing" }))
+        .await
+        .unwrap_err();
+    assert_eq!(op.kind(), AppErrorKind::Validation);
+    assert!(
+        op.message().contains("unknown variant `tasks_missing`"),
+        "{}",
+        op.message()
     );
 }
 

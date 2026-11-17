@@ -5,7 +5,7 @@ use std::{future::Future, sync::Arc};
 use chrono::Local;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use xboct_log_core::{
-    ActivitySource, AutoBackup, Config, Db, Entity, Events, Result, maybe_auto_backup,
+    ActivitySource, AutoBackup, Config, Db, Entity, Events, OpName, Result, maybe_auto_backup,
     record_activity,
 };
 
@@ -70,7 +70,7 @@ impl Ctx {
 }
 
 pub trait Op {
-    const NAME: &'static str;
+    const NAME: OpName;
     const KIND: Kind;
     const MCP: bool;
 
@@ -109,14 +109,14 @@ async fn execute<O: Op>(
     if O::KIND == Kind::Command {
         if let Some(entity) = O::entity() {
             ctx.events
-                .publish_change(entity, O::NAME, ctx.source, ctx.client.clone());
+                .publish_change(entity, O::NAME.as_str(), ctx.source, ctx.client.clone());
         }
-        let entries = entries::entries(O::NAME, &raw, &value);
+        let entries = entries::entries(O::NAME.as_str(), &raw, &value);
         if !entries.is_empty() {
             record_activity(
                 &ctx.db,
                 ctx.source,
-                O::NAME,
+                O::NAME.as_str(),
                 &entries,
                 ctx.client.as_deref(),
                 Local::now(),
@@ -133,7 +133,7 @@ macro_rules! ops {
 		pub fn metadata() -> ::std::vec::Vec<$crate::OpInfo> {
 			::std::vec![
 				$($crate::OpInfo {
-					name: <$op as $crate::Op>::NAME,
+					name: <$op as $crate::Op>::NAME.as_str(),
 					kind: <$op as $crate::Op>::KIND,
 					mcp: <$op as $crate::Op>::MCP,
 					description: <$op as $crate::Op>::description(),
@@ -147,16 +147,16 @@ macro_rules! ops {
 			name: &str,
 			input: ::serde_json::Value,
 		) -> ::xboct_log_core::Result<::serde_json::Value> {
-			match name {
-				$(<$op as $crate::Op>::NAME => {
+			$(
+				if name == <$op as $crate::Op>::NAME.as_str() {
 					let parsed = ::serde_json::from_value::<<$op as $crate::Op>::Input>(input.clone())
 						.map_err(|error| ::xboct_log_core::AppError::validation(error.to_string()))?;
-					$crate::execute::<$op>(ctx, parsed, input).await
-				}),+,
-				_ => ::std::result::Result::Err(
-					::xboct_log_core::AppError::not_found(format!("no operation named {name}")),
-				),
-			}
+					return $crate::execute::<$op>(ctx, parsed, input).await;
+				}
+			)+
+			::std::result::Result::Err(
+				::xboct_log_core::AppError::not_found(format!("no operation named {name}")),
+			)
 		}
 	};
 }

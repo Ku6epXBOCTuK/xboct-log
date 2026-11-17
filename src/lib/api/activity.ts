@@ -1,5 +1,11 @@
 import type { ActivityItem, ActivityLogItem } from "#lib/types.ts";
 import { client, unwrap } from "./client.ts";
+import type { operations } from "./schema.d.ts";
+
+type ActivitySearch =
+	operations["activity_list"]["requestBody"]["content"]["application/json"];
+
+export type ActivityOp = NonNullable<ActivitySearch["op"]>;
 
 export type TaskHistoryPage = { items: ActivityItem[]; total: number };
 
@@ -21,7 +27,7 @@ export type ActivityLogPage = {
 export async function listActivityLog(
 	input: {
 		source?: "ui" | "mcp" | "cli";
-		op?: string;
+		op?: ActivityOp;
 		entity?: "task" | "project" | "scope" | "tag";
 		project_id?: string;
 		from?: string;

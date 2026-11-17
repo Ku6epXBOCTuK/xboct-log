@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use xboct_log_core::{Comment, Entity, Result, TaskKey};
+use xboct_log_core::{Comment, Entity, OpName, Result, TaskKey};
 
 use crate::{Ctx, Kind, Op};
 
@@ -18,7 +18,7 @@ pub struct CommentList {
 pub struct CommentsList;
 
 impl Op for CommentsList {
-    const NAME: &'static str = "tasks_comments_list";
+    const NAME: OpName = OpName::TasksCommentsList;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
 
@@ -49,7 +49,7 @@ pub struct AddInput {
 pub struct CommentsAdd;
 
 impl Op for CommentsAdd {
-    const NAME: &'static str = "tasks_comments_add";
+    const NAME: OpName = OpName::TasksCommentsAdd;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
 
@@ -79,7 +79,7 @@ pub struct EditInput {
 pub struct CommentsEdit;
 
 impl Op for CommentsEdit {
-    const NAME: &'static str = "tasks_comments_edit";
+    const NAME: OpName = OpName::TasksCommentsEdit;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
 
@@ -108,7 +108,7 @@ pub struct DeleteInput {
 pub struct CommentsDelete;
 
 impl Op for CommentsDelete {
-    const NAME: &'static str = "tasks_comments_delete";
+    const NAME: OpName = OpName::TasksCommentsDelete;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
 

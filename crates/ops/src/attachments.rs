@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use xboct_log_core::{
-    Attachment, AttachmentCheck, AttachmentId, DeletedAttachment, Entity, MovedAttachment,
+    Attachment, AttachmentCheck, AttachmentId, DeletedAttachment, Entity, MovedAttachment, OpName,
     PurgedAttachment, TaskKey, add_attachment_from_base64, add_attachment_from_path,
     copy_attachment, delete_attachment, list_attachments, list_deleted_attachments,
     move_attachment, purge_attachment, resolve_task_id, restore_attachment, verify_attachments,
@@ -59,7 +59,7 @@ pub struct Created<Item> {
 pub struct AttachmentsList;
 
 impl Op for AttachmentsList {
-    const NAME: &'static str = "attachments_list";
+    const NAME: OpName = OpName::AttachmentsList;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
     type Input = ListInput;
@@ -80,7 +80,7 @@ impl Op for AttachmentsList {
 pub struct AttachmentsDeletedList;
 
 impl Op for AttachmentsDeletedList {
-    const NAME: &'static str = "attachments_deleted_list";
+    const NAME: OpName = OpName::AttachmentsDeletedList;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
     type Input = OptionalTaskInput;
@@ -106,7 +106,7 @@ impl Op for AttachmentsDeletedList {
 pub struct AttachmentsAdd;
 
 impl Op for AttachmentsAdd {
-    const NAME: &'static str = "attachments_add";
+    const NAME: OpName = OpName::AttachmentsAdd;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
     type Input = AddInput;
@@ -150,7 +150,7 @@ impl Op for AttachmentsAdd {
 pub struct AttachmentsDelete;
 
 impl Op for AttachmentsDelete {
-    const NAME: &'static str = "attachments_delete";
+    const NAME: OpName = OpName::AttachmentsDelete;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
     type Input = AttachmentInput;
@@ -172,7 +172,7 @@ impl Op for AttachmentsDelete {
 pub struct AttachmentsRestore;
 
 impl Op for AttachmentsRestore {
-    const NAME: &'static str = "attachments_restore";
+    const NAME: OpName = OpName::AttachmentsRestore;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
     type Input = AttachmentInput;
@@ -195,7 +195,7 @@ impl Op for AttachmentsRestore {
 pub struct AttachmentsMove;
 
 impl Op for AttachmentsMove {
-    const NAME: &'static str = "attachments_move";
+    const NAME: OpName = OpName::AttachmentsMove;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
     type Input = MoveInput;
@@ -225,7 +225,7 @@ impl Op for AttachmentsMove {
 pub struct AttachmentsCopy;
 
 impl Op for AttachmentsCopy {
-    const NAME: &'static str = "attachments_copy";
+    const NAME: OpName = OpName::AttachmentsCopy;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
     type Input = MoveInput;
@@ -256,7 +256,7 @@ impl Op for AttachmentsCopy {
 pub struct AttachmentsPurge;
 
 impl Op for AttachmentsPurge {
-    const NAME: &'static str = "attachments_purge";
+    const NAME: OpName = OpName::AttachmentsPurge;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
     type Input = AttachmentInput;
@@ -279,7 +279,7 @@ impl Op for AttachmentsPurge {
 pub struct AttachmentsVerify;
 
 impl Op for AttachmentsVerify {
-    const NAME: &'static str = "attachments_verify";
+    const NAME: OpName = OpName::AttachmentsVerify;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
     type Input = OptionalTaskInput;

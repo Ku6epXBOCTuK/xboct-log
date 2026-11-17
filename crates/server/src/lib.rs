@@ -31,6 +31,7 @@ pub mod mcp;
 mod mcp_sessions;
 mod mcp_text;
 pub mod openapi;
+mod schema;
 pub mod static_files;
 
 pub const APP_NAME: &str = "xboct-log";

@@ -306,7 +306,8 @@ fn attachment_mime(file_name: &str) -> String {
 }
 
 fn parse_schema(text: &str) -> Arc<JsonObject> {
-    let parsed: Value = serde_json::from_str(text).unwrap_or(Value::Null);
+    let mut parsed: Value = serde_json::from_str(text).unwrap_or(Value::Null);
+    crate::schema::describe_ops(&mut parsed);
     match parsed {
         Value::Object(map) => Arc::new(map),
         _ => Arc::new(JsonObject::new()),
@@ -557,5 +558,19 @@ fn flatten_patch(arguments: &mut Map<String, Value>, fields: &[&str]) {
         _ => {
             arguments.insert("patch".to_string(), Value::Object(flat));
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use xboct_log_core::OpName;
+
+    #[test]
+    fn lists_the_operation_names_in_the_activity_filter() {
+        let (input, _) = tool_schema("activity_list").expect("activity_list schema");
+        let schema = parse_schema(input);
+        let names: Vec<&str> = OpName::ALL.iter().map(|name| name.as_str()).collect();
+        assert_eq!(schema["properties"]["op"]["enum"], json!(names));
     }
 }

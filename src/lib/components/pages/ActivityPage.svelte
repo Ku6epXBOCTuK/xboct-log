@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { ActivityOp } from "#lib/api/activity.ts";
 	import { listActivityLog } from "#lib/api/activity.ts";
 	import { fetchFresh } from "#lib/api/fresh.ts";
 	import ActivityFilters from "#lib/components/activity/ActivityFilters.svelte";
@@ -28,7 +29,7 @@
 		const result = await fetchFresh(
 			listActivityLog({
 				source: source === "" ? undefined : (source as ActivitySource),
-				op: op === "" ? undefined : op,
+				op: op === "" ? undefined : (op as ActivityOp),
 				entity: entity === "" ? undefined : (entity as ActivityEntity),
 				project_id: filters.activeProject ?? undefined,
 				from: from === "" ? undefined : `${from}T00:00:00.000Z`,

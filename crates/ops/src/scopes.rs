@@ -1,8 +1,8 @@
 use serde::Deserialize;
 use xboct_log_core::{
-    AppError, Entity, ProjectId, Result, Scope, ScopeDeleteReport, ScopeId, ScopeWithCounts,
-    count_tasks_by_scope, create_scope, delete_scope_detailed, get_scope, list_scopes,
-    preview_scope_delete, scoped_project_ids, update_scope,
+    AppError, Entity, OpName, ProjectId, Result, Scope, ScopeDeleteReport, ScopeId,
+    ScopeWithCounts, count_tasks_by_scope, create_scope, delete_scope_detailed, get_scope,
+    list_scopes, preview_scope_delete, scoped_project_ids, update_scope,
 };
 
 use crate::{Ctx, Kind, Op};
@@ -24,7 +24,7 @@ pub struct ListInput {
 pub struct ScopesList;
 
 impl Op for ScopesList {
-    const NAME: &'static str = "scopes_list";
+    const NAME: OpName = OpName::ScopesList;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
 
@@ -62,7 +62,7 @@ pub struct GetInput {
 pub struct ScopesGet;
 
 impl Op for ScopesGet {
-    const NAME: &'static str = "scopes_get";
+    const NAME: OpName = OpName::ScopesGet;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
 
@@ -86,7 +86,7 @@ impl Op for ScopesGet {
 pub struct ScopesProjectIds;
 
 impl Op for ScopesProjectIds {
-    const NAME: &'static str = "scopes_project_ids";
+    const NAME: OpName = OpName::ScopesProjectIds;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
 
@@ -116,7 +116,7 @@ pub struct CreateInput {
 pub struct ScopesCreate;
 
 impl Op for ScopesCreate {
-    const NAME: &'static str = "scopes_create";
+    const NAME: OpName = OpName::ScopesCreate;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
 
@@ -153,7 +153,7 @@ pub struct UpdateInput {
 pub struct ScopesUpdate;
 
 impl Op for ScopesUpdate {
-    const NAME: &'static str = "scopes_update";
+    const NAME: OpName = OpName::ScopesUpdate;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
 
@@ -183,7 +183,7 @@ pub struct DeleteInput {
 pub struct ScopesDelete;
 
 impl Op for ScopesDelete {
-    const NAME: &'static str = "scopes_delete";
+    const NAME: OpName = OpName::ScopesDelete;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
 

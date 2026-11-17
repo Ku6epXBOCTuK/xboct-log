@@ -2,7 +2,7 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 use sqlx::{QueryBuilder, Sqlite};
 
-use crate::{ActivitySource, AppError, Db, ProjectId, Result};
+use crate::{ActivitySource, AppError, Db, OpName, ProjectId, Result};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -30,7 +30,7 @@ pub struct ActivitySearch {
     #[serde(default)]
     pub source: Option<ActivitySource>,
     #[serde(default)]
-    pub op: Option<String>,
+    pub op: Option<OpName>,
     #[serde(default)]
     pub entity: Option<ActivityEntity>,
     #[serde(default)]
@@ -193,9 +193,16 @@ pub async fn search_activity(db: &Db, search: &ActivitySearch) -> Result<Value> 
         })
         .collect();
 
-    let ops: Vec<String> = sqlx::query_scalar("SELECT DISTINCT op FROM activity ORDER BY op")
-        .fetch_all(db.pool())
-        .await?;
+    let mut ops_query =
+        QueryBuilder::<Sqlite>::new("SELECT DISTINCT op FROM activity WHERE op IN (");
+    {
+        let mut names = ops_query.separated(", ");
+        for name in OpName::ALL {
+            names.push_bind(name.as_str());
+        }
+        names.push_unseparated(") ORDER BY op");
+    }
+    let ops: Vec<String> = ops_query.build_query_scalar().fetch_all(db.pool()).await?;
     Ok(json!({ "items": items, "total": total, "ops": ops }))
 }
 
@@ -245,9 +252,6 @@ pub fn validate_activity_search(search: &ActivitySearch) -> Result<()> {
     }
     if search.offset.is_some_and(|offset| offset < 0) {
         return Err(AppError::validation("offset must be zero or positive"));
-    }
-    if search.op.as_deref().is_some_and(str::is_empty) {
-        return Err(AppError::validation("op must not be empty"));
     }
     Ok(())
 }

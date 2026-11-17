@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use chrono::Local;
 use serde::{Deserialize, Serialize};
 use xboct_log_core::{
-    BackupKind, RestoreOutcome, Result, SnapshotInfo, inspect_snapshot, list_backups,
+    BackupKind, OpName, RestoreOutcome, Result, SnapshotInfo, inspect_snapshot, list_backups,
     resolve_backup, restore_backup, run_backup,
 };
 
@@ -33,7 +33,7 @@ pub struct BackupList {
 pub struct BackupCreate;
 
 impl crate::Op for BackupCreate {
-    const NAME: &'static str = "backup_create";
+    const NAME: OpName = OpName::BackupCreate;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
 
@@ -60,7 +60,7 @@ impl crate::Op for BackupCreate {
 pub struct BackupListOp;
 
 impl crate::Op for BackupListOp {
-    const NAME: &'static str = "backup_list";
+    const NAME: OpName = OpName::BackupList;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
 
@@ -81,7 +81,7 @@ impl crate::Op for BackupListOp {
 pub struct BackupsInspect;
 
 impl crate::Op for BackupsInspect {
-    const NAME: &'static str = "backups_inspect";
+    const NAME: OpName = OpName::BackupsInspect;
     const KIND: Kind = Kind::Command;
     const MCP: bool = false;
 
@@ -101,7 +101,7 @@ impl crate::Op for BackupsInspect {
 pub struct BackupsRestore;
 
 impl crate::Op for BackupsRestore {
-    const NAME: &'static str = "backups_restore";
+    const NAME: OpName = OpName::BackupsRestore;
     const KIND: Kind = Kind::Command;
     const MCP: bool = false;
 

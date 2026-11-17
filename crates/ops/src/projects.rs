@@ -1,7 +1,7 @@
 use serde::Deserialize;
 use xboct_log_core::{
-    AppError, Entity, NewProject, Project, ProjectDetails, ProjectPatch, ProjectWithCounts, Result,
-    create_project, get_project, list_projects, normalize_repo, project_details,
+    AppError, Entity, NewProject, OpName, Project, ProjectDetails, ProjectPatch, ProjectWithCounts,
+    Result, create_project, get_project, list_projects, normalize_repo, project_details,
     project_with_counts, repo_error, update_project,
 };
 
@@ -18,7 +18,7 @@ pub struct ListInput {
 pub struct ProjectsList;
 
 impl Op for ProjectsList {
-    const NAME: &'static str = "projects_list";
+    const NAME: OpName = OpName::ProjectsList;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
 
@@ -92,7 +92,7 @@ pub struct GetInput {
 pub struct ProjectsGet;
 
 impl Op for ProjectsGet {
-    const NAME: &'static str = "projects_get";
+    const NAME: OpName = OpName::ProjectsGet;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
 
@@ -138,7 +138,7 @@ impl From<CreateInput> for NewProject {
 pub struct ProjectsCreate;
 
 impl Op for ProjectsCreate {
-    const NAME: &'static str = "projects_create";
+    const NAME: OpName = OpName::ProjectsCreate;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
 
@@ -186,7 +186,7 @@ pub struct UpdateInput {
 pub struct ProjectsUpdate;
 
 impl Op for ProjectsUpdate {
-    const NAME: &'static str = "projects_update";
+    const NAME: OpName = OpName::ProjectsUpdate;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
 

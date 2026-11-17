@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use xboct_log_core::{
-    Entity, OneOrList, ProjectId, Result, Status, TagCount, TagInventoryEntry, TagName, TagQuery,
-    TagRecord, ensure_tag, list_dictionary, list_tag_inventory, list_tags, rename_tag,
+    Entity, OneOrList, OpName, ProjectId, Result, Status, TagCount, TagInventoryEntry, TagName,
+    TagQuery, TagRecord, ensure_tag, list_dictionary, list_tag_inventory, list_tags, rename_tag,
     set_tag_archived,
 };
 
@@ -23,7 +23,7 @@ pub struct TagListOutput {
 pub struct TagsList;
 
 impl Op for TagsList {
-    const NAME: &'static str = "tags_list";
+    const NAME: OpName = OpName::TagsList;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
 
@@ -62,7 +62,7 @@ pub struct DictionaryOutput {
 pub struct TagsDictionary;
 
 impl Op for TagsDictionary {
-    const NAME: &'static str = "tags_dictionary";
+    const NAME: OpName = OpName::TagsDictionary;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
 
@@ -93,7 +93,7 @@ pub struct InventoryOutput {
 pub struct TagsInventory;
 
 impl Op for TagsInventory {
-    const NAME: &'static str = "tags_inventory";
+    const NAME: OpName = OpName::TagsInventory;
     const KIND: Kind = Kind::Query;
     const MCP: bool = false;
 
@@ -122,7 +122,7 @@ pub struct CreateInput {
 pub struct TagsCreate;
 
 impl Op for TagsCreate {
-    const NAME: &'static str = "tags_create";
+    const NAME: OpName = OpName::TagsCreate;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
 
@@ -158,7 +158,7 @@ pub struct UpdateInput {
 pub struct TagsUpdate;
 
 impl Op for TagsUpdate {
-    const NAME: &'static str = "tags_update";
+    const NAME: OpName = OpName::TagsUpdate;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
 
@@ -188,7 +188,7 @@ pub struct RenameInput {
 pub struct TagsRename;
 
 impl Op for TagsRename {
-    const NAME: &'static str = "tags_rename";
+    const NAME: OpName = OpName::TagsRename;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
 

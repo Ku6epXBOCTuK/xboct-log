@@ -52,6 +52,13 @@ fn search(value: Value) -> ActivitySearch {
     serde_json::from_value(value).expect("search")
 }
 
+#[test]
+fn rejects_an_unknown_operation_filter() {
+    let error =
+        serde_json::from_value::<ActivitySearch>(json!({"op": "tasks_missing"})).expect_err("op");
+    assert!(error.to_string().contains("unknown variant"), "{error}");
+}
+
 #[tokio::test]
 async fn lists_the_newest_activity_first_and_paginates() {
     let db = database().await;
@@ -166,6 +173,15 @@ async fn searches_activity_by_source_op_entity_and_project() {
         "spa",
     )
     .await;
+    insert(
+        &db,
+        "2026-02-04T10:00:00.000Z",
+        "ui",
+        "tasks_update_legacy",
+        "task",
+        "LOG-1",
+    )
+    .await;
 
     let by_source = search_activity(&db, &search(json!({"source": "mcp"})))
         .await
@@ -182,12 +198,12 @@ async fn searches_activity_by_source_op_entity_and_project() {
     let by_entity = search_activity(&db, &search(json!({"entity": "task"})))
         .await
         .expect("entity");
-    assert_eq!(by_entity["total"], 2);
+    assert_eq!(by_entity["total"], 3);
 
     let by_project = search_activity(&db, &search(json!({"project_id": "log"})))
         .await
         .expect("project");
-    assert_eq!(by_project["total"], 2);
+    assert_eq!(by_project["total"], 3);
 
     let by_window = search_activity(
         &db,
@@ -200,12 +216,15 @@ async fn searches_activity_by_source_op_entity_and_project() {
     let page = search_activity(&db, &search(json!({"limit": 1, "offset": 1})))
         .await
         .expect("page");
-    assert_eq!(page["total"], 3);
+    assert_eq!(page["total"], 4);
     assert_eq!(page["items"].as_array().map(Vec::len), Some(1));
     assert_eq!(
         page["ops"],
         json!(["projects_update", "tasks_create", "tasks_update"])
     );
+
+    let unfiltered = search_activity(&db, &search(json!({}))).await.expect("all");
+    assert_eq!(unfiltered["items"][0]["op"], "tasks_update_legacy");
 }
 
 #[tokio::test]

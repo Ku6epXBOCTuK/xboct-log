@@ -13,6 +13,7 @@ pub mod events;
 pub mod ids;
 pub mod media;
 mod migrations;
+pub mod op_name;
 pub mod paths;
 pub mod projects;
 pub mod restore;
@@ -50,6 +51,7 @@ pub use media::{
     AttachmentContents, AttachmentFormat, AttachmentKind, attachment_format, read_attachment_file,
     read_deleted_attachment_file,
 };
+pub use op_name::OpName;
 pub use paths::{data_fingerprint, fingerprint_path};
 pub use projects::{
     INBOX_PROJECT_ID, INBOX_PROJECT_PREFIX, NewProject, Project, ProjectDetails, ProjectPatch,
