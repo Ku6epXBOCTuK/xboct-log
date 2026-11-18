@@ -204,6 +204,47 @@ pub fn entries(op: &str, input: &Value, output: &Value) -> Vec<ActivityEntry> {
                 "to": text(output, "name"),
             })],
         )],
+        "plans_create" => vec![ActivityEntry::new(
+            ActivityEntity::Plan,
+            text(output, "id"),
+            present_fields(input, &["name", "description", "status"]),
+            Vec::new(),
+        )],
+        "plans_update" => vec![ActivityEntry::new(
+            ActivityEntity::Plan,
+            text(output, "id"),
+            present_fields(
+                input.get("patch").unwrap_or(&Value::Null),
+                &["name", "description", "status"],
+            ),
+            Vec::new(),
+        )],
+        "plans_delete" | "plans_restore" => vec![ActivityEntry::new(
+            ActivityEntity::Plan,
+            text(output, "id"),
+            strings(&["deleted_at"]),
+            Vec::new(),
+        )],
+        "plans_items_add" | "plans_items_remove" | "plans_reorder" => vec![ActivityEntry::new(
+            ActivityEntity::Plan,
+            text(input, "plan_id"),
+            strings(&["items"]),
+            Vec::new(),
+        )],
+        "plans_notes_add" | "plans_notes_edit" | "plans_notes_delete" => {
+            let from_input = text(input, "plan_id");
+            let plan_id = if from_input.is_empty() {
+                text(output, "plan_id")
+            } else {
+                from_input
+            };
+            vec![ActivityEntry::new(
+                ActivityEntity::Plan,
+                plan_id,
+                strings(&["notes"]),
+                Vec::new(),
+            )]
+        }
         "attachments_add" | "attachments_copy" => attachment_entry(output.get("item"), true),
         "attachments_restore" => attachment_entry(Some(output), true),
         "attachments_delete" | "attachments_purge" => attachment_entry(Some(output), false),

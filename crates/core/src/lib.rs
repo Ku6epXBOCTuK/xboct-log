@@ -15,6 +15,7 @@ pub mod media;
 mod migrations;
 pub mod op_name;
 pub mod paths;
+pub mod plan_items;
 pub mod plans;
 pub mod projects;
 pub mod request_log;
@@ -56,6 +57,10 @@ pub use media::{
 };
 pub use op_name::OpName;
 pub use paths::{data_fingerprint, fingerprint_path};
+pub use plan_items::{
+    PlanItem, PlanNote, add_plan_item, add_plan_note, delete_plan_note, edit_plan_note,
+    list_plan_items, list_plan_notes, remove_plan_item, reorder_plan_items,
+};
 pub use plans::{
     Plan, PlanCounts, PlanPatch, PlanStatus, PlanWithCounts, count_plan_items, create_plan,
     delete_plan, get_plan, list_deleted_plans, list_plans, plan_counts, require_plan, restore_plan,

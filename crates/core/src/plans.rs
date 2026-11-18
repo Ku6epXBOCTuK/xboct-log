@@ -215,12 +215,12 @@ pub async fn update_plan(
     if current.deleted_at.is_some() {
         return Err(AppError::not_found(format!("plan {id} not found")));
     }
-    if let Some(expected) = expected_updated_at {
-        if expected != current.updated_at {
-            return Err(AppError::conflict(format!(
-                "plan {id} changed since {expected}"
-            )));
-        }
+    if let Some(expected) = expected_updated_at
+        && expected != current.updated_at
+    {
+        return Err(AppError::conflict(format!(
+            "plan {id} changed since {expected}"
+        )));
     }
 
     let name = match &patch.name {

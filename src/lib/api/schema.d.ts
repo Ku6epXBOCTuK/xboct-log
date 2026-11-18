@@ -1144,6 +1144,286 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/plans_list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * List all plans across every project: a plan has no project_id and its items may come from any project
+         * @description List all plans across every project: a plan has no project_id and its items may come from any project. Each item carries tasks_count and epics_count (soft-deleted tasks are not counted). Returns: {items} - sorted by name; use plans_get for one plan's items.
+         */
+        post: operations["plans_list"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/plans_get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Get one plan by plan_id with tasks_count and epics_count
+         * @description Get one plan by plan_id with tasks_count and epics_count. Returns: the plan - {id, name, description, status, created_at, updated_at, closed_at, deleted_at, tasks_count, epics_count}.
+         */
+        post: operations["plans_get"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/plans_create": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a global plan
+         * @description Create a global plan. name is required; description defaults to an empty string and status to 'backlog' ('backlog', 'active', 'done', 'cancelled'). Names need not be unique: several imported markdown files may share one. Returns: the created plan.
+         */
+        post: operations["plans_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/plans_update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Patch a plan's name, description or status by plan_id; pass fields next to plan_id or in a nested patch object
+         * @description Patch a plan's name, description or status by plan_id; pass fields next to plan_id or in a nested patch object. status is manual and never derived from the tasks in the plan. Pass expected_updated_at (the current updated_at) to reject a stale edit with a conflict. Returns: the updated plan.
+         */
+        post: operations["plans_update"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/plans_delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Soft-delete a plan by plan_id
+         * @description Soft-delete a plan by plan_id. Its items, positions, notes and document links are kept, so plans_restore brings the whole plan back. Returns: the deleted plan with deleted_at set.
+         */
+        post: operations["plans_delete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/plans_restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore a soft-deleted plan by plan_id with all its items, positions, notes and document links
+         * @description Restore a soft-deleted plan by plan_id with all its items, positions, notes and document links. Find deleted plans with plans_deleted_list. Returns: the restored plan with deleted_at cleared.
+         */
+        post: operations["plans_restore"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/plans_deleted_list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * List the soft-deleted plans, newest deletion first
+         * @description List the soft-deleted plans, newest deletion first. Read-only. Returns: {items}.
+         */
+        post: operations["plans_deleted_list"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/plans_items_add": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add a task or an epic to a plan by its full task id (e.g
+         * @description Add a task or an epic to a plan by its full task id (e.g. 'LOG-42'); the task may belong to any project and an epic can be an item too, without pulling in its children. The plan stores the task's internal id, so a later tasks_move leaves the item, its position and its notes untouched and only the displayed key changes. Adding the same task twice is a conflict. Returns: the added item - {key, title, project_id, is_epic, position, deleted}.
+         */
+        post: operations["plans_items_add"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/plans_items_remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Remove a task or epic from a plan by plan_id and task_id
+         * @description Remove a task or epic from a plan by plan_id and task_id. Notes attached to that task stay in the plan and return if the item is added again. Returns: the removed item, or null when the plan had no such item.
+         */
+        post: operations["plans_items_remove"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/plans_reorder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set the order of a plan's items: task_ids must list every current item exactly once, in the new order; tasks and epics from different projects share one sequence
+         * @description Set the order of a plan's items: task_ids must list every current item exactly once, in the new order; tasks and epics from different projects share one sequence. Rejects a key that no longer resolves after a task move, an incomplete list or a duplicate, and changes nothing in that case. Idempotent. Returns: {items} - the reordered items with positions in steps of 1024.
+         */
+        post: operations["plans_reorder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/plans_notes_list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * List the notes of one plan, oldest first; deleted notes are hidden
+         * @description List the notes of one plan, oldest first; deleted notes are hidden. Returns: {items} - each note is {id, plan_id, key, body, created_at, edited_at, deleted_at}, where key is the current id of the task it belongs to.
+         */
+        post: operations["plans_notes_list"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/plans_notes_add": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add a Markdown note to an item of a plan
+         * @description Add a Markdown note to an item of a plan. The task must already be an item of that plan; its id uses the full 'PREFIX-NUMBER' form. Returns: the created note.
+         */
+        post: operations["plans_notes_add"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/plans_notes_edit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Replace the body of a plan note by note_id
+         * @description Replace the body of a plan note by note_id. The previous text is kept in text_revisions. Returns: the updated note with edited_at set.
+         */
+        post: operations["plans_notes_edit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/plans_notes_delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Soft-delete a plan note by note_id: it disappears from plans_notes_list but keeps its id and history
+         * @description Soft-delete a plan note by note_id: it disappears from plans_notes_list but keeps its id and history. Returns: the note with deleted_at set.
+         */
+        post: operations["plans_notes_delete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1163,7 +1443,7 @@ export interface components {
         /** @enum {string} */
         ActivitySource: "ui" | "mcp" | "cli";
         /** @enum {string} */
-        OpName: "tasks_history" | "activity_list" | "request_log_list" | "request_log_export" | "attachments_list" | "attachments_deleted_list" | "attachments_add" | "attachments_delete" | "attachments_restore" | "attachments_move" | "attachments_copy" | "attachments_purge" | "attachments_verify" | "backup_create" | "backup_list" | "backups_inspect" | "backups_restore" | "tasks_add_blocker" | "tasks_remove_blocker" | "tasks_add_link" | "tasks_remove_link" | "tasks_comments_list" | "tasks_comments_add" | "tasks_comments_edit" | "tasks_comments_delete" | "tasks_options" | "projects_list" | "projects_get" | "projects_create" | "projects_update" | "tasks_revisions_list" | "scopes_list" | "scopes_get" | "scopes_project_ids" | "scopes_create" | "scopes_update" | "scopes_delete" | "tasks_stats" | "tasks_list" | "tasks_deleted_list" | "tasks_get_many" | "tasks_get" | "tasks_create" | "tasks_create_many" | "tasks_update" | "tasks_update_many" | "tasks_close" | "tasks_close_many" | "tasks_delete" | "tasks_restore" | "tasks_move" | "tags_list" | "tags_dictionary" | "tags_inventory" | "tags_create" | "tags_update" | "tags_rename";
+        OpName: "tasks_history" | "activity_list" | "request_log_list" | "request_log_export" | "attachments_list" | "attachments_deleted_list" | "attachments_add" | "attachments_delete" | "attachments_restore" | "attachments_move" | "attachments_copy" | "attachments_purge" | "attachments_verify" | "backup_create" | "backup_list" | "backups_inspect" | "backups_restore" | "tasks_add_blocker" | "tasks_remove_blocker" | "tasks_add_link" | "tasks_remove_link" | "tasks_comments_list" | "tasks_comments_add" | "tasks_comments_edit" | "tasks_comments_delete" | "tasks_options" | "projects_list" | "projects_get" | "projects_create" | "projects_update" | "tasks_revisions_list" | "scopes_list" | "scopes_get" | "scopes_project_ids" | "scopes_create" | "scopes_update" | "scopes_delete" | "tasks_stats" | "tasks_list" | "tasks_deleted_list" | "tasks_get_many" | "tasks_get" | "tasks_create" | "tasks_create_many" | "tasks_update" | "tasks_update_many" | "tasks_close" | "tasks_close_many" | "tasks_delete" | "tasks_restore" | "tasks_move" | "tags_list" | "tags_dictionary" | "tags_inventory" | "tags_create" | "tags_update" | "tags_rename" | "plans_list" | "plans_get" | "plans_create" | "plans_update" | "plans_delete" | "plans_restore" | "plans_deleted_list" | "plans_items_add" | "plans_items_remove" | "plans_reorder" | "plans_notes_list" | "plans_notes_add" | "plans_notes_edit" | "plans_notes_delete";
         /** @enum {string} */
         ActivityEntity: "task" | "plan" | "project" | "scope" | "tag";
         ActivityItem: {
@@ -1542,6 +1822,50 @@ export interface components {
         };
         PatchInput3: {
             archived: boolean;
+        };
+        PlanWithCounts: {
+            id: string;
+            name: string;
+            description: string;
+            status: components["schemas"]["PlanStatus"];
+            created_at: string;
+            updated_at: string;
+            closed_at?: string | null;
+            deleted_at?: string | null;
+            /** Format: int64 */
+            tasks_count: number;
+            /** Format: int64 */
+            epics_count: number;
+        };
+        /** @enum {string} */
+        PlanStatus: "backlog" | "active" | "done" | "cancelled";
+        Plan: {
+            id: string;
+            name: string;
+            description: string;
+            status: components["schemas"]["PlanStatus"];
+            created_at: string;
+            updated_at: string;
+            closed_at?: string | null;
+            deleted_at?: string | null;
+        };
+        PlanItem: {
+            key: string;
+            title: string;
+            project_id: string;
+            is_epic: boolean;
+            /** Format: int64 */
+            position: number;
+            deleted: boolean;
+        };
+        PlanNote: {
+            id: string;
+            plan_id: string;
+            key: string;
+            body: string;
+            created_at: string;
+            edited_at?: string | null;
+            deleted_at?: string | null;
         };
     };
     responses: never;
@@ -5965,6 +6289,976 @@ export interface operations {
                         name: string;
                         archived: boolean;
                         created_at: string;
+                    };
+                };
+            };
+            /** @description The input is not valid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The thing does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The change clashes with the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The operation failed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    plans_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description The result of the operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["PlanWithCounts"][];
+                    };
+                };
+            };
+            /** @description The input is not valid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The thing does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The change clashes with the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The operation failed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    plans_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    plan_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The result of the operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        name: string;
+                        description: string;
+                        status: components["schemas"]["PlanStatus"];
+                        created_at: string;
+                        updated_at: string;
+                        closed_at?: string | null;
+                        deleted_at?: string | null;
+                        /** Format: int64 */
+                        tasks_count: number;
+                        /** Format: int64 */
+                        epics_count: number;
+                    };
+                };
+            };
+            /** @description The input is not valid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The thing does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The change clashes with the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The operation failed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    plans_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    description?: string | null;
+                    status?: components["schemas"]["PlanStatus"] | null;
+                };
+            };
+        };
+        responses: {
+            /** @description The result of the operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        name: string;
+                        description: string;
+                        status: components["schemas"]["PlanStatus"];
+                        created_at: string;
+                        updated_at: string;
+                        closed_at?: string | null;
+                        deleted_at?: string | null;
+                    };
+                };
+            };
+            /** @description The input is not valid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The thing does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The change clashes with the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The operation failed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    plans_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    plan_id: string;
+                    patch?: unknown;
+                    name?: string | null;
+                    description?: string | null;
+                    status?: components["schemas"]["PlanStatus"] | null;
+                    expected_updated_at?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description The result of the operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        name: string;
+                        description: string;
+                        status: components["schemas"]["PlanStatus"];
+                        created_at: string;
+                        updated_at: string;
+                        closed_at?: string | null;
+                        deleted_at?: string | null;
+                    };
+                };
+            };
+            /** @description The input is not valid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The thing does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The change clashes with the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The operation failed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    plans_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    plan_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The result of the operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        name: string;
+                        description: string;
+                        status: components["schemas"]["PlanStatus"];
+                        created_at: string;
+                        updated_at: string;
+                        closed_at?: string | null;
+                        deleted_at?: string | null;
+                    };
+                };
+            };
+            /** @description The input is not valid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The thing does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The change clashes with the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The operation failed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    plans_restore: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    plan_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The result of the operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        name: string;
+                        description: string;
+                        status: components["schemas"]["PlanStatus"];
+                        created_at: string;
+                        updated_at: string;
+                        closed_at?: string | null;
+                        deleted_at?: string | null;
+                    };
+                };
+            };
+            /** @description The input is not valid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The thing does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The change clashes with the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The operation failed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    plans_deleted_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description The result of the operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["Plan"][];
+                    };
+                };
+            };
+            /** @description The input is not valid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The thing does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The change clashes with the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The operation failed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    plans_items_add: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    plan_id: string;
+                    /** @description Full task id, e.g. 'LOG-42'. */
+                    task_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The result of the operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        key: string;
+                        title: string;
+                        project_id: string;
+                        is_epic: boolean;
+                        /** Format: int64 */
+                        position: number;
+                        deleted: boolean;
+                    };
+                };
+            };
+            /** @description The input is not valid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The thing does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The change clashes with the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The operation failed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    plans_items_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    plan_id: string;
+                    /** @description Full task id, e.g. 'LOG-42'. */
+                    task_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The result of the operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanItem"] | null;
+                };
+            };
+            /** @description The input is not valid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The thing does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The change clashes with the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The operation failed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    plans_reorder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    plan_id: string;
+                    /** @description Every task id of the plan in the new order, full 'PREFIX-NUMBER' ids. */
+                    task_ids: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description The result of the operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["PlanItem"][];
+                    };
+                };
+            };
+            /** @description The input is not valid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The thing does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The change clashes with the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The operation failed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    plans_notes_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    plan_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The result of the operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["PlanNote"][];
+                    };
+                };
+            };
+            /** @description The input is not valid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The thing does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The change clashes with the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The operation failed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    plans_notes_add: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    plan_id: string;
+                    /** @description Full task id, e.g. 'LOG-42'. */
+                    task_id: string;
+                    body: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The result of the operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        plan_id: string;
+                        key: string;
+                        body: string;
+                        created_at: string;
+                        edited_at?: string | null;
+                        deleted_at?: string | null;
+                    };
+                };
+            };
+            /** @description The input is not valid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The thing does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The change clashes with the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The operation failed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    plans_notes_edit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    note_id: string;
+                    body: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The result of the operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        plan_id: string;
+                        key: string;
+                        body: string;
+                        created_at: string;
+                        edited_at?: string | null;
+                        deleted_at?: string | null;
+                    };
+                };
+            };
+            /** @description The input is not valid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The thing does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The change clashes with the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The operation failed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    plans_notes_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    note_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The result of the operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        plan_id: string;
+                        key: string;
+                        body: string;
+                        created_at: string;
+                        edited_at?: string | null;
+                        deleted_at?: string | null;
                     };
                 };
             };

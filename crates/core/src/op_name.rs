@@ -92,6 +92,20 @@ op_names![
     TagsCreate => "tags_create",
     TagsUpdate => "tags_update",
     TagsRename => "tags_rename",
+    PlansList => "plans_list",
+    PlansGet => "plans_get",
+    PlansCreate => "plans_create",
+    PlansUpdate => "plans_update",
+    PlansDelete => "plans_delete",
+    PlansRestore => "plans_restore",
+    PlansDeletedList => "plans_deleted_list",
+    PlansItemsAdd => "plans_items_add",
+    PlansItemsRemove => "plans_items_remove",
+    PlansReorder => "plans_reorder",
+    PlansNotesList => "plans_notes_list",
+    PlansNotesAdd => "plans_notes_add",
+    PlansNotesEdit => "plans_notes_edit",
+    PlansNotesDelete => "plans_notes_delete",
 ];
 
 #[cfg(test)]

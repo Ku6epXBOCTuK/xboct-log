@@ -92,6 +92,20 @@ fn lists_the_registered_operations() {
             "tags_create",
             "tags_update",
             "tags_rename",
+            "plans_list",
+            "plans_get",
+            "plans_create",
+            "plans_update",
+            "plans_delete",
+            "plans_restore",
+            "plans_deleted_list",
+            "plans_items_add",
+            "plans_items_remove",
+            "plans_reorder",
+            "plans_notes_list",
+            "plans_notes_add",
+            "plans_notes_edit",
+            "plans_notes_delete",
         ]
     );
 
@@ -129,6 +143,16 @@ fn lists_the_registered_operations() {
         "tags_create",
         "tags_update",
         "tags_rename",
+        "plans_create",
+        "plans_update",
+        "plans_delete",
+        "plans_restore",
+        "plans_items_add",
+        "plans_items_remove",
+        "plans_reorder",
+        "plans_notes_add",
+        "plans_notes_edit",
+        "plans_notes_delete",
     ];
     for op in &ops {
         let hidden = ["tags_inventory", "backups_inspect", "backups_restore"];

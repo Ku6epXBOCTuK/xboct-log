@@ -16,6 +16,7 @@ pub mod backups;
 pub mod comments;
 mod descriptions;
 mod entries;
+pub mod plans;
 pub mod projects;
 pub mod request_log;
 pub mod scopes;
@@ -30,6 +31,7 @@ pub fn patch_fields(name: &str) -> &'static [&'static str] {
     match name {
         "projects_update" => &["name", "archived", "repo"],
         "scopes_update" => &["name"],
+        "plans_update" => &["name", "description", "status"],
         "tags_update" => &["archived"],
         "tasks_update" => &[
             "title",
@@ -236,6 +238,11 @@ pub use attachments::{
 };
 pub use backups::{BackupCreate, BackupListOp, BackupsInspect, BackupsRestore};
 pub use comments::{CommentsAdd, CommentsDelete, CommentsEdit, CommentsList};
+pub use plans::{
+    PlansCreate, PlansDelete, PlansDeletedList, PlansGet, PlansItemsAdd, PlansItemsRemove,
+    PlansList, PlansNotesAdd, PlansNotesDelete, PlansNotesEdit, PlansNotesList, PlansReorder,
+    PlansRestore, PlansUpdate,
+};
 pub use projects::{ProjectsCreate, ProjectsGet, ProjectsList, ProjectsUpdate};
 pub use request_log::{RequestLogExport, RequestLogList};
 pub use scopes::{
@@ -307,4 +314,18 @@ crate::ops![
     TagsCreate,
     TagsUpdate,
     TagsRename,
+    PlansList,
+    PlansGet,
+    PlansCreate,
+    PlansUpdate,
+    PlansDelete,
+    PlansRestore,
+    PlansDeletedList,
+    PlansItemsAdd,
+    PlansItemsRemove,
+    PlansReorder,
+    PlansNotesList,
+    PlansNotesAdd,
+    PlansNotesEdit,
+    PlansNotesDelete,
 ];
