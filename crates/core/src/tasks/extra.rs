@@ -8,7 +8,7 @@ use crate::ids::TaskKey;
 use crate::{AppError, Db, Result};
 
 use super::filters::TaskFilters;
-use super::model::{Status, Task, TaskStats};
+use super::model::{Status, Task, TaskListEntry, TaskStats};
 use super::resolve::resolve_task_id;
 use super::sql::{list_tasks, task_by_key};
 
@@ -148,24 +148,21 @@ pub async fn task_stats(db: &Db) -> Result<TaskStats> {
         "sort": "number",
         "order": "asc"
     }))?;
-    let epics = list_tasks(db, &filters).await?;
-    let items: Vec<Value> = epics
+    let epics = list_tasks(db, &filters)
+        .await?
         .items
         .into_iter()
-        .map(|mut epic| {
-            let id = epic.get("id").and_then(Value::as_str).unwrap_or_default();
-            if let Some(counts) = children.get(id)
-                && let Value::Object(object) = &mut epic
-            {
-                object.insert("children_counts".to_string(), json!(counts));
+        .filter_map(|entry| {
+            let TaskListEntry::Full(mut task) = entry else {
+                return None;
+            };
+            if let Some(counts) = children.get(task.id.as_str()) {
+                task.children_counts = Some(counts.clone());
             }
-            epic
+            Some(task)
         })
         .collect();
-    Ok(TaskStats {
-        tasks,
-        epics: items,
-    })
+    Ok(TaskStats { tasks, epics })
 }
 
 pub async fn task_options(

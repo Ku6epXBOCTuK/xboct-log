@@ -1253,6 +1253,7 @@ export interface components {
             edited_at?: string | null;
             deleted_at?: string | null;
         };
+        TaskListEntry: components["schemas"]["Task"] | components["schemas"]["TaskView"];
         Task: {
             id: string;
             project_id: string;
@@ -1287,6 +1288,44 @@ export interface components {
             relates_to: string[];
             duplicates: string[];
             duplicated_by: string[];
+            children_counts?: {
+                [key: string]: number;
+            } | null;
+        };
+        TaskView: {
+            id: string;
+            project_id: string;
+            /** Format: int64 */
+            number: number;
+            title?: string | null;
+            description?: string | null;
+            status?: components["schemas"]["Status"] | null;
+            priority?: components["schemas"]["Priority"] | null;
+            is_epic?: boolean | null;
+            epic_id?: string | null;
+            /** Format: int64 */
+            scope_id?: number | null;
+            source_file?: string | null;
+            tags?: string[] | null;
+            estimate?: components["schemas"]["Estimate"] | null;
+            assignee?: string | null;
+            due_at?: string | null;
+            /** Format: int64 */
+            attachments_count?: number | null;
+            created_at?: string | null;
+            updated_at?: string | null;
+            closed_at?: string | null;
+            closed_reason?: string | null;
+            blocked_reason?: string | null;
+            deleted_at?: string | null;
+            project_name?: string | null;
+            scope_name?: string | null;
+            short_description?: string | null;
+            blocked_by?: string[] | null;
+            blocks?: string[] | null;
+            relates_to?: string[] | null;
+            duplicates?: string[] | null;
+            duplicated_by?: string[] | null;
             children_counts?: {
                 [key: string]: number;
             } | null;
@@ -1381,6 +1420,7 @@ export interface components {
         LinkFilter_for_string: components["schemas"]["OneOrList"] | null;
         LinkFilter_for_int64: components["schemas"]["OneOrList5"] | null;
         OneOrList5: number | number[];
+        FieldSelection: string | string[];
         /** @enum {string} */
         Sort: "updated_at" | "created_at" | "closed_at" | "priority" | "status" | "project" | "number" | "title";
         /** @enum {string} */
@@ -3444,7 +3484,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        items: components["schemas"]["Task"][];
+                        items: components["schemas"]["TaskListEntry"][];
                         /** Format: int64 */
                         total: number;
                     };
@@ -4411,8 +4451,8 @@ export interface operations {
                     title_exact?: string | null;
                     /** @description Case-insensitive substring match on the source file path of the task (e.g. 'backlog.md'). Tasks without a source file are excluded. */
                     source_file?: string | null;
-                    /** @description Comma-separated list of fields to reduce response size (e.g. id,number,title,status). Supported fields: id, project_id, number, title, description, status, priority, is_epic, epic_id, scope_id, source_file, tags, estimate, assignee, due_at, attachments_count, created_at, updated_at, closed_at, closed_reason, blocked_reason, deleted_at, project_name, scope_name, short_description, blocked_by, blocks, relates_to, duplicates, duplicated_by. Requesting 'description' also returns the full text and drops short_description. id, project_id and number are always present, so a follow-up call can still address the task. project_name is present only with include_project, scope_name only with include_scope. Unknown field names are ignored; if no name matches, the whole task is returned. */
-                    fields?: string | null;
+                    /** @description Fields to include in each item to reduce response size: a comma-separated string (e.g. id,number,title,status) or an array of names. Supported fields: id, project_id, number, title, description, status, priority, is_epic, epic_id, scope_id, source_file, tags, estimate, assignee, due_at, attachments_count, created_at, updated_at, closed_at, closed_reason, blocked_reason, deleted_at, project_name, scope_name, short_description, blocked_by, blocks, relates_to, duplicates, duplicated_by. Requesting 'description' also returns the full text and drops short_description. id, project_id and number are always present, so a follow-up call can still address the task. project_name is present only with include_project, scope_name only with include_scope. Unknown field names are ignored; if no name matches, the whole task is returned. */
+                    fields?: components["schemas"]["FieldSelection"] | null;
                     /** @description Include the full description. By default each task carries short_description (first line, trimmed, truncated to ~120 chars) instead of the full text; with include_description the full text is returned and short_description is omitted. */
                     include_description?: boolean | null;
                     /** @description Attach the project name (project_name) to each task. Does not filter by project archival; use project_archived for that. */
@@ -4450,7 +4490,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        items: components["schemas"]["Task"][];
+                        items: components["schemas"]["TaskListEntry"][];
                         /** Format: int64 */
                         total: number;
                     };
@@ -4529,7 +4569,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        items: components["schemas"]["Task"][];
+                        items: components["schemas"]["TaskListEntry"][];
                         /** Format: int64 */
                         total: number;
                     };

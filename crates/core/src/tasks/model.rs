@@ -198,9 +198,116 @@ pub struct Task {
 }
 
 #[derive(Debug, Clone, Serialize, JsonSchema)]
+pub struct TaskView {
+    pub id: TaskKey,
+    pub project_id: ProjectId,
+    pub number: Seq,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status: Option<Status>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub priority: Option<Priority>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_epic: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub epic_id: Option<TaskKey>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scope_id: Option<ScopeId>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_file: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tags: Option<Vec<TagName>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub estimate: Option<Estimate>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub assignee: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub due_at: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub attachments_count: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub closed_at: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub closed_reason: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub blocked_reason: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub deleted_at: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub project_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scope_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub short_description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub blocked_by: Option<Vec<TaskKey>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub blocks: Option<Vec<TaskKey>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub relates_to: Option<Vec<TaskKey>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub duplicates: Option<Vec<TaskKey>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub duplicated_by: Option<Vec<TaskKey>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub children_counts: Option<BTreeMap<String, i64>>,
+}
+
+impl From<Task> for TaskView {
+    fn from(task: Task) -> Self {
+        Self {
+            id: task.id,
+            project_id: task.project_id,
+            number: task.number,
+            title: Some(task.title),
+            description: task.description,
+            status: Some(task.status),
+            priority: Some(task.priority),
+            is_epic: Some(task.is_epic),
+            epic_id: task.epic_id,
+            scope_id: task.scope_id,
+            source_file: task.source_file,
+            tags: Some(task.tags),
+            estimate: task.estimate,
+            assignee: task.assignee,
+            due_at: task.due_at,
+            attachments_count: Some(task.attachments_count),
+            created_at: Some(task.created_at),
+            updated_at: Some(task.updated_at),
+            closed_at: task.closed_at,
+            closed_reason: task.closed_reason,
+            blocked_reason: task.blocked_reason,
+            deleted_at: task.deleted_at,
+            project_name: task.project_name,
+            scope_name: task.scope_name,
+            short_description: task.short_description,
+            blocked_by: Some(task.blocked_by),
+            blocks: Some(task.blocks),
+            relates_to: Some(task.relates_to),
+            duplicates: Some(task.duplicates),
+            duplicated_by: Some(task.duplicated_by),
+            children_counts: task.children_counts,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, JsonSchema)]
+#[serde(untagged)]
+pub enum TaskListEntry {
+    Full(Task),
+    Projected(TaskView),
+}
+
+#[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct TaskList {
-    #[schemars(with = "Vec<Task>")]
-    pub items: Vec<serde_json::Value>,
+    pub items: Vec<TaskListEntry>,
     pub total: i64,
 }
 
@@ -265,9 +372,7 @@ pub struct Linked {
 #[derive(Debug, Serialize, JsonSchema)]
 pub struct TaskStats {
     pub tasks: BTreeMap<Status, i64>,
-    // NOTE: epics come from the list projection, which trades description for short_description
-    #[schemars(with = "Vec<Task>")]
-    pub epics: Vec<Value>,
+    pub epics: Vec<Task>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -304,4 +409,40 @@ pub(crate) struct TaskRow {
     pub attachments_count: i64,
     pub project_name: Option<String>,
     pub scope_name: Option<String>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn task_view_schema_keeps_every_property_but_requires_only_identity() {
+        let task = serde_json::to_value(schemars::schema_for!(Task)).unwrap();
+        let view = serde_json::to_value(schemars::schema_for!(TaskView)).unwrap();
+
+        let mut task_properties: Vec<&str> = task["properties"]
+            .as_object()
+            .unwrap()
+            .keys()
+            .map(String::as_str)
+            .collect();
+        let mut view_properties: Vec<&str> = view["properties"]
+            .as_object()
+            .unwrap()
+            .keys()
+            .map(String::as_str)
+            .collect();
+        task_properties.sort_unstable();
+        view_properties.sort_unstable();
+        assert_eq!(task_properties, view_properties);
+
+        let mut required: Vec<&str> = view["required"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(serde_json::Value::as_str)
+            .collect();
+        required.sort_unstable();
+        assert_eq!(required, ["id", "number", "project_id"]);
+    }
 }

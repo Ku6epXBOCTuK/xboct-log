@@ -1,8 +1,18 @@
 use serde_json::{Value, json};
 use xboct_log_core::{
-    AppErrorKind, Db, LinkFilter, TaskFilters, count_epic_children_by_status, get_task, list_tasks,
-    resolve_task_id,
+    AppErrorKind, Db, LinkFilter, TaskFilters, TaskListEntry, count_epic_children_by_status,
+    get_task, list_tasks, resolve_task_id,
 };
+
+trait AsJson {
+    fn as_json(&self) -> Value;
+}
+
+impl AsJson for TaskListEntry {
+    fn as_json(&self) -> Value {
+        serde_json::to_value(self).unwrap()
+    }
+}
 
 async fn database() -> Db {
     let db = Db::open(":memory:").await.unwrap();
@@ -265,34 +275,34 @@ async fn lists_tasks_in_the_node_shape() {
     let page = list_tasks(&db, &filters(json!({}))).await.unwrap();
     assert_eq!(page.total, 6);
     assert_eq!(page.items.len(), 6);
-    assert_eq!(page.items[0]["id"], "SPA-2");
+    assert_eq!(page.items[0].as_json()["id"], "SPA-2");
     let first = page
         .items
         .iter()
-        .find(|item| item["id"] == "LOG-2")
+        .find(|item| item.as_json()["id"] == "LOG-2")
         .unwrap();
-    assert_eq!(first["id"], "LOG-2");
-    assert_eq!(first["project_id"], "log");
-    assert_eq!(first["number"], 2);
-    assert_eq!(first["status"], "backlog");
-    assert_eq!(first["priority"], "medium");
-    assert_eq!(first["is_epic"], false);
-    assert_eq!(first["epic_id"], "LOG-1");
-    assert_eq!(first["scope_id"], 1);
-    assert_eq!(first["estimate"], "M");
-    assert_eq!(first["assignee"], "Ivan");
-    assert_eq!(first["due_at"], "2026-12-01");
-    assert_eq!(first["attachments_count"], 0);
-    assert_eq!(first["tags"], json!(["bug", "docs"]));
-    assert_eq!(first["short_description"], "Heading");
-    assert!(first.get("description").is_none());
-    assert_eq!(first["blocked_by"], json!(["LOG-4"]));
-    assert_eq!(first["blocks"], json!([]));
-    assert_eq!(first["relates_to"], json!([]));
-    assert_eq!(first["duplicates"], json!([]));
-    assert_eq!(first["duplicated_by"], json!([]));
-    assert_eq!(first["closed_at"], Value::Null);
-    assert_eq!(first["deleted_at"], Value::Null);
+    assert_eq!(first.as_json()["id"], "LOG-2");
+    assert_eq!(first.as_json()["project_id"], "log");
+    assert_eq!(first.as_json()["number"], 2);
+    assert_eq!(first.as_json()["status"], "backlog");
+    assert_eq!(first.as_json()["priority"], "medium");
+    assert_eq!(first.as_json()["is_epic"], false);
+    assert_eq!(first.as_json()["epic_id"], "LOG-1");
+    assert_eq!(first.as_json()["scope_id"], 1);
+    assert_eq!(first.as_json()["estimate"], "M");
+    assert_eq!(first.as_json()["assignee"], "Ivan");
+    assert_eq!(first.as_json()["due_at"], "2026-12-01");
+    assert_eq!(first.as_json()["attachments_count"], 0);
+    assert_eq!(first.as_json()["tags"], json!(["bug", "docs"]));
+    assert_eq!(first.as_json()["short_description"], "Heading");
+    assert!(first.as_json().get("description").is_none());
+    assert_eq!(first.as_json()["blocked_by"], json!(["LOG-4"]));
+    assert_eq!(first.as_json()["blocks"], json!([]));
+    assert_eq!(first.as_json()["relates_to"], json!([]));
+    assert_eq!(first.as_json()["duplicates"], json!([]));
+    assert_eq!(first.as_json()["duplicated_by"], json!([]));
+    assert_eq!(first.as_json()["closed_at"], Value::Null);
+    assert_eq!(first.as_json()["deleted_at"], Value::Null);
 }
 
 #[tokio::test]
@@ -354,7 +364,10 @@ async fn keeps_exact_matches_first_next_to_text_terms() {
     assert_eq!(
         page.items
             .iter()
-            .map(|item| item["id"].as_str().unwrap())
+            .map(|item| match item {
+                TaskListEntry::Full(task) => task.id.as_str(),
+                TaskListEntry::Projected(view) => view.id.as_str(),
+            })
             .collect::<Vec<_>>(),
         ["LOG-4", "LOG-2", "LOG-1"]
     );
@@ -366,7 +379,7 @@ async fn keeps_exact_matches_first_next_to_text_terms() {
     .unwrap();
     assert_eq!(paged.total, 6);
     assert_eq!(paged.items.len(), 2);
-    assert_eq!(paged.items[0]["id"], "LOG-2");
+    assert_eq!(paged.items[0].as_json()["id"], "LOG-2");
 }
 
 #[tokio::test]
@@ -379,7 +392,7 @@ async fn matches_only_the_requested_task_when_every_term_is_exact() {
     ] {
         let page = list_tasks(&db, &filters(value.clone())).await.unwrap();
         assert_eq!(page.total, 1, "{value}");
-        assert_eq!(page.items[0]["id"], "LOG-4", "{value}");
+        assert_eq!(page.items[0].as_json()["id"], "LOG-4", "{value}");
     }
     let missing = list_tasks(&db, &filters(json!({"number_exact": [99]})))
         .await
@@ -397,8 +410,8 @@ async fn attaches_project_and_scope_names_on_request() {
 	.await
 	.unwrap();
     let first = &page.items[0];
-    assert_eq!(first["project_name"], "Log");
-    assert_eq!(first["scope_name"], "backend");
+    assert_eq!(first.as_json()["project_name"], "Log");
+    assert_eq!(first.as_json()["scope_name"], "backend");
 }
 
 #[tokio::test]
@@ -410,7 +423,8 @@ async fn limits_the_payload_to_the_requested_fields() {
     )
     .await
     .unwrap();
-    let first = page.items[0].as_object().unwrap();
+    let value = page.items[0].as_json();
+    let first = value.as_object().unwrap();
     let mut names = first.keys().map(String::as_str).collect::<Vec<_>>();
     names.sort_unstable();
     assert_eq!(names, ["id", "number", "project_id", "status", "title"]);

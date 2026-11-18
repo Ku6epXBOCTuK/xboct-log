@@ -5,8 +5,10 @@ use sqlx::{QueryBuilder, Sqlite};
 use crate::ids::{ProjectId, ScopeId, Seq, TagName, TaskKey};
 use crate::{AppError, Db, Result};
 
-use super::filters::{LinkFilter, Sort, TaskFilters};
-use super::model::{BlockingInfo, Estimate, Priority, Status, Task, TaskList, TaskRow};
+use super::filters::{FieldSelection, LinkFilter, Sort, TaskFilters};
+use super::model::{
+    BlockingInfo, Estimate, Priority, Status, Task, TaskList, TaskListEntry, TaskRow, TaskView,
+};
 use super::resolve::{normalize_task_id_input, resolve_task_id};
 
 const SEARCH_COLUMNS: [&str; 5] = [
@@ -530,18 +532,31 @@ pub(crate) async fn blocking_info_for(
 }
 
 fn fields_of(filters: &TaskFilters) -> Option<Vec<String>> {
-    parse_fields(filters.fields.as_deref())
+    parse_fields(filters.fields.as_ref())
 }
 
-fn parse_fields(fields: Option<&str>) -> Option<Vec<String>> {
+fn add_field(parsed: &mut Vec<String>, field: &str) {
+    let field = field.trim();
+    if field.is_empty() || parsed.iter().any(|known| known.as_str() == field) {
+        return;
+    }
+    parsed.push(field.to_owned());
+}
+
+fn parse_fields(fields: Option<&FieldSelection>) -> Option<Vec<String>> {
     let fields = fields?;
     let mut parsed: Vec<String> = Vec::new();
-    for field in fields.split(',') {
-        let field = field.trim();
-        if field.is_empty() || parsed.iter().any(|known| known.as_str() == field) {
-            continue;
+    match fields {
+        FieldSelection::Csv(raw) => {
+            for field in raw.split(',') {
+                add_field(&mut parsed, field);
+            }
         }
-        parsed.push(field.to_string());
+        FieldSelection::List(values) => {
+            for field in values {
+                add_field(&mut parsed, field);
+            }
+        }
     }
     if parsed.is_empty() {
         None
@@ -550,36 +565,64 @@ fn parse_fields(fields: Option<&str>) -> Option<Vec<String>> {
     }
 }
 
-fn pick_fields(task: Task, fields: Option<&[String]>) -> serde_json::Value {
+fn pick_fields(task: Task, fields: Option<&[String]>) -> TaskListEntry {
     let Some(fields) = fields else {
-        return serde_json::to_value(task).unwrap_or(serde_json::Value::Null);
+        return TaskListEntry::Full(task);
     };
-    let mut object = match serde_json::to_value(task) {
-        Ok(serde_json::Value::Object(object)) => object,
-        _ => return serde_json::Value::Null,
-    };
-    let requested: Vec<String> = fields
-        .iter()
-        .filter(|field| object.contains_key(*field))
-        .cloned()
-        .collect();
-    if requested.is_empty() {
-        return serde_json::Value::Object(object);
+    macro_rules! pick {
+        ($($field:ident),* $(,)?) => {{
+            let mut matched = false;
+            $(
+                if fields.iter().any(|name| name.as_str() == stringify!($field)) {
+                    matched = true;
+                }
+            )*
+            if !matched {
+                return TaskListEntry::Full(task);
+            }
+            let view = TaskView::from(task);
+            TaskListEntry::Projected(TaskView {
+                $(
+                    $field: if fields.iter().any(|name| name.as_str() == stringify!($field)) {
+                        view.$field.clone()
+                    } else {
+                        None
+                    },
+                )*
+                ..view
+            })
+        }};
     }
-    let mut picked = serde_json::Map::new();
-    for field in &requested {
-        if let Some(value) = object.remove(field) {
-            picked.insert(field.clone(), value);
-        }
-    }
-    for field in ["id", "project_id", "number"] {
-        if !picked.contains_key(field)
-            && let Some(value) = object.get(field)
-        {
-            picked.insert(field.to_string(), value.clone());
-        }
-    }
-    serde_json::Value::Object(picked)
+    pick!(
+        title,
+        description,
+        status,
+        priority,
+        is_epic,
+        epic_id,
+        scope_id,
+        source_file,
+        tags,
+        estimate,
+        assignee,
+        due_at,
+        attachments_count,
+        created_at,
+        updated_at,
+        closed_at,
+        closed_reason,
+        blocked_reason,
+        deleted_at,
+        project_name,
+        scope_name,
+        short_description,
+        blocked_by,
+        blocks,
+        relates_to,
+        duplicates,
+        duplicated_by,
+        children_counts,
+    )
 }
 
 pub async fn list_tasks(db: &Db, filters: &TaskFilters) -> Result<TaskList> {
@@ -762,4 +805,80 @@ fn plain_line(line: &str) -> String {
     text = CODE.replace_all(&text, "$1").into_owned();
     text = LINK.replace_all(&text, "$1").into_owned();
     text.trim().to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn task() -> Task {
+        Task {
+            id: TaskKey::new("LOG-1"),
+            project_id: ProjectId::new("log"),
+            number: Seq::new(1),
+            title: "Title".to_owned(),
+            description: Some("Body".to_owned()),
+            status: Status::Open,
+            priority: Priority::Medium,
+            is_epic: false,
+            epic_id: None,
+            scope_id: None,
+            source_file: None,
+            tags: Vec::new(),
+            estimate: None,
+            assignee: None,
+            due_at: None,
+            attachments_count: 2,
+            created_at: "2026-01-01T00:00:00Z".to_owned(),
+            updated_at: "2026-01-01T00:00:00Z".to_owned(),
+            closed_at: None,
+            closed_reason: None,
+            blocked_reason: None,
+            deleted_at: None,
+            project_name: None,
+            scope_name: None,
+            short_description: Some("Body".to_owned()),
+            blocked_by: Vec::new(),
+            blocks: Vec::new(),
+            relates_to: Vec::new(),
+            duplicates: Vec::new(),
+            duplicated_by: Vec::new(),
+            children_counts: None,
+        }
+    }
+
+    #[test]
+    fn csv_and_array_selections_normalize_to_the_same_fields() {
+        let csv = parse_fields(Some(&FieldSelection::Csv(
+            "title, status, title".to_owned(),
+        )));
+        let list = parse_fields(Some(&FieldSelection::List(vec![
+            "title".to_owned(),
+            "status".to_owned(),
+        ])));
+        assert_eq!(csv, list);
+        assert_eq!(csv, Some(vec!["title".to_owned(), "status".to_owned()]));
+    }
+
+    #[test]
+    fn projected_items_keep_identity_and_requested_data() {
+        let value = serde_json::to_value(pick_fields(task(), Some(&["title".to_owned()]))).unwrap();
+        assert_eq!(value["id"], json!("LOG-1"));
+        assert_eq!(value["project_id"], json!("log"));
+        assert_eq!(value["number"], json!(1));
+        assert_eq!(value["title"], json!("Title"));
+        assert!(value.get("status").is_none());
+        assert!(value.get("description").is_none());
+    }
+
+    #[test]
+    fn unrecognized_fields_return_the_whole_task() {
+        let full = serde_json::to_value(pick_fields(task(), None)).unwrap();
+        let unknown =
+            serde_json::to_value(pick_fields(task(), Some(&["bogus".to_owned()]))).unwrap();
+        assert_eq!(full, unknown);
+        assert_eq!(full["status"], json!("open"));
+        assert_eq!(full["description"], json!("Body"));
+    }
 }

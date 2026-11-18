@@ -1,8 +1,19 @@
 use serde_json::{Value, json};
 use xboct_log_core::{
-    Db, NewTask, SearchTerm, TaskFilters, TaskPatch, create_task, delete_task, get_tasks_by_ids,
-    list_revisions, list_tasks, parse_search_query, task_options, task_stats, update_task,
+    Db, NewTask, SearchTerm, TaskFilters, TaskListEntry, TaskPatch, create_task, delete_task,
+    get_tasks_by_ids, list_revisions, list_tasks, parse_search_query, task_options, task_stats,
+    update_task,
 };
+
+trait AsJson {
+    fn as_json(&self) -> Value;
+}
+
+impl AsJson for TaskListEntry {
+    fn as_json(&self) -> Value {
+        serde_json::to_value(self).unwrap()
+    }
+}
 
 async fn database() -> Db {
     let db = Db::open(":memory:").await.expect("open");
@@ -97,16 +108,19 @@ async fn answers_options_and_stats() {
     let ids: Vec<&str> = options
         .items
         .iter()
-        .map(|item| item["id"].as_str().unwrap_or_default())
+        .map(|item| match item {
+            TaskListEntry::Full(task) => task.id.as_str(),
+            TaskListEntry::Projected(view) => view.id.as_str(),
+        })
         .collect();
     assert_eq!(ids, ["LOG-1", "LOG-2", "LOG-3"]);
-    assert!(options.items[0].get("description").is_none());
+    assert!(options.items[0].as_json().get("description").is_none());
 
     let searched = task_options(&db, None, Some("=SPA-1"), None)
         .await
         .expect("search");
     assert_eq!(searched.items.len(), 1);
-    assert_eq!(searched.items[0]["id"], "SPA-1");
+    assert_eq!(searched.items[0].as_json()["id"], "SPA-1");
 
     let stats = jsonv(task_stats(&db).await.expect("stats"));
     assert_eq!(stats["tasks"].as_object().expect("tasks").len(), 6);
@@ -153,5 +167,5 @@ async fn reads_revisions_many_and_deleted() {
         .await
         .expect("list");
     assert_eq!(deleted.total, 1);
-    assert_eq!(deleted.items[0]["id"], "LOG-2");
+    assert_eq!(deleted.items[0].as_json()["id"], "LOG-2");
 }

@@ -24,6 +24,13 @@ impl<T> OneOrList<T> {
     }
 }
 
+#[derive(Debug, Clone, Deserialize, JsonSchema)]
+#[serde(untagged)]
+pub enum FieldSelection {
+    Csv(String),
+    List(Vec<String>),
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum LinkFilter<T> {
     #[default]
@@ -164,9 +171,9 @@ pub struct TaskFilters {
     )]
     pub source_file: Option<String>,
     #[schemars(
-        description = "Comma-separated list of fields to reduce response size (e.g. id,number,title,status). Supported fields: id, project_id, number, title, description, status, priority, is_epic, epic_id, scope_id, source_file, tags, estimate, assignee, due_at, attachments_count, created_at, updated_at, closed_at, closed_reason, blocked_reason, deleted_at, project_name, scope_name, short_description, blocked_by, blocks, relates_to, duplicates, duplicated_by. Requesting 'description' also returns the full text and drops short_description. id, project_id and number are always present, so a follow-up call can still address the task. project_name is present only with include_project, scope_name only with include_scope. Unknown field names are ignored; if no name matches, the whole task is returned."
+        description = "Fields to include in each item to reduce response size: a comma-separated string (e.g. id,number,title,status) or an array of names. Supported fields: id, project_id, number, title, description, status, priority, is_epic, epic_id, scope_id, source_file, tags, estimate, assignee, due_at, attachments_count, created_at, updated_at, closed_at, closed_reason, blocked_reason, deleted_at, project_name, scope_name, short_description, blocked_by, blocks, relates_to, duplicates, duplicated_by. Requesting 'description' also returns the full text and drops short_description. id, project_id and number are always present, so a follow-up call can still address the task. project_name is present only with include_project, scope_name only with include_scope. Unknown field names are ignored; if no name matches, the whole task is returned."
     )]
-    pub fields: Option<String>,
+    pub fields: Option<FieldSelection>,
     #[schemars(
         description = "Include the full description. By default each task carries short_description (first line, trimmed, truncated to ~120 chars) instead of the full text; with include_description the full text is returned and short_description is omitted."
     )]
