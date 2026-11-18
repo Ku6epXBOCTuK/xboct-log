@@ -2,6 +2,26 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.11.0](https://github.com/Ku6epXBOCTuK/xboct-log/compare/f02662eb2538d3df509e36b4eb37d9a85761a820..v0.11.0) - 2026-11-17
+#### Features
+- (**cli**) restore a database snapshot from command line - ([b7e3fdf](https://github.com/Ku6epXBOCTuK/xboct-log/commit/b7e3fdfbdf6cc98fe708e7a43f37b7a440379cdf)) - Ku6epXBOCTuK
+- (**mcp**) record MCP tool calls and expose log ops - ([7e71c9f](https://github.com/Ku6epXBOCTuK/xboct-log/commit/7e71c9fd7cc9a6a2a87902baddf808e8334e2c5b)) - Ku6epXBOCTuK
+- (**repo**) keep the dev instance out of production data - ([a6990c5](https://github.com/Ku6epXBOCTuK/xboct-log/commit/a6990c5404344d10e06efccab104aaf71951f7c2)) - Ku6epXBOCTuK
+- (**scripts**) deploy a named instance from an untracked config - ([1645bd7](https://github.com/Ku6epXBOCTuK/xboct-log/commit/1645bd75843b1b6c914f6683708a5105a20b2af0)) - Ku6epXBOCTuK
+- (**ui**) show the backend status and warn then it is unreachable - ([8589c1c](https://github.com/Ku6epXBOCTuK/xboct-log/commit/8589c1c88e0296daf82ca9d47509a690663d20e9)) - Ku6epXBOCTuK
+#### Bug Fixes
+- (**core**) keep an explicit null in the scope and epic filters - ([a4209c7](https://github.com/Ku6epXBOCTuK/xboct-log/commit/a4209c7289f44272174de948b5f2efec0466eea7)) - Ku6epXBOCTuK
+- (**core**) filter exact task ids then the query has no text terms - ([f02662e](https://github.com/Ku6epXBOCTuK/xboct-log/commit/f02662eb2538d3df509e36b4eb37d9a85761a820)) - Ku6epXBOCTuK
+- (**ui**) keep search inpur padding clear of its icon - ([1bf6d81](https://github.com/Ku6epXBOCTuK/xboct-log/commit/1bf6d812f39a39c99dfa54d9827a7d940e9ba966)) - Ku6epXBOCTuK
+#### Refactoring
+- (**cli**) parse arguments with clap crate - ([08870c4](https://github.com/Ku6epXBOCTuK/xboct-log/commit/08870c4fd164f9bb07c6471353d286fd03daf242)) - Ku6epXBOCTuK
+- (**core**) type the task write outputs instead of json values - ([591f842](https://github.com/Ku6epXBOCTuK/xboct-log/commit/591f8422f93cefcec3b30f30578d249afae814ba)) - Ku6epXBOCTuK
+- (**node-backend**) remove the node backend and its legacy scripts - ([9cc4e71](https://github.com/Ku6epXBOCTuK/xboct-log/commit/9cc4e71f4bed49d5edbd5c0640e4ffea7e0e5ef3)) - Ku6epXBOCTuK
+- (**ops**) generate operation and tool schemas from the types - ([4a4e6b6](https://github.com/Ku6epXBOCTuK/xboct-log/commit/4a4e6b6e135696f13a936e0284d5b35221d7b6a1)) - Ku6epXBOCTuK
+- (**ops**) type operation names as one enum - ([de4b049](https://github.com/Ku6epXBOCTuK/xboct-log/commit/de4b0496a18245242d0b8de3a68c9ca0fd310637)) - Ku6epXBOCTuK
+
+- - -
+
 ## [v0.10.0](https://github.com/Ku6epXBOCTuK/xboct-log/compare/490b321882e5b52f708eeddf86c6d4c6fd9aa3ec..v0.10.0) - 2026-11-15
 #### Features
 - (**rust-backend**) serve every operation over rest - ([2b2bdd4](https://github.com/Ku6epXBOCTuK/xboct-log/commit/2b2bdd49a5581e1a497d853f82b2dab3237540a4)) - Ku6epXBOCTuK
