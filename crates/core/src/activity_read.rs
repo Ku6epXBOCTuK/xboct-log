@@ -10,6 +10,7 @@ use crate::{ActivitySource, AppError, Db, OpName, ProjectId, Result};
 #[serde(rename_all = "lowercase")]
 pub enum ActivityEntity {
     Task,
+    Plan,
     Project,
     Scope,
     Tag,
@@ -19,6 +20,7 @@ impl ActivityEntity {
     pub fn as_str(self) -> &'static str {
         match self {
             ActivityEntity::Task => "task",
+            ActivityEntity::Plan => "plan",
             ActivityEntity::Project => "project",
             ActivityEntity::Scope => "scope",
             ActivityEntity::Tag => "tag",

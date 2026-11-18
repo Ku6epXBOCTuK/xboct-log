@@ -6,6 +6,7 @@ type ActivitySearch =
 	operations["activity_list"]["requestBody"]["content"]["application/json"];
 
 export type ActivityOp = NonNullable<ActivitySearch["op"]>;
+export type ActivityEntityFilter = NonNullable<ActivitySearch["entity"]>;
 
 export type TaskHistoryPage = { items: ActivityItem[]; total: number };
 
@@ -28,7 +29,7 @@ export async function listActivityLog(
 	input: {
 		source?: "ui" | "mcp" | "cli";
 		op?: ActivityOp;
-		entity?: "task" | "project" | "scope" | "tag";
+		entity?: ActivityEntityFilter;
 		project_id?: string;
 		from?: string;
 		to?: string;

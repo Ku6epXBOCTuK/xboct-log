@@ -15,6 +15,7 @@ pub mod media;
 mod migrations;
 pub mod op_name;
 pub mod paths;
+pub mod plans;
 pub mod projects;
 pub mod request_log;
 pub mod restore;
@@ -55,6 +56,11 @@ pub use media::{
 };
 pub use op_name::OpName;
 pub use paths::{data_fingerprint, fingerprint_path};
+pub use plans::{
+    Plan, PlanCounts, PlanPatch, PlanStatus, PlanWithCounts, count_plan_items, create_plan,
+    delete_plan, get_plan, list_deleted_plans, list_plans, plan_counts, require_plan, restore_plan,
+    update_plan,
+};
 pub use projects::{
     INBOX_PROJECT_ID, INBOX_PROJECT_PREFIX, NewProject, Project, ProjectDetails, ProjectPatch,
     ProjectWithCounts, ScopeCount, create_project, ensure_inbox, get_project, list_projects,
