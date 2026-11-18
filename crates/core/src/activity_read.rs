@@ -11,6 +11,7 @@ use crate::{ActivitySource, AppError, Db, OpName, ProjectId, Result};
 pub enum ActivityEntity {
     Task,
     Plan,
+    Document,
     Project,
     Scope,
     Tag,
@@ -21,6 +22,7 @@ impl ActivityEntity {
         match self {
             ActivityEntity::Task => "task",
             ActivityEntity::Plan => "plan",
+            ActivityEntity::Document => "document",
             ActivityEntity::Project => "project",
             ActivityEntity::Scope => "scope",
             ActivityEntity::Tag => "tag",
@@ -164,7 +166,9 @@ fn push_search(query: &mut QueryBuilder<Sqlite>, search: &ActivitySearch) {
                 "))) OR (entity = 'scope' AND entity_id IN (SELECT CAST(id AS TEXT) FROM scopes WHERE project_id = ",
             )
             .push_bind(project_id.as_str())
-            .push(")))");
+            .push(") OR (entity = 'document' AND entity_id IN (SELECT key FROM documents WHERE project_id = ")
+            .push_bind(project_id.as_str())
+            .push("))))");
     }
     if let Some(from) = &search.from {
         query.push(" AND created_at >= ").push_bind(from.as_str());

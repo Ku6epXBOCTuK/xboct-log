@@ -87,6 +87,7 @@ export type Scope = z.infer<typeof scopeSchema>;
 export const ACTIVITY_ENTITIES = [
 	"task",
 	"plan",
+	"document",
 	"project",
 	"scope",
 	"tag",
@@ -97,6 +98,7 @@ export type ActivityEntity = (typeof ACTIVITY_ENTITIES)[number];
 export const ENTITIES = [
 	"tasks",
 	"plans",
+	"documents",
 	"projects",
 	"scopes",
 	"tags",

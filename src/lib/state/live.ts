@@ -17,6 +17,7 @@ type Target = Entity | typeof COUNTERS | typeof NAVIGATION;
 const DEPENDENCIES: Record<Entity, readonly Target[]> = {
 	tasks: ["plans", "projects", "scopes", "tags", COUNTERS],
 	plans: [],
+	documents: ["plans"],
 	projects: ["tasks", COUNTERS],
 	scopes: ["tasks"],
 	tags: ["tasks"],

@@ -52,6 +52,7 @@
 		ANY_ENTITY,
 		{ key: "task", label: "task", value: "task" },
 		{ key: "plan", label: "plan", value: "plan" },
+		{ key: "document", label: "document", value: "document" },
 		{ key: "project", label: "project", value: "project" },
 		{ key: "scope", label: "scope", value: "scope" },
 		{ key: "tag", label: "tag", value: "tag" },

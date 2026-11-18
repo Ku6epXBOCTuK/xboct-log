@@ -12,6 +12,7 @@ const CHANNEL_CAPACITY: usize = 1024;
 pub enum Entity {
     Tasks,
     Plans,
+    Documents,
     Projects,
     Scopes,
     Tags,
@@ -23,6 +24,7 @@ impl Entity {
         match self {
             Entity::Tasks => "tasks",
             Entity::Plans => "plans",
+            Entity::Documents => "documents",
             Entity::Projects => "projects",
             Entity::Scopes => "scopes",
             Entity::Tags => "tags",
@@ -132,6 +134,7 @@ pub fn entity_of(op_name: &str) -> Option<Entity> {
     match op_name.split('_').next()? {
         "tasks" | "attachments" => Some(Entity::Tasks),
         "plans" => Some(Entity::Plans),
+        "documents" => Some(Entity::Documents),
         "projects" => Some(Entity::Projects),
         "scopes" => Some(Entity::Scopes),
         "tags" => Some(Entity::Tags),
@@ -147,6 +150,7 @@ mod tests {
     fn maps_operations_to_entities_like_the_node_registry() {
         assert_eq!(entity_of("tasks_close"), Some(Entity::Tasks));
         assert_eq!(entity_of("plans_create"), Some(Entity::Plans));
+        assert_eq!(entity_of("documents_create"), Some(Entity::Documents));
         assert_eq!(entity_of("tasks_comments_add"), Some(Entity::Comments));
         assert_eq!(entity_of("attachments_add"), Some(Entity::Tasks));
         assert_eq!(entity_of("projects_create"), Some(Entity::Projects));
