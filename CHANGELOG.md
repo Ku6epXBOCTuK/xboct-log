@@ -2,6 +2,13 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.11.1](https://github.com/Ku6epXBOCTuK/xboct-log/compare/6609da1ab61f242d47fd0619740469bd16508ca9..v0.11.1) - 2026-11-18
+#### Bug Fixes
+- (**core**) make tasks_list projections schema match its response - ([a902900](https://github.com/Ku6epXBOCTuK/xboct-log/commit/a902900846ce9dd19382ebead7913cd54f74deea)) - Ku6epXBOCTuK
+- (**ops**) publish resolvable schemas for list outputs - ([6609da1](https://github.com/Ku6epXBOCTuK/xboct-log/commit/6609da1ab61f242d47fd0619740469bd16508ca9)) - Ku6epXBOCTuK
+
+- - -
+
 ## [v0.11.0](https://github.com/Ku6epXBOCTuK/xboct-log/compare/f02662eb2538d3df509e36b4eb37d9a85761a820..v0.11.0) - 2026-11-17
 #### Features
 - (**cli**) restore a database snapshot from command line - ([b7e3fdf](https://github.com/Ku6epXBOCTuK/xboct-log/commit/b7e3fdfbdf6cc98fe708e7a43f37b7a440379cdf)) - Ku6epXBOCTuK
