@@ -310,6 +310,30 @@ test("the tags page lists the tag", async ({ page }) => {
 	await expect(page.getByText(tag, { exact: true }).first()).toBeVisible();
 });
 
+test("a plan is created and filled from the plans page", async ({ page }) => {
+	const name = `UI Plan ${suffix}`;
+	await page.goto("/plans");
+	await expect(page.getByRole("heading", { name: "Plans" })).toBeVisible();
+	await page.getByLabel("New plan name").fill(name);
+	await page.getByRole("button", { name: "Create", exact: true }).click();
+	await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
+
+	await page.getByRole("button", { name: "Add a task to the plan" }).click();
+	await page.getByPlaceholder("Search tasks").fill(created.open);
+	await page
+		.getByRole("option")
+		.filter({ hasText: created.open })
+		.first()
+		.click();
+	await expect(
+		page.locator("ol.items li").filter({ hasText: created.open }),
+	).toBeVisible();
+
+	await page.goto(`/tasks/${created.open}`);
+	const panel = page.getByRole("complementary", { name: "Task details" });
+	await expect(panel.getByText(name, { exact: true })).toBeVisible();
+});
+
 test("the activity page shows the recorded changes", async ({ page }) => {
 	await page.goto("/activity");
 	await expect(page.getByRole("heading", { name: "Activity" })).toBeVisible();

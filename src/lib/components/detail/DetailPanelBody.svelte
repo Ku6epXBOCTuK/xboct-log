@@ -86,7 +86,10 @@
 	});
 
 	const taskPlans = $derived(
-		task.plan_ids.map((id) => plans.find((plan) => plan.id === id)?.name ?? id),
+		task.plan_ids.map((id) => ({
+			id,
+			name: plans.find((plan) => plan.id === id)?.name ?? id,
+		})),
 	);
 
 	async function reloadPlans(): Promise<void> {
@@ -431,8 +434,8 @@
 		{#if taskPlans.length > 0}
 			<div class="plan-refs">
 				<span class="plan-refs-label">Plans</span>
-				{#each taskPlans as name}
-					<span class="plan-ref">{name}</span>
+				{#each taskPlans as plan (plan.id)}
+					<span class="plan-ref">{plan.name}</span>
 				{/each}
 			</div>
 		{/if}

@@ -85,13 +85,15 @@ try {
 	};
 
 	await check("tools/list exposes every registered tool", () => {
-		assert.equal(tools.length, 55);
+		assert.equal(tools.length, 69);
 		const names = new Set(tools.map((tool) => tool.name));
 		for (const name of [
 			"tasks_create",
 			"attachments_read",
 			"backup_create",
 			"scopes_delete",
+			"plans_create",
+			"plans_reorder",
 		]) {
 			assert.ok(names.has(name), `${name} is missing`);
 		}
@@ -413,6 +415,207 @@ try {
 		const task = result.item ?? result;
 		assert.equal(task.project_id, "aux");
 		batchA = task;
+	});
+
+	console.log("\nplans");
+	let plan;
+	let planLeft;
+	let planRight;
+	let note;
+	await check("tasks for a plan in two projects", async () => {
+		planLeft = ok(
+			await client.callTool("tasks_create", {
+				project_id: "e2e",
+				title: "Plan item E2E",
+			}),
+			"plan task e2e",
+		);
+		planRight = ok(
+			await client.callTool("tasks_create", {
+				project_id: "aux",
+				title: "Plan item AUX",
+			}),
+			"plan task aux",
+		);
+	});
+	await check("plans_create", async () => {
+		plan = ok(
+			await client.callTool("plans_create", {
+				name: "E2E plan",
+				description: "items from two projects",
+			}),
+			"plans_create",
+		);
+		assert.equal(plan.status, "backlog");
+	});
+	await check("plans_items_add and plans_list", async () => {
+		ok(
+			await client.callTool("plans_items_add", {
+				plan_id: plan.id,
+				task_id: idOf(planLeft),
+			}),
+			"plans_items_add e2e",
+		);
+		ok(
+			await client.callTool("plans_items_add", {
+				plan_id: plan.id,
+				task_id: idOf(planRight),
+			}),
+			"plans_items_add aux",
+		);
+		const list = ok(await client.callTool("plans_list", {}), "plans_list");
+		const listed = items(list, "plans_list").find(
+			(item) => item.id === plan.id,
+		);
+		assert.equal(listed.tasks_count, 2);
+	});
+	await check("plans_reorder and plans_get", async () => {
+		const reordered = ok(
+			await client.callTool("plans_reorder", {
+				plan_id: plan.id,
+				task_ids: [idOf(planRight), idOf(planLeft)],
+			}),
+			"plans_reorder",
+		);
+		assert.deepEqual(
+			items(reordered, "plans_reorder").map((item) => item.key),
+			[idOf(planRight), idOf(planLeft)],
+		);
+		const detail = ok(
+			await client.callTool("plans_get", { plan_id: plan.id }),
+			"plans_get",
+		);
+		assert.equal(detail.tasks_count, 2);
+	});
+	await check("tasks_list by plan with plan_position sort", async () => {
+		const page = ok(
+			await client.callTool("tasks_list", {
+				plan_id: plan.id,
+				sort: "plan_position",
+			}),
+			"tasks_list by plan",
+		);
+		assert.deepEqual(
+			page.items.map((item) => item.id),
+			[idOf(planRight), idOf(planLeft)],
+		);
+		assert.deepEqual(page.items[0].plan_ids, [plan.id]);
+	});
+	await check("plans_notes_add, list and edit", async () => {
+		note = ok(
+			await client.callTool("plans_notes_add", {
+				plan_id: plan.id,
+				task_id: idOf(planLeft),
+				body: "note before the move",
+			}),
+			"plans_notes_add",
+		);
+		const listed = ok(
+			await client.callTool("plans_notes_list", { plan_id: plan.id }),
+			"plans_notes_list",
+		);
+		assert.ok(
+			items(listed, "plans_notes_list").some((item) => item.id === note.id),
+		);
+		const edited = ok(
+			await client.callTool("plans_notes_edit", {
+				note_id: note.id,
+				body: "note after the edit",
+			}),
+			"plans_notes_edit",
+		);
+		assert.equal(edited.body, "note after the edit");
+	});
+	await check("a task move keeps the plan composition", async () => {
+		const moved = ok(
+			await client.callTool("tasks_move", {
+				task_id: idOf(planLeft),
+				project_id: "aux",
+			}),
+			"tasks_move plan item",
+		);
+		planLeft = moved.item ?? moved;
+		const page = ok(
+			await client.callTool("tasks_list", {
+				plan_id: plan.id,
+				sort: "plan_position",
+			}),
+			"tasks_list after the move",
+		);
+		assert.deepEqual(
+			page.items.map((item) => item.id),
+			[idOf(planRight), idOf(planLeft)],
+		);
+		const notes = ok(
+			await client.callTool("plans_notes_list", { plan_id: plan.id }),
+			"plans_notes_list after the move",
+		);
+		assert.ok(
+			items(notes, "plans_notes_list").some(
+				(item) => item.key === idOf(planLeft),
+			),
+		);
+		const error = failed(
+			await client.callTool("plans_reorder", {
+				plan_id: plan.id,
+				task_ids: ["E2E-9999", idOf(planRight), idOf(planLeft)],
+			}),
+			"plans_reorder stale key",
+		);
+		assert.equal(error.kind, "validation");
+	});
+	await check("plans_update", async () => {
+		const updated = ok(
+			await client.callTool("plans_update", {
+				plan_id: plan.id,
+				name: "E2E plan renamed",
+				status: "active",
+				expected_updated_at: plan.updated_at,
+			}),
+			"plans_update",
+		);
+		assert.equal(updated.name, "E2E plan renamed");
+		assert.equal(updated.status, "active");
+	});
+	await check("plans_delete, deleted_list and restore", async () => {
+		ok(
+			await client.callTool("plans_delete", { plan_id: plan.id }),
+			"plans_delete",
+		);
+		const deleted = ok(
+			await client.callTool("plans_deleted_list", {}),
+			"plans_deleted_list",
+		);
+		assert.ok(
+			items(deleted, "plans_deleted_list").some((item) => item.id === plan.id),
+		);
+		ok(
+			await client.callTool("plans_restore", { plan_id: plan.id }),
+			"plans_restore",
+		);
+		const detail = ok(
+			await client.callTool("plans_get", { plan_id: plan.id }),
+			"plans_get after restore",
+		);
+		assert.equal(detail.tasks_count, 2);
+	});
+	await check("plans_notes_delete and plans_items_remove", async () => {
+		ok(
+			await client.callTool("plans_notes_delete", { note_id: note.id }),
+			"plans_notes_delete",
+		);
+		ok(
+			await client.callTool("plans_items_remove", {
+				plan_id: plan.id,
+				task_id: idOf(planLeft),
+			}),
+			"plans_items_remove",
+		);
+		const detail = ok(
+			await client.callTool("plans_get", { plan_id: plan.id }),
+			"plans_get after remove",
+		);
+		assert.equal(detail.tasks_count, 1);
 	});
 
 	console.log("\ncomments, history, activity, stats");
