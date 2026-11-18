@@ -156,7 +156,7 @@ mod tests {
             .fetch_all(db.pool())
             .await
             .unwrap();
-        assert_eq!(rust_rows, vec![1, 2]);
+        assert_eq!(rust_rows, vec![1, 2, 3]);
 
         let columns: Vec<String> =
             sqlx::query_scalar("select name from pragma_table_info('tasks')")
@@ -172,6 +172,103 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn creates_plan_tables_without_project_scope() {
+        let db = fresh_db().await;
+
+        let tables: Vec<String> = sqlx::query_scalar(
+            "select name from sqlite_master where type = 'table' and name in
+             ('plans', 'plan_items', 'plan_notes', 'documents', 'plan_documents', 'text_revisions')
+             order by name",
+        )
+        .fetch_all(db.pool())
+        .await
+        .unwrap();
+        assert_eq!(
+            tables,
+            vec![
+                "documents",
+                "plan_documents",
+                "plan_items",
+                "plan_notes",
+                "plans",
+                "text_revisions"
+            ]
+        );
+
+        for table in ["plans", "plan_items", "plan_notes", "plan_documents"] {
+            let columns: Vec<String> = sqlx::query_scalar("select name from pragma_table_info(?)")
+                .bind(table)
+                .fetch_all(db.pool())
+                .await
+                .unwrap();
+            assert!(
+                !columns.iter().any(|name| name == "project_id"),
+                "{table} is project-scoped"
+            );
+        }
+
+        let item_columns: Vec<String> =
+            sqlx::query_scalar("select name from pragma_table_info('plan_items')")
+                .fetch_all(db.pool())
+                .await
+                .unwrap();
+        assert!(item_columns.iter().any(|name| name == "task_id"));
+    }
+
+    #[tokio::test]
+    async fn accepts_items_from_different_projects_in_one_plan() {
+        let db = fresh_db().await;
+
+        for (id, prefix) in [("one", "ONE"), ("two", "TWO")] {
+            sqlx::query(
+                "insert into projects (id, prefix, name, created_at) values (?, ?, ?, '2026-01-01T00:00:00.000Z')",
+            )
+            .bind(id)
+            .bind(prefix)
+            .bind(id)
+            .execute(db.pool())
+            .await
+            .unwrap();
+        }
+
+        for (id, project) in [("t1", "one"), ("t2", "two")] {
+            sqlx::query(
+                "insert into tasks (id, project_id, number, key, title, status, priority, created_at, updated_at)
+                 values (?, ?, 1, ?, 'task', 'backlog', 'medium', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z')",
+            )
+            .bind(id)
+            .bind(project)
+            .bind(id)
+            .execute(db.pool())
+            .await
+            .unwrap();
+        }
+
+        sqlx::query(
+            "insert into plans (id, name, status, created_at, updated_at)
+             values ('p1', 'Plan', 'backlog', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z')",
+        )
+        .execute(db.pool())
+        .await
+        .unwrap();
+
+        for (task, position) in [("t1", 1024), ("t2", 2048)] {
+            sqlx::query("insert into plan_items (plan_id, task_id, position) values ('p1', ?, ?)")
+                .bind(task)
+                .bind(position)
+                .execute(db.pool())
+                .await
+                .unwrap();
+        }
+
+        let count: i64 = sqlx::query_scalar("select count(*) from plan_items where plan_id = 'p1'")
+            .fetch_one(db.pool())
+            .await
+            .unwrap();
+        assert_eq!(count, 2);
+    }
+
+    #[tokio::test]
     async fn runs_twice_without_changes() {
         let db = fresh_db().await;
         db.migrate().await.unwrap();
@@ -179,7 +276,7 @@ mod tests {
         let versions = applied_versions(&mut db.pool().acquire().await.unwrap())
             .await
             .unwrap();
-        assert_eq!(versions, vec![1, 2]);
+        assert_eq!(versions, vec![1, 2, 3]);
     }
 
     #[tokio::test]
@@ -195,7 +292,7 @@ mod tests {
         let versions = applied_versions(&mut db.pool().acquire().await.unwrap())
             .await
             .unwrap();
-        assert_eq!(versions, vec![1, 2]);
+        assert_eq!(versions, vec![1, 2, 3]);
     }
 
     #[tokio::test]
@@ -211,7 +308,7 @@ mod tests {
         let versions = applied_versions(&mut db.pool().acquire().await.unwrap())
             .await
             .unwrap();
-        assert_eq!(versions, vec![1, 2]);
+        assert_eq!(versions, vec![1, 2, 3]);
     }
 
     #[tokio::test]
