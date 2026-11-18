@@ -73,6 +73,7 @@ pub enum Sort {
     Project,
     Number,
     Title,
+    PlanPosition,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, JsonSchema)]
@@ -131,6 +132,14 @@ pub struct TaskFilters {
     )]
     pub has_epic: Option<bool>,
     #[schemars(
+        description = "Filter by plan id. Matches tasks that are items of this plan; plans are global, so items may belong to any project."
+    )]
+    pub plan_id: Option<String>,
+    #[schemars(
+        description = "Filter by the presence of a plan: true matches tasks that are items of at least one plan, false matches tasks in no plan."
+    )]
+    pub has_plan: Option<bool>,
+    #[schemars(
         description = "Filter by the presence of a scope: true matches tasks with a scope assigned, false matches tasks without one."
     )]
     pub has_scope: Option<bool>,
@@ -171,7 +180,7 @@ pub struct TaskFilters {
     )]
     pub source_file: Option<String>,
     #[schemars(
-        description = "Fields to include in each item to reduce response size: a comma-separated string (e.g. id,number,title,status) or an array of names. Supported fields: id, project_id, number, title, description, status, priority, is_epic, epic_id, scope_id, source_file, tags, estimate, assignee, due_at, attachments_count, created_at, updated_at, closed_at, closed_reason, blocked_reason, deleted_at, project_name, scope_name, short_description, blocked_by, blocks, relates_to, duplicates, duplicated_by. Requesting 'description' also returns the full text and drops short_description. id, project_id and number are always present, so a follow-up call can still address the task. project_name is present only with include_project, scope_name only with include_scope. Unknown field names are ignored; if no name matches, the whole task is returned."
+        description = "Fields to include in each item to reduce response size: a comma-separated string (e.g. id,number,title,status) or an array of names. Supported fields: id, project_id, number, title, description, status, priority, is_epic, epic_id, scope_id, source_file, tags, estimate, assignee, due_at, attachments_count, created_at, updated_at, closed_at, closed_reason, blocked_reason, deleted_at, project_name, scope_name, short_description, blocked_by, blocks, relates_to, duplicates, duplicated_by, plan_ids. Requesting 'description' also returns the full text and drops short_description. id, project_id and number are always present, so a follow-up call can still address the task. project_name is present only with include_project, scope_name only with include_scope. Unknown field names are ignored; if no name matches, the whole task is returned."
     )]
     pub fields: Option<FieldSelection>,
     #[schemars(
@@ -189,7 +198,7 @@ pub struct TaskFilters {
     )]
     pub project_archived: Option<bool>,
     #[schemars(
-        description = "Sort key. 'number' orders by the per-project task number (ascending by default), 'title' orders by title case-insensitively (ascending by default), 'status' by the workflow order backlog, open, in-progress, blocked, done, cancelled and 'project' by project name; 'updated_at' and 'created_at' default to descending, 'priority' to ascending. 'closed_at' orders by the closing date and keeps the tasks that are not closed at the end."
+        description = "Sort key. 'number' orders by the per-project task number (ascending by default), 'title' orders by title case-insensitively (ascending by default), 'status' by the workflow order backlog, open, in-progress, blocked, done, cancelled and 'project' by project name; 'updated_at' and 'created_at' default to descending, 'priority' to ascending. 'closed_at' orders by the closing date and keeps the tasks that are not closed at the end. 'plan_position' orders by the item position in the plan given by plan_id and requires that filter."
     )]
     pub sort: Option<Sort>,
     #[schemars(
@@ -230,6 +239,9 @@ impl TaskFilters {
         if self.id_exact.as_ref().is_some_and(Vec::is_empty) {
             return Err(AppError::validation("id_exact needs at least one id"));
         }
+        if self.sort == Some(Sort::PlanPosition) && self.plan_id.is_none() {
+            return Err(AppError::validation("sort=plan_position requires plan_id"));
+        }
         Ok(())
     }
 
@@ -247,7 +259,12 @@ impl TaskFilters {
             Some(Order::Desc) => true,
             None => !matches!(
                 self.sort.unwrap_or(Sort::UpdatedAt),
-                Sort::Priority | Sort::Status | Sort::Project | Sort::Number | Sort::Title
+                Sort::Priority
+                    | Sort::Status
+                    | Sort::Project
+                    | Sort::Number
+                    | Sort::Title
+                    | Sort::PlanPosition
             ),
         }
     }

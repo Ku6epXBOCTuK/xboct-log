@@ -242,6 +242,20 @@ fn push_where(qb: &mut QueryBuilder<Sqlite>, filters: &TaskFilters) {
             "tasks.epic_id IS NULL"
         });
     }
+    if let Some(plan_id) = &filters.plan_id {
+        push_and(qb, &mut first);
+        qb.push("EXISTS (SELECT 1 FROM plan_items pi JOIN plans p ON p.id = pi.plan_id WHERE pi.task_id = tasks.id AND pi.plan_id = ")
+            .push_bind(plan_id.clone())
+            .push(" AND p.deleted_at IS NULL)");
+    }
+    if let Some(has_plan) = filters.has_plan {
+        push_and(qb, &mut first);
+        qb.push(if has_plan {
+            "EXISTS (SELECT 1 FROM plan_items pi JOIN plans p ON p.id = pi.plan_id WHERE pi.task_id = tasks.id AND p.deleted_at IS NULL)"
+        } else {
+            "NOT EXISTS (SELECT 1 FROM plan_items pi JOIN plans p ON p.id = pi.plan_id WHERE pi.task_id = tasks.id AND p.deleted_at IS NULL)"
+        });
+    }
     if let Some(has_scope) = filters.has_scope {
         push_and(qb, &mut first);
         qb.push(if has_scope {
@@ -393,6 +407,13 @@ fn push_order(qb: &mut QueryBuilder<Sqlite>, filters: &TaskFilters) {
                 .push(order)
                 .push(", tasks.key ASC");
         }
+        Sort::PlanPosition => {
+            qb.push("(SELECT pi.position FROM plan_items pi WHERE pi.task_id = tasks.id AND pi.plan_id = ")
+                .push_bind(filters.plan_id.clone().unwrap_or_default())
+                .push(") ")
+                .push(order)
+                .push(", tasks.key ASC");
+        }
         Sort::ClosedAt => {
             qb.push("(tasks.closed_at IS NULL) ASC, tasks.closed_at ")
                 .push(order)
@@ -444,6 +465,7 @@ fn row_to_task(row: TaskRow, tags: Vec<TagName>, blocking: BlockingInfo) -> Task
         duplicates: blocking.duplicates,
         duplicated_by: blocking.duplicated_by,
         children_counts: None,
+        plan_ids: Vec::new(),
     }
 }
 
@@ -465,6 +487,26 @@ async fn tags_for_tasks(db: &Db, keys: &[String]) -> Result<HashMap<String, Vec<
         tags.entry(key).or_default().push(TagName::from(tag));
     }
     Ok(tags)
+}
+
+async fn plan_ids_for(db: &Db, keys: &[String]) -> Result<HashMap<String, Vec<String>>> {
+    let mut plans: HashMap<String, Vec<String>> = HashMap::new();
+    if keys.is_empty() {
+        return Ok(plans);
+    }
+    let mut qb = QueryBuilder::new(
+        "SELECT tasks.key AS task_key, pi.plan_id FROM plan_items pi JOIN tasks ON tasks.id = pi.task_id JOIN plans ON plans.id = pi.plan_id WHERE plans.deleted_at IS NULL AND tasks.key IN (",
+    );
+    let mut separated = qb.separated(", ");
+    for key in keys {
+        separated.push_bind(key.clone());
+    }
+    separated.push_unseparated(") ORDER BY pi.plan_id");
+    let rows: Vec<(String, String)> = qb.build_query_as().fetch_all(db.pool()).await?;
+    for (key, plan_id) in rows {
+        plans.entry(key).or_default().push(plan_id);
+    }
+    Ok(plans)
 }
 
 pub(crate) async fn blocking_info_for(
@@ -622,6 +664,7 @@ fn pick_fields(task: Task, fields: Option<&[String]>) -> TaskListEntry {
         duplicates,
         duplicated_by,
         children_counts,
+        plan_ids,
     )
 }
 
@@ -668,6 +711,7 @@ pub(crate) async fn list_tasks_unchecked(db: &Db, filters: &TaskFilters) -> Resu
     let keys: Vec<String> = rows.iter().map(|row| row.key.clone()).collect();
     let mut tags = tags_for_tasks(db, &keys).await?;
     let mut blocking = blocking_info_for(db, &keys).await?;
+    let mut plan_ids = plan_ids_for(db, &keys).await?;
 
     let fields = fields_of(filters);
     let items = rows
@@ -679,6 +723,7 @@ pub(crate) async fn list_tasks_unchecked(db: &Db, filters: &TaskFilters) -> Resu
                 tags.remove(&key).unwrap_or_default(),
                 blocking.remove(&key).unwrap_or_default(),
             );
+            task.plan_ids = plan_ids.remove(&key).unwrap_or_default();
             if include_description {
                 task.short_description = None;
             } else {
@@ -730,11 +775,14 @@ pub(crate) async fn task_by_key(db: &Db, key: &str) -> Result<Option<Task>> {
     let task_key = row.key.clone();
     let tags = tags_for_tasks(db, std::slice::from_ref(&task_key)).await?;
     let blocking = blocking_info_for(db, std::slice::from_ref(&task_key)).await?;
-    Ok(Some(row_to_task(
+    let mut plan_ids = plan_ids_for(db, std::slice::from_ref(&task_key)).await?;
+    let mut task = row_to_task(
         row,
         tags.get(&task_key).cloned().unwrap_or_default(),
         blocking.get(&task_key).cloned().unwrap_or_default(),
-    )))
+    );
+    task.plan_ids = plan_ids.remove(&task_key).unwrap_or_default();
+    Ok(Some(task))
 }
 
 pub async fn get_task(db: &Db, id: &str) -> Result<Task> {
@@ -845,6 +893,7 @@ mod tests {
             duplicates: Vec::new(),
             duplicated_by: Vec::new(),
             children_counts: None,
+            plan_ids: Vec::new(),
         }
     }
 

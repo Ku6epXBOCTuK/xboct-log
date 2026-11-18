@@ -36,6 +36,7 @@ const { createTaskStore } = await import("./tasks.svelte.ts");
 
 function task(id: string, extra: Partial<Task> = {}): Task {
 	return {
+		plan_ids: [],
 		id,
 		project_id: "spa",
 		number: Number(id.split("-")[1]),

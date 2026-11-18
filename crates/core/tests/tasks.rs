@@ -1,7 +1,7 @@
 use serde_json::{Value, json};
 use xboct_log_core::{
-    AppErrorKind, Db, LinkFilter, TaskFilters, TaskListEntry, count_epic_children_by_status,
-    get_task, list_tasks, resolve_task_id,
+    AppErrorKind, Db, LinkFilter, NewTask, TaskFilters, TaskListEntry, TaskPatch,
+    count_epic_children_by_status, get_task, list_tasks, resolve_task_id,
 };
 
 trait AsJson {
@@ -471,4 +471,121 @@ async fn hints_at_unknown_task_ids() {
     );
     let prefix = resolve_task_id(&db, "NOPE-1").await.unwrap_err();
     assert!(prefix.message().contains("unknown project prefix 'NOPE'"));
+}
+
+async fn seed_plans(db: &Db) {
+    for (id, name, deleted) in [
+        ("p1", "Alpha", None),
+        ("p2", "Beta", None),
+        ("p3", "Gamma", Some("2026-01-02T00:00:00.000Z")),
+    ] {
+        sqlx::query(
+            "INSERT INTO plans (id, name, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?)",
+        )
+        .bind(id)
+        .bind(name)
+        .bind("2026-01-01T00:00:00.000Z")
+        .bind("2026-01-01T00:00:00.000Z")
+        .bind(deleted)
+        .execute(db.pool())
+        .await
+        .unwrap();
+    }
+    for (plan, task, position) in [
+        ("p1", "t1", 2048),
+        ("p1", "t6", 1024),
+        ("p2", "t1", 1024),
+        ("p3", "t1", 512),
+    ] {
+        sqlx::query("INSERT INTO plan_items (plan_id, task_id, position) VALUES (?, ?, ?)")
+            .bind(plan)
+            .bind(task)
+            .bind(position)
+            .execute(db.pool())
+            .await
+            .unwrap();
+    }
+}
+
+#[tokio::test]
+async fn task_reads_expose_plan_membership_only() {
+    let db = database().await;
+    seed_plans(&db).await;
+
+    assert_eq!(get_task(&db, "LOG-1").await.unwrap().plan_ids, ["p1", "p2"]);
+    assert_eq!(get_task(&db, "SPA-2").await.unwrap().plan_ids, ["p1"]);
+    assert!(get_task(&db, "LOG-4").await.unwrap().plan_ids.is_empty());
+
+    assert_eq!(
+        list_tasks(&db, &filters(json!({"plan_id": "p1"})))
+            .await
+            .unwrap()
+            .total,
+        2
+    );
+    assert_eq!(
+        list_tasks(&db, &filters(json!({"plan_id": "p3"})))
+            .await
+            .unwrap()
+            .total,
+        0
+    );
+    assert_eq!(
+        list_tasks(&db, &filters(json!({"has_plan": true})))
+            .await
+            .unwrap()
+            .total,
+        2
+    );
+    assert_eq!(
+        list_tasks(&db, &filters(json!({"has_plan": false})))
+            .await
+            .unwrap()
+            .total,
+        4
+    );
+
+    let ordered = list_tasks(
+        &db,
+        &filters(json!({"plan_id": "p1", "sort": "plan_position"})),
+    )
+    .await
+    .unwrap();
+    let ids: Vec<&str> = ordered
+        .items
+        .iter()
+        .map(|item| match item {
+            TaskListEntry::Full(task) => task.id.as_str(),
+            TaskListEntry::Projected(view) => view.id.as_str(),
+        })
+        .collect();
+    assert_eq!(ids, ["SPA-2", "LOG-1"]);
+
+    let error = list_tasks(&db, &filters(json!({"sort": "plan_position"})))
+        .await
+        .unwrap_err();
+    assert_eq!(error.kind(), AppErrorKind::Validation);
+
+    let projected = list_tasks(
+        &db,
+        &filters(json!({"fields": "plan_ids", "plan_id": "p1"})),
+    )
+    .await
+    .unwrap();
+    let value = serde_json::to_value(&projected.items[0]).unwrap();
+    assert_eq!(value["plan_ids"], json!(["p1"]));
+    assert!(value.get("status").is_none());
+}
+
+#[test]
+fn task_writes_reject_plan_fields() {
+    assert!(
+        serde_json::from_value::<NewTask>(json!({
+            "project_id": "log",
+            "title": "Title",
+            "plan_id": "p1",
+        }))
+        .is_err()
+    );
+    assert!(serde_json::from_value::<TaskPatch>(json!({"plan_id": "p1"})).is_err());
 }

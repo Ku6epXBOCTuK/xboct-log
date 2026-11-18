@@ -1,15 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
+import type { Task } from "#lib/types.ts";
 import {
 	addConnection,
 	connectionCandidates,
 	isLinkCandidate,
-	removeConnection,
 	type LinkCommands,
+	removeConnection,
 } from "./connections.ts";
-import type { Task } from "#lib/types.ts";
 
 function task(id: string, extra: Partial<Task> = {}): Task {
 	return {
+		plan_ids: [],
 		id,
 		project_id: "spa",
 		number: Number(id.split("-")[1]),

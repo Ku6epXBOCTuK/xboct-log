@@ -15,6 +15,7 @@ const { createStatsStore } = await import("./stats.svelte.ts");
 
 function epic(id: string, counts: Record<string, number>): Task {
 	return {
+		plan_ids: [],
 		id,
 		project_id: "spa",
 		number: 1,

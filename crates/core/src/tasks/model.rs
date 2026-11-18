@@ -195,6 +195,7 @@ pub struct Task {
     pub duplicated_by: Vec<TaskKey>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub children_counts: Option<BTreeMap<String, i64>>,
+    pub plan_ids: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, JsonSchema)]
@@ -258,6 +259,8 @@ pub struct TaskView {
     pub duplicated_by: Option<Vec<TaskKey>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub children_counts: Option<BTreeMap<String, i64>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub plan_ids: Option<Vec<String>>,
 }
 
 impl From<Task> for TaskView {
@@ -294,6 +297,7 @@ impl From<Task> for TaskView {
             duplicates: Some(task.duplicates),
             duplicated_by: Some(task.duplicated_by),
             children_counts: task.children_counts,
+            plan_ids: Some(task.plan_ids),
         }
     }
 }

@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { collectEpicProgress } from "./filter";
 import type { Task } from "#lib/types.ts";
+import { collectEpicProgress } from "./filter";
 
 function task(overrides: Partial<Task>): Task {
 	return {
+		plan_ids: [],
 		id: "X-1",
 		project_id: "inbox",
 		number: 1,

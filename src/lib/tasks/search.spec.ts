@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { exactFirst, matchesSearch, parseSearchQuery } from "./search";
 import type { Task } from "#lib/types.ts";
+import { exactFirst, matchesSearch, parseSearchQuery } from "./search";
 
 function task(overrides: Partial<Task> = {}): Task {
 	return {
+		plan_ids: [],
 		id: "LOG-1",
 		project_id: "xboct-log",
 		number: 1,

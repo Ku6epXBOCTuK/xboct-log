@@ -1,14 +1,15 @@
 import { describe, expect, it } from "vitest";
+import type { Task } from "#lib/types.ts";
 import {
 	blockedDownstream,
 	blockingCandidates,
 	openBlocked,
 	openBlockers,
 } from "./blocking.ts";
-import type { Task } from "#lib/types.ts";
 
 function task(id: string, extra: Partial<Task> = {}): Task {
 	return {
+		plan_ids: [],
 		id,
 		project_id: "spa",
 		number: Number(id.split("-")[1]),

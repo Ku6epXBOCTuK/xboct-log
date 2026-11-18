@@ -774,8 +774,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * List tasks with filters (project, status, priority, estimate, assignee, due date, tags, epic, scope, blocked_by, blocks, text query, title, title_exact, source_file), sorting and pagination
-         * @description List tasks with filters (project, status, priority, estimate, assignee, due date, tags, epic, scope, blocked_by, blocks, text query, title, title_exact, source_file), sorting and pagination. Use q to locate a task by id, title, description, the id of its epic or a partial tag (e.g. q='LOG-4', q='26', q='est:'). Returns: {items, total} - items is the list of matching tasks, total is the count of all matching tasks before limit/offset. limit defaults to 100 (max 1000); use offset and total to paginate. Use fields to limit returned columns; the field names it accepts are listed in the description of the fields parameter, unknown names are ignored, and id, project_id and number always stay in the result. By default each task carries short_description (first line, ~120 chars) instead of the full description; set include_description to get the full text, in which case short_description is omitted. include_project attaches project names, include_scope attaches scope names, and neither filters; project_archived filters by project archival; include_deleted also returns soft-deleted tasks (hidden by default). Task id is the full 'PREFIX-NUMBER' identifier (e.g. 'LOG-82'); number is the per-project sequence number (e.g. 82), unique only inside its project. project_id accepts one id or a list of ids; exclude_project_id drops the given projects (use it for 'every project except X'). The epic filter accepts a full epic id (e.g. 'LOG-5') or a list of them; scope_id likewise takes one scope id or a list, and null matches tasks without that link. has_epic and has_scope filter by the presence of an epic or a scope. The estimate filter takes one size or a list of them ('S', 'M', 'L'); tasks without an estimate are not matched. The assignee filter takes one name or a list of them and matches case-insensitively; tasks without an assignee are not matched. The due_before and due_after filters take a date (YYYY-MM-DD) and select the tasks due before it or on and after it; tasks without a due date are not matched, so the two together give a due window. sort accepts updated_at, created_at, closed_at, priority, number and title. The blocked_by filter returns tasks whose blocked_by list contains the given task, the blocks filter returns tasks whose blocks list contains the given task. The source_file filter matches the source file path of a task partially and case-insensitively, so a fragment such as 'backlog' selects every task imported from that file. Every task carries blocked_by (tasks that block me) and blocks (tasks I block) as id lists.
+         * List tasks with filters (project, status, priority, estimate, assignee, due date, tags, epic, scope, blocked_by, blocks, text query, title, title_exact, source_file, plan, has_plan), sorting and pagination
+         * @description List tasks with filters (project, status, priority, estimate, assignee, due date, tags, epic, scope, blocked_by, blocks, text query, title, title_exact, source_file, plan, has_plan), sorting and pagination. Use q to locate a task by id, title, description, the id of its epic or a partial tag (e.g. q='LOG-4', q='26', q='est:'). Returns: {items, total} - items is the list of matching tasks, total is the count of all matching tasks before limit/offset. limit defaults to 100 (max 1000); use offset and total to paginate. Use fields to limit returned columns; the field names it accepts are listed in the description of the fields parameter, unknown names are ignored, and id, project_id and number always stay in the result. By default each task carries short_description (first line, ~120 chars) instead of the full description; set include_description to get the full text, in which case short_description is omitted. include_project attaches project names, include_scope attaches scope names, and neither filters; project_archived filters by project archival; include_deleted also returns soft-deleted tasks (hidden by default). Task id is the full 'PREFIX-NUMBER' identifier (e.g. 'LOG-82'); number is the per-project sequence number (e.g. 82), unique only inside its project. project_id accepts one id or a list of ids; exclude_project_id drops the given projects (use it for 'every project except X'). The epic filter accepts a full epic id (e.g. 'LOG-5') or a list of them; scope_id likewise takes one scope id or a list, and null matches tasks without that link. has_epic and has_scope filter by the presence of an epic or a scope. plan_id accepts an id from plans_list and matches tasks in that plan; has_plan filters by the presence of any plan; sort=plan_position orders by item position in that plan and requires plan_id. plan_ids on a task is read-only: use plans_items_add/remove to change membership. The estimate filter takes one size or a list of them ('S', 'M', 'L'); tasks without an estimate are not matched. The assignee filter takes one name or a list of them and matches case-insensitively; tasks without an assignee are not matched. The due_before and due_after filters take a date (YYYY-MM-DD) and select the tasks due before it or on and after it; tasks without a due date are not matched, so the two together give a due window. sort accepts updated_at, created_at, closed_at, priority, number and title. The blocked_by filter returns tasks whose blocked_by list contains the given task, the blocks filter returns tasks whose blocks list contains the given task. The source_file filter matches the source file path of a task partially and case-insensitively, so a fragment such as 'backlog' selects every task imported from that file. Every task carries blocked_by (tasks that block me) and blocks (tasks I block) as id lists.
          */
         post: operations["tasks_list"];
         delete?: never;
@@ -835,7 +835,7 @@ export interface paths {
         put?: never;
         /**
          * Get a single task by task_id
-         * @description Get a single task by task_id. The task_id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'); a bare number is rejected because it is unique only inside a project. Returns: the task itself - {id, project_id, number, title, description, status, priority, is_epic, epic_id, scope_id, source_file, tags, estimate, assignee, due_at, attachments_count, created_at, updated_at, closed_at, closed_reason, blocked_reason, deleted_at, project_name, scope_name, short_description, blocked_by, blocks, relates_to, duplicates, duplicated_by, children_counts}. For a task with is_epic=true the result also carries children_counts: the number of its child tasks per status (backlog, open, in-progress, blocked, done, cancelled) plus their total.
+         * @description Get a single task by task_id. The task_id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'); a bare number is rejected because it is unique only inside a project. Returns: the task itself - {id, project_id, number, title, description, status, priority, is_epic, epic_id, scope_id, source_file, tags, estimate, assignee, due_at, attachments_count, created_at, updated_at, closed_at, closed_reason, blocked_reason, deleted_at, project_name, scope_name, short_description, blocked_by, blocks, relates_to, duplicates, duplicated_by, children_counts, plan_ids}. For a task with is_epic=true the result also carries children_counts: the number of its child tasks per status (backlog, open, in-progress, blocked, done, cancelled) plus their total.
          */
         post: operations["tasks_get"];
         delete?: never;
@@ -1571,6 +1571,7 @@ export interface components {
             children_counts?: {
                 [key: string]: number;
             } | null;
+            plan_ids: string[];
         };
         TaskView: {
             id: string;
@@ -1609,6 +1610,7 @@ export interface components {
             children_counts?: {
                 [key: string]: number;
             } | null;
+            plan_ids?: string[] | null;
         };
         ProjectWithCounts: {
             id: string;
@@ -1702,7 +1704,7 @@ export interface components {
         OneOrList5: number | number[];
         FieldSelection: string | string[];
         /** @enum {string} */
-        Sort: "updated_at" | "created_at" | "closed_at" | "priority" | "status" | "project" | "number" | "title";
+        Sort: "updated_at" | "created_at" | "closed_at" | "priority" | "status" | "project" | "number" | "title" | "plan_position";
         /** @enum {string} */
         Order: "asc" | "desc";
         NewTask: {
@@ -3144,6 +3146,7 @@ export interface operations {
                         children_counts?: {
                             [key: string]: number;
                         } | null;
+                        plan_ids: string[];
                         changes: components["schemas"]["Change"][];
                     };
                 };
@@ -3247,6 +3250,7 @@ export interface operations {
                         children_counts?: {
                             [key: string]: number;
                         } | null;
+                        plan_ids: string[];
                         changes: components["schemas"]["Change"][];
                     };
                 };
@@ -3352,6 +3356,7 @@ export interface operations {
                         children_counts?: {
                             [key: string]: number;
                         } | null;
+                        plan_ids: string[];
                         changes: components["schemas"]["Change"][];
                     };
                 };
@@ -3457,6 +3462,7 @@ export interface operations {
                         children_counts?: {
                             [key: string]: number;
                         } | null;
+                        plan_ids: string[];
                         changes: components["schemas"]["Change"][];
                     };
                 };
@@ -4753,6 +4759,10 @@ export interface operations {
                     scope_id?: components["schemas"]["LinkFilter_for_int64"];
                     /** @description Filter by the presence of an epic: true matches tasks that belong to an epic, false matches tasks without one. */
                     has_epic?: boolean | null;
+                    /** @description Filter by plan id. Matches tasks that are items of this plan; plans are global, so items may belong to any project. */
+                    plan_id?: string | null;
+                    /** @description Filter by the presence of a plan: true matches tasks that are items of at least one plan, false matches tasks in no plan. */
+                    has_plan?: boolean | null;
                     /** @description Filter by the presence of a scope: true matches tasks with a scope assigned, false matches tasks without one. */
                     has_scope?: boolean | null;
                     /** @description Filter by the presence of tags: true matches tasks with at least one tag, false matches tasks without tags. */
@@ -4775,7 +4785,7 @@ export interface operations {
                     title_exact?: string | null;
                     /** @description Case-insensitive substring match on the source file path of the task (e.g. 'backlog.md'). Tasks without a source file are excluded. */
                     source_file?: string | null;
-                    /** @description Fields to include in each item to reduce response size: a comma-separated string (e.g. id,number,title,status) or an array of names. Supported fields: id, project_id, number, title, description, status, priority, is_epic, epic_id, scope_id, source_file, tags, estimate, assignee, due_at, attachments_count, created_at, updated_at, closed_at, closed_reason, blocked_reason, deleted_at, project_name, scope_name, short_description, blocked_by, blocks, relates_to, duplicates, duplicated_by. Requesting 'description' also returns the full text and drops short_description. id, project_id and number are always present, so a follow-up call can still address the task. project_name is present only with include_project, scope_name only with include_scope. Unknown field names are ignored; if no name matches, the whole task is returned. */
+                    /** @description Fields to include in each item to reduce response size: a comma-separated string (e.g. id,number,title,status) or an array of names. Supported fields: id, project_id, number, title, description, status, priority, is_epic, epic_id, scope_id, source_file, tags, estimate, assignee, due_at, attachments_count, created_at, updated_at, closed_at, closed_reason, blocked_reason, deleted_at, project_name, scope_name, short_description, blocked_by, blocks, relates_to, duplicates, duplicated_by, plan_ids. Requesting 'description' also returns the full text and drops short_description. id, project_id and number are always present, so a follow-up call can still address the task. project_name is present only with include_project, scope_name only with include_scope. Unknown field names are ignored; if no name matches, the whole task is returned. */
                     fields?: components["schemas"]["FieldSelection"] | null;
                     /** @description Include the full description. By default each task carries short_description (first line, trimmed, truncated to ~120 chars) instead of the full text; with include_description the full text is returned and short_description is omitted. */
                     include_description?: boolean | null;
@@ -4785,7 +4795,7 @@ export interface operations {
                     include_scope?: boolean | null;
                     /** @description Filter by project archival: false - active projects only, true - archived projects only. Omitted - both. */
                     project_archived?: boolean | null;
-                    /** @description Sort key. 'number' orders by the per-project task number (ascending by default), 'title' orders by title case-insensitively (ascending by default), 'status' by the workflow order backlog, open, in-progress, blocked, done, cancelled and 'project' by project name; 'updated_at' and 'created_at' default to descending, 'priority' to ascending. 'closed_at' orders by the closing date and keeps the tasks that are not closed at the end. */
+                    /** @description Sort key. 'number' orders by the per-project task number (ascending by default), 'title' orders by title case-insensitively (ascending by default), 'status' by the workflow order backlog, open, in-progress, blocked, done, cancelled and 'project' by project name; 'updated_at' and 'created_at' default to descending, 'priority' to ascending. 'closed_at' orders by the closing date and keeps the tasks that are not closed at the end. 'plan_position' orders by the item position in the plan given by plan_id and requires that filter. */
                     sort?: components["schemas"]["Sort"] | null;
                     /** @description Sort direction. Defaults to asc for priority, status, project, number and title, desc for the date keys. */
                     order?: components["schemas"]["Order"] | null;
@@ -5061,6 +5071,7 @@ export interface operations {
                         children_counts?: {
                             [key: string]: number;
                         } | null;
+                        plan_ids: string[];
                     };
                 };
             };
@@ -5186,6 +5197,7 @@ export interface operations {
                         children_counts?: {
                             [key: string]: number;
                         } | null;
+                        plan_ids: string[];
                         warnings: string[];
                     };
                 };
@@ -5382,6 +5394,7 @@ export interface operations {
                         children_counts?: {
                             [key: string]: number;
                         } | null;
+                        plan_ids: string[];
                         changes: components["schemas"]["Change"][];
                         warnings: string[];
                         closed_epic?: components["schemas"]["Task"] | null;
@@ -5555,6 +5568,7 @@ export interface operations {
                         children_counts?: {
                             [key: string]: number;
                         } | null;
+                        plan_ids: string[];
                         changes: components["schemas"]["Change"][];
                         released: components["schemas"]["ReleasedLink"][];
                         warnings: string[];
@@ -5793,6 +5807,7 @@ export interface operations {
                         children_counts?: {
                             [key: string]: number;
                         } | null;
+                        plan_ids: string[];
                     };
                 };
             };
@@ -5894,6 +5909,7 @@ export interface operations {
                         children_counts?: {
                             [key: string]: number;
                         } | null;
+                        plan_ids: string[];
                     };
                 };
             };

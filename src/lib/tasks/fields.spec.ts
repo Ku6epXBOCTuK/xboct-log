@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { Project, Scope, Task } from "#lib/types.ts";
 import {
 	advancedFilledCount,
 	draftHasContent,
@@ -7,10 +8,10 @@ import {
 	siblingEpics,
 	type TaskFieldValues,
 } from "./fields";
-import type { Project, Scope, Task } from "#lib/types.ts";
 
 function task(overrides: Partial<Task>): Task {
 	return {
+		plan_ids: [],
 		id: "X-1",
 		project_id: "inbox",
 		number: 1,
