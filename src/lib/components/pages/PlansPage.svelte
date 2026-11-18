@@ -1,11 +1,23 @@
 <script lang="ts">
+	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
+	import TextInput from "@ku6epxboctuk/ui-kit/components/TextInput.svelte";
 	import { fetchFresh } from "#lib/api/fresh.ts";
-	import { getPlan, getPlans, type PlanWithCounts } from "#lib/api/plans.ts";
+	import {
+		addPlanItem,
+		createPlan,
+		getPlan,
+		getPlans,
+		type PlanWithCounts,
+		removePlanItem,
+		reorderPlanItems,
+	} from "#lib/api/plans.ts";
 	import { getTasks } from "#lib/api/tasks.ts";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
+	import TaskSelect from "#lib/components/ui/select/TaskSelect.svelte";
 	import { taskHref } from "#lib/navigation/href.ts";
 	import { useBoard } from "#lib/state/board.svelte.ts";
 	import type { Task } from "#lib/types.ts";
+	import Plus from "~icons/lucide/plus";
 
 	const { fresh } = useBoard();
 
@@ -13,8 +25,32 @@
 	let selectedId = $state<string | null>(null);
 	let detail = $state<PlanWithCounts | null>(null);
 	let items = $state<Task[]>([]);
+	let candidates = $state<Task[]>([]);
+	let itemFailed = $state(false);
 	let loaded = $state(false);
 	let failed = $state(false);
+	let dragKey = $state<string | null>(null);
+	let reorderFailed = $state(false);
+	let newName = $state("");
+	let creating = $state(false);
+	let createFailed = $state(false);
+
+	async function submitNew(): Promise<void> {
+		const name = newName.trim();
+		if (name === "") return;
+		creating = true;
+		try {
+			const plan = await createPlan({ name });
+			newName = "";
+			createFailed = false;
+			selectedId = plan.id;
+			await reloadPlans();
+		} catch {
+			createFailed = true;
+		} finally {
+			creating = false;
+		}
+	}
 
 	async function reloadPlans(): Promise<void> {
 		try {
@@ -28,20 +64,73 @@
 
 	async function loadDetail(id: string): Promise<void> {
 		try {
-			const [plan, page] = await Promise.all([
+			const [plan, page, all] = await Promise.all([
 				fetchFresh(getPlan({ plan_id: id })),
 				fetchFresh(
 					getTasks({
 						plan_id: id,
 						sort: "plan_position",
 						limit: 1000,
+						include_deleted: true,
 					}),
 				),
+				fetchFresh(getTasks({ limit: 1000 })),
 			]);
 			detail = plan;
 			items = page.items;
+			candidates = all.items;
 		} catch {
 			failed = true;
+		}
+	}
+
+	async function changeItems(action: () => Promise<unknown>): Promise<void> {
+		if (detail === null) return;
+		const id = detail.id;
+		itemFailed = false;
+		try {
+			await action();
+			await reloadPlans();
+		} catch {
+			itemFailed = true;
+		}
+		await loadDetail(id);
+	}
+
+	const tasksById = $derived(
+		new Map<string, Task>(
+			[...candidates, ...items].map((task) => [task.id, task] as const),
+		),
+	);
+
+	function taskLink(id: string): string | null {
+		const task = tasksById.get(id);
+		return task === undefined ? null : taskHref(task.project_id, id);
+	}
+
+	async function moveItem(target: string): Promise<void> {
+		const source = dragKey;
+		dragKey = null;
+		if (source === null || source === target || detail === null) return;
+
+		const from = items.findIndex((item) => item.id === source);
+		const to = items.findIndex((item) => item.id === target);
+		if (from < 0 || to < 0) return;
+
+		const next = [...items];
+		const [moved] = next.splice(from, 1);
+		next.splice(to, 0, moved);
+		items = next;
+		reorderFailed = false;
+
+		try {
+			await reorderPlanItems({
+				plan_id: detail.id,
+				task_ids: next.map((item) => item.id),
+			});
+		} catch {
+			reorderFailed = true;
+			await loadDetail(detail.id);
 		}
 	}
 
@@ -50,8 +139,15 @@
 	});
 
 	$effect(() => {
-		const off = fresh.register("plans", () => void reloadPlans());
-		return off;
+		const offPlans = fresh.register("plans", () => void reloadPlans());
+		const offTasks = fresh.register("tasks", () => {
+			const id = selectedId ?? plans[0]?.id;
+			if (id !== undefined) return loadDetail(id);
+		});
+		return () => {
+			offPlans();
+			offTasks();
+		};
 	});
 
 	$effect(() => {
@@ -69,6 +165,35 @@
 	<header class="page-head">
 		<h1>Plans</h1>
 		<span class="muted">{plans.length} plans</span>
+		<form
+			class="create"
+			onsubmit={(event) => {
+				event.preventDefault();
+				void submitNew();
+			}}
+		>
+			<TextInput
+				class="create-input"
+				placeholder="New plan"
+				aria-label="New plan name"
+				maxlength={200}
+				bind:value={newName}
+			/>
+			<Button
+				variant="primary"
+				type="submit"
+				disabled={creating || newName.trim() === ""}
+				title="Create a plan"
+			>
+				{#snippet icon()}
+					<Plus />
+				{/snippet}
+				Create
+			</Button>
+		</form>
+		{#if createFailed}
+			<span class="create-error">Could not create the plan</span>
+		{/if}
 	</header>
 
 	{#if failed}
@@ -103,6 +228,7 @@
 
 			<div class="detail">
 				{#if detail}
+					{@const planId = detail.id}
 					<header class="detail-head">
 						<h2>{detail.name}</h2>
 						<span class="status">{detail.status}</span>
@@ -111,16 +237,60 @@
 						<p class="description">{detail.description}</p>
 					{/if}
 					<h3>Items</h3>
+					<div class="add-item">
+						<TaskSelect
+							items={candidates}
+							value={items.map((item) => item.id)}
+							onadd={(id) =>
+								void changeItems(() =>
+									addPlanItem({ plan_id: planId, task_id: id }),
+								)}
+							onremove={(id) =>
+								void changeItems(() =>
+									removePlanItem({ plan_id: planId, task_id: id }),
+								)}
+							href={taskLink}
+							placeholder="Add a task to the plan"
+							ariaLabel="Plan items"
+						/>
+					</div>
+					{#if itemFailed}
+						<p class="item-error">Could not change the plan items</p>
+					{/if}
 					{#if items.length === 0}
 						<p class="empty">No items in this plan</p>
 					{:else}
+						{#if reorderFailed}
+							<p class="reorder-error">Could not save the new order</p>
+						{/if}
 						<ol class="items">
 							{#each items as item (item.id)}
-								<li>
-									<a href={taskHref(item.project_id, item.id)}>{item.id}</a>
+								<li
+									draggable="true"
+									class:dragging={dragKey === item.id}
+									ondragstart={(event) => {
+										dragKey = item.id;
+										event.dataTransfer?.setData("text/plain", item.id);
+									}}
+									ondragover={(event) => event.preventDefault()}
+									ondrop={(event) => {
+										event.preventDefault();
+										void moveItem(item.id);
+									}}
+									ondragend={() => (dragKey = null)}
+								>
+									<a
+										href={taskHref(item.project_id, item.id)}
+										draggable="false"
+									>
+										{item.id}
+									</a>
 									<span class="item-title" class:epic={item.is_epic}>
 										{item.title}
 									</span>
+									{#if item.deleted_at !== null}
+										<span class="item-deleted">deleted</span>
+									{/if}
 								</li>
 							{/each}
 						</ol>
@@ -144,7 +314,7 @@
 	.page-head {
 		flex: none;
 		display: flex;
-		align-items: baseline;
+		align-items: center;
 		gap: var(--space-3);
 		padding: var(--edge-pad) var(--edge-pad) var(--space-3);
 	}
@@ -160,6 +330,21 @@
 		color: var(--text-muted);
 		font-size: var(--text-sm);
 		font-variant-numeric: tabular-nums;
+	}
+
+	.create {
+		display: flex;
+		gap: var(--space-2);
+		margin-left: auto;
+	}
+
+	.create :global(.create-input) {
+		width: 14rem;
+	}
+
+	.create-error {
+		color: var(--danger);
+		font-size: var(--text-sm);
 	}
 
 	.error-wrap {
@@ -261,11 +446,27 @@
 		color: var(--text-muted);
 	}
 
+	.add-item {
+		margin-bottom: var(--space-3);
+	}
+
+	.item-error {
+		margin: 0 0 var(--space-2);
+		color: var(--danger);
+		font-size: var(--text-sm);
+	}
+
 	.items {
 		margin: 0;
 		padding: 0;
 		list-style: none;
 		counter-reset: item;
+	}
+
+	.reorder-error {
+		margin: var(--space-2) 0;
+		color: var(--danger);
+		font-size: var(--text-sm);
 	}
 
 	.items li {
@@ -274,6 +475,11 @@
 		gap: var(--space-3);
 		padding: var(--space-2) 0;
 		border-bottom: 1px solid var(--border);
+		cursor: grab;
+	}
+
+	.items li.dragging {
+		opacity: 0.5;
 	}
 
 	.items li::before {
@@ -297,7 +503,26 @@
 		font-weight: 600;
 	}
 
+	.item-deleted {
+		color: var(--text-muted);
+		font-size: var(--text-xs);
+	}
+
 	@media (max-width: 48rem) {
+		.page-head {
+			flex-wrap: wrap;
+		}
+
+		.create {
+			margin-left: 0;
+			flex: 1 1 100%;
+		}
+
+		.create :global(.create-input) {
+			flex: 1 1 auto;
+			width: auto;
+		}
+
 		.columns {
 			grid-template-columns: minmax(0, 1fr);
 			overflow: auto;

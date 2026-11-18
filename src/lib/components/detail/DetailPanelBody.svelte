@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { untrack } from "svelte";
 	import { cubicOut } from "svelte/easing";
+	import { fetchFresh } from "#lib/api/fresh.ts";
+	import { getPlans, type PlanWithCounts } from "#lib/api/plans.ts";
 	import AttachButton from "#lib/components/attachments/AttachButton.svelte";
 	import TaskAttachments from "#lib/components/attachments/TaskAttachments.svelte";
 	import CommentsOverlay from "#lib/components/detail/CommentsOverlay.svelte";
@@ -51,9 +53,10 @@
 
 	let { task, onclear, ondelete, oncreatechild, onmoved }: Props = $props();
 
-	const { tasks, projects, scopes, tags, data, comments, stats, ui } =
+	const { fresh, tasks, projects, scopes, tags, data, comments, stats, ui } =
 		useBoard();
 
+	let plans = $state<PlanWithCounts[]>([]);
 	let saving = $state(false);
 	let failure = $state<string | null>(null);
 	let historyOpen = $state(false);
@@ -81,6 +84,20 @@
 			total: children.length,
 		};
 	});
+
+	const taskPlans = $derived(
+		task.plan_ids.map((id) => plans.find((plan) => plan.id === id)?.name ?? id),
+	);
+
+	async function reloadPlans(): Promise<void> {
+		plans = await fetchFresh(getPlans({}));
+	}
+
+	$effect(() => {
+		void reloadPlans();
+	});
+
+	$effect(() => fresh.register("plans", () => void reloadPlans()));
 
 	async function onunknowntag(name: string) {
 		await tags.create(name);
@@ -411,6 +428,14 @@
 			ontitlefocus={cancelDraft}
 			attachments={attachmentSection}
 		/>
+		{#if taskPlans.length > 0}
+			<div class="plan-refs">
+				<span class="plan-refs-label">Plans</span>
+				{#each taskPlans as name}
+					<span class="plan-ref">{name}</span>
+				{/each}
+			</div>
+		{/if}
 	</div>
 	<DetailActions />
 	{#if historyOpen}
@@ -454,6 +479,29 @@
 
 	.panel-body {
 		padding: var(--space-4) var(--edge-pad) var(--space-5);
+	}
+
+	.plan-refs {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-2);
+		margin-top: var(--space-4);
+	}
+
+	.plan-refs-label {
+		color: var(--text-muted);
+		font-size: var(--text-xs);
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+	}
+
+	.plan-ref {
+		padding: var(--space-1) var(--space-2);
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		color: var(--text-secondary);
+		font-size: var(--text-xs);
 	}
 
 	.previous-versions {
