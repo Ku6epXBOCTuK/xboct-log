@@ -109,29 +109,7 @@ impl ServerHandler for Backlog {
         _request: Option<PaginatedRequestParams>,
         _context: RequestContext<RoleServer>,
     ) -> Result<ListToolsResult, McpError> {
-        let mut tools = Vec::new();
-        for info in metadata().iter().filter(|info| info.mcp) {
-            let (input, output) = tool_schema(info.name).ok_or_else(|| {
-                McpError::internal_error(format!("no schema for the tool {}", info.name), None)
-            })?;
-            tools.push(
-                Tool::new_with_raw(
-                    info.name,
-                    Some(Cow::Borrowed(info.description)),
-                    parse_schema(input),
-                )
-                .with_raw_output_schema(parse_schema(wrap_items(output))),
-            );
-        }
-        tools.push(
-            Tool::new_with_raw(
-                "attachments_read",
-                Some(Cow::Borrowed(mcp_text::ATTACHMENTS_READ_DESCRIPTION)),
-                parse_schema(schema_of::<ReadAttachmentInput>()),
-            )
-            .with_raw_output_schema(parse_schema(schema_of::<ReadAttachmentOutput>())),
-        );
-        Ok(ListToolsResult::with_all_items(tools))
+        Ok(ListToolsResult::with_all_items(tools()?))
     }
 
     async fn call_tool(
@@ -163,7 +141,6 @@ impl ServerHandler for Backlog {
             } else {
                 let ctx = self.context(client.clone());
                 match dispatch(&ctx, name.as_ref(), arguments.clone()).await {
-                    Ok(Value::Array(items)) => success(json!({ "items": items })),
                     Ok(value) => success(value),
                     Err(error) => failure(&error),
                 }
@@ -362,6 +339,32 @@ fn attachment_mime(file_name: &str) -> String {
         .unwrap_or_else(|| "application/octet-stream".to_string())
 }
 
+fn tools() -> Result<Vec<Tool>, McpError> {
+    let mut tools = Vec::new();
+    for info in metadata().iter().filter(|info| info.mcp) {
+        let (input, output) = tool_schema(info.name).ok_or_else(|| {
+            McpError::internal_error(format!("no schema for the tool {}", info.name), None)
+        })?;
+        tools.push(
+            Tool::new_with_raw(
+                info.name,
+                Some(Cow::Borrowed(info.description)),
+                parse_schema(input),
+            )
+            .with_raw_output_schema(parse_schema(output)),
+        );
+    }
+    tools.push(
+        Tool::new_with_raw(
+            "attachments_read",
+            Some(Cow::Borrowed(mcp_text::ATTACHMENTS_READ_DESCRIPTION)),
+            parse_schema(schema_of::<ReadAttachmentInput>()),
+        )
+        .with_raw_output_schema(parse_schema(schema_of::<ReadAttachmentOutput>())),
+    );
+    Ok(tools)
+}
+
 fn parse_schema(mut schema: Value) -> Arc<JsonObject> {
     if let Value::Object(map) = &mut schema {
         map.remove("$schema");
@@ -370,18 +373,6 @@ fn parse_schema(mut schema: Value) -> Arc<JsonObject> {
         Value::Object(map) => Arc::new(map),
         _ => Arc::new(JsonObject::new()),
     }
-}
-
-fn wrap_items(schema: Value) -> Value {
-    if schema.get("type").and_then(Value::as_str) == Some("array") {
-        return json!({
-            "type": "object",
-            "properties": { "items": schema },
-            "required": ["items"],
-            "additionalProperties": false,
-        });
-    }
-    schema
 }
 
 fn deref<'a>(mut schema: &'a Value, root: &'a Value) -> &'a Value {
@@ -663,5 +654,49 @@ mod tests {
             Some(("validation".to_string(), "bad input".to_string()))
         );
         assert_eq!(failure_details(&success(json!({"ok": true}))), None);
+    }
+
+    fn assert_refs_resolve(schema: &Map<String, Value>, name: &str) {
+        let mut refs = Vec::new();
+        collect_refs(&Value::Object(schema.clone()), &mut refs);
+        let defs = schema.get("$defs").and_then(Value::as_object);
+        for reference in refs {
+            let Some(target) = reference.strip_prefix("#/$defs/") else {
+                continue;
+            };
+            assert!(
+                defs.is_some_and(|defs| defs.contains_key(target)),
+                "{name} has unresolved $ref {reference}"
+            );
+        }
+    }
+
+    fn collect_refs(value: &Value, refs: &mut Vec<String>) {
+        match value {
+            Value::Object(object) => {
+                if let Some(reference) = object.get("$ref").and_then(Value::as_str) {
+                    refs.push(reference.to_string());
+                }
+                for nested in object.values() {
+                    collect_refs(nested, refs);
+                }
+            }
+            Value::Array(items) => {
+                for item in items {
+                    collect_refs(item, refs);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    #[test]
+    fn every_tool_schema_resolves_its_definitions() {
+        for tool in tools().expect("tool definitions") {
+            assert_refs_resolve(&tool.input_schema, &tool.name);
+            if let Some(output) = &tool.output_schema {
+                assert_refs_resolve(output, &tool.name);
+            }
+        }
     }
 }

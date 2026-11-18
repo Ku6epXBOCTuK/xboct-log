@@ -51,6 +51,11 @@ pub fn patch_fields(name: &str) -> &'static [&'static str] {
     }
 }
 
+#[derive(Debug, Serialize, JsonSchema)]
+pub struct Items<T> {
+    pub items: Vec<T>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Kind {

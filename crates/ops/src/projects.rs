@@ -7,7 +7,7 @@ use xboct_log_core::{
     project_with_counts, repo_error, update_project,
 };
 
-use crate::{Ctx, Kind, Op};
+use crate::{Ctx, Items, Kind, Op};
 
 #[derive(Debug, Default, Deserialize, JsonSchema)]
 #[serde(default, deny_unknown_fields, rename_all = "camelCase")]
@@ -31,7 +31,7 @@ impl Op for ProjectsList {
     const MCP: bool = true;
 
     type Input = ListInput;
-    type Output = Vec<ProjectWithCounts>;
+    type Output = Items<ProjectWithCounts>;
 
     fn description() -> &'static str {
         crate::descriptions::PROJECTS_LIST
@@ -87,7 +87,7 @@ impl Op for ProjectsList {
             }
             projects.push(project_with_counts(&ctx.db, project).await?);
         }
-        Ok(projects)
+        Ok(Items { items: projects })
     }
 }
 

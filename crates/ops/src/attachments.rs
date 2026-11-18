@@ -9,7 +9,7 @@ use xboct_log_core::{
 };
 
 use crate::descriptions;
-use crate::{Ctx, Kind, Op, Result};
+use crate::{Ctx, Items, Kind, Op, Result};
 
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -74,11 +74,6 @@ pub struct MoveInput {
         description = "Task id in the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'); the prefix is matched case-insensitively, so 'log-82' works too. A bare task number (e.g. '82') is rejected: numbers are unique only inside a project, so resolve the project prefix first and pass 'LOG-82'. When nothing matches, the error suggests close ids."
     )]
     pub task_id: TaskKey,
-}
-
-#[derive(Debug, Serialize, JsonSchema)]
-pub struct Items<Item> {
-    pub items: Vec<Item>,
 }
 
 #[derive(Debug, Serialize, JsonSchema)]

@@ -202,6 +202,20 @@ mod tests {
             let output = &post["responses"]["200"]["content"]["application/json"]["schema"];
             assert!(!output.is_null(), "{} has no output schema", info.name);
         }
+        for name in [
+            "projects_list",
+            "scopes_list",
+            "scopes_project_ids",
+            "attachments_list",
+            "attachments_deleted_list",
+        ] {
+            let output = &paths[&format!("/api/{name}")]["post"]["responses"]["200"]["content"]["application/json"]
+                ["schema"];
+            assert!(
+                output["properties"]["items"].is_object(),
+                "{name} does not describe an items field"
+            );
+        }
         assert_eq!(document["components"]["schemas"]["Error"]["type"], "object");
     }
 

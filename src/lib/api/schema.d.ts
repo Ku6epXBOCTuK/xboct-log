@@ -3513,7 +3513,9 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProjectWithCounts"][];
+                    "application/json": {
+                        items: components["schemas"]["ProjectWithCounts"][];
+                    };
                 };
             };
             /** @description The input is not valid */
@@ -3889,7 +3891,9 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ScopeWithCounts"][];
+                    "application/json": {
+                        items: components["schemas"]["ScopeWithCounts"][];
+                    };
                 };
             };
             /** @description The input is not valid */
@@ -4024,7 +4028,9 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": string[];
+                    "application/json": {
+                        items: string[];
+                    };
                 };
             };
             /** @description The input is not valid */

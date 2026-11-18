@@ -7,7 +7,7 @@ use xboct_log_core::{
     list_scopes, preview_scope_delete, scoped_project_ids, update_scope,
 };
 
-use crate::{Ctx, Kind, Op};
+use crate::{Ctx, Items, Kind, Op};
 
 fn required_project(value: &str) -> Result<ProjectId> {
     let trimmed = value.trim();
@@ -31,7 +31,7 @@ impl Op for ScopesList {
     const MCP: bool = true;
 
     type Input = ListInput;
-    type Output = Vec<ScopeWithCounts>;
+    type Output = Items<ScopeWithCounts>;
 
     fn description() -> &'static str {
         crate::descriptions::SCOPES_LIST
@@ -45,13 +45,15 @@ impl Op for ScopesList {
             .transpose()?;
         let counts = count_tasks_by_scope(&ctx.db, project.as_ref()).await?;
         let scopes = list_scopes(&ctx.db, project.as_ref()).await?;
-        Ok(scopes
-            .into_iter()
-            .map(|scope| {
-                let count = counts.get(&scope.id.get()).copied().unwrap_or_default();
-                ScopeWithCounts::new(scope, count)
-            })
-            .collect())
+        Ok(Items {
+            items: scopes
+                .into_iter()
+                .map(|scope| {
+                    let count = counts.get(&scope.id.get()).copied().unwrap_or_default();
+                    ScopeWithCounts::new(scope, count)
+                })
+                .collect(),
+        })
     }
 }
 
@@ -93,14 +95,15 @@ impl Op for ScopesProjectIds {
     const MCP: bool = true;
 
     type Input = EmptyInput;
-    type Output = Vec<ProjectId>;
+    type Output = Items<ProjectId>;
 
     fn description() -> &'static str {
         crate::descriptions::SCOPES_PROJECT_IDS
     }
 
     async fn run(ctx: &Ctx, _input: Self::Input) -> Result<Self::Output> {
-        scoped_project_ids(&ctx.db).await
+        let items = scoped_project_ids(&ctx.db).await?;
+        Ok(Items { items })
     }
 }
 
