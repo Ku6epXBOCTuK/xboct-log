@@ -98,6 +98,7 @@ describe("appPath", () => {
 		expect(appPath("/deleted")).toBe("/deleted");
 		expect(appPath("/backups")).toBe("/backups");
 		expect(appPath("/tags")).toBe("/tags");
+		expect(appPath("/plans")).toBe("/plans");
 		expect(appPath("/tags/x")).toBeNull();
 	});
 

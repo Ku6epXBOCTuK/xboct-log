@@ -1,4 +1,3 @@
-import type { components } from "./schema.d.ts";
 import type {
 	ActivityChange,
 	Estimate,
@@ -7,6 +6,7 @@ import type {
 	Status,
 	Task,
 } from "#lib/types.ts";
+import type { components } from "./schema.d.ts";
 
 export type BatchError = components["schemas"]["Error"];
 
@@ -68,6 +68,8 @@ export interface TaskQuery {
 	has_epic?: boolean;
 	has_scope?: boolean;
 	has_tags?: boolean;
+	plan_id?: string;
+	has_plan?: boolean;
 	blocked_by?: string;
 	blocks?: string;
 	q?: string;
@@ -89,7 +91,8 @@ export interface TaskQuery {
 		| "status"
 		| "project"
 		| "number"
-		| "title";
+		| "title"
+		| "plan_position";
 	order?: "asc" | "desc";
 	limit?: number;
 	offset?: number;

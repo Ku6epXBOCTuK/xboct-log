@@ -9,6 +9,7 @@
 	import ClipBoardList from "~icons/lucide/clipboard-list";
 	import DatabaseBackup from "~icons/lucide/database-backup";
 	import FolderKanban from "~icons/lucide/folder-kanban";
+	import ListOrdered from "~icons/lucide/list-ordered";
 	import Tag from "~icons/lucide/tag";
 
 	interface Props {
@@ -29,6 +30,7 @@
 	const onDeleted = $derived(location.category === "deleted");
 	const onBackups = $derived(page.url.pathname === "/backups");
 	const onTags = $derived(page.url.pathname === "/tags");
+	const onPlans = $derived(page.url.pathname === "/plans");
 </script>
 
 <nav
@@ -65,6 +67,10 @@
 	>
 		<ArchiveRestore />
 		Deleted
+	</a>
+	<a class="nav-item" class:active={onPlans} href={resolve("/plans")}>
+		<ListOrdered />
+		Plans
 	</a>
 	<a class="nav-item" class:active={onTags} href={resolve("/tags")}>
 		<Tag />
