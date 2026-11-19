@@ -203,6 +203,11 @@ export class McpClient {
 		return result.resources;
 	}
 
+	async listResourceTemplates() {
+		const result = await this.request("resources/templates/list", {});
+		return result.resourceTemplates;
+	}
+
 	async readResource(uri) {
 		const result = await this.request("resources/read", { uri });
 		return result.contents;

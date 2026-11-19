@@ -18,8 +18,8 @@ use rmcp::service::RequestContext;
 use serde_json::{Map, Value, json};
 use xboct_log_core::{
     ActivitySource, AppError, Attachment, AttachmentContents, AttachmentId, AutoBackup, Config, Db,
-    Events, RequestLogEntry, RequestStatus, attachment_by_id, attachment_format,
-    list_all_attachments, read_attachment_file, record_request,
+    Document, Events, RequestLogEntry, RequestStatus, attachment_by_id, attachment_format,
+    list_all_attachments, list_documents, read_attachment_file, record_request, require_document,
 };
 use xboct_log_ops::{Ctx, dispatch, metadata, patch_fields, schema_of, tool_schema};
 
@@ -27,6 +27,8 @@ use crate::mcp_text;
 
 const ATTACHMENT_INDEX_URI: &str = "xboct-log://attachments";
 const ATTACHMENT_URI_PREFIX: &str = "xboct-log://attachment/";
+const DOCUMENT_INDEX_URI: &str = "xboct-log://documents";
+const DOCUMENT_URI_PREFIX: &str = "xboct-log://document/";
 const CLIENT_LABEL_MAX_LENGTH: usize = 80;
 
 #[derive(serde::Serialize, schemars::JsonSchema)]
@@ -152,7 +154,7 @@ impl ServerHandler for Backlog {
             (tool_result.into(), status, error_kind, error_message)
         };
 
-        if name.starts_with("attachments_") {
+        if name.starts_with("attachments_") || name.starts_with("documents_") {
             let _ = context.peer.notify_resource_list_changed().await;
         }
 
@@ -181,6 +183,10 @@ impl ServerHandler for Backlog {
                 .with_title(mcp_text::RESOURCES_TITLE)
                 .with_description(mcp_text::RESOURCES_DESCRIPTION)
                 .with_mime_type("application/json"),
+            Resource::new(DOCUMENT_INDEX_URI, "documents")
+                .with_title(mcp_text::DOCUMENTS_RESOURCES_TITLE)
+                .with_description(mcp_text::DOCUMENTS_RESOURCES_DESCRIPTION)
+                .with_mime_type("application/json"),
         ];
         for attachment in self
             .attachments()
@@ -191,6 +197,9 @@ impl ServerHandler for Backlog {
         {
             resources.push(attachment_resource(&attachment));
         }
+        for document in list_documents(&self.db, None).await.map_err(internal)? {
+            resources.push(document_resource(&document));
+        }
         Ok(ListResourcesResult::with_all_items(resources))
     }
 
@@ -199,11 +208,17 @@ impl ServerHandler for Backlog {
         _request: Option<PaginatedRequestParams>,
         _context: RequestContext<RoleServer>,
     ) -> Result<ListResourceTemplatesResult, McpError> {
-        let template = ResourceTemplate::new("xboct-log://attachment/{id}", "attachment")
+        let attachment = ResourceTemplate::new("xboct-log://attachment/{id}", "attachment")
             .with_title(mcp_text::TEMPLATE_TITLE)
             .with_description(mcp_text::TEMPLATE_DESCRIPTION)
             .with_mime_type("application/octet-stream");
-        Ok(ListResourceTemplatesResult::with_all_items(vec![template]))
+        let document = ResourceTemplate::new("xboct-log://document/{key_or_id}", "document")
+            .with_title(mcp_text::DOCUMENT_TEMPLATE_TITLE)
+            .with_description(mcp_text::DOCUMENT_TEMPLATE_DESCRIPTION)
+            .with_mime_type("text/markdown");
+        Ok(ListResourceTemplatesResult::with_all_items(vec![
+            attachment, document,
+        ]))
     }
 
     async fn read_resource(
@@ -212,6 +227,52 @@ impl ServerHandler for Backlog {
         _context: RequestContext<RoleServer>,
     ) -> Result<ReadResourceResponse, McpError> {
         let uri = request.uri;
+        if uri == DOCUMENT_INDEX_URI {
+            let listed: Vec<Value> = list_documents(&self.db, None)
+                .await
+                .map_err(internal)?
+                .into_iter()
+                .map(|document| {
+                    json!({
+                        "id": document.id,
+                        "key": document.key,
+                        "project_id": document.project_id,
+                        "kind": document.kind.as_str(),
+                        "title": document.title,
+                        "status": document.status.as_str(),
+                        "uri": format!("{DOCUMENT_URI_PREFIX}{}", document.key),
+                    })
+                })
+                .collect();
+            let text = serde_json::to_string(&listed)
+                .map_err(|error| McpError::internal_error(error.to_string(), None))?;
+            return Ok(
+                ReadResourceResult::new(vec![ResourceContents::TextResourceContents {
+                    uri: uri.clone(),
+                    mime_type: Some("application/json".to_string()),
+                    text,
+                    meta: None,
+                }])
+                .into(),
+            );
+        }
+        if let Some(id) = uri.strip_prefix(DOCUMENT_URI_PREFIX) {
+            let document = require_document(&self.db, id).await.map_err(|error| {
+                McpError::resource_not_found(
+                    uri.clone(),
+                    Some(json!({ "uri": uri, "error": error.message() })),
+                )
+            })?;
+            return Ok(
+                ReadResourceResult::new(vec![ResourceContents::TextResourceContents {
+                    uri: uri.clone(),
+                    mime_type: Some("text/markdown".to_string()),
+                    text: document.body,
+                    meta: None,
+                }])
+                .into(),
+            );
+        }
         if uri == ATTACHMENT_INDEX_URI {
             let listed: Vec<Attachment> = self
                 .attachments()
@@ -331,6 +392,16 @@ fn attachment_resource(attachment: &Attachment) -> Resource {
     .with_title(mcp_text::ATTACHMENT_TITLE)
     .with_description(mcp_text::TEMPLATE_DESCRIPTION)
     .with_mime_type(attachment_mime(&attachment.file_name))
+}
+
+fn document_resource(document: &Document) -> Resource {
+    Resource::new(
+        format!("{DOCUMENT_URI_PREFIX}{}", document.key),
+        format!("{} {}", document.key, document.title),
+    )
+    .with_title(mcp_text::DOCUMENT_TEMPLATE_TITLE)
+    .with_description(mcp_text::DOCUMENT_TEMPLATE_DESCRIPTION)
+    .with_mime_type("text/markdown")
 }
 
 fn attachment_mime(file_name: &str) -> String {

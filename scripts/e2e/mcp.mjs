@@ -1313,12 +1313,25 @@ try {
 
 	console.log("\nresources");
 	await check(
-		"resources/list exposes the index and the attachment",
+		"resources/list exposes both indexes and both items",
 		async () => {
 			const resources = await client.listResources();
 			const uris = resources.map((item) => item.uri);
 			assert.ok(uris.includes("xboct-log://attachments"));
 			assert.ok(uris.includes(`xboct-log://attachment/${attachment.id}`));
+			assert.ok(uris.includes("xboct-log://documents"));
+			assert.ok(uris.includes(`xboct-log://document/${document.key}`));
+		},
+	);
+	await check(
+		"resources/templates/list exposes the document template",
+		async () => {
+			const templates = await client.listResourceTemplates();
+			assert.ok(
+				templates.some(
+					(item) => item.uriTemplate === "xboct-log://document/{key_or_id}",
+				),
+			);
 		},
 	);
 	await check("resources/read returns the attachment index", async () => {
@@ -1336,6 +1349,27 @@ try {
 			"hello from the e2e suite\n",
 		);
 	});
+	await check("resources/read returns the document index", async () => {
+		const contents = await client.readResource("xboct-log://documents");
+		const listed = JSON.parse(contents[0].text);
+		assert.ok(Array.isArray(listed));
+		const entry = listed.find((item) => item.id === document.id);
+		assert.equal(entry.key, document.key);
+		assert.equal(entry.uri, `xboct-log://document/${document.key}`);
+	});
+	await check(
+		"resources/read returns document text by key and id",
+		async () => {
+			const byKey = await client.readResource(
+				`xboct-log://document/${document.key}`,
+			);
+			assert.equal(byKey[0].text, document.body);
+			const byId = await client.readResource(
+				`xboct-log://document/${document.id}`,
+			);
+			assert.equal(byId[0].text, document.body);
+		},
+	);
 
 	console.log("\nerrors");
 	await check("an unknown argument is rejected with a hint", async () => {
