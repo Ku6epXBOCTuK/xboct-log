@@ -1155,7 +1155,7 @@ export interface paths {
         put?: never;
         /**
          * List all plans across every project: a plan has no project_id and its items may come from any project
-         * @description List all plans across every project: a plan has no project_id and its items may come from any project. Each item carries tasks_count and epics_count (soft-deleted tasks are not counted). Returns: {items} - sorted by name; use plans_get for one plan's items.
+         * @description List all plans across every project: a plan has no project_id and its items may come from any project. Each item carries tasks_count and epics_count (soft-deleted tasks are not counted). Returns: {items} - sorted by name. Read one plan's ordered items with tasks_list {plan_id, sort: 'plan_position', include_deleted: true}, its notes with plans_notes_list and its document links with plans_documents_list.
          */
         post: operations["plans_list"];
         delete?: never;
@@ -1175,7 +1175,7 @@ export interface paths {
         put?: never;
         /**
          * Get one plan by plan_id with tasks_count and epics_count
-         * @description Get one plan by plan_id with tasks_count and epics_count. Returns: the plan - {id, name, description, status, created_at, updated_at, closed_at, deleted_at, tasks_count, epics_count}.
+         * @description Get one plan by plan_id with tasks_count and epics_count. Its ordered items come from tasks_list {plan_id, sort: 'plan_position', include_deleted: true}, its notes from plans_notes_list and its document links from plans_documents_list. Returns: the plan - {id, name, description, status, created_at, updated_at, closed_at, deleted_at, tasks_count, epics_count}.
          */
         post: operations["plans_get"];
         delete?: never;

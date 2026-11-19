@@ -102,6 +102,13 @@ try {
 		]) {
 			assert.ok(names.has(name), `${name} is missing`);
 		}
+		const plansList = tools.find((tool) => tool.name === "plans_list");
+		assert.ok(plansList, "plans_list is missing");
+		assert.match(plansList.description, /tasks_list/);
+		assert.doesNotMatch(
+			plansList.description,
+			/plans_get for one plan's items/,
+		);
 	});
 
 	console.log("\nsetup");
