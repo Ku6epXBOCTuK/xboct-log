@@ -1,8 +1,6 @@
 <script lang="ts">
 	import { untrack } from "svelte";
 	import { cubicOut } from "svelte/easing";
-	import { fetchFresh } from "#lib/api/fresh.ts";
-	import { getPlans, type PlanWithCounts } from "#lib/api/plans.ts";
 	import AttachButton from "#lib/components/attachments/AttachButton.svelte";
 	import TaskAttachments from "#lib/components/attachments/TaskAttachments.svelte";
 	import CommentsOverlay from "#lib/components/detail/CommentsOverlay.svelte";
@@ -53,10 +51,9 @@
 
 	let { task, onclear, ondelete, oncreatechild, onmoved }: Props = $props();
 
-	const { fresh, tasks, projects, scopes, tags, data, comments, stats, ui } =
+	const { tasks, projects, scopes, tags, data, comments, stats, ui } =
 		useBoard();
 
-	let plans = $state<PlanWithCounts[]>([]);
 	let saving = $state(false);
 	let failure = $state<string | null>(null);
 	let historyOpen = $state(false);
@@ -84,23 +81,6 @@
 			total: children.length,
 		};
 	});
-
-	const taskPlans = $derived(
-		task.plan_ids.map((id) => ({
-			id,
-			name: plans.find((plan) => plan.id === id)?.name ?? id,
-		})),
-	);
-
-	async function reloadPlans(): Promise<void> {
-		plans = await fetchFresh(getPlans({}));
-	}
-
-	$effect(() => {
-		void reloadPlans();
-	});
-
-	$effect(() => fresh.register("plans", () => void reloadPlans()));
 
 	async function onunknowntag(name: string) {
 		await tags.create(name);
@@ -431,10 +411,10 @@
 			ontitlefocus={cancelDraft}
 			attachments={attachmentSection}
 		/>
-		{#if taskPlans.length > 0}
+		{#if task.plan_names && task.plan_names.length > 0}
 			<div class="plan-refs">
 				<span class="plan-refs-label">Plans</span>
-				{#each taskPlans as plan (plan.id)}
+				{#each task.plan_names as plan (plan.id)}
 					<span class="plan-ref">{plan.name}</span>
 				{/each}
 			</div>

@@ -40,6 +40,7 @@ export interface TaskQueryArgs {
 	limit: number;
 	offset: number;
 	include_description: true;
+	include_plan_names: true;
 }
 
 function isExactOnly(input: string): boolean {
@@ -84,6 +85,7 @@ export function buildTaskQuery(
 		limit: pageSize,
 		offset: (page - 1) * pageSize,
 		include_description: true,
+		include_plan_names: true,
 	};
 
 	const exactOnly = isExactOnly(filters.query);

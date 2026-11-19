@@ -124,6 +124,10 @@ describe("task query", () => {
 		expect(query.status).toEqual(["open"]);
 	});
 
+	it("asks the server for readable plan names", () => {
+		expect(buildTaskQuery(filters()).include_plan_names).toBe(true);
+	});
+
 	it("maps the page onto limit and offset", () => {
 		const query = buildTaskQuery(filters({ page: 3 }), 3, 20);
 

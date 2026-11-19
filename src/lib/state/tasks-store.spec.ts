@@ -71,6 +71,7 @@ function page(offset = 0): TaskQueryArgs {
 		limit: 20,
 		offset,
 		include_description: true,
+		include_plan_names: true,
 	};
 }
 

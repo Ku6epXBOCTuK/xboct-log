@@ -99,6 +99,7 @@ export interface TaskQuery {
 	include_deleted?: boolean;
 	deleted_only?: boolean;
 	include_description?: boolean;
+	include_plan_names?: boolean;
 }
 
 export interface TaskUpdateOutcome {
