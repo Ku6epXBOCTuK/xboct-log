@@ -1494,8 +1494,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * List working documents (ADRs, PRDs, architecture, research, workflow notes, guides, specs) across every project; pass project_id to narrow to one project
-         * @description List working documents (ADRs, PRDs, architecture, research, workflow notes, guides, specs) across every project; pass project_id to narrow to one project. Each document has its own 'PREFIX-NNN' key in its project. Returns: {items, total} - total is the count before limit/offset. By default each item carries short_body (first non-empty line, ~120 chars) instead of the full body; set include_body or request the body field to get the full text. Use fields to limit columns (id, project_id, number, key, kind, title, body, short_body, status, source_file, created_at, updated_at, closed_at, deleted_at); identity fields are always present and unknown names are ignored. limit defaults to 100 (max 1000); use offset and total to paginate. Soft-deleted documents are hidden unless include_deleted is true.
+         * List working documents (ADRs, PRDs, architecture, research, workflow notes, guides, specs) across every project
+         * @description List working documents (ADRs, PRDs, architecture, research, workflow notes, guides, specs) across every project. Each document has its own 'PREFIX-NNN' key in its project. Filter with project_id (one id or an array), kind, status, q (case-insensitive substring in title, key and source_file, never body), title, title_exact and source_file. Sort with sort (number, key, title, kind, status, created_at, updated_at, closed_at) and order (asc/desc); dates default to descending, others to ascending, with key as a stable tie-break. Returns: {items, total} - total is the count before limit/offset. By default each item carries short_body (first non-empty line, ~120 chars) instead of the full body; set include_body or request the body field to get the full text. Use fields to limit columns (id, project_id, number, key, kind, title, body, short_body, status, source_file, created_at, updated_at, closed_at, deleted_at); identity fields are always present and unknown names are ignored. limit defaults to 100 (max 1000); use offset and total to paginate. Soft-deleted documents are hidden unless include_deleted is true; deleted_only returns only soft-deleted documents.
          */
         post: operations["documents_list"];
         delete?: never;
@@ -1655,7 +1655,7 @@ export interface paths {
         put?: never;
         /**
          * List the documents linked to a plan by plan_id; a plan is global and may link documents of any project
-         * @description List the documents linked to a plan by plan_id; a plan is global and may link documents of any project. Accepts the same fields, include_body, include_deleted, limit and offset options as documents_list. Returns: {items, total} - by default each item carries short_body instead of the full body.
+         * @description List the documents linked to a plan by plan_id; a plan is global and may link documents of any project. Accepts the same filters, sort, fields, include_body, include_deleted, deleted_only, limit and offset options as documents_list. Returns: {items, total} - by default each item carries short_body instead of the full body.
          */
         post: operations["plans_documents_list"];
         delete?: never;
@@ -2164,6 +2164,14 @@ export interface components {
             body: string;
             created_at: string;
         };
+        OneOrList22: components["schemas"]["DocumentKind"] | components["schemas"]["DocumentKind"][];
+        /** @enum {string} */
+        DocumentKind: "adr" | "prd" | "architecture" | "research" | "workflow" | "guide" | "spec";
+        OneOrList32: components["schemas"]["DocumentStatus"] | components["schemas"]["DocumentStatus"][];
+        /** @enum {string} */
+        DocumentStatus: "draft" | "accepted" | "superseded" | "archived";
+        /** @enum {string} */
+        DocumentSort: "number" | "key" | "title" | "kind" | "status" | "created_at" | "updated_at" | "closed_at";
         DocumentListEntry: components["schemas"]["Document"] | components["schemas"]["DocumentView"];
         Document: {
             id: string;
@@ -2181,10 +2189,6 @@ export interface components {
             closed_at?: string | null;
             deleted_at?: string | null;
         };
-        /** @enum {string} */
-        DocumentKind: "adr" | "prd" | "architecture" | "research" | "workflow" | "guide" | "spec";
-        /** @enum {string} */
-        DocumentStatus: "draft" | "accepted" | "superseded" | "archived";
         DocumentView: {
             id: string;
             project_id: string;
@@ -7874,8 +7878,26 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @description Only documents of this project, when given. */
-                    project_id?: string | null;
+                    /** @description Only documents of these projects: one project id or an array of them. */
+                    project_id?: components["schemas"]["OneOrList"] | null;
+                    /** @description Only documents of these kinds. */
+                    kind?: components["schemas"]["OneOrList22"] | null;
+                    /** @description Only documents with these statuses. */
+                    status?: components["schemas"]["OneOrList32"] | null;
+                    /** @description Case-insensitive substring in title, key or source_file. The body is not searched. */
+                    q?: string | null;
+                    /** @description Case-insensitive substring in the title. */
+                    title?: string | null;
+                    /** @description Exact case-insensitive title. */
+                    title_exact?: string | null;
+                    /** @description Case-insensitive substring in source_file. */
+                    source_file?: string | null;
+                    /** @description Sort field. Defaults to number; date fields default to descending. */
+                    sort?: components["schemas"]["DocumentSort"] | null;
+                    /** @description Sort direction; defaults to the sort field's natural direction. */
+                    order?: components["schemas"]["Order"] | null;
+                    /** @description Return only soft-deleted documents. Overrides include_deleted. */
+                    deleted_only?: boolean | null;
                     /** @description Fields to include in each item: a comma-separated string or an array of names. Supported fields: id, project_id, number, key, kind, title, body, short_body, status, source_file, created_at, updated_at, closed_at, deleted_at. Identity fields are always present; unknown names are ignored. Requesting 'body' also returns the full text. */
                     fields?: components["schemas"]["FieldSelection"] | null;
                     /** @description Return the full body. By default each item carries short_body (first non-empty line, ~120 chars) instead. */
@@ -8482,8 +8504,26 @@ export interface operations {
             content: {
                 "application/json": {
                     plan_id: string;
-                    /** @description Only documents of this project, when given. */
-                    project_id?: string | null;
+                    /** @description Only documents of these projects: one project id or an array of them. */
+                    project_id?: components["schemas"]["OneOrList"] | null;
+                    /** @description Only documents of these kinds. */
+                    kind?: components["schemas"]["OneOrList22"] | null;
+                    /** @description Only documents with these statuses. */
+                    status?: components["schemas"]["OneOrList32"] | null;
+                    /** @description Case-insensitive substring in title, key or source_file. The body is not searched. */
+                    q?: string | null;
+                    /** @description Case-insensitive substring in the title. */
+                    title?: string | null;
+                    /** @description Exact case-insensitive title. */
+                    title_exact?: string | null;
+                    /** @description Case-insensitive substring in source_file. */
+                    source_file?: string | null;
+                    /** @description Sort field. Defaults to number; date fields default to descending. */
+                    sort?: components["schemas"]["DocumentSort"] | null;
+                    /** @description Sort direction; defaults to the sort field's natural direction. */
+                    order?: components["schemas"]["Order"] | null;
+                    /** @description Return only soft-deleted documents. Overrides include_deleted. */
+                    deleted_only?: boolean | null;
                     /** @description Fields to include in each item: a comma-separated string or an array of names. Supported fields: id, project_id, number, key, kind, title, body, short_body, status, source_file, created_at, updated_at, closed_at, deleted_at. Identity fields are always present; unknown names are ignored. Requesting 'body' also returns the full text. */
                     fields?: components["schemas"]["FieldSelection"] | null;
                     /** @description Return the full body. By default each item carries short_body (first non-empty line, ~120 chars) instead. */

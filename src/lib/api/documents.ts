@@ -26,9 +26,34 @@ export interface DocumentPatchInput {
 	expected_updated_at?: string | null;
 }
 
-export async function getDocuments(input: {
-	project_id?: string;
-}): Promise<Document[]> {
+export interface DocumentListInput {
+	project_id?: string | string[];
+	kind?: DocumentKind | DocumentKind[];
+	status?: DocumentStatus | DocumentStatus[];
+	q?: string;
+	title?: string;
+	title_exact?: string;
+	source_file?: string;
+	sort?:
+		| "number"
+		| "key"
+		| "title"
+		| "kind"
+		| "status"
+		| "created_at"
+		| "updated_at"
+		| "closed_at";
+	order?: "asc" | "desc";
+	deleted_only?: boolean;
+	fields?: string | string[];
+	include_deleted?: boolean;
+	limit?: number;
+	offset?: number;
+}
+
+export async function getDocuments(
+	input: DocumentListInput = {},
+): Promise<Document[]> {
 	const answer = await client.POST("/api/documents_list", {
 		body: { ...input, include_body: true, limit: 1000 },
 	});
@@ -89,9 +114,9 @@ export async function getDocumentRevisions(input: {
 	return unwrap<{ items: TextRevision[] }>(answer).items;
 }
 
-export async function getPlanDocuments(input: {
-	plan_id: string;
-}): Promise<Document[]> {
+export async function getPlanDocuments(
+	input: { plan_id: string } & DocumentListInput,
+): Promise<Document[]> {
 	const answer = await client.POST("/api/plans_documents_list", {
 		body: { ...input, include_body: true, limit: 1000 },
 	});

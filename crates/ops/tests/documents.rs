@@ -286,3 +286,95 @@ async fn document_list_ops_return_totals_previews_and_plan_scope() {
 
     let _ = first_id;
 }
+
+#[tokio::test]
+async fn document_list_ops_filter_kind_status_and_search() {
+    let ctx = context().await;
+    let alpha = call(
+        &ctx,
+        "documents_create",
+        json!({"project_id": "log", "kind": "adr", "title": "Alpha", "body": "alpha body", "source_file": "docs/alpha.md"}),
+    )
+    .await;
+    let alpha_id = alpha["id"].as_str().unwrap();
+    let beta = call(
+        &ctx,
+        "documents_create",
+        json!({"project_id": "log", "kind": "spec", "title": "Beta", "body": "beta body", "source_file": "docs/beta.md"}),
+    )
+    .await;
+    let beta_id = beta["id"].as_str().unwrap();
+    let gamma = call(
+        &ctx,
+        "documents_create",
+        json!({"project_id": "spa", "kind": "guide", "title": "Gamma", "body": "gamma"}),
+    )
+    .await;
+    let gamma_id = gamma["id"].as_str().unwrap();
+    call(
+        &ctx,
+        "documents_update",
+        json!({"document_id": gamma_id, "status": "accepted"}),
+    )
+    .await;
+
+    let filtered = call(
+        &ctx,
+        "documents_list",
+        json!({"kind": ["adr", "guide"], "sort": "title", "order": "asc", "fields": ["id", "title"]}),
+    )
+    .await;
+    assert_eq!(filtered["total"], 2);
+    let items = filtered["items"].as_array().unwrap();
+    assert_eq!(items[0]["title"], "Alpha");
+    assert_eq!(items[1]["title"], "Gamma");
+    assert!(items[0].get("body").is_none());
+
+    let found = call(&ctx, "documents_list", json!({"q": "DOCS/BETA"})).await;
+    assert_eq!(found["total"], 1);
+    assert_eq!(found["items"][0]["id"], beta_id);
+    let no_body_search = call(&ctx, "documents_list", json!({"q": "body"})).await;
+    assert_eq!(no_body_search["total"], 0);
+    let source = call(&ctx, "documents_list", json!({"source_file": "ALPHA"})).await;
+    assert_eq!(source["items"][0]["id"], alpha_id);
+    let accepted = call(&ctx, "documents_list", json!({"status": "accepted"})).await;
+    assert_eq!(accepted["total"], 1);
+    assert_eq!(accepted["items"][0]["id"], gamma_id);
+    let projects = call(
+        &ctx,
+        "documents_list",
+        json!({"project_id": ["log", "spa"]}),
+    )
+    .await;
+    assert_eq!(projects["total"], 3);
+
+    let plan = call(&ctx, "plans_create", json!({"name": "Docs"})).await;
+    let plan_id = plan["id"].as_str().unwrap();
+    call(
+        &ctx,
+        "plans_documents_link",
+        json!({"plan_id": plan_id, "document_id": beta_id}),
+    )
+    .await;
+    call(
+        &ctx,
+        "plans_documents_link",
+        json!({"plan_id": plan_id, "document_id": gamma_id}),
+    )
+    .await;
+    let scoped = call(
+        &ctx,
+        "plans_documents_list",
+        json!({"plan_id": plan_id, "kind": "guide", "include_body": true}),
+    )
+    .await;
+    assert_eq!(scoped["total"], 1);
+    assert_eq!(scoped["items"][0]["id"], gamma_id);
+    assert_eq!(scoped["items"][0]["body"], "gamma");
+
+    call(&ctx, "documents_delete", json!({"document_id": beta_id})).await;
+    let deleted = call(&ctx, "documents_list", json!({"deleted_only": true})).await;
+    assert_eq!(deleted["total"], 1);
+    assert_eq!(deleted["items"][0]["id"], beta_id);
+    let _ = alpha_id;
+}

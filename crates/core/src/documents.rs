@@ -2,7 +2,10 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use sqlx::{QueryBuilder, Row};
 
-use crate::{AppError, Db, DocumentKey, Result, Tx, tasks::FieldSelection};
+use crate::{
+    AppError, Db, DocumentKey, ProjectId, Result, Tx,
+    query::{FieldSelection, OneOrList, Order},
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
@@ -113,11 +116,52 @@ fn default_document_limit() -> u32 {
     100
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum DocumentSort {
+    Number,
+    Key,
+    Title,
+    Kind,
+    Status,
+    CreatedAt,
+    UpdatedAt,
+    ClosedAt,
+}
+
+impl DocumentSort {
+    fn descending_by_default(self) -> bool {
+        matches!(self, Self::CreatedAt | Self::UpdatedAt | Self::ClosedAt)
+    }
+}
+
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct DocumentQuery {
-    #[schemars(description = "Only documents of this project, when given.")]
-    pub project_id: Option<String>,
+    #[schemars(
+        description = "Only documents of these projects: one project id or an array of them."
+    )]
+    pub project_id: Option<OneOrList<ProjectId>>,
+    #[schemars(description = "Only documents of these kinds.")]
+    pub kind: Option<OneOrList<DocumentKind>>,
+    #[schemars(description = "Only documents with these statuses.")]
+    pub status: Option<OneOrList<DocumentStatus>>,
+    #[schemars(
+        description = "Case-insensitive substring in title, key or source_file. The body is not searched."
+    )]
+    pub q: Option<String>,
+    #[schemars(description = "Case-insensitive substring in the title.")]
+    pub title: Option<String>,
+    #[schemars(description = "Exact case-insensitive title.")]
+    pub title_exact: Option<String>,
+    #[schemars(description = "Case-insensitive substring in source_file.")]
+    pub source_file: Option<String>,
+    #[schemars(description = "Sort field. Defaults to number; date fields default to descending.")]
+    pub sort: Option<DocumentSort>,
+    #[schemars(description = "Sort direction; defaults to the sort field's natural direction.")]
+    pub order: Option<Order>,
+    #[schemars(description = "Return only soft-deleted documents. Overrides include_deleted.")]
+    pub deleted_only: Option<bool>,
     #[schemars(
         description = "Fields to include in each item: a comma-separated string or an array of names. Supported fields: id, project_id, number, key, kind, title, body, short_body, status, source_file, created_at, updated_at, closed_at, deleted_at. Identity fields are always present; unknown names are ignored. Requesting 'body' also returns the full text."
     )]
@@ -143,6 +187,15 @@ impl Default for DocumentQuery {
     fn default() -> Self {
         Self {
             project_id: None,
+            kind: None,
+            status: None,
+            q: None,
+            title: None,
+            title_exact: None,
+            source_file: None,
+            sort: None,
+            order: None,
+            deleted_only: None,
             fields: None,
             include_body: None,
             include_deleted: None,
@@ -413,6 +466,104 @@ fn pick_document_fields(view: DocumentView, fields: Option<&[String]>) -> Docume
     )
 }
 
+fn push_in_text<T: AsRef<str>>(qb: &mut QueryBuilder<sqlx::Sqlite>, column: &str, values: &[T]) {
+    qb.push(column).push(" IN (");
+    let mut separated = qb.separated(", ");
+    for value in values {
+        separated.push_bind(value.as_ref().to_string());
+    }
+    separated.push_unseparated(")");
+}
+
+fn push_document_where(
+    qb: &mut QueryBuilder<sqlx::Sqlite>,
+    plan_id: Option<&str>,
+    query: &DocumentQuery,
+) {
+    qb.push(" WHERE 1 = 1");
+    if let Some(plan_id) = plan_id {
+        qb.push(" AND pd.plan_id = ").push_bind(plan_id);
+    }
+    if let Some(projects) = &query.project_id {
+        let values = projects.clone().into_vec();
+        qb.push(" AND ");
+        push_in_text(qb, "d.project_id", &values);
+    }
+    if let Some(kinds) = &query.kind {
+        let values: Vec<&str> = kinds
+            .clone()
+            .into_vec()
+            .iter()
+            .map(|kind| kind.as_str())
+            .collect();
+        qb.push(" AND ");
+        push_in_text(qb, "d.kind", &values);
+    }
+    if let Some(statuses) = &query.status {
+        let values: Vec<&str> = statuses
+            .clone()
+            .into_vec()
+            .iter()
+            .map(|status| status.as_str())
+            .collect();
+        qb.push(" AND ");
+        push_in_text(qb, "d.status", &values);
+    }
+    if let Some(term) = &query.q {
+        let pattern = format!("%{}%", term.to_lowercase());
+        qb.push(" AND (ULOWER(d.title) LIKE ")
+            .push_bind(pattern.clone())
+            .push(" OR ULOWER(d.key) LIKE ")
+            .push_bind(pattern.clone())
+            .push(" OR ULOWER(COALESCE(d.source_file, '')) LIKE ")
+            .push_bind(pattern)
+            .push(")");
+    }
+    if let Some(title) = &query.title {
+        qb.push(" AND ULOWER(d.title) LIKE ")
+            .push_bind(format!("%{}%", title.to_lowercase()));
+    }
+    if let Some(title) = &query.title_exact {
+        qb.push(" AND ULOWER(d.title) = ")
+            .push_bind(title.to_lowercase());
+    }
+    if let Some(source) = &query.source_file {
+        qb.push(" AND ULOWER(COALESCE(d.source_file, '')) LIKE ")
+            .push_bind(format!("%{}%", source.to_lowercase()));
+    }
+    if query.deleted_only == Some(true) {
+        qb.push(" AND d.deleted_at IS NOT NULL");
+    } else if query.include_deleted != Some(true) {
+        qb.push(" AND d.deleted_at IS NULL");
+    }
+}
+
+fn push_document_order(qb: &mut QueryBuilder<sqlx::Sqlite>, query: &DocumentQuery) {
+    let sort = query.sort.unwrap_or(DocumentSort::Number);
+    let descending = query.order.map_or_else(
+        || sort.descending_by_default(),
+        |order| order == Order::Desc,
+    );
+    let direction = if descending { "DESC" } else { "ASC" };
+    qb.push(" ORDER BY ");
+    match sort {
+        DocumentSort::Number => qb.push("d.number ").push(direction).push(", d.key ASC"),
+        DocumentSort::Key => qb.push("d.key ").push(direction),
+        DocumentSort::Title => qb.push("d.title ").push(direction).push(", d.key ASC"),
+        DocumentSort::Kind => qb.push("d.kind ").push(direction).push(", d.key ASC"),
+        DocumentSort::Status => qb
+            .push("CASE d.status WHEN 'draft' THEN 0 WHEN 'accepted' THEN 1 WHEN 'superseded' THEN 2 WHEN 'archived' THEN 3 ELSE 99 END ")
+            .push(direction)
+            .push(", d.key ASC"),
+        DocumentSort::CreatedAt => qb.push("d.created_at ").push(direction).push(", d.key ASC"),
+        DocumentSort::UpdatedAt => qb.push("d.updated_at ").push(direction).push(", d.key ASC"),
+        DocumentSort::ClosedAt => qb
+            .push("(d.closed_at IS NULL) ASC, d.closed_at ")
+            .push(direction)
+            .push(", d.key ASC"),
+    };
+}
+
 pub async fn query_documents(
     db: &Db,
     plan_id: Option<&str>,
@@ -424,40 +575,22 @@ pub async fn query_documents(
         || fields
             .as_ref()
             .is_some_and(|fields| fields.iter().any(|field| field == "body"));
-    let include_deleted = query.include_deleted == Some(true);
 
     let mut count = QueryBuilder::new("SELECT COUNT(*) FROM documents d");
     if plan_id.is_some() {
         count.push(" JOIN plan_documents pd ON pd.document_id = d.id");
     }
-    count.push(" WHERE 1 = 1");
-    if let Some(plan_id) = plan_id {
-        count.push(" AND pd.plan_id = ").push_bind(plan_id);
-    }
-    if let Some(project_id) = &query.project_id {
-        count.push(" AND d.project_id = ").push_bind(project_id);
-    }
-    if !include_deleted {
-        count.push(" AND d.deleted_at IS NULL");
-    }
+    push_document_where(&mut count, plan_id, query);
     let total: i64 = count.build_query_scalar().fetch_one(db.pool()).await?;
 
     let mut select = QueryBuilder::new("SELECT d.* FROM documents d");
     if plan_id.is_some() {
         select.push(" JOIN plan_documents pd ON pd.document_id = d.id");
     }
-    select.push(" WHERE 1 = 1");
-    if let Some(plan_id) = plan_id {
-        select.push(" AND pd.plan_id = ").push_bind(plan_id);
-    }
-    if let Some(project_id) = &query.project_id {
-        select.push(" AND d.project_id = ").push_bind(project_id);
-    }
-    if !include_deleted {
-        select.push(" AND d.deleted_at IS NULL");
-    }
+    push_document_where(&mut select, plan_id, query);
+    push_document_order(&mut select, query);
     select
-        .push(" ORDER BY d.project_id, d.number LIMIT ")
+        .push(" LIMIT ")
         .push_bind(query.limit)
         .push(" OFFSET ")
         .push_bind(query.offset);
@@ -994,7 +1127,7 @@ mod tests {
             None,
             &DocumentQuery {
                 include_body: Some(true),
-                fields: Some(crate::tasks::FieldSelection::Csv("id,body".into())),
+                fields: Some(FieldSelection::Csv("id,body".into())),
                 ..DocumentQuery::default()
             },
         )
@@ -1072,5 +1205,223 @@ mod tests {
         .await
         .expect_err("invalid limit");
         assert_eq!(invalid.kind(), crate::AppErrorKind::Validation);
+    }
+
+    #[tokio::test]
+    async fn document_query_filters_sorts_and_scopes_projects() {
+        let db = open().await;
+        let alpha = create_document(
+            &db,
+            "log",
+            DocumentKind::Adr,
+            "Alpha",
+            "alpha body",
+            Some("docs/alpha.md"),
+        )
+        .await
+        .expect("alpha");
+        let beta = create_document(
+            &db,
+            "log",
+            DocumentKind::Spec,
+            "Beta",
+            "beta body",
+            Some("docs/beta.md"),
+        )
+        .await
+        .expect("beta");
+        let gamma = create_document(&db, "spa", DocumentKind::Guide, "Gamma", "gamma", None)
+            .await
+            .expect("gamma");
+        update_document(
+            &db,
+            &gamma.id,
+            &DocumentPatch {
+                status: Some(DocumentStatus::Accepted),
+                ..DocumentPatch::default()
+            },
+            None,
+        )
+        .await
+        .expect("accepted");
+
+        let kinds = query_documents(
+            &db,
+            None,
+            &DocumentQuery {
+                kind: Some(OneOrList::Many(vec![
+                    DocumentKind::Adr,
+                    DocumentKind::Guide,
+                ])),
+                ..DocumentQuery::default()
+            },
+        )
+        .await
+        .expect("kinds");
+        assert_eq!(kinds.total, 2);
+        let values = serde_json::to_value(&kinds.items).unwrap();
+        assert!(
+            values
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|item| item["id"] == alpha.id)
+        );
+        assert!(
+            values
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|item| item["id"] == gamma.id)
+        );
+
+        let statuses = query_documents(
+            &db,
+            None,
+            &DocumentQuery {
+                status: Some(OneOrList::One(DocumentStatus::Accepted)),
+                ..DocumentQuery::default()
+            },
+        )
+        .await
+        .expect("statuses");
+        assert_eq!(statuses.total, 1);
+        assert_eq!(
+            serde_json::to_value(&statuses.items[0]).unwrap()["id"],
+            gamma.id
+        );
+
+        let searched = query_documents(
+            &db,
+            None,
+            &DocumentQuery {
+                q: Some("DOCS/BETA".into()),
+                ..DocumentQuery::default()
+            },
+        )
+        .await
+        .expect("search");
+        assert_eq!(
+            serde_json::to_value(&searched.items[0]).unwrap()["id"],
+            beta.id
+        );
+        let body_not_searched = query_documents(
+            &db,
+            None,
+            &DocumentQuery {
+                q: Some("body".into()),
+                ..DocumentQuery::default()
+            },
+        )
+        .await
+        .expect("body search");
+        assert_eq!(body_not_searched.total, 0);
+
+        let titled = query_documents(
+            &db,
+            None,
+            &DocumentQuery {
+                title: Some("alp".into()),
+                ..DocumentQuery::default()
+            },
+        )
+        .await
+        .expect("title");
+        assert_eq!(
+            serde_json::to_value(&titled.items[0]).unwrap()["id"],
+            alpha.id
+        );
+        let exact = query_documents(
+            &db,
+            None,
+            &DocumentQuery {
+                title_exact: Some("BETA".into()),
+                ..DocumentQuery::default()
+            },
+        )
+        .await
+        .expect("exact title");
+        assert_eq!(
+            serde_json::to_value(&exact.items[0]).unwrap()["id"],
+            beta.id
+        );
+        let sources = query_documents(
+            &db,
+            None,
+            &DocumentQuery {
+                source_file: Some("ALPHA".into()),
+                ..DocumentQuery::default()
+            },
+        )
+        .await
+        .expect("source");
+        assert_eq!(
+            serde_json::to_value(&sources.items[0]).unwrap()["id"],
+            alpha.id
+        );
+
+        let projects = query_documents(
+            &db,
+            None,
+            &DocumentQuery {
+                project_id: Some(OneOrList::One(ProjectId::new("log"))),
+                ..DocumentQuery::default()
+            },
+        )
+        .await
+        .expect("one project");
+        assert_eq!(projects.total, 2);
+        let projects = query_documents(
+            &db,
+            None,
+            &DocumentQuery {
+                project_id: Some(OneOrList::Many(vec![
+                    ProjectId::new("log"),
+                    ProjectId::new("spa"),
+                ])),
+                ..DocumentQuery::default()
+            },
+        )
+        .await
+        .expect("many projects");
+        assert_eq!(projects.total, 3);
+
+        let sorted = query_documents(
+            &db,
+            None,
+            &DocumentQuery {
+                sort: Some(DocumentSort::Title),
+                order: Some(crate::query::Order::Desc),
+                ..DocumentQuery::default()
+            },
+        )
+        .await
+        .expect("sorted");
+        let keys: Vec<String> = serde_json::to_value(&sorted.items)
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|item| item["key"].as_str().unwrap().to_string())
+            .collect();
+        assert_eq!(keys, vec!["SPA-1", "LOG-2", "LOG-1"]);
+
+        delete_document(&db, &beta.id).await.expect("delete");
+        let only_deleted = query_documents(
+            &db,
+            None,
+            &DocumentQuery {
+                deleted_only: Some(true),
+                include_deleted: Some(false),
+                ..DocumentQuery::default()
+            },
+        )
+        .await
+        .expect("deleted only");
+        assert_eq!(only_deleted.total, 1);
+        assert_eq!(
+            serde_json::to_value(&only_deleted.items[0]).unwrap()["id"],
+            beta.id
+        );
     }
 }

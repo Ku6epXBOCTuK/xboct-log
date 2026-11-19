@@ -115,6 +115,11 @@ try {
 		assert.match(documentsList.description, /short_body/);
 		assert.match(documentsList.description, /include_body/);
 		assert.match(documentsList.description, /total/);
+		assert.match(documentsList.description, /kind/);
+		assert.match(documentsList.description, /status/);
+		assert.match(documentsList.description, /q/);
+		assert.match(documentsList.description, /sort/);
+		assert.match(documentsList.description, /deleted_only/);
 		const tasksGet = tools.find((tool) => tool.name === "tasks_get");
 		assert.ok(tasksGet, "tasks_get is missing");
 		assert.match(tasksGet.description, /plan_names/);
@@ -815,6 +820,21 @@ try {
 			assert.equal(full.items.length, 1);
 			assert.equal(full.items[0].body, "first body");
 			assert.equal(full.items[0].title, undefined);
+			const filtered = ok(
+				await client.callTool("documents_list", {
+					project_id: ["e2e", "aux"],
+					kind: "adr",
+					status: "draft",
+					q: "ADR/001",
+					sort: "title",
+					order: "desc",
+					fields: ["id", "title", "key"],
+				}),
+				"documents_list with filters",
+			);
+			assert.equal(filtered.total, 1);
+			assert.equal(filtered.items[0].id, document.id);
+			assert.equal(filtered.items[0].title, "Use sqlite");
 		},
 	);
 	await check("documents_update and documents_revisions_list", async () => {

@@ -7,29 +7,7 @@ use crate::{
 };
 
 use super::model::{Estimate, Priority, Status};
-
-#[derive(Debug, Clone, Deserialize, JsonSchema)]
-#[serde(untagged)]
-pub enum OneOrList<T> {
-    One(T),
-    Many(Vec<T>),
-}
-
-impl<T> OneOrList<T> {
-    pub fn into_vec(self) -> Vec<T> {
-        match self {
-            Self::One(value) => vec![value],
-            Self::Many(values) => values,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Deserialize, JsonSchema)]
-#[serde(untagged)]
-pub enum FieldSelection {
-    Csv(String),
-    List(Vec<String>),
-}
+use crate::query::{FieldSelection, OneOrList, Order};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum LinkFilter<T> {
@@ -74,13 +52,6 @@ pub enum Sort {
     Number,
     Title,
     PlanPosition,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, JsonSchema)]
-#[serde(rename_all = "lowercase")]
-pub enum Order {
-    Asc,
-    Desc,
 }
 
 #[derive(Debug, Clone, Deserialize, JsonSchema)]

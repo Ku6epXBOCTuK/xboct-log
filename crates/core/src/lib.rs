@@ -19,6 +19,7 @@ pub mod paths;
 pub mod plan_items;
 pub mod plans;
 pub mod projects;
+pub mod query;
 pub mod request_log;
 pub mod restore;
 pub mod scheduler;
@@ -51,7 +52,7 @@ pub use config::{BackupConfig, Config, ConfigError};
 pub use db::{Db, Tx};
 pub use documents::{
     Document, DocumentKind, DocumentList, DocumentListEntry, DocumentPatch, DocumentQuery,
-    DocumentStatus, DocumentView, TextRevision, create_document, delete_document,
+    DocumentSort, DocumentStatus, DocumentView, TextRevision, create_document, delete_document,
     documents_for_plan, get_document, get_document_by_key, link_document_to_plan,
     list_deleted_documents, list_document_revisions, list_documents, query_documents,
     require_document, restore_document, unlink_document_from_plan, update_document,

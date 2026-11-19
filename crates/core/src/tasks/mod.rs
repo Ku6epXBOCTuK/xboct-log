@@ -5,12 +5,13 @@ mod model;
 mod resolve;
 mod sql;
 mod write;
+pub use crate::query::{FieldSelection, OneOrList, Order};
 pub use extra::{
     Revision, RevisionsPage, SearchTerm, TaskMany, count_by_status, count_children_by_epic,
     count_tasks_by_status, get_tasks_by_ids, list_revisions, parse_search_query, task_options,
     task_stats,
 };
-pub use filters::{FieldSelection, LinkFilter, OneOrList, Order, Sort, TaskFilters};
+pub use filters::{LinkFilter, Sort, TaskFilters};
 pub use links::{
     LinkType, add_blocker, add_link, link_changes, link_task, remove_blocker, remove_link,
 };

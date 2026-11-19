@@ -6,11 +6,12 @@ use crate::ids::{ProjectId, ScopeId, Seq, TagName, TaskKey};
 use crate::plans::PlanRef;
 use crate::{AppError, Db, Result};
 
-use super::filters::{FieldSelection, LinkFilter, Sort, TaskFilters};
+use super::filters::{LinkFilter, Sort, TaskFilters};
 use super::model::{
     BlockingInfo, Estimate, Priority, Status, Task, TaskList, TaskListEntry, TaskRow, TaskView,
 };
 use super::resolve::{normalize_task_id_input, resolve_task_id};
+use crate::query::FieldSelection;
 
 const SEARCH_COLUMNS: [&str; 5] = [
     "ULOWER(tasks.title) LIKE ",
