@@ -196,3 +196,93 @@ async fn document_ops_accept_keys_as_well_as_ids() {
     let got = call(&ctx, "documents_get", json!({"document_id": "LOG-1"})).await;
     assert!(got["deleted_at"].is_null());
 }
+
+#[tokio::test]
+async fn document_list_ops_return_totals_previews_and_plan_scope() {
+    let ctx = context().await;
+    let first = call(
+        &ctx,
+        "documents_create",
+        json!({"project_id": "log", "kind": "adr", "title": "First", "body": "intro\nnext"}),
+    )
+    .await;
+    let first_id = first["id"].as_str().unwrap();
+    let second = call(
+        &ctx,
+        "documents_create",
+        json!({"project_id": "spa", "kind": "spec", "title": "Second", "body": "other"}),
+    )
+    .await;
+    let second_id = second["id"].as_str().unwrap();
+
+    let listed = call(&ctx, "documents_list", json!({})).await;
+    assert_eq!(listed["total"], 2);
+    assert_eq!(listed["items"][0]["short_body"], "intro");
+    assert!(listed["items"][0].get("body").is_none());
+
+    let full = call(
+        &ctx,
+        "documents_list",
+        json!({"include_body": true, "fields": ["id", "body"], "limit": 1}),
+    )
+    .await;
+    assert_eq!(full["total"], 2);
+    assert_eq!(full["items"].as_array().unwrap().len(), 1);
+    assert_eq!(full["items"][0]["body"], "intro\nnext");
+    assert!(full["items"][0].get("title").is_none());
+
+    let plan = call(&ctx, "plans_create", json!({"name": "Docs"})).await;
+    let plan_id = plan["id"].as_str().unwrap();
+    call(
+        &ctx,
+        "plans_documents_link",
+        json!({"plan_id": plan_id, "document_id": second_id}),
+    )
+    .await;
+    let linked = call(
+        &ctx,
+        "plans_documents_list",
+        json!({"plan_id": plan_id, "include_body": true}),
+    )
+    .await;
+    assert_eq!(linked["total"], 1);
+    assert_eq!(linked["items"][0]["id"], second_id);
+    assert_eq!(linked["items"][0]["body"], "other");
+
+    call(&ctx, "documents_delete", json!({"document_id": second_id})).await;
+    assert_eq!(call(&ctx, "documents_list", json!({})).await["total"], 1);
+    assert_eq!(
+        call(
+            &ctx,
+            "documents_list",
+            json!({"include_deleted": true, "fields": "id,key,deleted_at"})
+        )
+        .await["total"],
+        2
+    );
+
+    assert_eq!(
+        call(&ctx, "plans_list", json!({})).await["items"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+    call(&ctx, "plans_delete", json!({"plan_id": plan_id})).await;
+    assert_eq!(
+        call(&ctx, "plans_list", json!({})).await["items"]
+            .as_array()
+            .unwrap()
+            .len(),
+        0
+    );
+    assert_eq!(
+        call(&ctx, "plans_list", json!({"include_deleted": true})).await["items"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+
+    let _ = first_id;
+}

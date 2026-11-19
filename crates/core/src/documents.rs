@@ -1,8 +1,8 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use sqlx::Row;
+use sqlx::{QueryBuilder, Row};
 
-use crate::{AppError, Db, DocumentKey, Result, Tx};
+use crate::{AppError, Db, DocumentKey, Result, Tx, tasks::FieldSelection};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
@@ -109,6 +109,120 @@ pub struct DocumentPatch {
     pub source_file: Option<Option<String>>,
 }
 
+fn default_document_limit() -> u32 {
+    100
+}
+
+#[derive(Debug, Clone, Deserialize, JsonSchema)]
+#[serde(default, deny_unknown_fields)]
+pub struct DocumentQuery {
+    #[schemars(description = "Only documents of this project, when given.")]
+    pub project_id: Option<String>,
+    #[schemars(
+        description = "Fields to include in each item: a comma-separated string or an array of names. Supported fields: id, project_id, number, key, kind, title, body, short_body, status, source_file, created_at, updated_at, closed_at, deleted_at. Identity fields are always present; unknown names are ignored. Requesting 'body' also returns the full text."
+    )]
+    pub fields: Option<FieldSelection>,
+    #[schemars(
+        description = "Return the full body. By default each item carries short_body (first non-empty line, ~120 chars) instead."
+    )]
+    pub include_body: Option<bool>,
+    #[schemars(
+        description = "Include soft-deleted documents. By default they are hidden; with true the deleted_at field is populated."
+    )]
+    pub include_deleted: Option<bool>,
+    #[schemars(
+        description = "Maximum number of documents to return (default 100, max 1000). Combine with offset and the response total to paginate."
+    )]
+    #[serde(default = "default_document_limit")]
+    pub limit: u32,
+    #[serde(default)]
+    pub offset: u32,
+}
+
+impl Default for DocumentQuery {
+    fn default() -> Self {
+        Self {
+            project_id: None,
+            fields: None,
+            include_body: None,
+            include_deleted: None,
+            limit: default_document_limit(),
+            offset: 0,
+        }
+    }
+}
+
+impl DocumentQuery {
+    pub fn validate(&self) -> Result<()> {
+        if !(1..=1000).contains(&self.limit) {
+            return Err(AppError::validation("limit must be between 1 and 1000"));
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, Serialize, JsonSchema)]
+pub struct DocumentView {
+    pub id: String,
+    pub project_id: String,
+    pub number: i64,
+    pub key: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<DocumentKind>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub body: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub short_body: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status: Option<DocumentStatus>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_file: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub closed_at: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub deleted_at: Option<String>,
+}
+
+impl From<Document> for DocumentView {
+    fn from(document: Document) -> Self {
+        Self {
+            id: document.id,
+            project_id: document.project_id,
+            number: document.number,
+            key: document.key,
+            kind: Some(document.kind),
+            title: Some(document.title),
+            body: Some(document.body),
+            short_body: None,
+            status: Some(document.status),
+            source_file: document.source_file,
+            created_at: Some(document.created_at),
+            updated_at: Some(document.updated_at),
+            closed_at: document.closed_at,
+            deleted_at: document.deleted_at,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, JsonSchema)]
+#[serde(untagged)]
+pub enum DocumentListEntry {
+    Full(Document),
+    Projected(DocumentView),
+}
+
+#[derive(Debug, Clone, Serialize, JsonSchema)]
+pub struct DocumentList {
+    pub items: Vec<DocumentListEntry>,
+    pub total: i64,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
 pub struct TextRevision {
     pub id: i64,
@@ -213,6 +327,159 @@ pub async fn list_deleted_documents(db: &Db) -> Result<Vec<Document>> {
     .fetch_all(db.pool())
     .await?;
     rows.iter().map(row_to_document).collect()
+}
+
+fn add_field(parsed: &mut Vec<String>, field: &str) {
+    let field = field.trim();
+    if field.is_empty() || parsed.iter().any(|known| known.as_str() == field) {
+        return;
+    }
+    parsed.push(field.to_owned());
+}
+
+fn parse_document_fields(fields: Option<&FieldSelection>) -> Option<Vec<String>> {
+    let fields = fields?;
+    let mut parsed: Vec<String> = Vec::new();
+    match fields {
+        FieldSelection::Csv(raw) => {
+            for field in raw.split(',') {
+                add_field(&mut parsed, field);
+            }
+        }
+        FieldSelection::List(values) => {
+            for field in values {
+                add_field(&mut parsed, field);
+            }
+        }
+    }
+    if parsed.is_empty() {
+        None
+    } else {
+        Some(parsed)
+    }
+}
+
+fn short_body(body: &str) -> String {
+    let line = body
+        .lines()
+        .find(|line| !line.trim().is_empty())
+        .unwrap_or("")
+        .trim();
+    let mut result: String = line.chars().take(120).collect();
+    if line.chars().count() > 120 {
+        result.push('…');
+    }
+    result
+}
+
+fn pick_document_fields(view: DocumentView, fields: Option<&[String]>) -> DocumentListEntry {
+    let Some(fields) = fields else {
+        return DocumentListEntry::Projected(view);
+    };
+    macro_rules! pick {
+        ($($field:ident),* $(,)?) => {{
+            let mut matched = false;
+            $(
+                if fields.iter().any(|name| name.as_str() == stringify!($field)) {
+                    matched = true;
+                }
+            )*
+            if !matched {
+                return DocumentListEntry::Projected(view);
+            }
+            DocumentListEntry::Projected(DocumentView {
+                $(
+                    $field: if fields.iter().any(|name| name.as_str() == stringify!($field)) {
+                        view.$field.clone()
+                    } else {
+                        None
+                    },
+                )*
+                ..view
+            })
+        }};
+    }
+    pick!(
+        kind,
+        title,
+        body,
+        short_body,
+        status,
+        source_file,
+        created_at,
+        updated_at,
+        closed_at,
+        deleted_at,
+    )
+}
+
+pub async fn query_documents(
+    db: &Db,
+    plan_id: Option<&str>,
+    query: &DocumentQuery,
+) -> Result<DocumentList> {
+    query.validate()?;
+    let fields = parse_document_fields(query.fields.as_ref());
+    let include_body = query.include_body == Some(true)
+        || fields
+            .as_ref()
+            .is_some_and(|fields| fields.iter().any(|field| field == "body"));
+    let include_deleted = query.include_deleted == Some(true);
+
+    let mut count = QueryBuilder::new("SELECT COUNT(*) FROM documents d");
+    if plan_id.is_some() {
+        count.push(" JOIN plan_documents pd ON pd.document_id = d.id");
+    }
+    count.push(" WHERE 1 = 1");
+    if let Some(plan_id) = plan_id {
+        count.push(" AND pd.plan_id = ").push_bind(plan_id);
+    }
+    if let Some(project_id) = &query.project_id {
+        count.push(" AND d.project_id = ").push_bind(project_id);
+    }
+    if !include_deleted {
+        count.push(" AND d.deleted_at IS NULL");
+    }
+    let total: i64 = count.build_query_scalar().fetch_one(db.pool()).await?;
+
+    let mut select = QueryBuilder::new("SELECT d.* FROM documents d");
+    if plan_id.is_some() {
+        select.push(" JOIN plan_documents pd ON pd.document_id = d.id");
+    }
+    select.push(" WHERE 1 = 1");
+    if let Some(plan_id) = plan_id {
+        select.push(" AND pd.plan_id = ").push_bind(plan_id);
+    }
+    if let Some(project_id) = &query.project_id {
+        select.push(" AND d.project_id = ").push_bind(project_id);
+    }
+    if !include_deleted {
+        select.push(" AND d.deleted_at IS NULL");
+    }
+    select
+        .push(" ORDER BY d.project_id, d.number LIMIT ")
+        .push_bind(query.limit)
+        .push(" OFFSET ")
+        .push_bind(query.offset);
+    let rows: Vec<sqlx::sqlite::SqliteRow> = select.build().fetch_all(db.pool()).await?;
+
+    let items = rows
+        .iter()
+        .map(row_to_document)
+        .map(|document| {
+            let mut view = DocumentView::from(document?);
+            if include_body {
+                view.short_body = None;
+            } else {
+                let preview = short_body(view.body.as_deref().unwrap_or_default());
+                view.body = None;
+                view.short_body = Some(preview);
+            }
+            Ok(pick_document_fields(view, fields.as_deref()))
+        })
+        .collect::<Result<Vec<_>>>()?;
+
+    Ok(DocumentList { items, total })
 }
 
 async fn allocate_number_tx(tx: &mut Tx, project_id: &str) -> Result<i64> {
@@ -685,5 +952,125 @@ mod tests {
             .expect("next");
         assert_eq!(next.key, "LOG-2");
         let _ = &spa;
+    }
+
+    #[tokio::test]
+    async fn document_query_paginates_previews_and_filters_deleted() {
+        let db = open().await;
+        let first = create_document(
+            &db,
+            "log",
+            DocumentKind::Adr,
+            "First",
+            "intro\nsecond line",
+            None,
+        )
+        .await
+        .expect("first");
+        let second = create_document(&db, "spa", DocumentKind::Spec, "Second", "other", None)
+            .await
+            .expect("second");
+        let plan = crate::create_plan(&db, "Docs", "", crate::PlanStatus::Active)
+            .await
+            .expect("plan");
+        link_document_to_plan(&db, &plan.id, &second.id)
+            .await
+            .expect("link");
+
+        let default = query_documents(&db, None, &DocumentQuery::default())
+            .await
+            .expect("query");
+        assert_eq!(default.total, 2);
+        assert_eq!(default.items.len(), 2);
+        let json = serde_json::to_value(&default.items[0]).unwrap();
+        assert_eq!(json["id"], first.id);
+        assert_eq!(json["key"], "LOG-1");
+        assert_eq!(json["kind"], "adr");
+        assert_eq!(json["short_body"], "intro");
+        assert!(json.get("body").is_none());
+
+        let full = query_documents(
+            &db,
+            None,
+            &DocumentQuery {
+                include_body: Some(true),
+                fields: Some(crate::tasks::FieldSelection::Csv("id,body".into())),
+                ..DocumentQuery::default()
+            },
+        )
+        .await
+        .expect("full query");
+        let json = serde_json::to_value(&full.items[0]).unwrap();
+        assert_eq!(json["body"], "intro\nsecond line");
+        assert!(json.get("short_body").is_none());
+        assert!(json.get("title").is_none());
+        assert_eq!(json["id"], first.id);
+
+        let paged = query_documents(
+            &db,
+            None,
+            &DocumentQuery {
+                limit: 1,
+                offset: 1,
+                ..DocumentQuery::default()
+            },
+        )
+        .await
+        .expect("paged query");
+        assert_eq!(paged.total, 2);
+        assert_eq!(paged.items.len(), 1);
+        assert_eq!(
+            serde_json::to_value(&paged.items[0]).unwrap()["key"],
+            "SPA-1"
+        );
+
+        let linked = query_documents(&db, Some(&plan.id), &DocumentQuery::default())
+            .await
+            .expect("linked query");
+        assert_eq!(linked.total, 1);
+        assert_eq!(
+            serde_json::to_value(&linked.items[0]).unwrap()["id"],
+            second.id
+        );
+
+        delete_document(&db, &second.id).await.expect("delete");
+        assert_eq!(
+            query_documents(&db, None, &DocumentQuery::default())
+                .await
+                .expect("hidden")
+                .total,
+            1
+        );
+        let with_deleted = query_documents(
+            &db,
+            None,
+            &DocumentQuery {
+                include_deleted: Some(true),
+                ..DocumentQuery::default()
+            },
+        )
+        .await
+        .expect("with deleted");
+        assert_eq!(with_deleted.total, 2);
+        let values = serde_json::to_value(&with_deleted.items).unwrap();
+        assert!(
+            values
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|item| item["id"] == second.id && item["deleted_at"].is_string())
+        );
+
+        let invalid = query_documents(
+            &db,
+            None,
+            &DocumentQuery {
+                limit: 0,
+                ..DocumentQuery::default()
+            },
+        )
+        .await
+        .expect_err("invalid limit");
+        assert_eq!(invalid.kind(), crate::AppErrorKind::Validation);
     }
 }

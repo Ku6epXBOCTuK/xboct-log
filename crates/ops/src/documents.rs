@@ -2,20 +2,13 @@ use schemars::JsonSchema;
 use serde::Deserialize;
 use serde_json::Value;
 use xboct_log_core::{
-    AppError, Document, DocumentKind, DocumentPatch, Entity, OpName, Result, TextRevision,
-    create_document, delete_document, documents_for_plan, link_document_to_plan,
-    list_deleted_documents, list_document_revisions, list_documents, require_document,
+    AppError, Document, DocumentKind, DocumentList, DocumentPatch, DocumentQuery, Entity, OpName,
+    Result, TextRevision, create_document, delete_document, link_document_to_plan,
+    list_deleted_documents, list_document_revisions, query_documents, require_document,
     restore_document, unlink_document_from_plan, update_document,
 };
 
-use crate::{Ctx, Items, Kind, Op, plans::Empty, plans::PlanIdInput};
-
-#[derive(Debug, Default, Deserialize, JsonSchema)]
-#[serde(default, deny_unknown_fields)]
-pub struct ListInput {
-    #[schemars(description = "Only documents of this project, when given.")]
-    pub project_id: Option<String>,
-}
+use crate::{Ctx, Items, Kind, Op, plans::Empty};
 
 pub struct DocumentsList;
 
@@ -24,17 +17,15 @@ impl Op for DocumentsList {
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
 
-    type Input = ListInput;
-    type Output = Items<Document>;
+    type Input = DocumentQuery;
+    type Output = DocumentList;
 
     fn description() -> &'static str {
         crate::descriptions::DOCUMENTS_LIST
     }
 
     async fn run(ctx: &Ctx, input: Self::Input) -> Result<Self::Output> {
-        Ok(Items {
-            items: list_documents(&ctx.db, input.project_id.as_deref()).await?,
-        })
+        query_documents(&ctx.db, None, &input).await
     }
 }
 
@@ -240,6 +231,13 @@ impl Op for DocumentsRevisionsList {
     }
 }
 
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct PlanDocumentsListInput {
+    pub plan_id: String,
+    #[serde(flatten)]
+    pub query: DocumentQuery,
+}
+
 pub struct PlansDocumentsList;
 
 impl Op for PlansDocumentsList {
@@ -247,17 +245,15 @@ impl Op for PlansDocumentsList {
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
 
-    type Input = PlanIdInput;
-    type Output = Items<Document>;
+    type Input = PlanDocumentsListInput;
+    type Output = DocumentList;
 
     fn description() -> &'static str {
         crate::descriptions::PLANS_DOCUMENTS_LIST
     }
 
     async fn run(ctx: &Ctx, input: Self::Input) -> Result<Self::Output> {
-        Ok(Items {
-            items: documents_for_plan(&ctx.db, &input.plan_id).await?,
-        })
+        query_documents(&ctx.db, Some(&input.plan_id), &input.query).await
     }
 }
 

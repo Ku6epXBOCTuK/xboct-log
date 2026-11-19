@@ -247,9 +247,9 @@ pub use documents::{
 };
 pub use plans::{
     PlansCreate, PlansDelete, PlansDeletedList, PlansGet, PlansItemsAdd, PlansItemsRemove,
-    PlansList, PlansNotesAdd, PlansNotesDelete, PlansNotesDeletedList, PlansNotesEdit,
-    PlansNotesList, PlansNotesRestore, PlansNotesRevisionsList, PlansReorder, PlansRestore,
-    PlansUpdate,
+    PlansList, PlansListInput, PlansNotesAdd, PlansNotesDelete, PlansNotesDeletedList,
+    PlansNotesEdit, PlansNotesList, PlansNotesRestore, PlansNotesRevisionsList, PlansReorder,
+    PlansRestore, PlansUpdate,
 };
 pub use projects::{ProjectsCreate, ProjectsGet, ProjectsList, ProjectsUpdate};
 pub use request_log::{RequestLogExport, RequestLogList};

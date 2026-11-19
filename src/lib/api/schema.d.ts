@@ -775,7 +775,7 @@ export interface paths {
         put?: never;
         /**
          * List tasks with filters (project, status, priority, estimate, assignee, due date, tags, epic, scope, blocked_by, blocks, text query, title, title_exact, source_file, plan, has_plan), sorting and pagination
-         * @description List tasks with filters (project, status, priority, estimate, assignee, due date, tags, epic, scope, blocked_by, blocks, text query, title, title_exact, source_file, plan, has_plan), sorting and pagination. Use q to locate a task by id, title, description, the id of its epic or a partial tag (e.g. q='LOG-4', q='26', q='est:'). Returns: {items, total} - items is the list of matching tasks, total is the count of all matching tasks before limit/offset. limit defaults to 100 (max 1000); use offset and total to paginate. Use fields to limit returned columns; the field names it accepts are listed in the description of the fields parameter, unknown names are ignored, and id, project_id and number always stay in the result. By default each task carries short_description (first line, ~120 chars) instead of the full description; set include_description to get the full text, in which case short_description is omitted. include_project attaches project names, include_scope attaches scope names, and neither filters; project_archived filters by project archival; include_deleted also returns soft-deleted tasks (hidden by default). Task id is the full 'PREFIX-NUMBER' identifier (e.g. 'LOG-82'); number is the per-project sequence number (e.g. 82), unique only inside its project. project_id accepts one id or a list of ids; exclude_project_id drops the given projects (use it for 'every project except X'). The epic filter accepts a full epic id (e.g. 'LOG-5') or a list of them; scope_id likewise takes one scope id or a list, and null matches tasks without that link. has_epic and has_scope filter by the presence of an epic or a scope. plan_id accepts an id from plans_list and matches tasks in that plan; has_plan filters by the presence of any plan; sort=plan_position orders by item position in that plan and requires plan_id. plan_ids on a task is read-only: use plans_items_add/remove to change membership. The estimate filter takes one size or a list of them ('S', 'M', 'L'); tasks without an estimate are not matched. The assignee filter takes one name or a list of them and matches case-insensitively; tasks without an assignee are not matched. The due_before and due_after filters take a date (YYYY-MM-DD) and select the tasks due before it or on and after it; tasks without a due date are not matched, so the two together give a due window. sort accepts updated_at, created_at, closed_at, priority, number and title. The blocked_by filter returns tasks whose blocked_by list contains the given task, the blocks filter returns tasks whose blocks list contains the given task. The source_file filter matches the source file path of a task partially and case-insensitively, so a fragment such as 'backlog' selects every task imported from that file. Every task carries blocked_by (tasks that block me) and blocks (tasks I block) as id lists.
+         * @description List tasks with filters (project, status, priority, estimate, assignee, due date, tags, epic, scope, blocked_by, blocks, text query, title, title_exact, source_file, plan, has_plan), sorting and pagination. Use q to locate a task by id, title, description, the id of its epic or a partial tag (e.g. q='LOG-4', q='26', q='est:'). Returns: {items, total} - items is the list of matching tasks, total is the count of all matching tasks before limit/offset. limit defaults to 100 (max 1000); use offset and total to paginate. Use fields to limit returned columns; the field names it accepts are listed in the description of the fields parameter, unknown names are ignored, and id, project_id and number always stay in the result. By default each task carries short_description (first line, ~120 chars) instead of the full description; set include_description to get the full text, in which case short_description is omitted. include_project attaches project names, include_scope attaches scope names, and neither filters; project_archived filters by project archival; include_deleted also returns soft-deleted tasks (hidden by default). Task id is the full 'PREFIX-NUMBER' identifier (e.g. 'LOG-82'); number is the per-project sequence number (e.g. 82), unique only inside its project. project_id accepts one id or a list of ids; exclude_project_id drops the given projects (use it for 'every project except X'). The epic filter accepts a full epic id (e.g. 'LOG-5') or a list of them; scope_id likewise takes one scope id or a list, and null matches tasks without that link. has_epic and has_scope filter by the presence of an epic or a scope. plan_id accepts an id from plans_list and matches tasks in that plan; has_plan filters by the presence of any plan; sort=plan_position orders by item position in that plan and requires plan_id. plan_ids on a task is read-only: use plans_items_add/remove to change membership. Set include_plan_names to attach plan_names (id + name) to each task, or request the plan_names field; tasks_get always includes them. The estimate filter takes one size or a list of them ('S', 'M', 'L'); tasks without an estimate are not matched. The assignee filter takes one name or a list of them and matches case-insensitively; tasks without an assignee are not matched. The due_before and due_after filters take a date (YYYY-MM-DD) and select the tasks due before it or on and after it; tasks without a due date are not matched, so the two together give a due window. sort accepts updated_at, created_at, closed_at, priority, number and title. The blocked_by filter returns tasks whose blocked_by list contains the given task, the blocks filter returns tasks whose blocks list contains the given task. The source_file filter matches the source file path of a task partially and case-insensitively, so a fragment such as 'backlog' selects every task imported from that file. Every task carries blocked_by (tasks that block me) and blocks (tasks I block) as id lists.
          */
         post: operations["tasks_list"];
         delete?: never;
@@ -835,7 +835,7 @@ export interface paths {
         put?: never;
         /**
          * Get a single task by task_id
-         * @description Get a single task by task_id. The task_id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'); a bare number is rejected because it is unique only inside a project. Returns: the task itself - {id, project_id, number, title, description, status, priority, is_epic, epic_id, scope_id, source_file, tags, estimate, assignee, due_at, attachments_count, created_at, updated_at, closed_at, closed_reason, blocked_reason, deleted_at, project_name, scope_name, short_description, blocked_by, blocks, relates_to, duplicates, duplicated_by, children_counts, plan_ids}. For a task with is_epic=true the result also carries children_counts: the number of its child tasks per status (backlog, open, in-progress, blocked, done, cancelled) plus their total.
+         * @description Get a single task by task_id. The task_id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'); a bare number is rejected because it is unique only inside a project. Returns: the task itself - {id, project_id, number, title, description, status, priority, is_epic, epic_id, scope_id, source_file, tags, estimate, assignee, due_at, attachments_count, created_at, updated_at, closed_at, closed_reason, blocked_reason, deleted_at, project_name, scope_name, short_description, blocked_by, blocks, relates_to, duplicates, duplicated_by, children_counts, plan_ids, plan_names}. plan_names carries readable {id, name} references from tasks_get; plan_ids stays as the bare UUID list. For a task with is_epic=true the result also carries children_counts: the number of its child tasks per status (backlog, open, in-progress, blocked, done, cancelled) plus their total.
          */
         post: operations["tasks_get"];
         delete?: never;
@@ -1155,7 +1155,7 @@ export interface paths {
         put?: never;
         /**
          * List all plans across every project: a plan has no project_id and its items may come from any project
-         * @description List all plans across every project: a plan has no project_id and its items may come from any project. Each item carries tasks_count and epics_count (soft-deleted tasks are not counted). Returns: {items} - sorted by name. Read one plan's ordered items with tasks_list {plan_id, sort: 'plan_position', include_deleted: true}, its notes with plans_notes_list and its document links with plans_documents_list.
+         * @description List all plans across every project: a plan has no project_id and its items may come from any project. Each item carries tasks_count and epics_count (soft-deleted tasks are not counted). Soft-deleted plans are hidden unless include_deleted is true. Returns: {items} - sorted by name. Read one plan's ordered items with tasks_list {plan_id, sort: 'plan_position', include_deleted: true}, its notes with plans_notes_list and its document links with plans_documents_list.
          */
         post: operations["plans_list"];
         delete?: never;
@@ -1495,7 +1495,7 @@ export interface paths {
         put?: never;
         /**
          * List working documents (ADRs, PRDs, architecture, research, workflow notes, guides, specs) across every project; pass project_id to narrow to one project
-         * @description List working documents (ADRs, PRDs, architecture, research, workflow notes, guides, specs) across every project; pass project_id to narrow to one project. Soft-deleted documents are hidden. Each document has its own 'PREFIX-NNN' key in its project. Returns: {items}.
+         * @description List working documents (ADRs, PRDs, architecture, research, workflow notes, guides, specs) across every project; pass project_id to narrow to one project. Each document has its own 'PREFIX-NNN' key in its project. Returns: {items, total} - total is the count before limit/offset. By default each item carries short_body (first non-empty line, ~120 chars) instead of the full body; set include_body or request the body field to get the full text. Use fields to limit columns (id, project_id, number, key, kind, title, body, short_body, status, source_file, created_at, updated_at, closed_at, deleted_at); identity fields are always present and unknown names are ignored. limit defaults to 100 (max 1000); use offset and total to paginate. Soft-deleted documents are hidden unless include_deleted is true.
          */
         post: operations["documents_list"];
         delete?: never;
@@ -1655,7 +1655,7 @@ export interface paths {
         put?: never;
         /**
          * List the documents linked to a plan by plan_id; a plan is global and may link documents of any project
-         * @description List the documents linked to a plan by plan_id; a plan is global and may link documents of any project. Returns: {items} - full documents.
+         * @description List the documents linked to a plan by plan_id; a plan is global and may link documents of any project. Accepts the same fields, include_body, include_deleted, limit and offset options as documents_list. Returns: {items, total} - by default each item carries short_body instead of the full body.
          */
         post: operations["plans_documents_list"];
         delete?: never;
@@ -1798,6 +1798,10 @@ export interface components {
         Priority: "low" | "medium" | "high" | "critical";
         /** @enum {string} */
         Estimate: "S" | "M" | "L";
+        PlanRef: {
+            id: string;
+            name: string;
+        };
         Change: {
             field: string;
             from: unknown;
@@ -1852,6 +1856,7 @@ export interface components {
                 [key: string]: number;
             } | null;
             plan_ids: string[];
+            plan_names?: components["schemas"]["PlanRef"][] | null;
         };
         TaskView: {
             id: string;
@@ -1891,6 +1896,7 @@ export interface components {
                 [key: string]: number;
             } | null;
             plan_ids?: string[] | null;
+            plan_names?: components["schemas"]["PlanRef"][] | null;
         };
         ProjectWithCounts: {
             id: string;
@@ -2158,6 +2164,7 @@ export interface components {
             body: string;
             created_at: string;
         };
+        DocumentListEntry: components["schemas"]["Document"] | components["schemas"]["DocumentView"];
         Document: {
             id: string;
             project_id: string;
@@ -2178,6 +2185,23 @@ export interface components {
         DocumentKind: "adr" | "prd" | "architecture" | "research" | "workflow" | "guide" | "spec";
         /** @enum {string} */
         DocumentStatus: "draft" | "accepted" | "superseded" | "archived";
+        DocumentView: {
+            id: string;
+            project_id: string;
+            /** Format: int64 */
+            number: number;
+            key: string;
+            kind?: components["schemas"]["DocumentKind"] | null;
+            title?: string | null;
+            body?: string | null;
+            short_body?: string | null;
+            status?: components["schemas"]["DocumentStatus"] | null;
+            source_file?: string | null;
+            created_at?: string | null;
+            updated_at?: string | null;
+            closed_at?: string | null;
+            deleted_at?: string | null;
+        };
     };
     responses: never;
     parameters: never;
@@ -3456,6 +3480,7 @@ export interface operations {
                             [key: string]: number;
                         } | null;
                         plan_ids: string[];
+                        plan_names?: components["schemas"]["PlanRef"][] | null;
                         changes: components["schemas"]["Change"][];
                     };
                 };
@@ -3560,6 +3585,7 @@ export interface operations {
                             [key: string]: number;
                         } | null;
                         plan_ids: string[];
+                        plan_names?: components["schemas"]["PlanRef"][] | null;
                         changes: components["schemas"]["Change"][];
                     };
                 };
@@ -3666,6 +3692,7 @@ export interface operations {
                             [key: string]: number;
                         } | null;
                         plan_ids: string[];
+                        plan_names?: components["schemas"]["PlanRef"][] | null;
                         changes: components["schemas"]["Change"][];
                     };
                 };
@@ -3772,6 +3799,7 @@ export interface operations {
                             [key: string]: number;
                         } | null;
                         plan_ids: string[];
+                        plan_names?: components["schemas"]["PlanRef"][] | null;
                         changes: components["schemas"]["Change"][];
                     };
                 };
@@ -5094,7 +5122,7 @@ export interface operations {
                     title_exact?: string | null;
                     /** @description Case-insensitive substring match on the source file path of the task (e.g. 'backlog.md'). Tasks without a source file are excluded. */
                     source_file?: string | null;
-                    /** @description Fields to include in each item to reduce response size: a comma-separated string (e.g. id,number,title,status) or an array of names. Supported fields: id, project_id, number, title, description, status, priority, is_epic, epic_id, scope_id, source_file, tags, estimate, assignee, due_at, attachments_count, created_at, updated_at, closed_at, closed_reason, blocked_reason, deleted_at, project_name, scope_name, short_description, blocked_by, blocks, relates_to, duplicates, duplicated_by, plan_ids. Requesting 'description' also returns the full text and drops short_description. id, project_id and number are always present, so a follow-up call can still address the task. project_name is present only with include_project, scope_name only with include_scope. Unknown field names are ignored; if no name matches, the whole task is returned. */
+                    /** @description Fields to include in each item to reduce response size: a comma-separated string (e.g. id,number,title,status) or an array of names. Supported fields: id, project_id, number, title, description, status, priority, is_epic, epic_id, scope_id, source_file, tags, estimate, assignee, due_at, attachments_count, created_at, updated_at, closed_at, closed_reason, blocked_reason, deleted_at, project_name, scope_name, short_description, blocked_by, blocks, relates_to, duplicates, duplicated_by, plan_ids, plan_names. Requesting 'description' also returns the full text and drops short_description. id, project_id and number are always present, so a follow-up call can still address the task. project_name is present only with include_project, scope_name only with include_scope. Unknown field names are ignored; if no name matches, the whole task is returned. */
                     fields?: components["schemas"]["FieldSelection"] | null;
                     /** @description Include the full description. By default each task carries short_description (first line, trimmed, truncated to ~120 chars) instead of the full text; with include_description the full text is returned and short_description is omitted. */
                     include_description?: boolean | null;
@@ -5102,6 +5130,8 @@ export interface operations {
                     include_project?: boolean | null;
                     /** @description Attach the scope name (scope_name) to each task. */
                     include_scope?: boolean | null;
+                    /** @description Attach readable plan references (plan_names: id + name) to each task. tasks_get always includes them; tasks_list needs this flag. */
+                    include_plan_names?: boolean | null;
                     /** @description Filter by project archival: false - active projects only, true - archived projects only. Omitted - both. */
                     project_archived?: boolean | null;
                     /** @description Sort key. 'number' orders by the per-project task number (ascending by default), 'title' orders by title case-insensitively (ascending by default), 'status' by the workflow order backlog, open, in-progress, blocked, done, cancelled and 'project' by project name; 'updated_at' and 'created_at' default to descending, 'priority' to ascending. 'closed_at' orders by the closing date and keeps the tasks that are not closed at the end. 'plan_position' orders by the item position in the plan given by plan_id and requires that filter. */
@@ -5381,6 +5411,7 @@ export interface operations {
                             [key: string]: number;
                         } | null;
                         plan_ids: string[];
+                        plan_names?: components["schemas"]["PlanRef"][] | null;
                     };
                 };
             };
@@ -5507,6 +5538,7 @@ export interface operations {
                             [key: string]: number;
                         } | null;
                         plan_ids: string[];
+                        plan_names?: components["schemas"]["PlanRef"][] | null;
                         warnings: string[];
                     };
                 };
@@ -5704,6 +5736,7 @@ export interface operations {
                             [key: string]: number;
                         } | null;
                         plan_ids: string[];
+                        plan_names?: components["schemas"]["PlanRef"][] | null;
                         changes: components["schemas"]["Change"][];
                         warnings: string[];
                         closed_epic?: components["schemas"]["Task"] | null;
@@ -5878,6 +5911,7 @@ export interface operations {
                             [key: string]: number;
                         } | null;
                         plan_ids: string[];
+                        plan_names?: components["schemas"]["PlanRef"][] | null;
                         changes: components["schemas"]["Change"][];
                         released: components["schemas"]["ReleasedLink"][];
                         warnings: string[];
@@ -6117,6 +6151,7 @@ export interface operations {
                             [key: string]: number;
                         } | null;
                         plan_ids: string[];
+                        plan_names?: components["schemas"]["PlanRef"][] | null;
                     };
                 };
             };
@@ -6219,6 +6254,7 @@ export interface operations {
                             [key: string]: number;
                         } | null;
                         plan_ids: string[];
+                        plan_names?: components["schemas"]["PlanRef"][] | null;
                     };
                 };
             };
@@ -6664,7 +6700,10 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": Record<string, never>;
+                "application/json": {
+                    /** @description Include soft-deleted plans alongside active ones. By default they are hidden. */
+                    include_deleted?: boolean | null;
+                };
             };
         };
         responses: {
@@ -7837,6 +7876,23 @@ export interface operations {
                 "application/json": {
                     /** @description Only documents of this project, when given. */
                     project_id?: string | null;
+                    /** @description Fields to include in each item: a comma-separated string or an array of names. Supported fields: id, project_id, number, key, kind, title, body, short_body, status, source_file, created_at, updated_at, closed_at, deleted_at. Identity fields are always present; unknown names are ignored. Requesting 'body' also returns the full text. */
+                    fields?: components["schemas"]["FieldSelection"] | null;
+                    /** @description Return the full body. By default each item carries short_body (first non-empty line, ~120 chars) instead. */
+                    include_body?: boolean | null;
+                    /** @description Include soft-deleted documents. By default they are hidden; with true the deleted_at field is populated. */
+                    include_deleted?: boolean | null;
+                    /**
+                     * Format: uint32
+                     * @description Maximum number of documents to return (default 100, max 1000). Combine with offset and the response total to paginate.
+                     * @default 100
+                     */
+                    limit?: number;
+                    /**
+                     * Format: uint32
+                     * @default 0
+                     */
+                    offset?: number;
                 };
             };
         };
@@ -7848,7 +7904,9 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        items: components["schemas"]["Document"][];
+                        items: components["schemas"]["DocumentListEntry"][];
+                        /** Format: int64 */
+                        total: number;
                     };
                 };
             };
@@ -8424,6 +8482,25 @@ export interface operations {
             content: {
                 "application/json": {
                     plan_id: string;
+                    /** @description Only documents of this project, when given. */
+                    project_id?: string | null;
+                    /** @description Fields to include in each item: a comma-separated string or an array of names. Supported fields: id, project_id, number, key, kind, title, body, short_body, status, source_file, created_at, updated_at, closed_at, deleted_at. Identity fields are always present; unknown names are ignored. Requesting 'body' also returns the full text. */
+                    fields?: components["schemas"]["FieldSelection"] | null;
+                    /** @description Return the full body. By default each item carries short_body (first non-empty line, ~120 chars) instead. */
+                    include_body?: boolean | null;
+                    /** @description Include soft-deleted documents. By default they are hidden; with true the deleted_at field is populated. */
+                    include_deleted?: boolean | null;
+                    /**
+                     * Format: uint32
+                     * @description Maximum number of documents to return (default 100, max 1000). Combine with offset and the response total to paginate.
+                     * @default 100
+                     */
+                    limit?: number;
+                    /**
+                     * Format: uint32
+                     * @default 0
+                     */
+                    offset?: number;
                 };
             };
         };
@@ -8435,7 +8512,9 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        items: components["schemas"]["Document"][];
+                        items: components["schemas"]["DocumentListEntry"][];
+                        /** Format: int64 */
+                        total: number;
                     };
                 };
             };

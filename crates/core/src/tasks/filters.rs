@@ -180,7 +180,7 @@ pub struct TaskFilters {
     )]
     pub source_file: Option<String>,
     #[schemars(
-        description = "Fields to include in each item to reduce response size: a comma-separated string (e.g. id,number,title,status) or an array of names. Supported fields: id, project_id, number, title, description, status, priority, is_epic, epic_id, scope_id, source_file, tags, estimate, assignee, due_at, attachments_count, created_at, updated_at, closed_at, closed_reason, blocked_reason, deleted_at, project_name, scope_name, short_description, blocked_by, blocks, relates_to, duplicates, duplicated_by, plan_ids. Requesting 'description' also returns the full text and drops short_description. id, project_id and number are always present, so a follow-up call can still address the task. project_name is present only with include_project, scope_name only with include_scope. Unknown field names are ignored; if no name matches, the whole task is returned."
+        description = "Fields to include in each item to reduce response size: a comma-separated string (e.g. id,number,title,status) or an array of names. Supported fields: id, project_id, number, title, description, status, priority, is_epic, epic_id, scope_id, source_file, tags, estimate, assignee, due_at, attachments_count, created_at, updated_at, closed_at, closed_reason, blocked_reason, deleted_at, project_name, scope_name, short_description, blocked_by, blocks, relates_to, duplicates, duplicated_by, plan_ids, plan_names. Requesting 'description' also returns the full text and drops short_description. id, project_id and number are always present, so a follow-up call can still address the task. project_name is present only with include_project, scope_name only with include_scope. Unknown field names are ignored; if no name matches, the whole task is returned."
     )]
     pub fields: Option<FieldSelection>,
     #[schemars(
@@ -193,6 +193,10 @@ pub struct TaskFilters {
     pub include_project: Option<bool>,
     #[schemars(description = "Attach the scope name (scope_name) to each task.")]
     pub include_scope: Option<bool>,
+    #[schemars(
+        description = "Attach readable plan references (plan_names: id + name) to each task. tasks_get always includes them; tasks_list needs this flag."
+    )]
+    pub include_plan_names: Option<bool>,
     #[schemars(
         description = "Filter by project archival: false - active projects only, true - archived projects only. Omitted - both."
     )]

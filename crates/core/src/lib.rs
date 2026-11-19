@@ -50,10 +50,11 @@ pub use comments::{
 pub use config::{BackupConfig, Config, ConfigError};
 pub use db::{Db, Tx};
 pub use documents::{
-    Document, DocumentKind, DocumentPatch, DocumentStatus, TextRevision, create_document,
-    delete_document, documents_for_plan, get_document, get_document_by_key, link_document_to_plan,
-    list_deleted_documents, list_document_revisions, list_documents, require_document,
-    restore_document, unlink_document_from_plan, update_document,
+    Document, DocumentKind, DocumentList, DocumentListEntry, DocumentPatch, DocumentQuery,
+    DocumentStatus, DocumentView, TextRevision, create_document, delete_document,
+    documents_for_plan, get_document, get_document_by_key, link_document_to_plan,
+    list_deleted_documents, list_document_revisions, list_documents, query_documents,
+    require_document, restore_document, unlink_document_from_plan, update_document,
 };
 pub use error::{AppError, AppErrorKind, ErrorStatus, Result};
 pub use events::{ActivitySource, ChangeEvent, Entity, Events, ServerEvent, entity_of};
@@ -70,9 +71,9 @@ pub use plan_items::{
     remove_plan_item, reorder_plan_items, restore_plan_note,
 };
 pub use plans::{
-    Plan, PlanCounts, PlanPatch, PlanStatus, PlanWithCounts, count_plan_items, create_plan,
-    delete_plan, get_plan, list_deleted_plans, list_plans, plan_counts, require_plan, restore_plan,
-    update_plan,
+    Plan, PlanCounts, PlanPatch, PlanRef, PlanStatus, PlanWithCounts, count_plan_items,
+    create_plan, delete_plan, get_plan, list_deleted_plans, list_plans, plan_counts, require_plan,
+    restore_plan, update_plan,
 };
 pub use projects::{
     INBOX_PROJECT_ID, INBOX_PROJECT_PREFIX, NewProject, Project, ProjectDetails, ProjectPatch,

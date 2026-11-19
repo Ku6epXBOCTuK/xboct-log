@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use sqlx::{QueryBuilder, Sqlite};
 
 use crate::ids::{ProjectId, ScopeId, Seq, TagName, TaskKey};
+use crate::plans::PlanRef;
 use crate::{AppError, Db, Result};
 
 use super::filters::{FieldSelection, LinkFilter, Sort, TaskFilters};
@@ -466,6 +467,7 @@ fn row_to_task(row: TaskRow, tags: Vec<TagName>, blocking: BlockingInfo) -> Task
         duplicated_by: blocking.duplicated_by,
         children_counts: None,
         plan_ids: Vec::new(),
+        plan_names: None,
     }
 }
 
@@ -505,6 +507,26 @@ async fn plan_ids_for(db: &Db, keys: &[String]) -> Result<HashMap<String, Vec<St
     let rows: Vec<(String, String)> = qb.build_query_as().fetch_all(db.pool()).await?;
     for (key, plan_id) in rows {
         plans.entry(key).or_default().push(plan_id);
+    }
+    Ok(plans)
+}
+
+async fn plan_names_for(db: &Db, keys: &[String]) -> Result<HashMap<String, Vec<PlanRef>>> {
+    let mut plans: HashMap<String, Vec<PlanRef>> = HashMap::new();
+    if keys.is_empty() {
+        return Ok(plans);
+    }
+    let mut qb = QueryBuilder::new(
+        "SELECT tasks.key AS task_key, plans.id, plans.name FROM plan_items pi JOIN tasks ON tasks.id = pi.task_id JOIN plans ON plans.id = pi.plan_id WHERE plans.deleted_at IS NULL AND tasks.key IN (",
+    );
+    let mut separated = qb.separated(", ");
+    for key in keys {
+        separated.push_bind(key.clone());
+    }
+    separated.push_unseparated(") ORDER BY plans.name, plans.id");
+    let rows: Vec<(String, String, String)> = qb.build_query_as().fetch_all(db.pool()).await?;
+    for (key, id, name) in rows {
+        plans.entry(key).or_default().push(PlanRef { id, name });
     }
     Ok(plans)
 }
@@ -665,6 +687,7 @@ fn pick_fields(task: Task, fields: Option<&[String]>) -> TaskListEntry {
         duplicated_by,
         children_counts,
         plan_ids,
+        plan_names,
     )
 }
 
@@ -679,6 +702,9 @@ pub(crate) async fn list_tasks_unchecked(db: &Db, filters: &TaskFilters) -> Resu
     let include_description = filters.include_description == Some(true)
         || fields_of(filters)
             .is_some_and(|fields| fields.iter().any(|field| field.as_str() == "description"));
+    let include_plan_names = filters.include_plan_names == Some(true)
+        || fields_of(filters)
+            .is_some_and(|fields| fields.iter().any(|field| field.as_str() == "plan_names"));
 
     let mut count = QueryBuilder::new("SELECT COUNT(*) FROM tasks");
     push_from(&mut count, filters);
@@ -712,6 +738,11 @@ pub(crate) async fn list_tasks_unchecked(db: &Db, filters: &TaskFilters) -> Resu
     let mut tags = tags_for_tasks(db, &keys).await?;
     let mut blocking = blocking_info_for(db, &keys).await?;
     let mut plan_ids = plan_ids_for(db, &keys).await?;
+    let mut plan_names = if include_plan_names {
+        plan_names_for(db, &keys).await?
+    } else {
+        HashMap::new()
+    };
 
     let fields = fields_of(filters);
     let items = rows
@@ -724,6 +755,7 @@ pub(crate) async fn list_tasks_unchecked(db: &Db, filters: &TaskFilters) -> Resu
                 blocking.remove(&key).unwrap_or_default(),
             );
             task.plan_ids = plan_ids.remove(&key).unwrap_or_default();
+            task.plan_names = plan_names.remove(&key);
             if include_description {
                 task.short_description = None;
             } else {
@@ -776,12 +808,14 @@ pub(crate) async fn task_by_key(db: &Db, key: &str) -> Result<Option<Task>> {
     let tags = tags_for_tasks(db, std::slice::from_ref(&task_key)).await?;
     let blocking = blocking_info_for(db, std::slice::from_ref(&task_key)).await?;
     let mut plan_ids = plan_ids_for(db, std::slice::from_ref(&task_key)).await?;
+    let mut plan_names = plan_names_for(db, std::slice::from_ref(&task_key)).await?;
     let mut task = row_to_task(
         row,
         tags.get(&task_key).cloned().unwrap_or_default(),
         blocking.get(&task_key).cloned().unwrap_or_default(),
     );
     task.plan_ids = plan_ids.remove(&task_key).unwrap_or_default();
+    task.plan_names = plan_names.remove(&task_key);
     Ok(Some(task))
 }
 
@@ -894,6 +928,7 @@ mod tests {
             duplicated_by: Vec::new(),
             children_counts: None,
             plan_ids: Vec::new(),
+            plan_names: None,
         }
     }
 

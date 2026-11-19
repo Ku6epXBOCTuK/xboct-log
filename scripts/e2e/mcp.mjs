@@ -109,6 +109,15 @@ try {
 			plansList.description,
 			/plans_get for one plan's items/,
 		);
+		assert.match(plansList.description, /include_deleted/);
+		const documentsList = tools.find((tool) => tool.name === "documents_list");
+		assert.ok(documentsList, "documents_list is missing");
+		assert.match(documentsList.description, /short_body/);
+		assert.match(documentsList.description, /include_body/);
+		assert.match(documentsList.description, /total/);
+		const tasksGet = tools.find((tool) => tool.name === "tasks_get");
+		assert.ok(tasksGet, "tasks_get is missing");
+		assert.match(tasksGet.description, /plan_names/);
 	});
 
 	console.log("\nsetup");
@@ -512,6 +521,22 @@ try {
 			[idOf(planRight), idOf(planLeft)],
 		);
 		assert.deepEqual(page.items[0].plan_ids, [plan.id]);
+		const named = ok(
+			await client.callTool("tasks_list", {
+				plan_id: plan.id,
+				include_plan_names: true,
+				sort: "plan_position",
+			}),
+			"tasks_list with plan_names",
+		);
+		assert.deepEqual(named.items[0].plan_names, [
+			{ id: plan.id, name: "E2E plan" },
+		]);
+		const got = ok(
+			await client.callTool("tasks_get", { task_id: idOf(planLeft) }),
+			"tasks_get with plan_names",
+		);
+		assert.deepEqual(got.plan_names, [{ id: plan.id, name: "E2E plan" }]);
 	});
 	await check("plans_notes_add, list and edit", async () => {
 		note = ok(
@@ -696,6 +721,18 @@ try {
 		assert.ok(
 			items(deleted, "plans_deleted_list").some((item) => item.id === plan.id),
 		);
+		const active = ok(
+			await client.callTool("plans_list", {}),
+			"plans_list without deleted",
+		);
+		assert.ok(!items(active, "plans_list").some((item) => item.id === plan.id));
+		const withDeleted = ok(
+			await client.callTool("plans_list", { include_deleted: true }),
+			"plans_list with deleted",
+		);
+		assert.ok(
+			items(withDeleted, "plans_list").some((item) => item.id === plan.id),
+		);
 		ok(
 			await client.callTool("plans_restore", { plan_id: plan.id }),
 			"plans_restore",
@@ -759,9 +796,25 @@ try {
 				await client.callTool("documents_list", { project_id: "e2e" }),
 				"documents_list",
 			);
-			assert.ok(
-				items(list, "documents_list").some((item) => item.id === document.id),
+			assert.ok(list.total >= 1);
+			const item = items(list, "documents_list").find(
+				(entry) => entry.id === document.id,
 			);
+			assert.equal(item.short_body, "first body");
+			assert.equal(item.body, undefined);
+			const full = ok(
+				await client.callTool("documents_list", {
+					project_id: "e2e",
+					include_body: true,
+					fields: ["id", "body"],
+					limit: 1,
+				}),
+				"documents_list with body",
+			);
+			assert.equal(full.total, list.total);
+			assert.equal(full.items.length, 1);
+			assert.equal(full.items[0].body, "first body");
+			assert.equal(full.items[0].title, undefined);
 		},
 	);
 	await check("documents_update and documents_revisions_list", async () => {
@@ -826,6 +879,24 @@ try {
 				items(linked, "plans_documents_list").some(
 					(item) => item.id === document.id,
 				),
+			);
+			const preview = items(linked, "plans_documents_list").find(
+				(item) => item.id === document.id,
+			);
+			assert.equal(preview.short_body, "second version");
+			assert.equal(preview.body, undefined);
+			const withBody = ok(
+				await client.callTool("plans_documents_list", {
+					plan_id: plan.id,
+					include_body: true,
+				}),
+				"plans_documents_list with body",
+			);
+			assert.equal(
+				items(withBody, "plans_documents_list").find(
+					(item) => item.id === document.id,
+				).body,
+				"second version",
 			);
 			ok(
 				await client.callTool("plans_documents_unlink", {

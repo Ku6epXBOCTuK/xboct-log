@@ -15,6 +15,15 @@ use crate::{Ctx, Items, Kind, Op};
 #[serde(default, deny_unknown_fields)]
 pub struct Empty {}
 
+#[derive(Debug, Default, Deserialize, JsonSchema)]
+#[serde(default, deny_unknown_fields)]
+pub struct PlansListInput {
+    #[schemars(
+        description = "Include soft-deleted plans alongside active ones. By default they are hidden."
+    )]
+    pub include_deleted: Option<bool>,
+}
+
 pub struct PlansList;
 
 impl Op for PlansList {
@@ -22,15 +31,18 @@ impl Op for PlansList {
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
 
-    type Input = Empty;
+    type Input = PlansListInput;
     type Output = Items<PlanWithCounts>;
 
     fn description() -> &'static str {
         crate::descriptions::PLANS_LIST
     }
 
-    async fn run(ctx: &Ctx, _input: Self::Input) -> Result<Self::Output> {
-        let plans = list_plans(&ctx.db).await?;
+    async fn run(ctx: &Ctx, input: Self::Input) -> Result<Self::Output> {
+        let mut plans = list_plans(&ctx.db).await?;
+        if input.include_deleted == Some(true) {
+            plans.extend(list_deleted_plans(&ctx.db).await?);
+        }
         let counts = xboct_log_core::count_plan_items(&ctx.db).await?;
         Ok(Items {
             items: plans

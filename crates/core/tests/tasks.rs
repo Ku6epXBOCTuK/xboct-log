@@ -515,6 +515,11 @@ async fn task_reads_expose_plan_membership_only() {
     assert_eq!(get_task(&db, "LOG-1").await.unwrap().plan_ids, ["p1", "p2"]);
     assert_eq!(get_task(&db, "SPA-2").await.unwrap().plan_ids, ["p1"]);
     assert!(get_task(&db, "LOG-4").await.unwrap().plan_ids.is_empty());
+    let value = serde_json::to_value(get_task(&db, "LOG-1").await.unwrap()).unwrap();
+    assert_eq!(
+        value["plan_names"],
+        json!([{"id": "p1", "name": "Alpha"}, {"id": "p2", "name": "Beta"}])
+    );
 
     assert_eq!(
         list_tasks(&db, &filters(json!({"plan_id": "p1"})))
@@ -575,6 +580,29 @@ async fn task_reads_expose_plan_membership_only() {
     let value = serde_json::to_value(&projected.items[0]).unwrap();
     assert_eq!(value["plan_ids"], json!(["p1"]));
     assert!(value.get("status").is_none());
+
+    let named = list_tasks(
+        &db,
+        &filters(json!({"include_plan_names": true, "plan_id": "p1"})),
+    )
+    .await
+    .unwrap();
+    let values = serde_json::to_value(&named.items).unwrap();
+    assert!(
+        values
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|item| item["plan_names"]
+                == json!([{"id": "p1", "name": "Alpha"}, {"id": "p2", "name": "Beta"}]))
+    );
+    assert!(values.as_array().unwrap().iter().all(|item| {
+        item["plan_names"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|plan| plan["id"] != "p3")
+    }));
 }
 
 #[test]

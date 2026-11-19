@@ -29,7 +29,9 @@ export interface DocumentPatchInput {
 export async function getDocuments(input: {
 	project_id?: string;
 }): Promise<Document[]> {
-	const answer = await client.POST("/api/documents_list", { body: input });
+	const answer = await client.POST("/api/documents_list", {
+		body: { ...input, include_body: true, limit: 1000 },
+	});
 	return unwrap<{ items: Document[] }>(answer).items;
 }
 
@@ -91,7 +93,7 @@ export async function getPlanDocuments(input: {
 	plan_id: string;
 }): Promise<Document[]> {
 	const answer = await client.POST("/api/plans_documents_list", {
-		body: input,
+		body: { ...input, include_body: true, limit: 1000 },
 	});
 	return unwrap<{ items: Document[] }>(answer).items;
 }

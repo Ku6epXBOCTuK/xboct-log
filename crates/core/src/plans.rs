@@ -52,6 +52,12 @@ pub struct PlanCounts {
     pub epics: i64,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
+pub struct PlanRef {
+    pub id: String,
+    pub name: String,
+}
+
 #[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct PlanWithCounts {
     #[serde(flatten)]

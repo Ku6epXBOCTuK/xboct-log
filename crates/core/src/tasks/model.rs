@@ -4,7 +4,10 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::ids::{ProjectId, ScopeId, Seq, TagName, TaskKey};
+use crate::{
+    ids::{ProjectId, ScopeId, Seq, TagName, TaskKey},
+    plans::PlanRef,
+};
 
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema,
@@ -196,6 +199,8 @@ pub struct Task {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub children_counts: Option<BTreeMap<String, i64>>,
     pub plan_ids: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub plan_names: Option<Vec<PlanRef>>,
 }
 
 #[derive(Debug, Clone, Serialize, JsonSchema)]
@@ -261,6 +266,8 @@ pub struct TaskView {
     pub children_counts: Option<BTreeMap<String, i64>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub plan_ids: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub plan_names: Option<Vec<PlanRef>>,
 }
 
 impl From<Task> for TaskView {
@@ -298,6 +305,7 @@ impl From<Task> for TaskView {
             duplicated_by: Some(task.duplicated_by),
             children_counts: task.children_counts,
             plan_ids: Some(task.plan_ids),
+            plan_names: task.plan_names,
         }
     }
 }
