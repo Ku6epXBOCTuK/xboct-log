@@ -1454,8 +1454,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Get one document by document_id (internal id)
-         * @description Get one document by document_id (internal id). Returns: {id, project_id, number, key, kind, title, body, status, source_file, created_at, updated_at, closed_at, deleted_at}.
+         * Get one document by document_id: either the internal id or its project key 'PREFIX-NNN'
+         * @description Get one document by document_id: either the internal id or its project key 'PREFIX-NNN'. Keys are case-insensitive and may be trimmed; bare numbers are rejected. Returns: {id, project_id, number, key, kind, title, body, status, source_file, created_at, updated_at, closed_at, deleted_at}.
          */
         post: operations["documents_get"];
         delete?: never;
@@ -1494,8 +1494,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Patch a document's kind, title, body, status (draft, accepted, superseded, archived) or source_file by document_id; pass fields next to document_id or in a nested patch object
-         * @description Patch a document's kind, title, body, status (draft, accepted, superseded, archived) or source_file by document_id; pass fields next to document_id or in a nested patch object. The previous body is stored in text_revisions. Pass expected_updated_at (the current updated_at) to reject a stale edit with a conflict. Returns: the updated document.
+         * Patch a document's kind, title, body, status (draft, accepted, superseded, archived) or source_file by document_id (internal id or 'PREFIX-NNN' key); pass fields next to document_id or in a nested patch object
+         * @description Patch a document's kind, title, body, status (draft, accepted, superseded, archived) or source_file by document_id (internal id or 'PREFIX-NNN' key); pass fields next to document_id or in a nested patch object. The previous body is stored in text_revisions. Pass expected_updated_at (the current updated_at) to reject a stale edit with a conflict. Returns: the updated document.
          */
         post: operations["documents_update"];
         delete?: never;
@@ -1514,8 +1514,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Soft-delete a document by document_id
-         * @description Soft-delete a document by document_id. Its links to plans and revisions are kept, so documents_restore brings it back. Returns: the deleted document with deleted_at set.
+         * Soft-delete a document by document_id (internal id or 'PREFIX-NNN' key)
+         * @description Soft-delete a document by document_id (internal id or 'PREFIX-NNN' key). Its links to plans and revisions are kept, so documents_restore brings it back. Returns: the deleted document with deleted_at set.
          */
         post: operations["documents_delete"];
         delete?: never;
@@ -1534,8 +1534,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Restore a soft-deleted document by document_id with its links and revisions
-         * @description Restore a soft-deleted document by document_id with its links and revisions. Find deleted documents with documents_deleted_list. Returns: the restored document with deleted_at cleared.
+         * Restore a soft-deleted document by document_id (internal id or 'PREFIX-NNN' key) with its links and revisions
+         * @description Restore a soft-deleted document by document_id (internal id or 'PREFIX-NNN' key) with its links and revisions. Find deleted documents with documents_deleted_list. Returns: the restored document with deleted_at cleared.
          */
         post: operations["documents_restore"];
         delete?: never;
@@ -1574,8 +1574,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * List the earlier body texts of a document, newest first, from text_revisions(entity='document')
-         * @description List the earlier body texts of a document, newest first, from text_revisions(entity='document'). Returns: {items} - each revision is {id, entity, entity_id, field, body, created_at}.
+         * List the earlier body texts of a document by document_id (internal id or 'PREFIX-NNN' key), newest first, from text_revisions(entity='document')
+         * @description List the earlier body texts of a document by document_id (internal id or 'PREFIX-NNN' key), newest first, from text_revisions(entity='document'). Returns: {items} - each revision is {id, entity, entity_id, field, body, created_at}.
          */
         post: operations["documents_revisions_list"];
         delete?: never;
@@ -1614,8 +1614,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Link a document to a plan by plan_id and document_id
-         * @description Link a document to a plan by plan_id and document_id. The document may belong to any project; no project match is required. Repeated links are ignored. Returns: the linked document.
+         * Link a document to a plan by plan_id and document_id (internal id or 'PREFIX-NNN' key)
+         * @description Link a document to a plan by plan_id and document_id (internal id or 'PREFIX-NNN' key). The document may belong to any project; no project match is required. Repeated links are ignored. Returns: the linked document.
          */
         post: operations["plans_documents_link"];
         delete?: never;
@@ -1634,8 +1634,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Remove a document link from a plan by plan_id and document_id; the document itself is not deleted or changed
-         * @description Remove a document link from a plan by plan_id and document_id; the document itself is not deleted or changed. Returns: the unlinked document.
+         * Remove a document link from a plan by plan_id and document_id (internal id or 'PREFIX-NNN' key); the document itself is not deleted or changed
+         * @description Remove a document link from a plan by plan_id and document_id (internal id or 'PREFIX-NNN' key); the document itself is not deleted or changed. Returns: the unlinked document.
          */
         post: operations["plans_documents_unlink"];
         delete?: never;

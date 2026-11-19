@@ -80,24 +80,32 @@ macro_rules! text_newtype {
 text_newtype!(ProjectId);
 text_newtype!(TagName);
 text_newtype!(TaskKey);
+text_newtype!(DocumentKey);
 text_newtype!(Prefix);
+
+fn parse_prefixed_key(value: &str) -> Result<String, AppError> {
+    let trimmed = value.trim();
+    let Some((prefix, number)) = trimmed.rsplit_once('-') else {
+        return Err(bare_key());
+    };
+    if prefix.is_empty() || number.is_empty() || !number.bytes().all(|byte| byte.is_ascii_digit()) {
+        return Err(bare_key());
+    }
+    if !prefix.bytes().all(|byte| byte.is_ascii_alphanumeric()) {
+        return Err(bare_key());
+    }
+    Ok(format!("{}-{}", prefix.to_ascii_uppercase(), number))
+}
 
 impl TaskKey {
     pub fn parse(value: &str) -> Result<Self, AppError> {
-        let trimmed = value.trim();
-        let Some((prefix, number)) = trimmed.rsplit_once('-') else {
-            return Err(bare_key());
-        };
-        if prefix.is_empty()
-            || number.is_empty()
-            || !number.bytes().all(|byte| byte.is_ascii_digit())
-        {
-            return Err(bare_key());
-        }
-        if !prefix.bytes().all(|byte| byte.is_ascii_alphanumeric()) {
-            return Err(bare_key());
-        }
-        Ok(Self(format!("{}-{}", prefix.to_ascii_uppercase(), number)))
+        Ok(Self(parse_prefixed_key(value)?))
+    }
+}
+
+impl DocumentKey {
+    pub fn parse(value: &str) -> Result<Self, AppError> {
+        Ok(Self(parse_prefixed_key(value)?))
     }
 }
 

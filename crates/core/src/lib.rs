@@ -57,7 +57,7 @@ pub use documents::{
 };
 pub use error::{AppError, AppErrorKind, ErrorStatus, Result};
 pub use events::{ActivitySource, ChangeEvent, Entity, Events, ServerEvent, entity_of};
-pub use ids::{AttachmentId, Prefix, ProjectId, ScopeId, Seq, TagName, TaskKey};
+pub use ids::{AttachmentId, DocumentKey, Prefix, ProjectId, ScopeId, Seq, TagName, TaskKey};
 pub use media::{
     AttachmentContents, AttachmentFormat, AttachmentKind, attachment_format, read_attachment_file,
     read_deleted_attachment_file,

@@ -134,3 +134,65 @@ async fn document_ops_keep_revisions_cross_project_links_and_soft_delete() {
     let all = call(&ctx, "documents_list", json!({})).await;
     assert_eq!(all["items"].as_array().unwrap().len(), 2);
 }
+
+#[tokio::test]
+async fn document_ops_accept_keys_as_well_as_ids() {
+    let ctx = context().await;
+    let created = call(
+        &ctx,
+        "documents_create",
+        json!({"project_id": "log", "kind": "adr", "title": "ADR", "body": "first"}),
+    )
+    .await;
+    let id = created["id"].as_str().unwrap();
+    assert_eq!(created["key"], "LOG-1");
+
+    let got = call(&ctx, "documents_get", json!({"document_id": "LOG-1"})).await;
+    assert_eq!(got["id"], id);
+    let got = call(&ctx, "documents_get", json!({"document_id": id})).await;
+    assert_eq!(got["key"], "LOG-1");
+    assert!(
+        dispatch(&ctx, "documents_get", json!({"document_id": "1"}))
+            .await
+            .is_err()
+    );
+
+    call(
+        &ctx,
+        "documents_update",
+        json!({"document_id": "log-1", "body": "second"}),
+    )
+    .await;
+    let revisions = call(
+        &ctx,
+        "documents_revisions_list",
+        json!({"document_id": "LOG-1"}),
+    )
+    .await;
+    assert_eq!(revisions["items"][0]["body"], "first");
+    assert_eq!(revisions["items"][0]["entity_id"], id);
+
+    let plan = call(&ctx, "plans_create", json!({"name": "Docs"})).await;
+    let plan_id = plan["id"].as_str().unwrap();
+    call(
+        &ctx,
+        "plans_documents_link",
+        json!({"plan_id": plan_id, "document_id": "LOG-1"}),
+    )
+    .await;
+    let linked = call(&ctx, "plans_documents_list", json!({"plan_id": plan_id})).await;
+    assert_eq!(linked["items"][0]["id"], id);
+    call(
+        &ctx,
+        "plans_documents_unlink",
+        json!({"plan_id": plan_id, "document_id": id}),
+    )
+    .await;
+    let linked = call(&ctx, "plans_documents_list", json!({"plan_id": plan_id})).await;
+    assert_eq!(linked["items"].as_array().unwrap().len(), 0);
+
+    call(&ctx, "documents_delete", json!({"document_id": "LOG-1"})).await;
+    call(&ctx, "documents_restore", json!({"document_id": "LOG-1"})).await;
+    let got = call(&ctx, "documents_get", json!({"document_id": "LOG-1"})).await;
+    assert!(got["deleted_at"].is_null());
+}

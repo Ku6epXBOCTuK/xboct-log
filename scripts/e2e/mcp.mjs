@@ -643,6 +643,13 @@ try {
 				"documents_get",
 			);
 			assert.equal(found.key, document.key);
+			const byKey = ok(
+				await client.callTool("documents_get", {
+					document_id: document.key,
+				}),
+				"documents_get by key",
+			);
+			assert.equal(byKey.id, document.id);
 			const list = ok(
 				await client.callTool("documents_list", { project_id: "e2e" }),
 				"documents_list",
@@ -700,7 +707,7 @@ try {
 			ok(
 				await client.callTool("plans_documents_link", {
 					plan_id: plan.id,
-					document_id: document.id,
+					document_id: document.key,
 				}),
 				"plans_documents_link",
 			);
@@ -718,7 +725,7 @@ try {
 			ok(
 				await client.callTool("plans_documents_unlink", {
 					plan_id: plan.id,
-					document_id: document.id,
+					document_id: document.key.toLowerCase(),
 				}),
 				"plans_documents_unlink",
 			);

@@ -2,7 +2,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
 
-use crate::{AppError, Db, Result, Tx};
+use crate::{AppError, Db, DocumentKey, Result, Tx};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
@@ -165,8 +165,21 @@ pub async fn get_document_by_key(db: &Db, key: &str) -> Result<Option<Document>>
     row.as_ref().map(row_to_document).transpose()
 }
 
+pub async fn resolve_document_id(db: &Db, id: &str) -> Result<String> {
+    let raw = id.trim();
+    if let Ok(uuid) = uuid::Uuid::parse_str(raw) {
+        return Ok(uuid.hyphenated().to_string());
+    }
+    let key = DocumentKey::parse(raw)?;
+    let document = get_document_by_key(db, key.as_str())
+        .await?
+        .ok_or_else(|| AppError::not_found(format!("document {key} not found")))?;
+    Ok(document.id)
+}
+
 pub async fn require_document(db: &Db, id: &str) -> Result<Document> {
-    get_document(db, id)
+    let id = resolve_document_id(db, id).await?;
+    get_document(db, &id)
         .await?
         .ok_or_else(|| AppError::not_found(format!("document {id} not found")))
 }
@@ -271,6 +284,7 @@ pub async fn update_document(
     expected_updated_at: Option<&str>,
 ) -> Result<Document> {
     let current = require_document(db, id).await?;
+    let id = current.id.clone();
     if current.deleted_at.is_some() {
         return Err(AppError::not_found(format!("document {id} not found")));
     }
@@ -315,7 +329,7 @@ pub async fn update_document(
             "INSERT INTO text_revisions (entity, entity_id, field, body, created_at)
              VALUES ('document', ?, 'body', ?, ?)",
         )
-        .bind(id)
+        .bind(&id)
         .bind(&current.body)
         .bind(&now)
         .execute(db.pool())
@@ -333,10 +347,10 @@ pub async fn update_document(
     .bind(source_file)
     .bind(closed_at)
     .bind(&now)
-    .bind(id)
+    .bind(&id)
     .execute(db.pool())
     .await?;
-    require_document(db, id).await
+    require_document(db, &id).await
 }
 
 pub async fn delete_document(db: &Db, id: &str) -> Result<Document> {
@@ -344,14 +358,15 @@ pub async fn delete_document(db: &Db, id: &str) -> Result<Document> {
     if current.deleted_at.is_some() {
         return Ok(current);
     }
+    let id = current.id;
     let now = crate::tasks::now_iso();
     sqlx::query("UPDATE documents SET deleted_at = ?, updated_at = ? WHERE id = ?")
         .bind(&now)
         .bind(&now)
-        .bind(id)
+        .bind(&id)
         .execute(db.pool())
         .await?;
-    require_document(db, id).await
+    require_document(db, &id).await
 }
 
 pub async fn restore_document(db: &Db, id: &str) -> Result<Document> {
@@ -359,19 +374,21 @@ pub async fn restore_document(db: &Db, id: &str) -> Result<Document> {
     if current.deleted_at.is_none() {
         return Ok(current);
     }
+    let id = current.id;
     sqlx::query("UPDATE documents SET deleted_at = NULL WHERE id = ?")
-        .bind(id)
+        .bind(&id)
         .execute(db.pool())
         .await?;
-    require_document(db, id).await
+    require_document(db, &id).await
 }
 
 pub async fn list_document_revisions(db: &Db, id: &str) -> Result<Vec<TextRevision>> {
+    let document = require_document(db, id).await?;
     let rows = sqlx::query(
         "SELECT id, entity, entity_id, field, body, created_at FROM text_revisions
          WHERE entity = 'document' AND entity_id = ? ORDER BY id DESC",
     )
-    .bind(id)
+    .bind(&document.id)
     .fetch_all(db.pool())
     .await?;
     rows.iter()
@@ -390,19 +407,20 @@ pub async fn list_document_revisions(db: &Db, id: &str) -> Result<Vec<TextRevisi
 
 pub async fn link_document_to_plan(db: &Db, plan_id: &str, document_id: &str) -> Result<()> {
     crate::require_plan(db, plan_id).await?;
-    require_document(db, document_id).await?;
+    let document = require_document(db, document_id).await?;
     sqlx::query("INSERT OR IGNORE INTO plan_documents (plan_id, document_id) VALUES (?, ?)")
         .bind(plan_id)
-        .bind(document_id)
+        .bind(&document.id)
         .execute(db.pool())
         .await?;
     Ok(())
 }
 
 pub async fn unlink_document_from_plan(db: &Db, plan_id: &str, document_id: &str) -> Result<()> {
+    let document = require_document(db, document_id).await?;
     sqlx::query("DELETE FROM plan_documents WHERE plan_id = ? AND document_id = ?")
         .bind(plan_id)
-        .bind(document_id)
+        .bind(&document.id)
         .execute(db.pool())
         .await?;
     Ok(())
@@ -565,5 +583,107 @@ mod tests {
             .await
             .expect("next");
         assert_eq!(next.key, "SPA-2");
+    }
+
+    #[tokio::test]
+    async fn document_keys_are_accepted_everywhere() {
+        let db = open().await;
+        let log = create_document(&db, "log", DocumentKind::Adr, "ADR", "first", None)
+            .await
+            .expect("log document");
+        let spa = create_document(&db, "spa", DocumentKind::Spec, "Spec", "", None)
+            .await
+            .expect("spa document");
+
+        assert_eq!(
+            require_document(&db, "LOG-1").await.expect("key").id,
+            log.id
+        );
+        assert_eq!(
+            require_document(&db, " log-1 ").await.expect("trimmed").id,
+            log.id
+        );
+        assert_eq!(
+            require_document(&db, &log.id).await.expect("uuid").id,
+            log.id
+        );
+        assert_eq!(
+            require_document(&db, "1")
+                .await
+                .expect_err("bare number")
+                .kind(),
+            crate::AppErrorKind::Validation
+        );
+        assert_eq!(
+            require_document(&db, "LOG-9")
+                .await
+                .expect_err("unknown key")
+                .kind(),
+            crate::AppErrorKind::NotFound
+        );
+
+        let updated = update_document(
+            &db,
+            "LOG-1",
+            &DocumentPatch {
+                body: Some("second".into()),
+                ..DocumentPatch::default()
+            },
+            None,
+        )
+        .await
+        .expect("update by key");
+        assert_eq!(updated.body, "second");
+        let revisions = list_document_revisions(&db, "LOG-1")
+            .await
+            .expect("revisions");
+        assert_eq!(revisions.len(), 1);
+        assert_eq!(revisions[0].entity_id, log.id);
+        assert_eq!(revisions[0].body, "first");
+
+        let plan = crate::create_plan(&db, "Docs", "", crate::PlanStatus::Active)
+            .await
+            .expect("plan");
+        link_document_to_plan(&db, &plan.id, "SPA-1")
+            .await
+            .expect("link by key");
+        assert_eq!(
+            documents_for_plan(&db, &plan.id)
+                .await
+                .expect("linked")
+                .len(),
+            1
+        );
+        unlink_document_from_plan(&db, &plan.id, "spa-1")
+            .await
+            .expect("unlink by key");
+        assert!(
+            documents_for_plan(&db, &plan.id)
+                .await
+                .expect("linked")
+                .is_empty()
+        );
+
+        delete_document(&db, "LOG-1").await.expect("delete by key");
+        assert!(
+            list_documents(&db, Some("log"))
+                .await
+                .expect("list")
+                .is_empty()
+        );
+        restore_document(&db, "LOG-1")
+            .await
+            .expect("restore by key");
+        assert_eq!(
+            list_documents(&db, Some("log")).await.expect("list").len(),
+            1
+        );
+
+        delete_document(&db, &log.id).await.expect("delete again");
+        let next = create_document(&db, "log", DocumentKind::Guide, "Guide", "", None)
+            .await
+            .expect("next");
+        assert_eq!(next.key, "LOG-2");
+        let _ = &spa;
     }
 }
