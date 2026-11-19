@@ -50,7 +50,7 @@ const CREATE_SQLX_MIGRATIONS: &str = "CREATE TABLE IF NOT EXISTS _sqlx_migration
 )";
 
 pub(crate) async fn migrate(db: &Db) -> Result<()> {
-    let node_history = table_exists(db, "schema_migrations").await?;
+    let node_history = db.table_exists("schema_migrations").await?;
     if node_history {
         align_rust_history(db).await?;
     }
@@ -61,15 +61,6 @@ pub(crate) async fn migrate(db: &Db) -> Result<()> {
         .map_err(|error| AppError::unexpected(error.to_string()))?;
 
     Ok(())
-}
-
-async fn table_exists(db: &Db, name: &str) -> Result<bool> {
-    let count: i64 =
-        sqlx::query_scalar("select count(*) from sqlite_master where type = 'table' and name = ?")
-            .bind(name)
-            .fetch_one(db.pool())
-            .await?;
-    Ok(count > 0)
 }
 
 async fn align_rust_history(db: &Db) -> Result<()> {
@@ -93,7 +84,7 @@ async fn align_rust_history(db: &Db) -> Result<()> {
         .next()
         .ok_or_else(|| AppError::unexpected("the embedded migration set is empty"))?;
 
-    if table_exists(db, "_sqlx_migrations").await? {
+    if db.table_exists("_sqlx_migrations").await? {
         let checksum: Option<Vec<u8>> =
             sqlx::query_scalar("select checksum from _sqlx_migrations where version = ?")
                 .bind(migration.version)

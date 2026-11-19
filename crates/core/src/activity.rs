@@ -37,15 +37,6 @@ impl ActivityEntry {
     }
 }
 
-async fn activity_table_exists(db: &Db) -> Result<bool> {
-    let exists: Option<String> = sqlx::query_scalar(
-        "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'activity'",
-    )
-    .fetch_optional(db.pool())
-    .await?;
-    Ok(exists.is_some())
-}
-
 async fn task_ids_by_key(db: &Db, entries: &[ActivityEntry]) -> Result<HashMap<String, String>> {
     let mut keys: Vec<String> = Vec::new();
     for entry in entries {
@@ -75,7 +66,7 @@ pub async fn record_activity(
     client: Option<&str>,
     now: DateTime<Local>,
 ) -> Result<u64> {
-    if entries.is_empty() || !activity_table_exists(db).await? {
+    if entries.is_empty() || !db.table_exists("activity").await? {
         return Ok(0);
     }
     let created_at = now
@@ -111,7 +102,7 @@ pub async fn record_activity(
 }
 
 pub async fn prune_activity(db: &Db, keep_days: i64, now: DateTime<Local>) -> Result<u64> {
-    if !activity_table_exists(db).await? {
+    if !db.table_exists("activity").await? {
         return Ok(0);
     }
 

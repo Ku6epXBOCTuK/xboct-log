@@ -55,6 +55,15 @@ impl Db {
         &self.pool
     }
 
+    pub async fn table_exists(&self, name: &str) -> Result<bool> {
+        let exists: Option<String> =
+            sqlx::query_scalar("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?")
+                .bind(name)
+                .fetch_optional(self.pool())
+                .await?;
+        Ok(exists.is_some())
+    }
+
     pub fn path(&self) -> &Path {
         &self.path
     }

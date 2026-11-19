@@ -61,15 +61,6 @@ pub struct ActivitySearch {
     pub offset: Option<i64>,
 }
 
-async fn has_table(db: &Db) -> Result<bool> {
-    let exists: Option<String> = sqlx::query_scalar(
-        "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'activity'",
-    )
-    .fetch_optional(db.pool())
-    .await?;
-    Ok(exists.is_some())
-}
-
 fn parse_fields(raw: &str) -> Vec<String> {
     match serde_json::from_str::<Value>(raw) {
         Ok(Value::Array(items)) => items
@@ -213,7 +204,7 @@ type HistoryRow = (
 );
 
 pub async fn search_activity(db: &Db, search: &ActivitySearch) -> Result<ActivityPage> {
-    if !has_table(db).await? {
+    if !db.table_exists("activity").await? {
         return Ok(ActivityPage {
             items: Vec::new(),
             total: 0,
@@ -271,7 +262,7 @@ pub async fn list_activity(
     limit: Option<i64>,
     offset: Option<i64>,
 ) -> Result<HistoryPage> {
-    if !has_table(db).await? {
+    if !db.table_exists("activity").await? {
         return Ok(HistoryPage {
             items: Vec::new(),
             total: 0,

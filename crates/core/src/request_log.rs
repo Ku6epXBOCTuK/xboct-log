@@ -153,17 +153,8 @@ pub fn validate_request_log_search(search: &RequestLogSearch) -> Result<()> {
     Ok(())
 }
 
-async fn has_table(db: &Db) -> Result<bool> {
-    let exists: Option<String> = sqlx::query_scalar(
-        "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'request_log'",
-    )
-    .fetch_optional(db.pool())
-    .await?;
-    Ok(exists.is_some())
-}
-
 pub async fn record_request(db: &Db, entry: &RequestLogEntry, now: DateTime<Local>) -> Result<u64> {
-    if !has_table(db).await? {
+    if !db.table_exists("request_log").await? {
         return Ok(0);
     }
     let created_at = now
@@ -243,7 +234,7 @@ fn to_item(row: Row) -> RequestLogItem {
 }
 
 pub async fn search_request_log(db: &Db, search: &RequestLogSearch) -> Result<RequestLogPage> {
-    if !has_table(db).await? {
+    if !db.table_exists("request_log").await? {
         return Ok(RequestLogPage {
             items: Vec::new(),
             total: 0,
@@ -273,7 +264,7 @@ pub async fn search_request_log(db: &Db, search: &RequestLogSearch) -> Result<Re
 }
 
 pub async fn export_request_log(db: &Db, search: &RequestLogSearch) -> Result<RequestLogExport> {
-    if !has_table(db).await? {
+    if !db.table_exists("request_log").await? {
         return Ok(RequestLogExport {
             content: String::new(),
             count: 0,
@@ -305,7 +296,7 @@ pub async fn export_request_log(db: &Db, search: &RequestLogSearch) -> Result<Re
 }
 
 pub async fn prune_request_log(db: &Db, keep_days: i64, now: DateTime<Local>) -> Result<u64> {
-    if !has_table(db).await? {
+    if !db.table_exists("request_log").await? {
         return Ok(0);
     }
     let cutoff = (now - chrono::Duration::days(keep_days))
