@@ -1395,7 +1395,7 @@ export interface paths {
         put?: never;
         /**
          * Replace the body of a plan note by note_id
-         * @description Replace the body of a plan note by note_id. The previous text is kept in text_revisions. Returns: the updated note with edited_at set.
+         * @description Replace the body of a plan note by note_id. The previous text is kept in text_revisions. Pass expected_edited_at (the current edited_at, or created_at before the first edit) to reject a stale edit with a conflict. Returns: the updated note with edited_at set.
          */
         post: operations["plans_notes_edit"];
         delete?: never;
@@ -1414,10 +1414,70 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Soft-delete a plan note by note_id: it disappears from plans_notes_list but keeps its id and history
-         * @description Soft-delete a plan note by note_id: it disappears from plans_notes_list but keeps its id and history. Returns: the note with deleted_at set.
+         * Soft-delete a plan note by note_id: it disappears from plans_notes_list but keeps its id, body and revisions
+         * @description Soft-delete a plan note by note_id: it disappears from plans_notes_list but keeps its id, body and revisions. Find deleted notes with plans_notes_deleted_list and bring one back with plans_notes_restore. Returns: the note with deleted_at set.
          */
         post: operations["plans_notes_delete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/plans_notes_restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore a soft-deleted plan note by note_id with its body and revisions
+         * @description Restore a soft-deleted plan note by note_id with its body and revisions. Safe to repeat on an active note. Returns: the restored note with deleted_at cleared.
+         */
+        post: operations["plans_notes_restore"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/plans_notes_deleted_list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * List the soft-deleted notes of one plan by plan_id, newest deletion first
+         * @description List the soft-deleted notes of one plan by plan_id, newest deletion first. Returns: {items}.
+         */
+        post: operations["plans_notes_deleted_list"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/plans_notes_revisions_list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * List the earlier bodies of a plan note by note_id, newest first, from text_revisions(entity='plan_note'); deleted notes keep their history
+         * @description List the earlier bodies of a plan note by note_id, newest first, from text_revisions(entity='plan_note'); deleted notes keep their history. Returns: {items} - each revision is {id, entity, entity_id, field, body, created_at}.
+         */
+        post: operations["plans_notes_revisions_list"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1663,7 +1723,7 @@ export interface components {
         /** @enum {string} */
         ActivitySource: "ui" | "mcp" | "cli";
         /** @enum {string} */
-        OpName: "tasks_history" | "activity_list" | "request_log_list" | "request_log_export" | "attachments_list" | "attachments_deleted_list" | "attachments_add" | "attachments_delete" | "attachments_restore" | "attachments_move" | "attachments_copy" | "attachments_purge" | "attachments_verify" | "backup_create" | "backup_list" | "backups_inspect" | "backups_restore" | "tasks_add_blocker" | "tasks_remove_blocker" | "tasks_add_link" | "tasks_remove_link" | "tasks_comments_list" | "tasks_comments_add" | "tasks_comments_edit" | "tasks_comments_delete" | "tasks_options" | "projects_list" | "projects_get" | "projects_create" | "projects_update" | "tasks_revisions_list" | "scopes_list" | "scopes_get" | "scopes_project_ids" | "scopes_create" | "scopes_update" | "scopes_delete" | "tasks_stats" | "tasks_list" | "tasks_deleted_list" | "tasks_get_many" | "tasks_get" | "tasks_create" | "tasks_create_many" | "tasks_update" | "tasks_update_many" | "tasks_close" | "tasks_close_many" | "tasks_delete" | "tasks_restore" | "tasks_move" | "tags_list" | "tags_dictionary" | "tags_inventory" | "tags_create" | "tags_update" | "tags_rename" | "plans_list" | "plans_get" | "plans_create" | "plans_update" | "plans_delete" | "plans_restore" | "plans_deleted_list" | "plans_items_add" | "plans_items_remove" | "plans_reorder" | "plans_notes_list" | "plans_notes_add" | "plans_notes_edit" | "plans_notes_delete" | "documents_list" | "documents_get" | "documents_create" | "documents_update" | "documents_delete" | "documents_restore" | "documents_deleted_list" | "documents_revisions_list" | "plans_documents_list" | "plans_documents_link" | "plans_documents_unlink";
+        OpName: "tasks_history" | "activity_list" | "request_log_list" | "request_log_export" | "attachments_list" | "attachments_deleted_list" | "attachments_add" | "attachments_delete" | "attachments_restore" | "attachments_move" | "attachments_copy" | "attachments_purge" | "attachments_verify" | "backup_create" | "backup_list" | "backups_inspect" | "backups_restore" | "tasks_add_blocker" | "tasks_remove_blocker" | "tasks_add_link" | "tasks_remove_link" | "tasks_comments_list" | "tasks_comments_add" | "tasks_comments_edit" | "tasks_comments_delete" | "tasks_options" | "projects_list" | "projects_get" | "projects_create" | "projects_update" | "tasks_revisions_list" | "scopes_list" | "scopes_get" | "scopes_project_ids" | "scopes_create" | "scopes_update" | "scopes_delete" | "tasks_stats" | "tasks_list" | "tasks_deleted_list" | "tasks_get_many" | "tasks_get" | "tasks_create" | "tasks_create_many" | "tasks_update" | "tasks_update_many" | "tasks_close" | "tasks_close_many" | "tasks_delete" | "tasks_restore" | "tasks_move" | "tags_list" | "tags_dictionary" | "tags_inventory" | "tags_create" | "tags_update" | "tags_rename" | "plans_list" | "plans_get" | "plans_create" | "plans_update" | "plans_delete" | "plans_restore" | "plans_deleted_list" | "plans_items_add" | "plans_items_remove" | "plans_reorder" | "plans_notes_list" | "plans_notes_add" | "plans_notes_edit" | "plans_notes_delete" | "plans_notes_restore" | "plans_notes_deleted_list" | "plans_notes_revisions_list" | "documents_list" | "documents_get" | "documents_create" | "documents_update" | "documents_delete" | "documents_restore" | "documents_deleted_list" | "documents_revisions_list" | "plans_documents_list" | "plans_documents_link" | "plans_documents_unlink";
         /** @enum {string} */
         ActivityEntity: "task" | "plan" | "document" | "project" | "scope" | "tag";
         ActivityItem: {
@@ -2089,6 +2149,15 @@ export interface components {
             edited_at?: string | null;
             deleted_at?: string | null;
         };
+        TextRevision: {
+            /** Format: int64 */
+            id: number;
+            entity: string;
+            entity_id: string;
+            field: string;
+            body: string;
+            created_at: string;
+        };
         Document: {
             id: string;
             project_id: string;
@@ -2109,15 +2178,6 @@ export interface components {
         DocumentKind: "adr" | "prd" | "architecture" | "research" | "workflow" | "guide" | "spec";
         /** @enum {string} */
         DocumentStatus: "draft" | "accepted" | "superseded" | "archived";
-        TextRevision: {
-            /** Format: int64 */
-            id: number;
-            entity: string;
-            entity_id: string;
-            field: string;
-            body: string;
-            created_at: string;
-        };
     };
     responses: never;
     parameters: never;
@@ -7436,6 +7496,8 @@ export interface operations {
                 "application/json": {
                     note_id: string;
                     body: string;
+                    /** @description Expected current note version: edited_at, or created_at before the first edit. Pass it to reject a stale edit. */
+                    expected_edited_at?: string | null;
                 };
             };
         };
@@ -7524,6 +7586,204 @@ export interface operations {
                         created_at: string;
                         edited_at?: string | null;
                         deleted_at?: string | null;
+                    };
+                };
+            };
+            /** @description The input is not valid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The thing does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The change clashes with the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The operation failed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    plans_notes_restore: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    note_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The result of the operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        plan_id: string;
+                        key: string;
+                        body: string;
+                        created_at: string;
+                        edited_at?: string | null;
+                        deleted_at?: string | null;
+                    };
+                };
+            };
+            /** @description The input is not valid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The thing does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The change clashes with the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The operation failed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    plans_notes_deleted_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    plan_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The result of the operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["PlanNote"][];
+                    };
+                };
+            };
+            /** @description The input is not valid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The thing does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The change clashes with the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The operation failed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    plans_notes_revisions_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    note_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The result of the operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["TextRevision"][];
                     };
                 };
             };

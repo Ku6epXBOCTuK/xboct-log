@@ -231,7 +231,7 @@ pub fn entries(op: &str, input: &Value, output: &Value) -> Vec<ActivityEntry> {
             strings(&["items"]),
             Vec::new(),
         )],
-        "plans_notes_add" | "plans_notes_edit" | "plans_notes_delete" => {
+        "plans_notes_add" | "plans_notes_edit" | "plans_notes_delete" | "plans_notes_restore" => {
             let from_input = text(input, "plan_id");
             let plan_id = if from_input.is_empty() {
                 text(output, "plan_id")

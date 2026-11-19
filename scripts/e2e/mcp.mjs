@@ -85,7 +85,7 @@ try {
 	};
 
 	await check("tools/list exposes every registered tool", () => {
-		assert.equal(tools.length, 80);
+		assert.equal(tools.length, 83);
 		const names = new Set(tools.map((tool) => tool.name));
 		for (const name of [
 			"tasks_create",
@@ -94,6 +94,9 @@ try {
 			"scopes_delete",
 			"plans_create",
 			"plans_reorder",
+			"plans_notes_restore",
+			"plans_notes_deleted_list",
+			"plans_notes_revisions_list",
 			"documents_create",
 			"plans_documents_link",
 		]) {
@@ -523,10 +526,12 @@ try {
 			await client.callTool("plans_notes_edit", {
 				note_id: note.id,
 				body: "note after the edit",
+				expected_edited_at: note.created_at,
 			}),
 			"plans_notes_edit",
 		);
 		assert.equal(edited.body, "note after the edit");
+		note = edited;
 	});
 	await check("a task move keeps the plan composition", async () => {
 		const moved = ok(
@@ -566,6 +571,99 @@ try {
 		);
 		assert.equal(error.kind, "validation");
 	});
+	await check(
+		"plan note history rejects stale edits and restores",
+		async () => {
+			const stale = failed(
+				await client.callTool("plans_notes_edit", {
+					note_id: note.id,
+					body: "stale note",
+					expected_edited_at: note.created_at,
+				}),
+				"plans_notes_edit stale",
+			);
+			assert.equal(stale.kind, "conflict");
+			const current = ok(
+				await client.callTool("plans_notes_list", { plan_id: plan.id }),
+				"plans_notes_list after stale edit",
+			);
+			assert.equal(
+				items(current, "plans_notes_list")[0].body,
+				"note after the edit",
+			);
+
+			const revisions = ok(
+				await client.callTool("plans_notes_revisions_list", {
+					note_id: note.id,
+				}),
+				"plans_notes_revisions_list",
+			);
+			assert.ok(
+				items(revisions, "plans_notes_revisions_list").some(
+					(item) => item.body === "note before the move",
+				),
+			);
+
+			note = ok(
+				await client.callTool("plans_notes_edit", {
+					note_id: note.id,
+					body: "note after the stale check",
+					expected_edited_at: note.edited_at,
+				}),
+				"plans_notes_edit with current version",
+			);
+			ok(
+				await client.callTool("plans_notes_delete", { note_id: note.id }),
+				"plans_notes_delete before restore",
+			);
+			assert.ok(
+				items(
+					ok(
+						await client.callTool("plans_notes_list", { plan_id: plan.id }),
+						"plans_notes_list after delete",
+					),
+					"plans_notes_list after delete",
+				).length === 0,
+			);
+			const deleted = ok(
+				await client.callTool("plans_notes_deleted_list", { plan_id: plan.id }),
+				"plans_notes_deleted_list",
+			);
+			assert.ok(
+				items(deleted, "plans_notes_deleted_list").some(
+					(item) => item.id === note.id,
+				),
+			);
+			const later = ok(
+				await client.callTool("plans_notes_revisions_list", {
+					note_id: note.id,
+				}),
+				"plans_notes_revisions_list after delete",
+			);
+			assert.equal(items(later, "plans_notes_revisions_list").length, 2);
+			ok(
+				await client.callTool("plans_notes_restore", { note_id: note.id }),
+				"plans_notes_restore",
+			);
+			ok(
+				await client.callTool("plans_notes_restore", { note_id: note.id }),
+				"plans_notes_restore repeat",
+			);
+			const restored = ok(
+				await client.callTool("plans_notes_list", { plan_id: plan.id }),
+				"plans_notes_list after restore",
+			);
+			assert.equal(
+				items(restored, "plans_notes_list")[0].body,
+				"note after the stale check",
+			);
+			const remaining = ok(
+				await client.callTool("plans_notes_deleted_list", { plan_id: plan.id }),
+				"plans_notes_deleted_list after restore",
+			);
+			assert.equal(items(remaining, "plans_notes_deleted_list").length, 0);
+		},
+	);
 	await check("plans_update", async () => {
 		const updated = ok(
 			await client.callTool("plans_update", {

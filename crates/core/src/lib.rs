@@ -66,7 +66,8 @@ pub use op_name::OpName;
 pub use paths::{data_fingerprint, fingerprint_path};
 pub use plan_items::{
     PlanItem, PlanNote, add_plan_item, add_plan_note, delete_plan_note, edit_plan_note,
-    list_plan_items, list_plan_notes, remove_plan_item, reorder_plan_items,
+    list_deleted_plan_notes, list_plan_items, list_plan_note_revisions, list_plan_notes,
+    remove_plan_item, reorder_plan_items, restore_plan_note,
 };
 pub use plans::{
     Plan, PlanCounts, PlanPatch, PlanStatus, PlanWithCounts, count_plan_items, create_plan,

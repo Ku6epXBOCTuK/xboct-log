@@ -2,7 +2,7 @@ use schemars::JsonSchema;
 use serde::Serialize;
 use sqlx::Row;
 
-use crate::{AppError, Db, Result, now_iso, require_plan, resolve_task_id};
+use crate::{AppError, Db, Result, TextRevision, now_iso, require_plan, resolve_task_id};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
 pub struct PlanItem {
@@ -243,14 +243,41 @@ async fn get_plan_note(db: &Db, id: &str) -> Result<PlanNote> {
     row_to_note(&row)
 }
 
-pub async fn edit_plan_note(db: &Db, id: &str, body: &str) -> Result<PlanNote> {
+pub async fn edit_plan_note(
+    db: &Db,
+    id: &str,
+    body: &str,
+    expected_edited_at: Option<&str>,
+) -> Result<PlanNote> {
     let body = body.trim();
     if body.is_empty() {
         return Err(AppError::validation("note body is required"));
     }
-    let current = get_plan_note(db, id).await?;
+    let mut tx = db.begin().await?;
+    let row = sqlx::query(
+        "SELECT pn.id, pn.plan_id, pn.body, pn.created_at, pn.edited_at, pn.deleted_at, t.key
+         FROM plan_notes pn
+         JOIN tasks t ON t.id = pn.task_id
+         WHERE pn.id = ?",
+    )
+    .bind(id)
+    .fetch_optional(&mut *tx)
+    .await?
+    .ok_or_else(|| AppError::not_found(format!("plan note {id} not found")))?;
+    let current = row_to_note(&row)?;
     if current.deleted_at.is_some() {
         return Err(AppError::not_found(format!("plan note {id} not found")));
+    }
+    let version = current
+        .edited_at
+        .as_deref()
+        .unwrap_or(current.created_at.as_str());
+    if let Some(expected) = expected_edited_at
+        && expected != version
+    {
+        return Err(AppError::conflict(format!(
+            "plan note {id} changed since {expected}"
+        )));
     }
     if current.body != body {
         let now = now_iso();
@@ -258,19 +285,20 @@ pub async fn edit_plan_note(db: &Db, id: &str, body: &str) -> Result<PlanNote> {
             "INSERT INTO text_revisions (entity, entity_id, field, body, created_at)
              VALUES ('plan_note', ?, 'body', ?, ?)",
         )
-        .bind(id)
+        .bind(&current.id)
         .bind(&current.body)
         .bind(&now)
-        .execute(db.pool())
+        .execute(&mut *tx)
         .await?;
         sqlx::query("UPDATE plan_notes SET body = ?, edited_at = ? WHERE id = ?")
             .bind(body)
             .bind(&now)
-            .bind(id)
-            .execute(db.pool())
+            .bind(&current.id)
+            .execute(&mut *tx)
             .await?;
     }
-    get_plan_note(db, id).await
+    tx.commit().await?;
+    get_plan_note(db, &current.id).await
 }
 
 pub async fn delete_plan_note(db: &Db, id: &str) -> Result<PlanNote> {
@@ -279,11 +307,59 @@ pub async fn delete_plan_note(db: &Db, id: &str) -> Result<PlanNote> {
         let now = now_iso();
         sqlx::query("UPDATE plan_notes SET deleted_at = ? WHERE id = ?")
             .bind(&now)
-            .bind(id)
+            .bind(&current.id)
             .execute(db.pool())
             .await?;
     }
-    get_plan_note(db, id).await
+    get_plan_note(db, &current.id).await
+}
+
+pub async fn restore_plan_note(db: &Db, id: &str) -> Result<PlanNote> {
+    let current = get_plan_note(db, id).await?;
+    if current.deleted_at.is_some() {
+        sqlx::query("UPDATE plan_notes SET deleted_at = NULL WHERE id = ?")
+            .bind(&current.id)
+            .execute(db.pool())
+            .await?;
+    }
+    get_plan_note(db, &current.id).await
+}
+
+pub async fn list_deleted_plan_notes(db: &Db, plan_id: &str) -> Result<Vec<PlanNote>> {
+    let rows = sqlx::query(
+        "SELECT pn.id, pn.plan_id, pn.body, pn.created_at, pn.edited_at, pn.deleted_at, t.key
+         FROM plan_notes pn
+         JOIN tasks t ON t.id = pn.task_id
+         WHERE pn.plan_id = ? AND pn.deleted_at IS NOT NULL
+         ORDER BY pn.deleted_at DESC, pn.id",
+    )
+    .bind(plan_id)
+    .fetch_all(db.pool())
+    .await?;
+    rows.iter().map(row_to_note).collect()
+}
+
+pub async fn list_plan_note_revisions(db: &Db, id: &str) -> Result<Vec<TextRevision>> {
+    get_plan_note(db, id).await?;
+    let rows = sqlx::query(
+        "SELECT id, entity, entity_id, field, body, created_at FROM text_revisions
+         WHERE entity = 'plan_note' AND entity_id = ? ORDER BY id DESC",
+    )
+    .bind(id)
+    .fetch_all(db.pool())
+    .await?;
+    rows.iter()
+        .map(|row| {
+            Ok(TextRevision {
+                id: row.get("id"),
+                entity: row.get("entity"),
+                entity_id: row.get("entity_id"),
+                field: row.get("field"),
+                body: row.get("body"),
+                created_at: row.get("created_at"),
+            })
+        })
+        .collect()
 }
 
 #[cfg(test)]
@@ -569,7 +645,9 @@ mod tests {
         assert_eq!(note.body, "first");
         assert_eq!(note.key, "LOG-1");
 
-        edit_plan_note(&db, &note.id, "second").await.expect("edit");
+        edit_plan_note(&db, &note.id, "second", None)
+            .await
+            .expect("edit");
         let notes = list_plan_notes(&db, &plan.id).await.expect("notes");
         assert_eq!(notes[0].body, "second");
         let revisions: Vec<(String,)> = sqlx::query_as(
@@ -587,6 +665,102 @@ mod tests {
                 .await
                 .expect("notes")
                 .is_empty()
+        );
+    }
+
+    #[tokio::test]
+    async fn note_versions_revisions_and_restore_are_consistent() {
+        let db = open().await;
+        let plan = create_plan(&db, "Roadmap", "", PlanStatus::Active)
+            .await
+            .expect("plan");
+        add_plan_item(&db, &plan.id, "LOG-1").await.expect("add");
+        let note = add_plan_note(&db, &plan.id, "LOG-1", "first")
+            .await
+            .expect("note");
+
+        let stale = edit_plan_note(&db, &note.id, "stale", Some("wrong"))
+            .await
+            .expect_err("stale version");
+        assert_eq!(stale.kind(), crate::AppErrorKind::Conflict);
+        assert_eq!(
+            list_plan_notes(&db, &plan.id).await.expect("notes")[0].body,
+            "first"
+        );
+        assert!(
+            list_plan_note_revisions(&db, &note.id)
+                .await
+                .expect("revisions")
+                .is_empty()
+        );
+
+        let edited = edit_plan_note(&db, &note.id, "second", Some(&note.created_at))
+            .await
+            .expect("first edit");
+        let revisions = list_plan_note_revisions(&db, &note.id)
+            .await
+            .expect("revisions");
+        assert_eq!(revisions.len(), 1);
+        assert_eq!(revisions[0].entity_id, note.id);
+        assert_eq!(revisions[0].field, "body");
+        assert_eq!(revisions[0].body, "first");
+
+        let stale = edit_plan_note(&db, &note.id, "third", Some(&note.created_at))
+            .await
+            .expect_err("stale after edit");
+        assert_eq!(stale.kind(), crate::AppErrorKind::Conflict);
+        assert_eq!(
+            list_plan_notes(&db, &plan.id).await.expect("notes")[0].body,
+            "second"
+        );
+
+        let edited_at = edited.edited_at.clone().expect("edited_at");
+        let edited_again = edit_plan_note(&db, &note.id, "third", Some(&edited_at))
+            .await
+            .expect("second edit");
+        let revisions = list_plan_note_revisions(&db, &note.id)
+            .await
+            .expect("revisions");
+        assert_eq!(revisions.len(), 2);
+        assert_eq!(revisions[0].body, "second");
+        assert_eq!(revisions[1].body, "first");
+
+        delete_plan_note(&db, &note.id).await.expect("delete");
+        assert!(
+            list_plan_notes(&db, &plan.id)
+                .await
+                .expect("notes")
+                .is_empty()
+        );
+        let deleted = list_deleted_plan_notes(&db, &plan.id)
+            .await
+            .expect("deleted notes");
+        assert_eq!(deleted.len(), 1);
+        assert_eq!(deleted[0].id, note.id);
+        assert!(deleted[0].deleted_at.is_some());
+        assert_eq!(
+            list_plan_note_revisions(&db, &note.id)
+                .await
+                .expect("revisions")
+                .len(),
+            2
+        );
+
+        let restored = restore_plan_note(&db, &note.id).await.expect("restore");
+        assert!(restored.deleted_at.is_none());
+        assert_eq!(restored.body, edited_again.body);
+        assert!(
+            list_deleted_plan_notes(&db, &plan.id)
+                .await
+                .expect("deleted notes")
+                .is_empty()
+        );
+        restore_plan_note(&db, &note.id)
+            .await
+            .expect("repeat restore");
+        assert_eq!(
+            list_plan_notes(&db, &plan.id).await.expect("notes").len(),
+            1
         );
     }
 }

@@ -3,9 +3,10 @@ use serde::Deserialize;
 use serde_json::Value;
 use xboct_log_core::{
     AppError, Entity, OpName, Plan, PlanItem, PlanNote, PlanPatch, PlanStatus, PlanWithCounts,
-    Result, add_plan_item, add_plan_note, create_plan, delete_plan, delete_plan_note,
-    edit_plan_note, list_deleted_plans, list_plan_notes, list_plans, plan_counts, remove_plan_item,
-    reorder_plan_items, require_plan, restore_plan, update_plan,
+    Result, TextRevision, add_plan_item, add_plan_note, create_plan, delete_plan, delete_plan_note,
+    edit_plan_note, list_deleted_plan_notes, list_deleted_plans, list_plan_note_revisions,
+    list_plan_notes, list_plans, plan_counts, remove_plan_item, reorder_plan_items, require_plan,
+    restore_plan, restore_plan_note, update_plan,
 };
 
 use crate::{Ctx, Items, Kind, Op};
@@ -368,6 +369,10 @@ impl Op for PlansNotesAdd {
 pub struct EditNoteInput {
     pub note_id: String,
     pub body: String,
+    #[schemars(
+        description = "Expected current note version: edited_at, or created_at before the first edit. Pass it to reject a stale edit."
+    )]
+    pub expected_edited_at: Option<String>,
 }
 
 pub struct PlansNotesEdit;
@@ -389,7 +394,13 @@ impl Op for PlansNotesEdit {
     }
 
     async fn run(ctx: &Ctx, input: Self::Input) -> Result<Self::Output> {
-        edit_plan_note(&ctx.db, &input.note_id, &input.body).await
+        edit_plan_note(
+            &ctx.db,
+            &input.note_id,
+            &input.body,
+            input.expected_edited_at.as_deref(),
+        )
+        .await
     }
 }
 
@@ -419,5 +430,70 @@ impl Op for PlansNotesDelete {
 
     async fn run(ctx: &Ctx, input: Self::Input) -> Result<Self::Output> {
         delete_plan_note(&ctx.db, &input.note_id).await
+    }
+}
+
+pub struct PlansNotesRestore;
+
+impl Op for PlansNotesRestore {
+    const NAME: OpName = OpName::PlansNotesRestore;
+    const KIND: Kind = Kind::Command;
+    const MCP: bool = true;
+
+    type Input = DeleteNoteInput;
+    type Output = PlanNote;
+
+    fn description() -> &'static str {
+        crate::descriptions::PLANS_NOTES_RESTORE
+    }
+
+    fn entity() -> Option<Entity> {
+        Some(Entity::Plans)
+    }
+
+    async fn run(ctx: &Ctx, input: Self::Input) -> Result<Self::Output> {
+        restore_plan_note(&ctx.db, &input.note_id).await
+    }
+}
+
+pub struct PlansNotesDeletedList;
+
+impl Op for PlansNotesDeletedList {
+    const NAME: OpName = OpName::PlansNotesDeletedList;
+    const KIND: Kind = Kind::Query;
+    const MCP: bool = true;
+
+    type Input = PlanIdInput;
+    type Output = Items<PlanNote>;
+
+    fn description() -> &'static str {
+        crate::descriptions::PLANS_NOTES_DELETED_LIST
+    }
+
+    async fn run(ctx: &Ctx, input: Self::Input) -> Result<Self::Output> {
+        Ok(Items {
+            items: list_deleted_plan_notes(&ctx.db, &input.plan_id).await?,
+        })
+    }
+}
+
+pub struct PlansNotesRevisionsList;
+
+impl Op for PlansNotesRevisionsList {
+    const NAME: OpName = OpName::PlansNotesRevisionsList;
+    const KIND: Kind = Kind::Query;
+    const MCP: bool = true;
+
+    type Input = DeleteNoteInput;
+    type Output = Items<TextRevision>;
+
+    fn description() -> &'static str {
+        crate::descriptions::PLANS_NOTES_REVISIONS_LIST
+    }
+
+    async fn run(ctx: &Ctx, input: Self::Input) -> Result<Self::Output> {
+        Ok(Items {
+            items: list_plan_note_revisions(&ctx.db, &input.note_id).await?,
+        })
     }
 }

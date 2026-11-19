@@ -136,3 +136,120 @@ async fn plan_ops_keep_mixed_items_and_notes_across_moves() {
     let notes = call(&ctx, "plans_notes_list", json!({"plan_id": plan_id})).await;
     assert_eq!(notes["items"][0]["key"], "SPA-2");
 }
+
+#[tokio::test]
+async fn plan_note_history_and_restore_ops() {
+    let ctx = context().await;
+    let plan = call(
+        &ctx,
+        "plans_create",
+        json!({"name": "Roadmap", "status": "active"}),
+    )
+    .await;
+    let plan_id = plan["id"].as_str().unwrap();
+    call(
+        &ctx,
+        "plans_items_add",
+        json!({"plan_id": plan_id, "task_id": "LOG-1"}),
+    )
+    .await;
+    let note = call(
+        &ctx,
+        "plans_notes_add",
+        json!({"plan_id": plan_id, "task_id": "LOG-1", "body": "first"}),
+    )
+    .await;
+    let note_id = note["id"].as_str().unwrap();
+    let created_at = note["created_at"].as_str().unwrap();
+
+    let stale = dispatch(
+        &ctx,
+        "plans_notes_edit",
+        json!({"note_id": note_id, "body": "stale", "expected_edited_at": "wrong"}),
+    )
+    .await
+    .expect_err("stale edit");
+    assert_eq!(stale.kind(), xboct_log_core::AppErrorKind::Conflict);
+    assert_eq!(
+        call(&ctx, "plans_notes_list", json!({"plan_id": plan_id})).await["items"][0]["body"],
+        "first"
+    );
+
+    let edited = call(
+        &ctx,
+        "plans_notes_edit",
+        json!({"note_id": note_id, "body": "second", "expected_edited_at": created_at}),
+    )
+    .await;
+    let edited_at = edited["edited_at"].as_str().unwrap();
+    let revisions = call(
+        &ctx,
+        "plans_notes_revisions_list",
+        json!({"note_id": note_id}),
+    )
+    .await;
+    assert_eq!(revisions["items"][0]["body"], "first");
+    assert_eq!(revisions["items"][0]["entity_id"], note_id);
+
+    let stale = dispatch(
+        &ctx,
+        "plans_notes_edit",
+        json!({"note_id": note_id, "body": "stale", "expected_edited_at": created_at}),
+    )
+    .await
+    .expect_err("stale after edit");
+    assert_eq!(stale.kind(), xboct_log_core::AppErrorKind::Conflict);
+    call(
+        &ctx,
+        "plans_notes_edit",
+        json!({"note_id": note_id, "body": "third", "expected_edited_at": edited_at}),
+    )
+    .await;
+
+    call(&ctx, "plans_notes_delete", json!({"note_id": note_id})).await;
+    assert!(
+        call(&ctx, "plans_notes_list", json!({"plan_id": plan_id})).await["items"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
+    assert_eq!(
+        call(
+            &ctx,
+            "plans_notes_deleted_list",
+            json!({"plan_id": plan_id})
+        )
+        .await["items"][0]["id"],
+        note_id
+    );
+    assert_eq!(
+        call(
+            &ctx,
+            "plans_notes_revisions_list",
+            json!({"note_id": note_id})
+        )
+        .await["items"]
+            .as_array()
+            .unwrap()
+            .len(),
+        2
+    );
+
+    call(&ctx, "plans_notes_restore", json!({"note_id": note_id})).await;
+    assert_eq!(
+        call(&ctx, "plans_notes_list", json!({"plan_id": plan_id})).await["items"][0]["body"],
+        "third"
+    );
+    assert!(
+        call(
+            &ctx,
+            "plans_notes_deleted_list",
+            json!({"plan_id": plan_id})
+        )
+        .await["items"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
+    call(&ctx, "plans_notes_restore", json!({"note_id": note_id})).await;
+}
