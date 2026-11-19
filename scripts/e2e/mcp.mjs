@@ -653,25 +653,46 @@ try {
 		},
 	);
 	await check("documents_update and documents_revisions_list", async () => {
+		const stale = document.updated_at;
 		const updated = ok(
 			await client.callTool("documents_update", {
 				document_id: document.id,
 				body: "second version",
 				status: "accepted",
-				expected_updated_at: document.updated_at,
+				expected_updated_at: stale,
 			}),
 			"documents_update",
 		);
 		assert.equal(updated.body, "second version");
 		assert.equal(updated.status, "accepted");
 		document = updated;
+		const error = failed(
+			await client.callTool("documents_update", {
+				document_id: document.id,
+				body: "a concurrent edit",
+				expected_updated_at: stale,
+			}),
+			"documents_update stale edit",
+		);
+		assert.equal(error.kind, "conflict");
+		const current = ok(
+			await client.callTool("documents_get", {
+				document_id: document.id,
+			}),
+			"documents_get after a stale edit",
+		);
+		assert.equal(current.body, "second version");
 		const revisions = ok(
 			await client.callTool("documents_revisions_list", {
 				document_id: document.id,
 			}),
 			"documents_revisions_list",
 		);
-		assert.ok(items(revisions, "documents_revisions_list").length > 0);
+		assert.ok(
+			items(revisions, "documents_revisions_list").some(
+				(item) => item.body === "first body",
+			),
+		);
 	});
 	await check(
 		"plans_documents_link, plans_documents_list and plans_documents_unlink",
@@ -711,6 +732,52 @@ try {
 				!items(after, "plans_documents_list").some(
 					(item) => item.id === document.id,
 				),
+			);
+		},
+	);
+	await check(
+		"a cross-project document link survives a task move",
+		async () => {
+			const foreign = ok(
+				await client.callTool("documents_create", {
+					project_id: "aux",
+					kind: "spec",
+					title: "Decision from another project",
+					body: "linked across projects",
+				}),
+				"documents_create in aux",
+			);
+			ok(
+				await client.callTool("plans_documents_link", {
+					plan_id: plan.id,
+					document_id: foreign.id,
+				}),
+				"plans_documents_link across projects",
+			);
+			ok(
+				await client.callTool("tasks_move", {
+					task_id: idOf(planLeft),
+					project_id: "e2e",
+				}),
+				"tasks_move with a document link",
+			);
+			const linked = ok(
+				await client.callTool("plans_documents_list", {
+					plan_id: plan.id,
+				}),
+				"plans_documents_list after the move",
+			);
+			assert.ok(
+				items(linked, "plans_documents_list").some(
+					(item) => item.id === foreign.id,
+				),
+			);
+			ok(
+				await client.callTool("plans_documents_unlink", {
+					plan_id: plan.id,
+					document_id: foreign.id,
+				}),
+				"plans_documents_unlink across projects",
 			);
 		},
 	);

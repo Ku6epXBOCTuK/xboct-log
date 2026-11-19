@@ -334,6 +334,66 @@ test("a plan is created and filled from the plans page", async ({ page }) => {
 	await expect(panel.getByText(name, { exact: true })).toBeVisible();
 });
 
+test("a document is created and edited on the documents page", async ({
+	page,
+}) => {
+	await page.goto(`/documents/project/${project}`);
+	await expect(page.getByRole("heading", { name: "Documents" })).toBeVisible();
+	await page.getByLabel("Document kind").selectOption("adr");
+	await page.getByLabel("New document title").fill("UI document");
+	await page.getByRole("button", { name: "Create", exact: true }).click();
+	await expect(
+		page.getByRole("heading", { name: /UI document/ }),
+	).toBeVisible();
+
+	const editor = page.getByPlaceholder("Document body");
+	await editor.fill("first version");
+	await page.getByRole("button", { name: "Save", exact: true }).click();
+	await editor.fill("second version");
+	await page.getByRole("button", { name: "Save", exact: true }).click();
+	await expect(
+		page.locator("details.revision pre").filter({ hasText: "first version" }),
+	).toHaveCount(1);
+	await page.getByLabel("Document status").selectOption("accepted");
+});
+
+test("a plan note and a document link survive on the plans page", async ({
+	page,
+}) => {
+	const name = `UI Notes ${suffix}`;
+	await page.goto("/plans");
+	await page.getByLabel("New plan name").fill(name);
+	await page.getByRole("button", { name: "Create", exact: true }).click();
+	await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
+
+	await page.getByRole("button", { name: "Add a task to the plan" }).click();
+	await page.getByPlaceholder("Search tasks").fill(created.open);
+	await page
+		.getByRole("option")
+		.filter({ hasText: created.open })
+		.first()
+		.click();
+	await expect(
+		page.locator("ol.items li").filter({ hasText: created.open }),
+	).toBeVisible();
+	await page.keyboard.press("Escape");
+
+	await page
+		.getByLabel(`Note for ${created.open}`)
+		.fill("check before release");
+	await page.getByRole("button", { name: "Add note" }).click();
+	await expect(page.getByText("check before release")).toBeVisible();
+
+	const picker = page.getByLabel("Document to link");
+	const option = picker.locator("option").filter({ hasText: "UI document" });
+	const value = await option.getAttribute("value");
+	await picker.selectOption(value ?? "");
+	await page.getByRole("button", { name: "Link", exact: true }).click();
+	await expect(
+		page.locator(".plan-documents li").filter({ hasText: "UI document" }),
+	).toBeVisible();
+});
+
 test("the activity page shows the recorded changes", async ({ page }) => {
 	await page.goto("/activity");
 	await expect(page.getByRole("heading", { name: "Activity" })).toBeVisible();
