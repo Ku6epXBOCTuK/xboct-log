@@ -123,6 +123,9 @@ try {
 		const tasksGet = tools.find((tool) => tool.name === "tasks_get");
 		assert.ok(tasksGet, "tasks_get is missing");
 		assert.match(tasksGet.description, /plan_names/);
+		const tasksCreate = tools.find((tool) => tool.name === "tasks_create");
+		assert.ok(tasksCreate, "tasks_create is missing");
+		assert.match(tasksCreate.description, /plan_names/);
 	});
 
 	console.log("\nsetup");

@@ -76,4 +76,7 @@ export const taskSchema = z.object({
 	duplicated_by: z.array(z.string()).optional(),
 	children_counts: z.record(z.string(), z.number()).optional(),
 	plan_ids: z.array(z.string()),
+	plan_names: z
+		.array(z.object({ id: z.string(), name: z.string() }))
+		.optional(),
 });

@@ -1,7 +1,8 @@
 use serde_json::{Value, json};
 use xboct_log_core::{
-    AppErrorKind, Db, LinkFilter, NewTask, TaskFilters, TaskListEntry, TaskPatch,
-    count_epic_children_by_status, get_task, list_tasks, resolve_task_id,
+    AppErrorKind, Db, LinkFilter, NewTask, TaskFilters, TaskListEntry, TaskPatch, add_plan_item,
+    count_epic_children_by_status, create_task, get_task, list_tasks, move_task, resolve_task_id,
+    update_task_detailed,
 };
 
 trait AsJson {
@@ -603,6 +604,32 @@ async fn task_reads_expose_plan_membership_only() {
             .iter()
             .all(|plan| plan["id"] != "p3")
     }));
+}
+
+#[tokio::test]
+async fn task_write_results_carry_readable_plan_references() {
+    let db = database().await;
+    seed_plans(&db).await;
+
+    let input: NewTask = serde_json::from_value(json!({
+        "project_id": "log",
+        "title": "Named",
+    }))
+    .unwrap();
+    let created = create_task(&db, input).await.unwrap();
+    let key = created.task.id.as_str().to_string();
+    add_plan_item(&db, "p1", &key).await.unwrap();
+
+    let patch: TaskPatch = serde_json::from_value(json!({"status": "open"})).unwrap();
+    let updated = update_task_detailed(&db, &key, patch).await.unwrap();
+    let value = serde_json::to_value(&updated.task).unwrap();
+    assert_eq!(value["plan_ids"], json!(["p1"]));
+    assert_eq!(value["plan_names"], json!([{"id": "p1", "name": "Alpha"}]));
+
+    let moved = move_task(&db, &key, "spa").await.unwrap();
+    let value = serde_json::to_value(&moved).unwrap();
+    assert_eq!(value["plan_ids"], json!(["p1"]));
+    assert_eq!(value["plan_names"], json!([{"id": "p1", "name": "Alpha"}]));
 }
 
 #[test]
