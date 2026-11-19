@@ -683,8 +683,14 @@ pub async fn update_document(
     patch: &DocumentPatch,
     expected_updated_at: Option<&str>,
 ) -> Result<Document> {
-    let current = require_document(db, id).await?;
-    let id = current.id.clone();
+    let id = resolve_document_id(db, id).await?;
+    let mut tx = db.begin().await?;
+    let row = sqlx::query("SELECT * FROM documents WHERE id = ?")
+        .bind(&id)
+        .fetch_optional(&mut *tx)
+        .await?
+        .ok_or_else(|| AppError::not_found(format!("document {id} not found")))?;
+    let current = row_to_document(&row)?;
     if current.deleted_at.is_some() {
         return Err(AppError::not_found(format!("document {id} not found")));
     }
@@ -732,7 +738,7 @@ pub async fn update_document(
         .bind(&id)
         .bind(&current.body)
         .bind(&now)
-        .execute(db.pool())
+        .execute(&mut *tx)
         .await?;
     }
     sqlx::query(
@@ -748,8 +754,9 @@ pub async fn update_document(
     .bind(closed_at)
     .bind(&now)
     .bind(&id)
-    .execute(db.pool())
+    .execute(&mut *tx)
     .await?;
+    tx.commit().await?;
     require_document(db, &id).await
 }
 
@@ -937,6 +944,78 @@ mod tests {
         restore_document(&db, &doc.id).await.expect("restore");
         assert_eq!(
             list_documents(&db, Some("log")).await.expect("list").len(),
+            1
+        );
+    }
+
+    #[tokio::test]
+    async fn a_failed_document_update_leaves_no_revision() {
+        let db = open().await;
+        let doc = create_document(&db, "log", DocumentKind::Adr, "Decision", "first", None)
+            .await
+            .expect("create");
+        sqlx::query(
+            "CREATE TRIGGER reject_document_update BEFORE UPDATE OF title ON documents
+             WHEN NEW.title = 'reject'
+             BEGIN SELECT RAISE(ABORT, 'reject'); END",
+        )
+        .execute(db.pool())
+        .await
+        .expect("trigger");
+
+        let failed = update_document(
+            &db,
+            &doc.key,
+            &DocumentPatch {
+                title: Some("reject".into()),
+                body: Some("second".into()),
+                ..DocumentPatch::default()
+            },
+            None,
+        )
+        .await
+        .expect_err("update rejected by trigger");
+        assert_eq!(failed.kind(), crate::AppErrorKind::Unexpected);
+        assert_eq!(
+            sqlx::query_scalar::<_, i64>(
+                "SELECT COUNT(*) FROM text_revisions WHERE entity = 'document' AND entity_id = ?"
+            )
+            .bind(&doc.id)
+            .fetch_one(db.pool())
+            .await
+            .expect("revision count"),
+            0
+        );
+        assert_eq!(
+            get_document(&db, &doc.id)
+                .await
+                .expect("get")
+                .expect("document")
+                .body,
+            "first"
+        );
+
+        sqlx::query("DROP TRIGGER reject_document_update")
+            .execute(db.pool())
+            .await
+            .expect("drop trigger");
+        let updated = update_document(
+            &db,
+            &doc.key,
+            &DocumentPatch {
+                body: Some("second".into()),
+                ..DocumentPatch::default()
+            },
+            None,
+        )
+        .await
+        .expect("update");
+        assert_eq!(updated.body, "second");
+        assert_eq!(
+            list_document_revisions(&db, &doc.id)
+                .await
+                .expect("revisions")
+                .len(),
             1
         );
     }
