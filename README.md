@@ -210,8 +210,11 @@ are in `vscode-extension/README.md`.
 
 ## Notes
 
-How the Rust server replaced the Node one, and what the external contract looks
-like, is in [`docs/rust-rewrite.md`](./docs/rust-rewrite.md).
+The architecture of the Rust server and its generated contract are described in
+[`docs/architecture.md`](./docs/architecture.md).
+
+Which working markdown belongs in the tracker and what stays in the repository
+is described in [`docs/working-documents.md`](./docs/working-documents.md).
 
 ## License
 
