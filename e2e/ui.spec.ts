@@ -384,6 +384,35 @@ test("a plan note and a document link survive on the plans page", async ({
 	await page.getByRole("button", { name: "Add note" }).click();
 	await expect(page.getByText("check before release")).toBeVisible();
 
+	await page
+		.locator(".note")
+		.filter({ hasText: "check before release" })
+		.getByRole("button", { name: "Edit" })
+		.click();
+	await page.getByLabel("Edit note").fill("checked after release");
+	await page.getByRole("button", { name: "Save", exact: true }).click();
+	await expect(page.getByText("checked after release")).toBeVisible();
+
+	const editedNote = page
+		.locator(".note")
+		.filter({ hasText: "checked after release" });
+	await editedNote.getByRole("button", { name: "History" }).click();
+	await expect(
+		page
+			.locator(".note-history pre")
+			.filter({ hasText: "check before release" }),
+	).toBeVisible();
+
+	await editedNote.getByRole("button", { name: "Delete" }).click();
+	const deletedNote = page
+		.locator(".note-deleted")
+		.filter({ hasText: "checked after release" });
+	await expect(deletedNote).toBeVisible();
+	await deletedNote.getByRole("button", { name: "Restore" }).click();
+	await expect(
+		page.locator(".note").filter({ hasText: "checked after release" }),
+	).toBeVisible();
+
 	const picker = page.getByLabel("Document to link");
 	const option = picker.locator("option").filter({ hasText: "UI document" });
 	const value = await option.getAttribute("value");

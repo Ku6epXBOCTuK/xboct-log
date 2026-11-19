@@ -2,11 +2,11 @@
 	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
 	import TextInput from "@ku6epxboctuk/ui-kit/components/TextInput.svelte";
 	import {
+		type Document,
 		getDocuments,
 		getPlanDocuments,
 		linkDocumentToPlan,
 		unlinkDocumentFromPlan,
-		type Document,
 	} from "#lib/api/documents.ts";
 	import { fetchFresh } from "#lib/api/fresh.ts";
 	import {
@@ -17,11 +17,15 @@
 		editPlanNote,
 		getPlan,
 		getPlans,
+		listDeletedPlanNotes,
+		listPlanNoteRevisions,
 		listPlanNotes,
 		type PlanNote,
 		type PlanWithCounts,
 		removePlanItem,
 		reorderPlanItems,
+		restorePlanNote,
+		type TextRevision,
 	} from "#lib/api/plans.ts";
 	import { getTasks } from "#lib/api/tasks.ts";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
@@ -51,10 +55,15 @@
 	let selectedDocument = $state("");
 	let documentFailed = $state(false);
 	let notes = $state<PlanNote[]>([]);
+	let deletedNotes = $state<PlanNote[]>([]);
 	let noteDrafts = $state<Record<string, string>>({});
 	let editingNote = $state<string | null>(null);
+	let editingVersion = $state<string | null>(null);
 	let editDraft = $state("");
 	let notesFailed = $state(false);
+	let revisionNoteId = $state<string | null>(null);
+	let revisions = $state<TextRevision[]>([]);
+	let revisionsFailed = $state(false);
 
 	async function submitNew(): Promise<void> {
 		const name = newName.trim();
@@ -85,27 +94,30 @@
 
 	async function loadDetail(id: string): Promise<void> {
 		try {
-			const [plan, page, all, linked, docs, planNotes] = await Promise.all([
-				fetchFresh(getPlan({ plan_id: id })),
-				fetchFresh(
-					getTasks({
-						plan_id: id,
-						sort: "plan_position",
-						limit: 1000,
-						include_deleted: true,
-					}),
-				),
-				fetchFresh(getTasks({ limit: 1000 })),
-				fetchFresh(getPlanDocuments({ plan_id: id })),
-				fetchFresh(getDocuments({})),
-				fetchFresh(listPlanNotes({ plan_id: id })),
-			]);
+			const [plan, page, all, linked, docs, planNotes, deletedPlanNotes] =
+				await Promise.all([
+					fetchFresh(getPlan({ plan_id: id })),
+					fetchFresh(
+						getTasks({
+							plan_id: id,
+							sort: "plan_position",
+							limit: 1000,
+							include_deleted: true,
+						}),
+					),
+					fetchFresh(getTasks({ limit: 1000 })),
+					fetchFresh(getPlanDocuments({ plan_id: id })),
+					fetchFresh(getDocuments({})),
+					fetchFresh(listPlanNotes({ plan_id: id })),
+					fetchFresh(listDeletedPlanNotes({ plan_id: id })),
+				]);
 			detail = plan;
 			items = page.items;
 			candidates = all.items;
 			planDocuments = linked;
 			allDocuments = docs;
 			notes = planNotes;
+			deletedNotes = deletedPlanNotes;
 		} catch {
 			failed = true;
 		}
@@ -143,6 +155,8 @@
 		if (detail === null) return;
 		const id = detail.id;
 		notesFailed = false;
+		revisionNoteId = null;
+		revisions = [];
 		try {
 			await action();
 		} catch {
@@ -172,6 +186,30 @@
 		return notes.filter((note) => note.key === key);
 	}
 
+	function deletedNotesFor(key: string): PlanNote[] {
+		return deletedNotes.filter((note) => note.key === key);
+	}
+
+	async function showRevisions(noteId: string): Promise<void> {
+		if (revisionNoteId === noteId) {
+			revisionNoteId = null;
+			revisions = [];
+			return;
+		}
+		revisionNoteId = noteId;
+		revisionsFailed = false;
+		try {
+			revisions = await fetchFresh(listPlanNoteRevisions({ note_id: noteId }));
+		} catch {
+			revisions = [];
+			revisionsFailed = true;
+		}
+	}
+
+	async function restoreNote(noteId: string): Promise<void> {
+		await changeNotes(() => restorePlanNote({ note_id: noteId }));
+	}
+
 	async function addNote(planId: string, taskId: string): Promise<void> {
 		const body = (noteDrafts[taskId] ?? "").trim();
 		if (body === "") return;
@@ -186,8 +224,16 @@
 		const body = editDraft.trim();
 		if (body === "") return;
 		const noteId = editingNote;
+		const version = editingVersion;
 		editingNote = null;
-		await changeNotes(() => editPlanNote({ note_id: noteId, body }));
+		editingVersion = null;
+		await changeNotes(() =>
+			editPlanNote({
+				note_id: noteId,
+				body,
+				expected_edited_at: version,
+			}),
+		);
 	}
 
 	async function removeNote(noteId: string): Promise<void> {
@@ -408,6 +454,8 @@
 														type="button"
 														onclick={() => {
 															editingNote = note.id;
+															editingVersion =
+																note.edited_at ?? note.created_at;
 															editDraft = note.body;
 														}}
 													>
@@ -419,8 +467,60 @@
 													>
 														Delete
 													</button>
+													<button
+														type="button"
+														onclick={() => void showRevisions(note.id)}
+													>
+														History
+													</button>
 												{/if}
 											</div>
+											{#if revisionNoteId === note.id}
+												<div class="note-history">
+													{#if revisions.length === 0}
+														<span class="note-empty">No earlier text</span>
+													{:else}
+														{#each revisions as revision (revision.id)}
+															<div class="revision">
+																<time>{revision.created_at}</time>
+																<pre>{revision.body}</pre>
+															</div>
+														{/each}
+													{/if}
+												</div>
+											{/if}
+										{/each}
+										{#each deletedNotesFor(item.id) as note (note.id)}
+											<div class="note note-deleted">
+												<span class="note-body">{note.body}</span>
+												<span class="item-deleted">deleted</span>
+												<button
+													type="button"
+													onclick={() => void restoreNote(note.id)}
+												>
+													Restore
+												</button>
+												<button
+													type="button"
+													onclick={() => void showRevisions(note.id)}
+												>
+													History
+												</button>
+											</div>
+											{#if revisionNoteId === note.id}
+												<div class="note-history">
+													{#if revisions.length === 0}
+														<span class="note-empty">No earlier text</span>
+													{:else}
+														{#each revisions as revision (revision.id)}
+															<div class="revision">
+																<time>{revision.created_at}</time>
+																<pre>{revision.body}</pre>
+															</div>
+														{/each}
+													{/if}
+												</div>
+											{/if}
 										{/each}
 										<div class="note-add">
 											<textarea
@@ -442,6 +542,9 @@
 					{/if}
 					{#if notesFailed}
 						<p class="error-text">Could not save the note</p>
+					{/if}
+					{#if revisionsFailed}
+						<p class="error-text">Could not load note history</p>
 					{/if}
 					<h3>Documents</h3>
 					{#if documentFailed}
@@ -743,6 +846,36 @@
 		max-width: 24rem;
 		color: var(--text-secondary);
 		font-size: var(--text-sm);
+		white-space: pre-wrap;
+	}
+
+	.note-deleted {
+		opacity: 0.7;
+	}
+
+	.note-history {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-1);
+		max-width: 28rem;
+	}
+
+	.note-empty {
+		color: var(--text-muted);
+		font-size: var(--text-xs);
+	}
+
+	.revision time {
+		color: var(--text-muted);
+		font-size: var(--text-xs);
+	}
+
+	.revision pre {
+		margin: 0;
+		padding: var(--space-1) var(--space-2);
+		border-radius: var(--radius);
+		background: var(--surface);
+		font-size: var(--text-xs);
 		white-space: pre-wrap;
 	}
 

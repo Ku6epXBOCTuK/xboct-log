@@ -6,6 +6,7 @@ export type PlanWithCounts = components["schemas"]["PlanWithCounts"];
 export type PlanStatus = components["schemas"]["PlanStatus"];
 export type PlanItem = components["schemas"]["PlanItem"];
 export type PlanNote = components["schemas"]["PlanNote"];
+export type TextRevision = components["schemas"]["TextRevision"];
 
 export interface NewPlanInput {
 	name: string;
@@ -109,6 +110,7 @@ export async function addPlanNote(input: {
 export async function editPlanNote(input: {
 	note_id: string;
 	body: string;
+	expected_edited_at?: string | null;
 }): Promise<PlanNote> {
 	return unwrap<PlanNote>(
 		await client.POST("/api/plans_notes_edit", { body: input }),
@@ -121,4 +123,30 @@ export async function deletePlanNote(input: {
 	return unwrap<PlanNote>(
 		await client.POST("/api/plans_notes_delete", { body: input }),
 	);
+}
+
+export async function listDeletedPlanNotes(input: {
+	plan_id: string;
+}): Promise<PlanNote[]> {
+	const answer = await client.POST("/api/plans_notes_deleted_list", {
+		body: input,
+	});
+	return unwrap<{ items: PlanNote[] }>(answer).items;
+}
+
+export async function restorePlanNote(input: {
+	note_id: string;
+}): Promise<PlanNote> {
+	return unwrap<PlanNote>(
+		await client.POST("/api/plans_notes_restore", { body: input }),
+	);
+}
+
+export async function listPlanNoteRevisions(input: {
+	note_id: string;
+}): Promise<TextRevision[]> {
+	const answer = await client.POST("/api/plans_notes_revisions_list", {
+		body: input,
+	});
+	return unwrap<{ items: TextRevision[] }>(answer).items;
 }
