@@ -1,6 +1,12 @@
 import { isTaskId } from "#lib/tasks/route.ts";
 
-export const CATEGORIES = ["tasks", "kanban", "activity", "deleted"] as const;
+export const CATEGORIES = [
+	"tasks",
+	"kanban",
+	"activity",
+	"deleted",
+	"documents",
+] as const;
 
 export type Category = (typeof CATEGORIES)[number];
 

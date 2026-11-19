@@ -99,6 +99,7 @@ describe("appPath", () => {
 		expect(appPath("/backups")).toBe("/backups");
 		expect(appPath("/tags")).toBe("/tags");
 		expect(appPath("/plans")).toBe("/plans");
+		expect(appPath("/documents")).toBe("/documents");
 		expect(appPath("/tags/x")).toBeNull();
 	});
 
@@ -108,6 +109,9 @@ describe("appPath", () => {
 		);
 		expect(appPath("/tasks/project/xboct-log")).toBe(
 			"/tasks/project/xboct-log",
+		);
+		expect(appPath("/documents/project/xboct-log")).toBe(
+			"/documents/project/xboct-log",
 		);
 		expect(appPath("/tasks/LOG-42")).toBe("/tasks/LOG-42");
 		expect(appPath("/tasks/project/xboct-log/LOG-42")).toBe(

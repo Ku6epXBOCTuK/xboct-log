@@ -1,12 +1,24 @@
 <script lang="ts">
 	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
 	import TextInput from "@ku6epxboctuk/ui-kit/components/TextInput.svelte";
+	import {
+		getDocuments,
+		getPlanDocuments,
+		linkDocumentToPlan,
+		unlinkDocumentFromPlan,
+		type Document,
+	} from "#lib/api/documents.ts";
 	import { fetchFresh } from "#lib/api/fresh.ts";
 	import {
 		addPlanItem,
+		addPlanNote,
 		createPlan,
+		deletePlanNote,
+		editPlanNote,
 		getPlan,
 		getPlans,
+		listPlanNotes,
+		type PlanNote,
 		type PlanWithCounts,
 		removePlanItem,
 		reorderPlanItems,
@@ -34,6 +46,15 @@
 	let newName = $state("");
 	let creating = $state(false);
 	let createFailed = $state(false);
+	let planDocuments = $state<Document[]>([]);
+	let allDocuments = $state<Document[]>([]);
+	let selectedDocument = $state("");
+	let documentFailed = $state(false);
+	let notes = $state<PlanNote[]>([]);
+	let noteDrafts = $state<Record<string, string>>({});
+	let editingNote = $state<string | null>(null);
+	let editDraft = $state("");
+	let notesFailed = $state(false);
 
 	async function submitNew(): Promise<void> {
 		const name = newName.trim();
@@ -64,7 +85,7 @@
 
 	async function loadDetail(id: string): Promise<void> {
 		try {
-			const [plan, page, all] = await Promise.all([
+			const [plan, page, all, linked, docs, planNotes] = await Promise.all([
 				fetchFresh(getPlan({ plan_id: id })),
 				fetchFresh(
 					getTasks({
@@ -75,10 +96,16 @@
 					}),
 				),
 				fetchFresh(getTasks({ limit: 1000 })),
+				fetchFresh(getPlanDocuments({ plan_id: id })),
+				fetchFresh(getDocuments({})),
+				fetchFresh(listPlanNotes({ plan_id: id })),
 			]);
 			detail = plan;
 			items = page.items;
 			candidates = all.items;
+			planDocuments = linked;
+			allDocuments = docs;
+			notes = planNotes;
 		} catch {
 			failed = true;
 		}
@@ -97,6 +124,33 @@
 		await loadDetail(id);
 	}
 
+	async function changeDocuments(
+		action: () => Promise<unknown>,
+	): Promise<void> {
+		if (detail === null) return;
+		const id = detail.id;
+		documentFailed = false;
+		try {
+			await action();
+			await reloadPlans();
+		} catch {
+			documentFailed = true;
+		}
+		await loadDetail(id);
+	}
+
+	async function changeNotes(action: () => Promise<unknown>): Promise<void> {
+		if (detail === null) return;
+		const id = detail.id;
+		notesFailed = false;
+		try {
+			await action();
+		} catch {
+			notesFailed = true;
+		}
+		await loadDetail(id);
+	}
+
 	const tasksById = $derived(
 		new Map<string, Task>(
 			[...candidates, ...items].map((task) => [task.id, task] as const),
@@ -106,6 +160,38 @@
 	function taskLink(id: string): string | null {
 		const task = tasksById.get(id);
 		return task === undefined ? null : taskHref(task.project_id, id);
+	}
+
+	const documentsToLink = $derived(
+		allDocuments.filter(
+			(document) => !planDocuments.some((linked) => linked.id === document.id),
+		),
+	);
+
+	function notesFor(key: string): PlanNote[] {
+		return notes.filter((note) => note.key === key);
+	}
+
+	async function addNote(planId: string, taskId: string): Promise<void> {
+		const body = (noteDrafts[taskId] ?? "").trim();
+		if (body === "") return;
+		noteDrafts[taskId] = "";
+		await changeNotes(() =>
+			addPlanNote({ plan_id: planId, task_id: taskId, body }),
+		);
+	}
+
+	async function saveNote(): Promise<void> {
+		if (editingNote === null) return;
+		const body = editDraft.trim();
+		if (body === "") return;
+		const noteId = editingNote;
+		editingNote = null;
+		await changeNotes(() => editPlanNote({ note_id: noteId, body }));
+	}
+
+	async function removeNote(noteId: string): Promise<void> {
+		await changeNotes(() => deletePlanNote({ note_id: noteId }));
 	}
 
 	async function moveItem(target: string): Promise<void> {
@@ -140,13 +226,16 @@
 
 	$effect(() => {
 		const offPlans = fresh.register("plans", () => void reloadPlans());
-		const offTasks = fresh.register("tasks", () => {
+		const reloadDetail = () => {
 			const id = selectedId ?? plans[0]?.id;
 			if (id !== undefined) return loadDetail(id);
-		});
+		};
+		const offTasks = fresh.register("tasks", reloadDetail);
+		const offDocuments = fresh.register("documents", reloadDetail);
 		return () => {
 			offPlans();
 			offTasks();
+			offDocuments();
 		};
 	});
 
@@ -291,9 +380,131 @@
 									{#if item.deleted_at !== null}
 										<span class="item-deleted">deleted</span>
 									{/if}
+									<div
+										class="item-notes"
+										draggable="false"
+										role="presentation"
+										ondragstart={(event) => event.stopPropagation()}
+									>
+										{#each notesFor(item.id) as note (note.id)}
+											<div class="note">
+												{#if editingNote === note.id}
+													<textarea
+														aria-label="Edit note"
+														bind:value={editDraft}
+													></textarea>
+													<button type="button" onclick={() => void saveNote()}>
+														Save
+													</button>
+													<button
+														type="button"
+														onclick={() => (editingNote = null)}
+													>
+														Cancel
+													</button>
+												{:else}
+													<span class="note-body">{note.body}</span>
+													<button
+														type="button"
+														onclick={() => {
+															editingNote = note.id;
+															editDraft = note.body;
+														}}
+													>
+														Edit
+													</button>
+													<button
+														type="button"
+														onclick={() => void removeNote(note.id)}
+													>
+														Delete
+													</button>
+												{/if}
+											</div>
+										{/each}
+										<div class="note-add">
+											<textarea
+												aria-label={`Note for ${item.id}`}
+												placeholder="Add a note"
+												bind:value={noteDrafts[item.id]}
+											></textarea>
+											<button
+												type="button"
+												onclick={() => void addNote(planId, item.id)}
+											>
+												Add note
+											</button>
+										</div>
+									</div>
 								</li>
 							{/each}
 						</ol>
+					{/if}
+					{#if notesFailed}
+						<p class="error-text">Could not save the note</p>
+					{/if}
+					<h3>Documents</h3>
+					{#if documentFailed}
+						<p class="error-text">Could not change the plan documents</p>
+					{/if}
+					{#if documentsToLink.length > 0}
+						<div class="link-document">
+							<select
+								aria-label="Document to link"
+								bind:value={selectedDocument}
+							>
+								<option value="">Select a document</option>
+								{#each documentsToLink as document (document.id)}
+									<option value={document.id}>
+										{document.key ?? document.id}
+										— {document.title}
+									</option>
+								{/each}
+							</select>
+							<button
+								type="button"
+								disabled={selectedDocument === ""}
+								onclick={() => {
+									const documentId = selectedDocument;
+									selectedDocument = "";
+									void changeDocuments(() =>
+										linkDocumentToPlan({
+											plan_id: planId,
+											document_id: documentId,
+										}),
+									);
+								}}
+							>
+								Link
+							</button>
+						</div>
+					{/if}
+					{#if planDocuments.length === 0}
+						<p class="empty">No documents linked to this plan</p>
+					{:else}
+						<ul class="plan-documents">
+							{#each planDocuments as document (document.id)}
+								<li>
+									<span class="document-key">
+										{document.key ?? document.id}
+									</span>
+									<span>{document.title}</span>
+									<span class="document-kind">{document.kind}</span>
+									<button
+										type="button"
+										onclick={() =>
+											void changeDocuments(() =>
+												unlinkDocumentFromPlan({
+													plan_id: planId,
+													document_id: document.id,
+												}),
+											)}
+									>
+										Unlink
+									</button>
+								</li>
+							{/each}
+						</ul>
 					{/if}
 				{/if}
 			</div>
@@ -506,6 +717,109 @@
 	.item-deleted {
 		color: var(--text-muted);
 		font-size: var(--text-xs);
+	}
+
+	.items li {
+		align-items: flex-start;
+	}
+
+	.item-notes {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+		min-width: 0;
+		margin-left: auto;
+	}
+
+	.note,
+	.note-add {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: flex-start;
+		gap: var(--space-2);
+	}
+
+	.note-body {
+		max-width: 24rem;
+		color: var(--text-secondary);
+		font-size: var(--text-sm);
+		white-space: pre-wrap;
+	}
+
+	.item-notes textarea,
+	.link-document select {
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		background: var(--surface);
+		color: var(--foreground);
+		font: inherit;
+		font-size: var(--text-sm);
+		padding: var(--space-1) var(--space-2);
+	}
+
+	.item-notes textarea {
+		min-height: 3rem;
+		width: 16rem;
+		resize: vertical;
+	}
+
+	.item-notes button,
+	.link-document button,
+	.plan-documents button {
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		background: var(--surface);
+		color: var(--text-secondary);
+		cursor: pointer;
+		font-size: var(--text-xs);
+		padding: var(--space-1) var(--space-2);
+	}
+
+	.item-notes button:hover,
+	.link-document button:hover,
+	.plan-documents button:hover {
+		color: var(--foreground);
+		background: var(--hover);
+	}
+
+	.error-text {
+		margin: var(--space-2) 0;
+		color: var(--danger);
+		font-size: var(--text-sm);
+	}
+
+	.link-document {
+		display: flex;
+		gap: var(--space-2);
+		margin-bottom: var(--space-2);
+	}
+
+	.plan-documents {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.plan-documents li {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+		padding: var(--space-2) 0;
+		border-bottom: 1px solid var(--border);
+		font-size: var(--text-sm);
+	}
+
+	.document-key {
+		font-family: var(--font-mono);
+	}
+
+	.document-kind {
+		color: var(--text-muted);
+		font-size: var(--text-xs);
+	}
+
+	.plan-documents button {
+		margin-left: auto;
 	}
 
 	@media (max-width: 48rem) {
