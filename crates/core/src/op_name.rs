@@ -106,6 +106,17 @@ op_names![
     PlansNotesAdd => "plans_notes_add",
     PlansNotesEdit => "plans_notes_edit",
     PlansNotesDelete => "plans_notes_delete",
+    DocumentsList => "documents_list",
+    DocumentsGet => "documents_get",
+    DocumentsCreate => "documents_create",
+    DocumentsUpdate => "documents_update",
+    DocumentsDelete => "documents_delete",
+    DocumentsRestore => "documents_restore",
+    DocumentsDeletedList => "documents_deleted_list",
+    DocumentsRevisionsList => "documents_revisions_list",
+    PlansDocumentsList => "plans_documents_list",
+    PlansDocumentsLink => "plans_documents_link",
+    PlansDocumentsUnlink => "plans_documents_unlink",
 ];
 
 #[cfg(test)]

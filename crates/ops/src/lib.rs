@@ -15,6 +15,7 @@ pub mod attachments;
 pub mod backups;
 pub mod comments;
 mod descriptions;
+pub mod documents;
 mod entries;
 pub mod plans;
 pub mod projects;
@@ -32,6 +33,7 @@ pub fn patch_fields(name: &str) -> &'static [&'static str] {
         "projects_update" => &["name", "archived", "repo"],
         "scopes_update" => &["name"],
         "plans_update" => &["name", "description", "status"],
+        "documents_update" => &["kind", "title", "body", "status", "source_file"],
         "tags_update" => &["archived"],
         "tasks_update" => &[
             "title",
@@ -238,6 +240,11 @@ pub use attachments::{
 };
 pub use backups::{BackupCreate, BackupListOp, BackupsInspect, BackupsRestore};
 pub use comments::{CommentsAdd, CommentsDelete, CommentsEdit, CommentsList};
+pub use documents::{
+    DocumentsCreate, DocumentsDelete, DocumentsDeletedList, DocumentsGet, DocumentsList,
+    DocumentsRestore, DocumentsRevisionsList, DocumentsUpdate, PlansDocumentsLink,
+    PlansDocumentsList, PlansDocumentsUnlink,
+};
 pub use plans::{
     PlansCreate, PlansDelete, PlansDeletedList, PlansGet, PlansItemsAdd, PlansItemsRemove,
     PlansList, PlansNotesAdd, PlansNotesDelete, PlansNotesEdit, PlansNotesList, PlansReorder,
@@ -328,4 +335,15 @@ crate::ops![
     PlansNotesAdd,
     PlansNotesEdit,
     PlansNotesDelete,
+    DocumentsList,
+    DocumentsGet,
+    DocumentsCreate,
+    DocumentsUpdate,
+    DocumentsDelete,
+    DocumentsRestore,
+    DocumentsDeletedList,
+    DocumentsRevisionsList,
+    PlansDocumentsList,
+    PlansDocumentsLink,
+    PlansDocumentsUnlink,
 ];

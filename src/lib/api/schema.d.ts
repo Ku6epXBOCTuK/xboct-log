@@ -1424,6 +1424,226 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/documents_list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * List working documents (ADRs, PRDs, architecture, research, workflow notes, guides, specs) across every project; pass project_id to narrow to one project
+         * @description List working documents (ADRs, PRDs, architecture, research, workflow notes, guides, specs) across every project; pass project_id to narrow to one project. Soft-deleted documents are hidden. Each document has its own 'PREFIX-NNN' key in its project. Returns: {items}.
+         */
+        post: operations["documents_list"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/documents_get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Get one document by document_id (internal id)
+         * @description Get one document by document_id (internal id). Returns: {id, project_id, number, key, kind, title, body, status, source_file, created_at, updated_at, closed_at, deleted_at}.
+         */
+        post: operations["documents_get"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/documents_create": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a document in a project with a kind (adr, prd, architecture, research, workflow, guide, spec), title, Markdown body and optional source_file
+         * @description Create a document in a project with a kind (adr, prd, architecture, research, workflow, guide, spec), title, Markdown body and optional source_file. The key is allocated in the project's prefix sequence and never changes. Returns: the created document.
+         */
+        post: operations["documents_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/documents_update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Patch a document's kind, title, body, status (draft, accepted, superseded, archived) or source_file by document_id; pass fields next to document_id or in a nested patch object
+         * @description Patch a document's kind, title, body, status (draft, accepted, superseded, archived) or source_file by document_id; pass fields next to document_id or in a nested patch object. The previous body is stored in text_revisions. Pass expected_updated_at (the current updated_at) to reject a stale edit with a conflict. Returns: the updated document.
+         */
+        post: operations["documents_update"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/documents_delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Soft-delete a document by document_id
+         * @description Soft-delete a document by document_id. Its links to plans and revisions are kept, so documents_restore brings it back. Returns: the deleted document with deleted_at set.
+         */
+        post: operations["documents_delete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/documents_restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore a soft-deleted document by document_id with its links and revisions
+         * @description Restore a soft-deleted document by document_id with its links and revisions. Find deleted documents with documents_deleted_list. Returns: the restored document with deleted_at cleared.
+         */
+        post: operations["documents_restore"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/documents_deleted_list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * List soft-deleted documents newest first
+         * @description List soft-deleted documents newest first. Returns: {items}.
+         */
+        post: operations["documents_deleted_list"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/documents_revisions_list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * List the earlier body texts of a document, newest first, from text_revisions(entity='document')
+         * @description List the earlier body texts of a document, newest first, from text_revisions(entity='document'). Returns: {items} - each revision is {id, entity, entity_id, field, body, created_at}.
+         */
+        post: operations["documents_revisions_list"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/plans_documents_list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * List the documents linked to a plan by plan_id; a plan is global and may link documents of any project
+         * @description List the documents linked to a plan by plan_id; a plan is global and may link documents of any project. Returns: {items} - full documents.
+         */
+        post: operations["plans_documents_list"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/plans_documents_link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Link a document to a plan by plan_id and document_id
+         * @description Link a document to a plan by plan_id and document_id. The document may belong to any project; no project match is required. Repeated links are ignored. Returns: the linked document.
+         */
+        post: operations["plans_documents_link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/plans_documents_unlink": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Remove a document link from a plan by plan_id and document_id; the document itself is not deleted or changed
+         * @description Remove a document link from a plan by plan_id and document_id; the document itself is not deleted or changed. Returns: the unlinked document.
+         */
+        post: operations["plans_documents_unlink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1443,7 +1663,7 @@ export interface components {
         /** @enum {string} */
         ActivitySource: "ui" | "mcp" | "cli";
         /** @enum {string} */
-        OpName: "tasks_history" | "activity_list" | "request_log_list" | "request_log_export" | "attachments_list" | "attachments_deleted_list" | "attachments_add" | "attachments_delete" | "attachments_restore" | "attachments_move" | "attachments_copy" | "attachments_purge" | "attachments_verify" | "backup_create" | "backup_list" | "backups_inspect" | "backups_restore" | "tasks_add_blocker" | "tasks_remove_blocker" | "tasks_add_link" | "tasks_remove_link" | "tasks_comments_list" | "tasks_comments_add" | "tasks_comments_edit" | "tasks_comments_delete" | "tasks_options" | "projects_list" | "projects_get" | "projects_create" | "projects_update" | "tasks_revisions_list" | "scopes_list" | "scopes_get" | "scopes_project_ids" | "scopes_create" | "scopes_update" | "scopes_delete" | "tasks_stats" | "tasks_list" | "tasks_deleted_list" | "tasks_get_many" | "tasks_get" | "tasks_create" | "tasks_create_many" | "tasks_update" | "tasks_update_many" | "tasks_close" | "tasks_close_many" | "tasks_delete" | "tasks_restore" | "tasks_move" | "tags_list" | "tags_dictionary" | "tags_inventory" | "tags_create" | "tags_update" | "tags_rename" | "plans_list" | "plans_get" | "plans_create" | "plans_update" | "plans_delete" | "plans_restore" | "plans_deleted_list" | "plans_items_add" | "plans_items_remove" | "plans_reorder" | "plans_notes_list" | "plans_notes_add" | "plans_notes_edit" | "plans_notes_delete";
+        OpName: "tasks_history" | "activity_list" | "request_log_list" | "request_log_export" | "attachments_list" | "attachments_deleted_list" | "attachments_add" | "attachments_delete" | "attachments_restore" | "attachments_move" | "attachments_copy" | "attachments_purge" | "attachments_verify" | "backup_create" | "backup_list" | "backups_inspect" | "backups_restore" | "tasks_add_blocker" | "tasks_remove_blocker" | "tasks_add_link" | "tasks_remove_link" | "tasks_comments_list" | "tasks_comments_add" | "tasks_comments_edit" | "tasks_comments_delete" | "tasks_options" | "projects_list" | "projects_get" | "projects_create" | "projects_update" | "tasks_revisions_list" | "scopes_list" | "scopes_get" | "scopes_project_ids" | "scopes_create" | "scopes_update" | "scopes_delete" | "tasks_stats" | "tasks_list" | "tasks_deleted_list" | "tasks_get_many" | "tasks_get" | "tasks_create" | "tasks_create_many" | "tasks_update" | "tasks_update_many" | "tasks_close" | "tasks_close_many" | "tasks_delete" | "tasks_restore" | "tasks_move" | "tags_list" | "tags_dictionary" | "tags_inventory" | "tags_create" | "tags_update" | "tags_rename" | "plans_list" | "plans_get" | "plans_create" | "plans_update" | "plans_delete" | "plans_restore" | "plans_deleted_list" | "plans_items_add" | "plans_items_remove" | "plans_reorder" | "plans_notes_list" | "plans_notes_add" | "plans_notes_edit" | "plans_notes_delete" | "documents_list" | "documents_get" | "documents_create" | "documents_update" | "documents_delete" | "documents_restore" | "documents_deleted_list" | "documents_revisions_list" | "plans_documents_list" | "plans_documents_link" | "plans_documents_unlink";
         /** @enum {string} */
         ActivityEntity: "task" | "plan" | "document" | "project" | "scope" | "tag";
         ActivityItem: {
@@ -1868,6 +2088,35 @@ export interface components {
             created_at: string;
             edited_at?: string | null;
             deleted_at?: string | null;
+        };
+        Document: {
+            id: string;
+            project_id: string;
+            /** Format: int64 */
+            number: number;
+            key: string;
+            kind: components["schemas"]["DocumentKind"];
+            title: string;
+            body: string;
+            status: components["schemas"]["DocumentStatus"];
+            source_file?: string | null;
+            created_at: string;
+            updated_at: string;
+            closed_at?: string | null;
+            deleted_at?: string | null;
+        };
+        /** @enum {string} */
+        DocumentKind: "adr" | "prd" | "architecture" | "research" | "workflow" | "guide" | "spec";
+        /** @enum {string} */
+        DocumentStatus: "draft" | "accepted" | "superseded" | "archived";
+        TextRevision: {
+            /** Format: int64 */
+            id: number;
+            entity: string;
+            entity_id: string;
+            field: string;
+            body: string;
+            created_at: string;
         };
     };
     responses: never;
@@ -7274,6 +7523,814 @@ export interface operations {
                         body: string;
                         created_at: string;
                         edited_at?: string | null;
+                        deleted_at?: string | null;
+                    };
+                };
+            };
+            /** @description The input is not valid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The thing does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The change clashes with the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The operation failed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    documents_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Only documents of this project, when given. */
+                    project_id?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description The result of the operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["Document"][];
+                    };
+                };
+            };
+            /** @description The input is not valid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The thing does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The change clashes with the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The operation failed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    documents_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    document_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The result of the operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        project_id: string;
+                        /** Format: int64 */
+                        number: number;
+                        key: string;
+                        kind: components["schemas"]["DocumentKind"];
+                        title: string;
+                        body: string;
+                        status: components["schemas"]["DocumentStatus"];
+                        source_file?: string | null;
+                        created_at: string;
+                        updated_at: string;
+                        closed_at?: string | null;
+                        deleted_at?: string | null;
+                    };
+                };
+            };
+            /** @description The input is not valid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The thing does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The change clashes with the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The operation failed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    documents_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    project_id: string;
+                    kind: components["schemas"]["DocumentKind"];
+                    title: string;
+                    body?: string | null;
+                    /** @description Path of the markdown file this document was imported from. */
+                    source_file?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description The result of the operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        project_id: string;
+                        /** Format: int64 */
+                        number: number;
+                        key: string;
+                        kind: components["schemas"]["DocumentKind"];
+                        title: string;
+                        body: string;
+                        status: components["schemas"]["DocumentStatus"];
+                        source_file?: string | null;
+                        created_at: string;
+                        updated_at: string;
+                        closed_at?: string | null;
+                        deleted_at?: string | null;
+                    };
+                };
+            };
+            /** @description The input is not valid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The thing does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The change clashes with the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The operation failed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    documents_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    document_id: string;
+                    patch?: unknown;
+                    kind?: components["schemas"]["DocumentKind"] | null;
+                    title?: string | null;
+                    body?: string | null;
+                    status?: components["schemas"]["DocumentStatus"] | null;
+                    source_file?: string | null;
+                    expected_updated_at?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description The result of the operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        project_id: string;
+                        /** Format: int64 */
+                        number: number;
+                        key: string;
+                        kind: components["schemas"]["DocumentKind"];
+                        title: string;
+                        body: string;
+                        status: components["schemas"]["DocumentStatus"];
+                        source_file?: string | null;
+                        created_at: string;
+                        updated_at: string;
+                        closed_at?: string | null;
+                        deleted_at?: string | null;
+                    };
+                };
+            };
+            /** @description The input is not valid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The thing does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The change clashes with the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The operation failed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    documents_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    document_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The result of the operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        project_id: string;
+                        /** Format: int64 */
+                        number: number;
+                        key: string;
+                        kind: components["schemas"]["DocumentKind"];
+                        title: string;
+                        body: string;
+                        status: components["schemas"]["DocumentStatus"];
+                        source_file?: string | null;
+                        created_at: string;
+                        updated_at: string;
+                        closed_at?: string | null;
+                        deleted_at?: string | null;
+                    };
+                };
+            };
+            /** @description The input is not valid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The thing does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The change clashes with the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The operation failed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    documents_restore: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    document_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The result of the operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        project_id: string;
+                        /** Format: int64 */
+                        number: number;
+                        key: string;
+                        kind: components["schemas"]["DocumentKind"];
+                        title: string;
+                        body: string;
+                        status: components["schemas"]["DocumentStatus"];
+                        source_file?: string | null;
+                        created_at: string;
+                        updated_at: string;
+                        closed_at?: string | null;
+                        deleted_at?: string | null;
+                    };
+                };
+            };
+            /** @description The input is not valid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The thing does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The change clashes with the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The operation failed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    documents_deleted_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description The result of the operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["Document"][];
+                    };
+                };
+            };
+            /** @description The input is not valid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The thing does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The change clashes with the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The operation failed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    documents_revisions_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    document_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The result of the operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["TextRevision"][];
+                    };
+                };
+            };
+            /** @description The input is not valid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The thing does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The change clashes with the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The operation failed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    plans_documents_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    plan_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The result of the operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["Document"][];
+                    };
+                };
+            };
+            /** @description The input is not valid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The thing does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The change clashes with the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The operation failed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    plans_documents_link: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    plan_id: string;
+                    document_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The result of the operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        project_id: string;
+                        /** Format: int64 */
+                        number: number;
+                        key: string;
+                        kind: components["schemas"]["DocumentKind"];
+                        title: string;
+                        body: string;
+                        status: components["schemas"]["DocumentStatus"];
+                        source_file?: string | null;
+                        created_at: string;
+                        updated_at: string;
+                        closed_at?: string | null;
+                        deleted_at?: string | null;
+                    };
+                };
+            };
+            /** @description The input is not valid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The thing does not exist */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The change clashes with the current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The operation failed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    plans_documents_unlink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    plan_id: string;
+                    document_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The result of the operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        project_id: string;
+                        /** Format: int64 */
+                        number: number;
+                        key: string;
+                        kind: components["schemas"]["DocumentKind"];
+                        title: string;
+                        body: string;
+                        status: components["schemas"]["DocumentStatus"];
+                        source_file?: string | null;
+                        created_at: string;
+                        updated_at: string;
+                        closed_at?: string | null;
                         deleted_at?: string | null;
                     };
                 };

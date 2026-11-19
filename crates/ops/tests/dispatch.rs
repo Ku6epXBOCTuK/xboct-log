@@ -106,6 +106,17 @@ fn lists_the_registered_operations() {
             "plans_notes_add",
             "plans_notes_edit",
             "plans_notes_delete",
+            "documents_list",
+            "documents_get",
+            "documents_create",
+            "documents_update",
+            "documents_delete",
+            "documents_restore",
+            "documents_deleted_list",
+            "documents_revisions_list",
+            "plans_documents_list",
+            "plans_documents_link",
+            "plans_documents_unlink",
         ]
     );
 
@@ -153,6 +164,12 @@ fn lists_the_registered_operations() {
         "plans_notes_add",
         "plans_notes_edit",
         "plans_notes_delete",
+        "documents_create",
+        "documents_update",
+        "documents_delete",
+        "documents_restore",
+        "plans_documents_link",
+        "plans_documents_unlink",
     ];
     for op in &ops {
         let hidden = ["tags_inventory", "backups_inspect", "backups_restore"];

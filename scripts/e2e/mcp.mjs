@@ -85,7 +85,7 @@ try {
 	};
 
 	await check("tools/list exposes every registered tool", () => {
-		assert.equal(tools.length, 69);
+		assert.equal(tools.length, 80);
 		const names = new Set(tools.map((tool) => tool.name));
 		for (const name of [
 			"tasks_create",
@@ -94,6 +94,8 @@ try {
 			"scopes_delete",
 			"plans_create",
 			"plans_reorder",
+			"documents_create",
+			"plans_documents_link",
 		]) {
 			assert.ok(names.has(name), `${name} is missing`);
 		}
@@ -616,6 +618,124 @@ try {
 			"plans_get after remove",
 		);
 		assert.equal(detail.tasks_count, 1);
+	});
+
+	console.log("\ndocuments");
+	let document;
+	await check(
+		"documents_create, documents_get and documents_list",
+		async () => {
+			document = ok(
+				await client.callTool("documents_create", {
+					project_id: "e2e",
+					kind: "adr",
+					title: "Use sqlite",
+					body: "first body",
+					source_file: "docs/adr/001.md",
+				}),
+				"documents_create",
+			);
+			assert.equal(document.status, "draft");
+			const found = ok(
+				await client.callTool("documents_get", {
+					document_id: document.id,
+				}),
+				"documents_get",
+			);
+			assert.equal(found.key, document.key);
+			const list = ok(
+				await client.callTool("documents_list", { project_id: "e2e" }),
+				"documents_list",
+			);
+			assert.ok(
+				items(list, "documents_list").some((item) => item.id === document.id),
+			);
+		},
+	);
+	await check("documents_update and documents_revisions_list", async () => {
+		const updated = ok(
+			await client.callTool("documents_update", {
+				document_id: document.id,
+				body: "second version",
+				status: "accepted",
+				expected_updated_at: document.updated_at,
+			}),
+			"documents_update",
+		);
+		assert.equal(updated.body, "second version");
+		assert.equal(updated.status, "accepted");
+		document = updated;
+		const revisions = ok(
+			await client.callTool("documents_revisions_list", {
+				document_id: document.id,
+			}),
+			"documents_revisions_list",
+		);
+		assert.ok(items(revisions, "documents_revisions_list").length > 0);
+	});
+	await check(
+		"plans_documents_link, plans_documents_list and plans_documents_unlink",
+		async () => {
+			ok(
+				await client.callTool("plans_documents_link", {
+					plan_id: plan.id,
+					document_id: document.id,
+				}),
+				"plans_documents_link",
+			);
+			const linked = ok(
+				await client.callTool("plans_documents_list", {
+					plan_id: plan.id,
+				}),
+				"plans_documents_list",
+			);
+			assert.ok(
+				items(linked, "plans_documents_list").some(
+					(item) => item.id === document.id,
+				),
+			);
+			ok(
+				await client.callTool("plans_documents_unlink", {
+					plan_id: plan.id,
+					document_id: document.id,
+				}),
+				"plans_documents_unlink",
+			);
+			const after = ok(
+				await client.callTool("plans_documents_list", {
+					plan_id: plan.id,
+				}),
+				"plans_documents_list after unlink",
+			);
+			assert.ok(
+				!items(after, "plans_documents_list").some(
+					(item) => item.id === document.id,
+				),
+			);
+		},
+	);
+	await check("documents_delete, deleted_list and restore", async () => {
+		ok(
+			await client.callTool("documents_delete", {
+				document_id: document.id,
+			}),
+			"documents_delete",
+		);
+		const deleted = ok(
+			await client.callTool("documents_deleted_list", {}),
+			"documents_deleted_list",
+		);
+		assert.ok(
+			items(deleted, "documents_deleted_list").some(
+				(item) => item.id === document.id,
+			),
+		);
+		ok(
+			await client.callTool("documents_restore", {
+				document_id: document.id,
+			}),
+			"documents_restore",
+		);
 	});
 
 	console.log("\ncomments, history, activity, stats");

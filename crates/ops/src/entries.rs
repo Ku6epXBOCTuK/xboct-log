@@ -245,6 +245,33 @@ pub fn entries(op: &str, input: &Value, output: &Value) -> Vec<ActivityEntry> {
                 Vec::new(),
             )]
         }
+        "documents_create" => vec![ActivityEntry::new(
+            ActivityEntity::Document,
+            text(output, "id"),
+            present_fields(input, &["project_id", "kind", "title", "source_file"]),
+            Vec::new(),
+        )],
+        "documents_update" => vec![ActivityEntry::new(
+            ActivityEntity::Document,
+            text(output, "id"),
+            present_fields(
+                input.get("patch").unwrap_or(&Value::Null),
+                &["kind", "title", "body", "status", "source_file"],
+            ),
+            Vec::new(),
+        )],
+        "documents_delete" | "documents_restore" => vec![ActivityEntry::new(
+            ActivityEntity::Document,
+            text(output, "id"),
+            strings(&["deleted_at"]),
+            Vec::new(),
+        )],
+        "plans_documents_link" | "plans_documents_unlink" => vec![ActivityEntry::new(
+            ActivityEntity::Plan,
+            text(input, "plan_id"),
+            strings(&["documents", "document_id"]),
+            Vec::new(),
+        )],
         "attachments_add" | "attachments_copy" => attachment_entry(output.get("item"), true),
         "attachments_restore" => attachment_entry(Some(output), true),
         "attachments_delete" | "attachments_purge" => attachment_entry(Some(output), false),
