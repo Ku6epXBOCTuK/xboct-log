@@ -110,6 +110,7 @@ try {
 			/plans_get for one plan's items/,
 		);
 		assert.match(plansList.description, /include_deleted/);
+		assert.match(plansList.description, /deleted_only/);
 		const documentsList = tools.find((tool) => tool.name === "documents_list");
 		assert.ok(documentsList, "documents_list is missing");
 		assert.match(documentsList.description, /short_body/);
@@ -741,6 +742,14 @@ try {
 		assert.ok(
 			items(withDeleted, "plans_list").some((item) => item.id === plan.id),
 		);
+		const onlyDeleted = ok(
+			await client.callTool("plans_list", { deleted_only: true }),
+			"plans_list deleted_only",
+		);
+		assert.deepEqual(
+			items(onlyDeleted, "plans_list").map((item) => item.id),
+			[plan.id],
+		);
 		ok(
 			await client.callTool("plans_restore", { plan_id: plan.id }),
 			"plans_restore",
@@ -1002,6 +1011,17 @@ try {
 			items(deleted, "documents_deleted_list").some(
 				(item) => item.id === document.id,
 			),
+		);
+		const onlyDeleted = ok(
+			await client.callTool("documents_list", {
+				deleted_only: true,
+				fields: "id,key,deleted_at",
+			}),
+			"documents_list deleted_only",
+		);
+		assert.deepEqual(
+			items(onlyDeleted, "documents_list").map((item) => item.id),
+			[document.id],
 		);
 		ok(
 			await client.callTool("documents_restore", {

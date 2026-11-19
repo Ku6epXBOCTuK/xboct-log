@@ -24,8 +24,13 @@ export interface PlanItemInput {
 	task_id: string;
 }
 
+export interface PlanListInput {
+	include_deleted?: boolean;
+	deleted_only?: boolean;
+}
+
 export async function getPlans(
-	input: Record<string, never> = {},
+	input: PlanListInput = {},
 ): Promise<PlanWithCounts[]> {
 	const answer = await client.POST("/api/plans_list", { body: input });
 	return unwrap<{ items: PlanWithCounts[] }>(answer).items;

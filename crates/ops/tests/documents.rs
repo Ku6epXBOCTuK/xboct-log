@@ -283,6 +283,9 @@ async fn document_list_ops_return_totals_previews_and_plan_scope() {
             .len(),
         1
     );
+    let only_deleted = call(&ctx, "plans_list", json!({"deleted_only": true})).await;
+    assert_eq!(only_deleted["items"].as_array().unwrap().len(), 1);
+    assert_eq!(only_deleted["items"][0]["id"], plan_id);
 
     let _ = first_id;
 }

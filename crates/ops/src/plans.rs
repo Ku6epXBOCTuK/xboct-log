@@ -22,6 +22,8 @@ pub struct PlansListInput {
         description = "Include soft-deleted plans alongside active ones. By default they are hidden."
     )]
     pub include_deleted: Option<bool>,
+    #[schemars(description = "Return only soft-deleted plans. Overrides include_deleted.")]
+    pub deleted_only: Option<bool>,
 }
 
 pub struct PlansList;
@@ -39,10 +41,16 @@ impl Op for PlansList {
     }
 
     async fn run(ctx: &Ctx, input: Self::Input) -> Result<Self::Output> {
-        let mut plans = list_plans(&ctx.db).await?;
-        if input.include_deleted == Some(true) {
-            plans.extend(list_deleted_plans(&ctx.db).await?);
-        }
+        let mut plans = if input.deleted_only == Some(true) {
+            list_deleted_plans(&ctx.db).await?
+        } else {
+            let mut plans = list_plans(&ctx.db).await?;
+            if input.include_deleted == Some(true) {
+                plans.extend(list_deleted_plans(&ctx.db).await?);
+            }
+            plans
+        };
+        plans.sort_by(|a, b| a.name.cmp(&b.name).then_with(|| a.id.cmp(&b.id)));
         let counts = xboct_log_core::count_plan_items(&ctx.db).await?;
         Ok(Items {
             items: plans

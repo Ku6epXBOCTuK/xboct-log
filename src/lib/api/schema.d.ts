@@ -1155,7 +1155,7 @@ export interface paths {
         put?: never;
         /**
          * List all plans across every project: a plan has no project_id and its items may come from any project
-         * @description List all plans across every project: a plan has no project_id and its items may come from any project. Each item carries tasks_count and epics_count (soft-deleted tasks are not counted). Soft-deleted plans are hidden unless include_deleted is true. Returns: {items} - sorted by name. Read one plan's ordered items with tasks_list {plan_id, sort: 'plan_position', include_deleted: true}, its notes with plans_notes_list and its document links with plans_documents_list.
+         * @description List all plans across every project: a plan has no project_id and its items may come from any project. Each item carries tasks_count and epics_count (soft-deleted tasks are not counted). Soft-deleted plans are hidden unless include_deleted is true; deleted_only returns only soft-deleted plans. Returns: {items} - sorted by name. Read one plan's ordered items with tasks_list {plan_id, sort: 'plan_position', include_deleted: true}, its notes with plans_notes_list and its document links with plans_documents_list.
          */
         post: operations["plans_list"];
         delete?: never;
@@ -1255,7 +1255,7 @@ export interface paths {
         put?: never;
         /**
          * Restore a soft-deleted plan by plan_id with all its items, positions, notes and document links
-         * @description Restore a soft-deleted plan by plan_id with all its items, positions, notes and document links. Find deleted plans with plans_deleted_list. Returns: the restored plan with deleted_at cleared.
+         * @description Restore a soft-deleted plan by plan_id with all its items, positions, notes and document links. Find deleted plans with plans_list {deleted_only: true} or plans_deleted_list. Returns: the restored plan with deleted_at cleared.
          */
         post: operations["plans_restore"];
         delete?: never;
@@ -1275,7 +1275,7 @@ export interface paths {
         put?: never;
         /**
          * List the soft-deleted plans, newest deletion first
-         * @description List the soft-deleted plans, newest deletion first. Read-only. Returns: {items}.
+         * @description List the soft-deleted plans, newest deletion first. plans_list {deleted_only: true} reads the same set. Read-only. Returns: {items}.
          */
         post: operations["plans_deleted_list"];
         delete?: never;
@@ -1595,7 +1595,7 @@ export interface paths {
         put?: never;
         /**
          * Restore a soft-deleted document by document_id (internal id or 'PREFIX-NNN' key) with its links and revisions
-         * @description Restore a soft-deleted document by document_id (internal id or 'PREFIX-NNN' key) with its links and revisions. Find deleted documents with documents_deleted_list. Returns: the restored document with deleted_at cleared.
+         * @description Restore a soft-deleted document by document_id (internal id or 'PREFIX-NNN' key) with its links and revisions. Find deleted documents with documents_list {deleted_only: true} or documents_deleted_list. Returns: the restored document with deleted_at cleared.
          */
         post: operations["documents_restore"];
         delete?: never;
@@ -1615,7 +1615,7 @@ export interface paths {
         put?: never;
         /**
          * List soft-deleted documents newest first
-         * @description List soft-deleted documents newest first. Returns: {items}.
+         * @description List soft-deleted documents newest first. documents_list {deleted_only: true} reads the same set and supports filters. Returns: {items}.
          */
         post: operations["documents_deleted_list"];
         delete?: never;
@@ -6707,6 +6707,8 @@ export interface operations {
                 "application/json": {
                     /** @description Include soft-deleted plans alongside active ones. By default they are hidden. */
                     include_deleted?: boolean | null;
+                    /** @description Return only soft-deleted plans. Overrides include_deleted. */
+                    deleted_only?: boolean | null;
                 };
             };
         };
