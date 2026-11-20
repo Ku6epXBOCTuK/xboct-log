@@ -81,6 +81,7 @@ text_newtype!(ProjectId);
 text_newtype!(TagName);
 text_newtype!(TaskKey);
 text_newtype!(DocumentKey);
+text_newtype!(PlanKey);
 text_newtype!(Prefix);
 
 fn parse_prefixed_key(value: &str) -> Result<String, AppError> {
@@ -106,6 +107,30 @@ impl TaskKey {
 impl DocumentKey {
     pub fn parse(value: &str) -> Result<Self, AppError> {
         Ok(Self(parse_prefixed_key(value)?))
+    }
+}
+
+impl PlanKey {
+    pub const PREFIX: &'static str = "PL";
+
+    pub fn parse(value: &str) -> Result<Self, AppError> {
+        let key = parse_prefixed_key(value)?;
+        match key.split_once('-') {
+            Some((prefix, _)) if prefix == Self::PREFIX => Ok(Self(key)),
+            _ => Err(AppError::validation(format!(
+                "Use the plan id 'PL-NUMBER' (e.g. 'PL-1'); '{key}' is not a plan id."
+            ))),
+        }
+    }
+
+    pub fn number(&self) -> Result<i64, AppError> {
+        let (_, number) = self
+            .0
+            .split_once('-')
+            .ok_or_else(|| AppError::validation("a plan id must have a number"))?;
+        number.parse::<i64>().map_err(|_| {
+            AppError::validation(format!("the plan number in '{}' is too large", self.0))
+        })
     }
 }
 
@@ -269,6 +294,17 @@ mod tests {
         assert!(TaskKey::parse("82").is_err());
         assert!(TaskKey::parse("LOG-").is_err());
         assert!(TaskKey::parse("LOG-x").is_err());
+    }
+
+    #[test]
+    fn parses_plan_keys() {
+        assert_eq!(PlanKey::parse(" pl-1 ").unwrap().as_str(), "PL-1");
+        assert_eq!(PlanKey::parse("PL-42").unwrap().number().unwrap(), 42);
+        assert_eq!(
+            PlanKey::parse("1").unwrap_err().kind(),
+            crate::AppErrorKind::Validation
+        );
+        assert!(PlanKey::parse("LOG-1").is_err());
     }
 
     #[test]

@@ -1,5 +1,6 @@
 export const PROJECT_ID_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
 export const PROJECT_PREFIX_PATTERN = /^[A-Z0-9]{1,6}$/;
+export const RESERVED_PROJECT_PREFIXES = ["PL"];
 export const PROJECT_ID_MAX_LENGTH = 40;
 
 export function normalizeProjectPrefix(value: string): string {
@@ -31,6 +32,9 @@ export function projectPrefixError(prefix: string): string | null {
 	if (prefix === "") return "Project prefix is required";
 	if (!PROJECT_PREFIX_PATTERN.test(prefix)) {
 		return "Project prefix must be 1-6 uppercase letters or digits";
+	}
+	if (RESERVED_PROJECT_PREFIXES.includes(normalizeProjectPrefix(prefix))) {
+		return "Project prefix PL is reserved for plans";
 	}
 	return null;
 }

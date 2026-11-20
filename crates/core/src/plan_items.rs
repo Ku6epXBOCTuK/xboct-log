@@ -3,7 +3,8 @@ use serde::Serialize;
 use sqlx::{FromRow, Row};
 
 use crate::{
-    AppError, Db, Result, TextRevision, fetch::fetch_by_id, now_iso, require_plan, resolve_task_id,
+    AppError, Db, Result, TextRevision, fetch::fetch_by_id, now_iso, require_plan, resolve_plan_id,
+    resolve_task_id,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
@@ -52,6 +53,7 @@ async fn task_uuid(db: &Db, key: &str) -> Result<String> {
 }
 
 pub async fn list_plan_items(db: &Db, plan_id: &str) -> Result<Vec<PlanItem>> {
+    let plan_id = resolve_plan_id(db, plan_id).await?;
     let rows = sqlx::query(
         "SELECT t.key, t.title, t.project_id, t.is_epic, t.deleted_at, pi.position
          FROM plan_items pi
@@ -59,19 +61,20 @@ pub async fn list_plan_items(db: &Db, plan_id: &str) -> Result<Vec<PlanItem>> {
          WHERE pi.plan_id = ?
          ORDER BY pi.position, t.key",
     )
-    .bind(plan_id)
+    .bind(&plan_id)
     .fetch_all(db.pool())
     .await?;
     rows.iter().map(row_to_item).collect()
 }
 
 pub async fn add_plan_item(db: &Db, plan_id: &str, task_id: &str) -> Result<PlanItem> {
-    require_plan(db, plan_id).await?;
+    let plan_id = resolve_plan_id(db, plan_id).await?;
+    require_plan(db, &plan_id).await?;
     let key = resolve_task_id(db, task_id).await?;
     let uuid = task_uuid(db, key.as_str()).await?;
     let existing: Option<i64> =
         sqlx::query_scalar("SELECT 1 FROM plan_items WHERE plan_id = ? AND task_id = ?")
-            .bind(plan_id)
+            .bind(&plan_id)
             .bind(&uuid)
             .fetch_optional(db.pool())
             .await?;
@@ -83,16 +86,16 @@ pub async fn add_plan_item(db: &Db, plan_id: &str, task_id: &str) -> Result<Plan
     let position: i64 = sqlx::query_scalar(
         "SELECT COALESCE(MAX(position), 0) + 1024 FROM plan_items WHERE plan_id = ?",
     )
-    .bind(plan_id)
+    .bind(&plan_id)
     .fetch_one(db.pool())
     .await?;
     sqlx::query("INSERT INTO plan_items (plan_id, task_id, position) VALUES (?, ?, ?)")
-        .bind(plan_id)
+        .bind(&plan_id)
         .bind(&uuid)
         .bind(position)
         .execute(db.pool())
         .await?;
-    list_plan_items(db, plan_id)
+    list_plan_items(db, &plan_id)
         .await?
         .into_iter()
         .find(|item| item.key == key.as_str())
@@ -100,15 +103,16 @@ pub async fn add_plan_item(db: &Db, plan_id: &str, task_id: &str) -> Result<Plan
 }
 
 pub async fn remove_plan_item(db: &Db, plan_id: &str, task_id: &str) -> Result<Option<PlanItem>> {
-    require_plan(db, plan_id).await?;
+    let plan_id = resolve_plan_id(db, plan_id).await?;
+    require_plan(db, &plan_id).await?;
     let key = resolve_task_id(db, task_id).await?;
     let uuid = task_uuid(db, key.as_str()).await?;
-    let removed = list_plan_items(db, plan_id)
+    let removed = list_plan_items(db, &plan_id)
         .await?
         .into_iter()
         .find(|item| item.key == key.as_str());
     sqlx::query("DELETE FROM plan_items WHERE plan_id = ? AND task_id = ?")
-        .bind(plan_id)
+        .bind(&plan_id)
         .bind(&uuid)
         .execute(db.pool())
         .await?;
@@ -116,14 +120,15 @@ pub async fn remove_plan_item(db: &Db, plan_id: &str, task_id: &str) -> Result<O
 }
 
 pub async fn reorder_plan_items(db: &Db, plan_id: &str, keys: &[String]) -> Result<Vec<PlanItem>> {
-    require_plan(db, plan_id).await?;
+    let plan_id = resolve_plan_id(db, plan_id).await?;
+    require_plan(db, &plan_id).await?;
     let mut tx = db.begin().await?;
     let rows: Vec<(String, String)> = sqlx::query_as(
         "SELECT pi.task_id, t.key FROM plan_items pi
          JOIN tasks t ON t.id = pi.task_id
          WHERE pi.plan_id = ?",
     )
-    .bind(plan_id)
+    .bind(&plan_id)
     .fetch_all(&mut *tx)
     .await?;
     if rows.len() != keys.len() {
@@ -150,22 +155,23 @@ pub async fn reorder_plan_items(db: &Db, plan_id: &str, keys: &[String]) -> Resu
         ids.push(id);
     }
     sqlx::query("UPDATE plan_items SET position = -1 WHERE plan_id = ?")
-        .bind(plan_id)
+        .bind(&plan_id)
         .execute(&mut *tx)
         .await?;
     for (index, id) in ids.iter().enumerate() {
         sqlx::query("UPDATE plan_items SET position = ? WHERE plan_id = ? AND task_id = ?")
             .bind((index as i64 + 1) * 1024)
-            .bind(plan_id)
+            .bind(&plan_id)
             .bind(*id)
             .execute(&mut *tx)
             .await?;
     }
     tx.commit().await?;
-    list_plan_items(db, plan_id).await
+    list_plan_items(db, &plan_id).await
 }
 
 pub async fn list_plan_notes(db: &Db, plan_id: &str) -> Result<Vec<PlanNote>> {
+    let plan_id = resolve_plan_id(db, plan_id).await?;
     let rows = sqlx::query_as::<_, PlanNote>(
         "SELECT pn.id, pn.plan_id, pn.body, pn.created_at, pn.edited_at, pn.deleted_at, t.key
          FROM plan_notes pn
@@ -173,18 +179,19 @@ pub async fn list_plan_notes(db: &Db, plan_id: &str) -> Result<Vec<PlanNote>> {
          WHERE pn.plan_id = ? AND pn.deleted_at IS NULL
          ORDER BY pn.created_at, pn.id",
     )
-    .bind(plan_id)
+    .bind(&plan_id)
     .fetch_all(db.pool())
     .await?;
     Ok(rows)
 }
 
 async fn require_plan_item(db: &Db, plan_id: &str, task_id: &str) -> Result<String> {
+    let plan_id = resolve_plan_id(db, plan_id).await?;
     let key = resolve_task_id(db, task_id).await?;
     let uuid = task_uuid(db, key.as_str()).await?;
     let member: Option<i64> =
         sqlx::query_scalar("SELECT 1 FROM plan_items WHERE plan_id = ? AND task_id = ?")
-            .bind(plan_id)
+            .bind(&plan_id)
             .bind(&uuid)
             .fetch_optional(db.pool())
             .await?;
@@ -197,12 +204,13 @@ async fn require_plan_item(db: &Db, plan_id: &str, task_id: &str) -> Result<Stri
 }
 
 pub async fn add_plan_note(db: &Db, plan_id: &str, task_id: &str, body: &str) -> Result<PlanNote> {
-    require_plan(db, plan_id).await?;
+    let plan_id = resolve_plan_id(db, plan_id).await?;
+    require_plan(db, &plan_id).await?;
     let body = body.trim();
     if body.is_empty() {
         return Err(AppError::validation("note body is required"));
     }
-    let uuid = require_plan_item(db, plan_id, task_id).await?;
+    let uuid = require_plan_item(db, &plan_id, task_id).await?;
     let id = uuid::Uuid::new_v4().to_string();
     let now = now_iso();
     sqlx::query(
@@ -210,7 +218,7 @@ pub async fn add_plan_note(db: &Db, plan_id: &str, task_id: &str, body: &str) ->
          VALUES (?, ?, ?, ?, ?)",
     )
     .bind(&id)
-    .bind(plan_id)
+    .bind(&plan_id)
     .bind(&uuid)
     .bind(body)
     .bind(&now)
@@ -318,6 +326,7 @@ pub async fn restore_plan_note(db: &Db, id: &str) -> Result<PlanNote> {
 }
 
 pub async fn list_deleted_plan_notes(db: &Db, plan_id: &str) -> Result<Vec<PlanNote>> {
+    let plan_id = resolve_plan_id(db, plan_id).await?;
     let rows = sqlx::query_as::<_, PlanNote>(
         "SELECT pn.id, pn.plan_id, pn.body, pn.created_at, pn.edited_at, pn.deleted_at, t.key
          FROM plan_notes pn
@@ -325,7 +334,7 @@ pub async fn list_deleted_plan_notes(db: &Db, plan_id: &str) -> Result<Vec<PlanN
          WHERE pn.plan_id = ? AND pn.deleted_at IS NOT NULL
          ORDER BY pn.deleted_at DESC, pn.id",
     )
-    .bind(plan_id)
+    .bind(&plan_id)
     .fetch_all(db.pool())
     .await?;
     Ok(rows)

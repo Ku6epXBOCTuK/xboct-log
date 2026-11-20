@@ -6,7 +6,7 @@ use crate::{
     AppError, Db, DocumentKey, Limit, Offset, ProjectId, Result, Tx,
     fetch::{fetch_by_id, unexpected},
     query::{FieldSelection, OneOrList, Order, like_pattern, push_in_text},
-    validate_limit, validate_offset,
+    resolve_plan_id, validate_limit, validate_offset,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -564,6 +564,11 @@ pub async fn query_documents(
     plan_id: Option<&str>,
     query: &DocumentQuery,
 ) -> Result<DocumentList> {
+    let resolved_plan = match plan_id {
+        Some(raw) => Some(resolve_plan_id(db, raw).await?),
+        None => None,
+    };
+    let plan_id = resolved_plan.as_deref();
     let (limit, offset) = query.pagination()?;
     let fields = parse_document_fields(query.fields.as_ref());
     let include_body = query.include_body == Some(true)
@@ -807,10 +812,11 @@ pub async fn list_document_revisions(db: &Db, id: &str) -> Result<Vec<TextRevisi
 }
 
 pub async fn link_document_to_plan(db: &Db, plan_id: &str, document_id: &str) -> Result<()> {
-    crate::require_plan(db, plan_id).await?;
+    let plan_id = resolve_plan_id(db, plan_id).await?;
+    crate::require_plan(db, &plan_id).await?;
     let document = require_document(db, document_id).await?;
     sqlx::query("INSERT OR IGNORE INTO plan_documents (plan_id, document_id) VALUES (?, ?)")
-        .bind(plan_id)
+        .bind(&plan_id)
         .bind(&document.id)
         .execute(db.pool())
         .await?;
@@ -818,9 +824,10 @@ pub async fn link_document_to_plan(db: &Db, plan_id: &str, document_id: &str) ->
 }
 
 pub async fn unlink_document_from_plan(db: &Db, plan_id: &str, document_id: &str) -> Result<()> {
+    let plan_id = resolve_plan_id(db, plan_id).await?;
     let document = require_document(db, document_id).await?;
     sqlx::query("DELETE FROM plan_documents WHERE plan_id = ? AND document_id = ?")
-        .bind(plan_id)
+        .bind(&plan_id)
         .bind(&document.id)
         .execute(db.pool())
         .await?;
@@ -828,13 +835,14 @@ pub async fn unlink_document_from_plan(db: &Db, plan_id: &str, document_id: &str
 }
 
 pub async fn documents_for_plan(db: &Db, plan_id: &str) -> Result<Vec<Document>> {
+    let plan_id = resolve_plan_id(db, plan_id).await?;
     let rows = sqlx::query_as::<_, Document>(
         "SELECT d.* FROM plan_documents pd
          JOIN documents d ON d.id = pd.document_id
          WHERE pd.plan_id = ? AND d.deleted_at IS NULL
          ORDER BY d.project_id, d.number",
     )
-    .bind(plan_id)
+    .bind(&plan_id)
     .fetch_all(db.pool())
     .await?;
     Ok(rows)

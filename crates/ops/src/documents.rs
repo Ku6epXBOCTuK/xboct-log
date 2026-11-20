@@ -239,6 +239,7 @@ impl Op for DocumentsRevisionsList {
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct PlanDocumentsListInput {
+    #[schemars(description = "Plan id: short key 'PL-1' (case-insensitive) or the full UUID.")]
     pub plan_id: String,
     #[serde(flatten)]
     pub query: DocumentQuery,
@@ -266,6 +267,7 @@ impl Op for PlansDocumentsList {
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct PlanDocumentInput {
+    #[schemars(description = "Plan id: short key 'PL-1' (case-insensitive) or the full UUID.")]
     pub plan_id: String,
     pub document_id: String,
 }

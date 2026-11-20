@@ -63,6 +63,7 @@ impl Op for PlansList {
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct PlanIdInput {
+    #[schemars(description = "Plan id: short key 'PL-1' (case-insensitive) or the full UUID.")]
     pub plan_id: String,
 }
 
@@ -129,6 +130,7 @@ impl Op for PlansCreate {
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct UpdateInput {
+    #[schemars(description = "Plan id: short key 'PL-1' (case-insensitive) or the full UUID.")]
     pub plan_id: String,
     #[serde(default)]
     pub patch: Option<Value>,
@@ -244,6 +246,7 @@ impl Op for PlansDeletedList {
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ItemInput {
+    #[schemars(description = "Plan id: short key 'PL-1' (case-insensitive) or the full UUID.")]
     pub plan_id: String,
     #[schemars(description = "Full task id, e.g. 'LOG-42'.")]
     pub task_id: String,
@@ -298,6 +301,7 @@ impl Op for PlansItemsRemove {
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ReorderInput {
+    #[schemars(description = "Plan id: short key 'PL-1' (case-insensitive) or the full UUID.")]
     pub plan_id: String,
     #[schemars(
         description = "Every task id of the plan in the new order, full 'PREFIX-NUMBER' ids."
@@ -354,6 +358,7 @@ impl Op for PlansNotesList {
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct NoteInput {
+    #[schemars(description = "Plan id: short key 'PL-1' (case-insensitive) or the full UUID.")]
     pub plan_id: String,
     #[schemars(description = "Full task id, e.g. 'LOG-42'.")]
     pub task_id: String,

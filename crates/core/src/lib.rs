@@ -61,7 +61,9 @@ pub use documents::{
 };
 pub use error::{AppError, AppErrorKind, ErrorStatus, Result};
 pub use events::{ActivitySource, ChangeEvent, Entity, Events, ServerEvent, entity_of};
-pub use ids::{AttachmentId, DocumentKey, Prefix, ProjectId, ScopeId, Seq, TagName, TaskKey};
+pub use ids::{
+    AttachmentId, DocumentKey, PlanKey, Prefix, ProjectId, ScopeId, Seq, TagName, TaskKey,
+};
 pub use media::{
     AttachmentContents, AttachmentFormat, AttachmentKind, attachment_format, read_attachment_file,
     read_deleted_attachment_file,
@@ -76,14 +78,15 @@ pub use plan_items::{
 };
 pub use plans::{
     Plan, PlanCounts, PlanPatch, PlanRef, PlanStatus, PlanWithCounts, count_plan_items,
-    create_plan, delete_plan, get_plan, list_deleted_plans, list_plans, plan_counts, require_plan,
-    restore_plan, update_plan,
+    create_plan, delete_plan, get_plan, get_plan_by_key, list_deleted_plans, list_plans,
+    plan_counts, require_plan, resolve_plan_id, restore_plan, update_plan,
 };
 pub use projects::{
     INBOX_PROJECT_ID, INBOX_PROJECT_PREFIX, NewProject, Project, ProjectDetails, ProjectPatch,
-    ProjectWithCounts, ScopeCount, create_project, ensure_inbox, get_project, list_projects,
-    normalize_prefix, normalize_repo, project_details, project_id_error, project_prefix_error,
-    project_with_counts, repo_error, resolve_project_ref, update_project,
+    ProjectWithCounts, RESERVED_PROJECT_PREFIXES, ScopeCount, create_project, ensure_inbox,
+    get_project, list_projects, normalize_prefix, normalize_repo, project_details,
+    project_id_error, project_prefix_error, project_with_counts, repo_error, resolve_project_ref,
+    update_project,
 };
 pub use request_log::{
     RequestLogEntry, RequestLogExport, RequestLogItem, RequestLogPage, RequestLogSearch,

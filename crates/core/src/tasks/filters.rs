@@ -104,7 +104,7 @@ pub struct TaskFilters {
     )]
     pub has_epic: Option<bool>,
     #[schemars(
-        description = "Filter by plan id. Matches tasks that are items of this plan; plans are global, so items may belong to any project."
+        description = "Filter by plan id: short key 'PL-1' (case-insensitive) or the full UUID. Matches tasks that are items of this plan; plans are global, so items may belong to any project."
     )]
     pub plan_id: Option<String>,
     #[schemars(

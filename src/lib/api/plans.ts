@@ -16,7 +16,12 @@ export interface NewPlanInput {
 
 export interface PlanPatchInput {
 	plan_id: string;
-	patch?: { name?: string; description?: string; status?: PlanStatus };
+	patch?: {
+		key?: string;
+		name?: string;
+		description?: string;
+		status?: PlanStatus;
+	};
 	expected_updated_at?: string | null;
 }
 

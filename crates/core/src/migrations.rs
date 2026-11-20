@@ -147,7 +147,7 @@ mod tests {
             .fetch_all(db.pool())
             .await
             .unwrap();
-        assert_eq!(rust_rows, vec![1, 2, 3]);
+        assert_eq!(rust_rows, vec![1, 2, 3, 4]);
 
         let columns: Vec<String> =
             sqlx::query_scalar("select name from pragma_table_info('tasks')")
@@ -267,7 +267,7 @@ mod tests {
         let versions = applied_versions(&mut db.pool().acquire().await.unwrap())
             .await
             .unwrap();
-        assert_eq!(versions, vec![1, 2, 3]);
+        assert_eq!(versions, vec![1, 2, 3, 4]);
     }
 
     #[tokio::test]
@@ -283,7 +283,7 @@ mod tests {
         let versions = applied_versions(&mut db.pool().acquire().await.unwrap())
             .await
             .unwrap();
-        assert_eq!(versions, vec![1, 2, 3]);
+        assert_eq!(versions, vec![1, 2, 3, 4]);
     }
 
     #[tokio::test]
@@ -299,7 +299,65 @@ mod tests {
         let versions = applied_versions(&mut db.pool().acquire().await.unwrap())
             .await
             .unwrap();
-        assert_eq!(versions, vec![1, 2, 3]);
+        assert_eq!(versions, vec![1, 2, 3, 4]);
+    }
+
+    #[tokio::test]
+    async fn backfills_keys_for_plans_created_before_migration_four() {
+        let db = fresh_db().await;
+        for statement in [
+            "DROP TABLE plan_keys",
+            "DROP TABLE plan_number_high_water",
+            "DELETE FROM _sqlx_migrations WHERE version = 4",
+        ] {
+            sqlx::query(statement).execute(db.pool()).await.unwrap();
+        }
+        for (id, created) in [
+            ("p2", "2026-01-02T00:00:00.000Z"),
+            ("p1", "2026-01-01T00:00:00.000Z"),
+        ] {
+            sqlx::query(
+                "INSERT INTO plans (id, name, status, created_at, updated_at)
+                 VALUES (?, 'Plan', 'backlog', ?, ?)",
+            )
+            .bind(id)
+            .bind(created)
+            .bind(created)
+            .execute(db.pool())
+            .await
+            .unwrap();
+        }
+
+        db.migrate().await.unwrap();
+        let keys: Vec<(String, String, i64)> =
+            sqlx::query_as("SELECT plan_id, key, number FROM plan_keys ORDER BY number")
+                .fetch_all(db.pool())
+                .await
+                .unwrap();
+        assert_eq!(
+            keys,
+            vec![
+                ("p1".into(), "PL-1".into(), 1),
+                ("p2".into(), "PL-2".into(), 2)
+            ]
+        );
+        let high: i64 = sqlx::query_scalar("SELECT last_number FROM plan_number_high_water")
+            .fetch_one(db.pool())
+            .await
+            .unwrap();
+        assert_eq!(high, 2);
+
+        sqlx::query("DELETE FROM _sqlx_migrations WHERE version = 4")
+            .execute(db.pool())
+            .await
+            .unwrap();
+        db.migrate().await.unwrap();
+        let keys: Vec<(String, String, i64)> =
+            sqlx::query_as("SELECT plan_id, key, number FROM plan_keys ORDER BY number")
+                .fetch_all(db.pool())
+                .await
+                .unwrap();
+        assert_eq!(keys.len(), 2);
     }
 
     #[tokio::test]

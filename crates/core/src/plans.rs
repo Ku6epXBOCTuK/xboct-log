@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Row, sqlite::SqliteRow};
 
 use crate::{
-    AppError, Db, Result,
+    AppError, Db, PlanKey, Result, Tx,
     fetch::{fetch_by_id, unexpected},
 };
 
@@ -40,6 +40,8 @@ impl PlanStatus {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
 pub struct Plan {
     pub id: String,
+    pub key: String,
+    pub number: i64,
     pub name: String,
     pub description: String,
     pub status: PlanStatus,
@@ -83,6 +85,9 @@ impl PlanWithCounts {
 #[serde(deny_unknown_fields)]
 pub struct PlanPatch {
     #[serde(default)]
+    #[schemars(description = "Short plan id in 'PL-NUMBER' form, e.g. 'PL-1'. Must be unique.")]
+    pub key: Option<String>,
+    #[serde(default)]
     pub name: Option<String>,
     #[serde(default)]
     pub description: Option<String>,
@@ -95,6 +100,8 @@ impl<'r> FromRow<'r, SqliteRow> for Plan {
         let status: String = row.get("status");
         Ok(Plan {
             id: row.get("id"),
+            key: row.get("key"),
+            number: row.get("number"),
             name: row.get("name"),
             description: row.get("description"),
             status: PlanStatus::from_db(&status).ok_or_else(|| {
@@ -111,9 +118,50 @@ impl<'r> FromRow<'r, SqliteRow> for Plan {
     }
 }
 
-pub async fn get_plan(db: &Db, id: &str) -> Result<Option<Plan>> {
+macro_rules! plan_row {
+    ($($tail:literal)*) => {
+        concat!(
+            "SELECT p.id, COALESCE(pk.key, 'PL-0') AS key, COALESCE(pk.number, 0) AS number, ",
+            "p.name, p.description, p.status, p.created_at, p.updated_at, p.closed_at, p.deleted_at ",
+            "FROM plans p LEFT JOIN plan_keys pk ON pk.plan_id = p.id",
+            $($tail)*
+        )
+    };
+}
+
+pub async fn get_plan_by_key(db: &Db, key: &str) -> Result<Option<Plan>> {
     fetch_by_id(
-        sqlx::query("SELECT * FROM plans WHERE id = ?").bind(id),
+        sqlx::query(plan_row!(" WHERE pk.key = ?")).bind(key),
+        db.pool(),
+    )
+    .await
+}
+
+pub async fn resolve_plan_id(db: &Db, id: &str) -> Result<String> {
+    let raw = id.trim();
+    if let Ok(uuid) = uuid::Uuid::parse_str(raw) {
+        return Ok(uuid.hyphenated().to_string());
+    }
+    let key = match PlanKey::parse(raw) {
+        Ok(key) => key,
+        Err(error) => {
+            let existing: Option<String> = sqlx::query_scalar("SELECT id FROM plans WHERE id = ?")
+                .bind(raw)
+                .fetch_optional(db.pool())
+                .await?;
+            return existing.ok_or(error);
+        }
+    };
+    let plan = get_plan_by_key(db, key.as_str())
+        .await?
+        .ok_or_else(|| AppError::not_found(format!("plan {key} not found")))?;
+    Ok(plan.id)
+}
+
+pub async fn get_plan(db: &Db, id: &str) -> Result<Option<Plan>> {
+    let id = resolve_plan_id(db, id).await?;
+    fetch_by_id(
+        sqlx::query(plan_row!(" WHERE p.id = ?")).bind(id),
         db.pool(),
     )
     .await
@@ -126,17 +174,18 @@ pub async fn require_plan(db: &Db, id: &str) -> Result<Plan> {
 }
 
 pub async fn list_plans(db: &Db) -> Result<Vec<Plan>> {
-    let rows =
-        sqlx::query_as::<_, Plan>("SELECT * FROM plans WHERE deleted_at IS NULL ORDER BY name, id")
-            .fetch_all(db.pool())
-            .await?;
+    let rows = sqlx::query_as::<_, Plan>(plan_row!(
+        " WHERE p.deleted_at IS NULL ORDER BY p.name, p.id"
+    ))
+    .fetch_all(db.pool())
+    .await?;
     Ok(rows)
 }
 
 pub async fn list_deleted_plans(db: &Db) -> Result<Vec<Plan>> {
-    let rows = sqlx::query_as::<_, Plan>(
-        "SELECT * FROM plans WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC",
-    )
+    let rows = sqlx::query_as::<_, Plan>(plan_row!(
+        " WHERE p.deleted_at IS NOT NULL ORDER BY p.deleted_at DESC"
+    ))
     .fetch_all(db.pool())
     .await?;
     Ok(rows)
@@ -168,6 +217,7 @@ pub async fn count_plan_items(db: &Db) -> Result<BTreeMap<String, PlanCounts>> {
 }
 
 pub async fn plan_counts(db: &Db, id: &str) -> Result<PlanCounts> {
+    let id = resolve_plan_id(db, id).await?;
     let row = sqlx::query(
         "SELECT
             COALESCE(SUM(CASE WHEN t.is_epic = 0 THEN 1 ELSE 0 END), 0) AS tasks,
@@ -183,6 +233,29 @@ pub async fn plan_counts(db: &Db, id: &str) -> Result<PlanCounts> {
         tasks: row.get("tasks"),
         epics: row.get("epics"),
     })
+}
+
+async fn allocate_number_tx(tx: &mut Tx) -> Result<i64> {
+    let (high, used): (i64, i64) = sqlx::query_as(
+        "SELECT COALESCE((SELECT last_number FROM plan_number_high_water WHERE singleton = 1), 0),
+                COALESCE((SELECT MAX(number) FROM plan_keys), 0)",
+    )
+    .fetch_one(&mut **tx)
+    .await?;
+    let next = high.max(used) + 1;
+    bump_number_tx(tx, next).await?;
+    Ok(next)
+}
+
+async fn bump_number_tx(tx: &mut Tx, number: i64) -> Result<()> {
+    sqlx::query(
+        "INSERT INTO plan_number_high_water (singleton, last_number) VALUES (1, ?)
+         ON CONFLICT (singleton) DO UPDATE SET last_number = MAX(last_number, excluded.last_number)",
+    )
+    .bind(number)
+    .execute(&mut **tx)
+    .await?;
+    Ok(())
 }
 
 pub async fn create_plan(
@@ -202,6 +275,9 @@ pub async fn create_plan(
     } else {
         None
     };
+    let mut tx = db.begin().await?;
+    let number = allocate_number_tx(&mut tx).await?;
+    let key = format!("{}-{}", PlanKey::PREFIX, number);
     sqlx::query(
         "INSERT INTO plans (id, name, description, status, created_at, updated_at, closed_at)
          VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -213,8 +289,15 @@ pub async fn create_plan(
     .bind(&now)
     .bind(&now)
     .bind(closed_at)
-    .execute(db.pool())
+    .execute(&mut *tx)
     .await?;
+    sqlx::query("INSERT INTO plan_keys (plan_id, key, number) VALUES (?, ?, ?)")
+        .bind(&id)
+        .bind(&key)
+        .bind(number)
+        .execute(&mut *tx)
+        .await?;
+    tx.commit().await?;
     require_plan(db, &id).await
 }
 
@@ -224,7 +307,8 @@ pub async fn update_plan(
     patch: &PlanPatch,
     expected_updated_at: Option<&str>,
 ) -> Result<Plan> {
-    let current = require_plan(db, id).await?;
+    let id = resolve_plan_id(db, id).await?;
+    let current = require_plan(db, &id).await?;
     if current.deleted_at.is_some() {
         return Err(AppError::not_found(format!("plan {id} not found")));
     }
@@ -257,6 +341,31 @@ pub async fn update_plan(
         _ => None,
     };
 
+    let mut tx = db.begin().await?;
+    let (key, number) = match &patch.key {
+        Some(raw) => {
+            let parsed = PlanKey::parse(raw)?;
+            if parsed.as_str() != current.key {
+                let taken: Option<String> = sqlx::query_scalar(
+                    "SELECT plan_id FROM plan_keys WHERE key = ? AND plan_id <> ?",
+                )
+                .bind(parsed.as_str())
+                .bind(&current.id)
+                .fetch_optional(&mut *tx)
+                .await?;
+                if taken.is_some() {
+                    return Err(AppError::conflict(format!(
+                        "plan key {} already in use",
+                        parsed.as_str()
+                    )));
+                }
+            }
+            let number = parsed.number()?;
+            (parsed.into_string(), number)
+        }
+        None => (current.key.clone(), current.number),
+    };
+    bump_number_tx(&mut tx, number).await?;
     sqlx::query(
         "UPDATE plans SET name = ?, description = ?, status = ?, closed_at = ?, updated_at = ?
          WHERE id = ?",
@@ -266,14 +375,22 @@ pub async fn update_plan(
     .bind(status.as_str())
     .bind(closed_at)
     .bind(&now)
-    .bind(id)
-    .execute(db.pool())
+    .bind(&current.id)
+    .execute(&mut *tx)
     .await?;
-    require_plan(db, id).await
+    sqlx::query("UPDATE plan_keys SET key = ?, number = ? WHERE plan_id = ?")
+        .bind(&key)
+        .bind(number)
+        .bind(&current.id)
+        .execute(&mut *tx)
+        .await?;
+    tx.commit().await?;
+    require_plan(db, &current.id).await
 }
 
 pub async fn delete_plan(db: &Db, id: &str) -> Result<Plan> {
-    let current = require_plan(db, id).await?;
+    let id = resolve_plan_id(db, id).await?;
+    let current = require_plan(db, &id).await?;
     if current.deleted_at.is_some() {
         return Ok(current);
     }
@@ -281,24 +398,25 @@ pub async fn delete_plan(db: &Db, id: &str) -> Result<Plan> {
     sqlx::query("UPDATE plans SET deleted_at = ?, updated_at = ? WHERE id = ?")
         .bind(&now)
         .bind(&now)
-        .bind(id)
+        .bind(&id)
         .execute(db.pool())
         .await?;
-    require_plan(db, id).await
+    require_plan(db, &id).await
 }
 
 pub async fn restore_plan(db: &Db, id: &str) -> Result<Plan> {
-    let current = require_plan(db, id).await?;
+    let id = resolve_plan_id(db, id).await?;
+    let current = require_plan(db, &id).await?;
     if current.deleted_at.is_none() {
         return Ok(current);
     }
     let now = crate::tasks::now_iso();
     sqlx::query("UPDATE plans SET deleted_at = NULL, updated_at = ? WHERE id = ?")
         .bind(&now)
-        .bind(id)
+        .bind(&id)
         .execute(db.pool())
         .await?;
-    require_plan(db, id).await
+    require_plan(db, &id).await
 }
 
 #[cfg(test)]
@@ -410,5 +528,138 @@ mod tests {
             plan_counts(&db, &empty.id).await.expect("empty counts"),
             PlanCounts::default()
         );
+    }
+
+    #[tokio::test]
+    async fn plan_keys_are_accepted_everywhere() {
+        use crate::{
+            DocumentKind, add_plan_item, create_document, documents_for_plan,
+            link_document_to_plan, list_plan_items, remove_plan_item, unlink_document_from_plan,
+        };
+
+        let db = open().await;
+        let plan = create_plan(&db, "Roadmap", "", PlanStatus::Active)
+            .await
+            .expect("create");
+        assert_eq!((plan.key.as_str(), plan.number), ("PL-1", 1));
+        assert_eq!(require_plan(&db, "PL-1").await.expect("key").id, plan.id);
+        assert_eq!(
+            require_plan(&db, " pl-1 ").await.expect("trimmed").id,
+            plan.id
+        );
+        assert_eq!(require_plan(&db, &plan.id).await.expect("uuid").id, plan.id);
+        assert_eq!(
+            require_plan(&db, "1")
+                .await
+                .expect_err("bare number")
+                .kind(),
+            crate::AppErrorKind::Validation
+        );
+        assert_eq!(
+            require_plan(&db, "LOG-1")
+                .await
+                .expect_err("other prefix")
+                .kind(),
+            crate::AppErrorKind::Validation
+        );
+        assert_eq!(
+            require_plan(&db, "PL-99")
+                .await
+                .expect_err("unknown key")
+                .kind(),
+            crate::AppErrorKind::NotFound
+        );
+
+        sqlx::query(
+            "INSERT INTO tasks (id, project_id, number, key, title, status, priority, created_at, updated_at)
+             VALUES ('t1', 'log', 1, 'LOG-1', 'Task', 'backlog', 'medium', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z')",
+        )
+        .execute(db.pool())
+        .await
+        .expect("task");
+        add_plan_item(&db, "PL-1", "LOG-1")
+            .await
+            .expect("add item by key");
+        assert_eq!(list_plan_items(&db, "pl-1").await.expect("items").len(), 1);
+        assert_eq!(plan_counts(&db, "PL-1").await.expect("counts").tasks, 1);
+        remove_plan_item(&db, "PL-1", "LOG-1")
+            .await
+            .expect("remove item by key");
+        assert!(
+            list_plan_items(&db, &plan.id)
+                .await
+                .expect("items")
+                .is_empty()
+        );
+
+        let document = create_document(&db, "log", DocumentKind::Adr, "ADR", "", None)
+            .await
+            .expect("document");
+        link_document_to_plan(&db, "PL-1", "LOG-1")
+            .await
+            .expect("link by plan key");
+        assert_eq!(
+            documents_for_plan(&db, "pl-1").await.expect("linked").len(),
+            1
+        );
+        unlink_document_from_plan(&db, "PL-1", "LOG-1")
+            .await
+            .expect("unlink by plan key");
+        assert!(
+            documents_for_plan(&db, &plan.id)
+                .await
+                .expect("linked")
+                .is_empty()
+        );
+        let _ = document;
+
+        let renamed = update_plan(
+            &db,
+            "PL-1",
+            &PlanPatch {
+                key: Some("pl-7".into()),
+                ..PlanPatch::default()
+            },
+            None,
+        )
+        .await
+        .expect("rename key");
+        assert_eq!(renamed.key, "PL-7");
+        assert_eq!(
+            require_plan(&db, "PL-7").await.expect("new key").id,
+            plan.id
+        );
+        assert_eq!(
+            require_plan(&db, "PL-1").await.expect_err("old key").kind(),
+            crate::AppErrorKind::NotFound
+        );
+
+        let other = create_plan(&db, "Other", "", PlanStatus::Backlog)
+            .await
+            .expect("other");
+        assert_eq!(other.key, "PL-8");
+        assert_eq!(
+            update_plan(
+                &db,
+                &other.id,
+                &PlanPatch {
+                    key: Some("PL-7".into()),
+                    ..PlanPatch::default()
+                },
+                None,
+            )
+            .await
+            .expect_err("duplicate key")
+            .kind(),
+            crate::AppErrorKind::Conflict
+        );
+
+        delete_plan(&db, "PL-7").await.expect("delete by key");
+        restore_plan(&db, "pl-7").await.expect("restore by key");
+        delete_plan(&db, "PL-7").await.expect("delete again");
+        let next = create_plan(&db, "Next", "", PlanStatus::Backlog)
+            .await
+            .expect("next");
+        assert_eq!(next.key, "PL-9");
     }
 }

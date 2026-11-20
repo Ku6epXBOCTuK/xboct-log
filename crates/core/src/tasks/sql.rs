@@ -695,6 +695,17 @@ pub(crate) async fn list_tasks_unchecked(
     limit: Limit,
     offset: Offset,
 ) -> Result<TaskList> {
+    let resolved_filters;
+    let filters = match &filters.plan_id {
+        Some(raw) => {
+            resolved_filters = TaskFilters {
+                plan_id: Some(crate::resolve_plan_id(db, raw).await?),
+                ..(*filters).clone()
+            };
+            &resolved_filters
+        }
+        None => filters,
+    };
     let include_project = filters.include_project == Some(true);
     let include_scope = filters.include_scope == Some(true);
     let include_description = filters.include_description == Some(true)

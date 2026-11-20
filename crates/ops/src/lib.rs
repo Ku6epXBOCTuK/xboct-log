@@ -32,7 +32,7 @@ pub fn patch_fields(name: &str) -> &'static [&'static str] {
     match name {
         "projects_update" => &["name", "archived", "repo"],
         "scopes_update" => &["name"],
-        "plans_update" => &["name", "description", "status"],
+        "plans_update" => &["key", "name", "description", "status"],
         "documents_update" => &["kind", "title", "body", "status", "source_file"],
         "tags_update" => &["archived"],
         "tasks_update" => &[

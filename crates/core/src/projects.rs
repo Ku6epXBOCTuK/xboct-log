@@ -14,6 +14,7 @@ use crate::{AppError, Db, Result};
 
 pub const INBOX_PROJECT_ID: &str = "inbox";
 pub const INBOX_PROJECT_PREFIX: &str = "INB";
+pub const RESERVED_PROJECT_PREFIXES: [&str; 1] = ["PL"];
 pub const PROJECT_ID_MAX_LENGTH: usize = 40;
 pub const REPO_MAX_LENGTH: usize = 200;
 
@@ -129,6 +130,10 @@ pub fn project_prefix_error(prefix: &str) -> Option<String> {
     }
     if !prefix_pattern().is_match(prefix) {
         return Some("Project prefix must be 1-6 uppercase letters or digits".to_string());
+    }
+    let normalized = normalize_prefix(prefix);
+    if RESERVED_PROJECT_PREFIXES.contains(&normalized.as_str()) {
+        return Some(format!("Project prefix {normalized} is reserved for plans"));
     }
     None
 }
@@ -487,5 +492,15 @@ mod tests {
             project_prefix_error("SPA-1"),
             Some("Project prefix must be 1-6 uppercase letters or digits".to_string())
         );
+    }
+
+    #[test]
+    fn reserves_the_plan_prefix() {
+        assert_eq!(
+            project_prefix_error("PL"),
+            Some("Project prefix PL is reserved for plans".to_string())
+        );
+        assert!(project_prefix_error("pl").is_some());
+        assert_eq!(project_prefix_error("PLX"), None);
     }
 }

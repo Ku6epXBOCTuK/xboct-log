@@ -575,7 +575,7 @@ export interface paths {
         put?: never;
         /**
          * Create a project
-         * @description Create a project. name, project_id and prefix are required. The project_id is a lowercase slug of latin letters, digits and dashes; it is the key of the project in links and in the project_id parameter, and it cannot be changed later. The prefix is 1-6 uppercase letters or digits, it is stored uppercase and starts every task id of the project, and it cannot be changed later either. repo is optional and accepts a git URL; it is stored as host/owner/name. Returns: the created project - {id, name, prefix, repo, created_at, archived_at, task_counts, epic_counts}.
+         * @description Create a project. name, project_id and prefix are required. The project_id is a lowercase slug of latin letters, digits and dashes; it is the key of the project in links and in the project_id parameter, and it cannot be changed later. The prefix is 1-6 uppercase letters or digits, it is stored uppercase and starts every task id of the project, and it cannot be changed later either. The prefix PL is reserved for plans. repo is optional and accepts a git URL; it is stored as host/owner/name. Returns: the created project - {id, name, prefix, repo, created_at, archived_at, task_counts, epic_counts}.
          */
         post: operations["projects_create"];
         delete?: never;
@@ -1174,8 +1174,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Get one plan by plan_id with tasks_count and epics_count
-         * @description Get one plan by plan_id with tasks_count and epics_count. Its ordered items come from tasks_list {plan_id, sort: 'plan_position', include_deleted: true}, its notes from plans_notes_list and its document links from plans_documents_list. Returns: the plan - {id, name, description, status, created_at, updated_at, closed_at, deleted_at, tasks_count, epics_count}.
+         * Get one plan by plan_id (short key 'PL-1' or UUID) with tasks_count and epics_count
+         * @description Get one plan by plan_id (short key 'PL-1' or UUID) with tasks_count and epics_count. Its ordered items come from tasks_list {plan_id, sort: 'plan_position', include_deleted: true}, its notes from plans_notes_list and its document links from plans_documents_list. Returns: the plan - {id, name, description, status, created_at, updated_at, closed_at, deleted_at, tasks_count, epics_count}.
          */
         post: operations["plans_get"];
         delete?: never;
@@ -1195,7 +1195,7 @@ export interface paths {
         put?: never;
         /**
          * Create a global plan
-         * @description Create a global plan. name is required; description defaults to an empty string and status to 'backlog' ('backlog', 'active', 'done', 'cancelled'). Names need not be unique: several imported markdown files may share one. Returns: the created plan.
+         * @description Create a global plan. name is required; description defaults to an empty string and status to 'backlog' ('backlog', 'active', 'done', 'cancelled'). Names need not be unique: several imported markdown files may share one. A short key 'PL-N' is allocated from a global sequence; change it later with plans_update {key}. Project prefix PL is reserved for plans. Returns: the created plan with its id and key.
          */
         post: operations["plans_create"];
         delete?: never;
@@ -1214,8 +1214,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Patch a plan's name, description or status by plan_id; pass fields next to plan_id or in a nested patch object
-         * @description Patch a plan's name, description or status by plan_id; pass fields next to plan_id or in a nested patch object. status is manual and never derived from the tasks in the plan. Pass expected_updated_at (the current updated_at) to reject a stale edit with a conflict. Returns: the updated plan.
+         * Patch a plan's key, name, description or status by plan_id (short key 'PL-1' or UUID); pass fields next to plan_id or in a nested patch object
+         * @description Patch a plan's key, name, description or status by plan_id (short key 'PL-1' or UUID); pass fields next to plan_id or in a nested patch object. key must be a unique 'PL-NUMBER' id (e.g. 'PL-1'); a taken key is a conflict. status is manual and never derived from the tasks in the plan. Pass expected_updated_at (the current updated_at) to reject a stale edit with a conflict. Returns: the updated plan.
          */
         post: operations["plans_update"];
         delete?: never;
@@ -1234,8 +1234,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Soft-delete a plan by plan_id
-         * @description Soft-delete a plan by plan_id. Its items, positions, notes and document links are kept, so plans_restore brings the whole plan back. Returns: the deleted plan with deleted_at set.
+         * Soft-delete a plan by plan_id (short key 'PL-1' or UUID)
+         * @description Soft-delete a plan by plan_id (short key 'PL-1' or UUID). Its items, positions, notes and document links are kept, so plans_restore brings the whole plan back. Returns: the deleted plan with deleted_at set.
          */
         post: operations["plans_delete"];
         delete?: never;
@@ -1254,8 +1254,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Restore a soft-deleted plan by plan_id with all its items, positions, notes and document links
-         * @description Restore a soft-deleted plan by plan_id with all its items, positions, notes and document links. Find deleted plans with plans_list {deleted_only: true} or plans_deleted_list. Returns: the restored plan with deleted_at cleared.
+         * Restore a soft-deleted plan by plan_id (short key 'PL-1' or UUID) with all its items, positions, notes and document links
+         * @description Restore a soft-deleted plan by plan_id (short key 'PL-1' or UUID) with all its items, positions, notes and document links. Find deleted plans with plans_list {deleted_only: true} or plans_deleted_list. Returns: the restored plan with deleted_at cleared.
          */
         post: operations["plans_restore"];
         delete?: never;
@@ -1314,8 +1314,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Remove a task or epic from a plan by plan_id and task_id
-         * @description Remove a task or epic from a plan by plan_id and task_id. Notes attached to that task stay in the plan and return if the item is added again. Returns: the removed item, or null when the plan had no such item.
+         * Remove a task or epic from a plan by plan_id (short key 'PL-1' or UUID) and task_id
+         * @description Remove a task or epic from a plan by plan_id (short key 'PL-1' or UUID) and task_id. Notes attached to that task stay in the plan and return if the item is added again. Returns: the removed item, or null when the plan had no such item.
          */
         post: operations["plans_items_remove"];
         delete?: never;
@@ -1454,8 +1454,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * List the soft-deleted notes of one plan by plan_id, newest deletion first
-         * @description List the soft-deleted notes of one plan by plan_id, newest deletion first. Returns: {items}.
+         * List the soft-deleted notes of one plan by plan_id (short key 'PL-1' or UUID), newest deletion first
+         * @description List the soft-deleted notes of one plan by plan_id (short key 'PL-1' or UUID), newest deletion first. Returns: {items}.
          */
         post: operations["plans_notes_deleted_list"];
         delete?: never;
@@ -1654,8 +1654,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * List the documents linked to a plan by plan_id; a plan is global and may link documents of any project
-         * @description List the documents linked to a plan by plan_id; a plan is global and may link documents of any project. Accepts the same filters, sort, fields, include_body, include_deleted, deleted_only, limit and offset options as documents_list. Returns: {items, total} - by default each item carries short_body instead of the full body.
+         * List the documents linked to a plan by plan_id (short key 'PL-1' or UUID); a plan is global and may link documents of any project
+         * @description List the documents linked to a plan by plan_id (short key 'PL-1' or UUID); a plan is global and may link documents of any project. Accepts the same filters, sort, fields, include_body, include_deleted, deleted_only, limit and offset options as documents_list. Returns: {items, total} - by default each item carries short_body instead of the full body.
          */
         post: operations["plans_documents_list"];
         delete?: never;
@@ -1674,8 +1674,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Link a document to a plan by plan_id and document_id (internal id or 'PREFIX-NNN' key)
-         * @description Link a document to a plan by plan_id and document_id (internal id or 'PREFIX-NNN' key). The document may belong to any project; no project match is required. Repeated links are ignored. Returns: the linked document.
+         * Link a document to a plan by plan_id (short key 'PL-1' or UUID) and document_id (internal id or 'PREFIX-NNN' key)
+         * @description Link a document to a plan by plan_id (short key 'PL-1' or UUID) and document_id (internal id or 'PREFIX-NNN' key). The document may belong to any project; no project match is required. Repeated links are ignored. Returns: the linked document.
          */
         post: operations["plans_documents_link"];
         delete?: never;
@@ -1694,8 +1694,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Remove a document link from a plan by plan_id and document_id (internal id or 'PREFIX-NNN' key); the document itself is not deleted or changed
-         * @description Remove a document link from a plan by plan_id and document_id (internal id or 'PREFIX-NNN' key); the document itself is not deleted or changed. Returns: the unlinked document.
+         * Remove a document link from a plan by plan_id (short key 'PL-1' or UUID) and document_id (internal id or 'PREFIX-NNN' key); the document itself is not deleted or changed
+         * @description Remove a document link from a plan by plan_id (short key 'PL-1' or UUID) and document_id (internal id or 'PREFIX-NNN' key); the document itself is not deleted or changed. Returns: the unlinked document.
          */
         post: operations["plans_documents_unlink"];
         delete?: never;
@@ -2113,6 +2113,9 @@ export interface components {
         };
         PlanWithCounts: {
             id: string;
+            key: string;
+            /** Format: int64 */
+            number: number;
             name: string;
             description: string;
             status: components["schemas"]["PlanStatus"];
@@ -2129,6 +2132,9 @@ export interface components {
         PlanStatus: "backlog" | "active" | "done" | "cancelled";
         Plan: {
             id: string;
+            key: string;
+            /** Format: int64 */
+            number: number;
             name: string;
             description: string;
             status: components["schemas"]["PlanStatus"];
@@ -5100,7 +5106,7 @@ export interface operations {
                     scope_id?: components["schemas"]["LinkFilter_for_int64"];
                     /** @description Filter by the presence of an epic: true matches tasks that belong to an epic, false matches tasks without one. */
                     has_epic?: boolean | null;
-                    /** @description Filter by plan id. Matches tasks that are items of this plan; plans are global, so items may belong to any project. */
+                    /** @description Filter by plan id: short key 'PL-1' (case-insensitive) or the full UUID. Matches tasks that are items of this plan; plans are global, so items may belong to any project. */
                     plan_id?: string | null;
                     /** @description Filter by the presence of a plan: true matches tasks that are items of at least one plan, false matches tasks in no plan. */
                     has_plan?: boolean | null;
@@ -6773,6 +6779,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
+                    /** @description Plan id: short key 'PL-1' (case-insensitive) or the full UUID. */
                     plan_id: string;
                 };
             };
@@ -6786,6 +6793,9 @@ export interface operations {
                 content: {
                     "application/json": {
                         id: string;
+                        key: string;
+                        /** Format: int64 */
+                        number: number;
                         name: string;
                         description: string;
                         status: components["schemas"]["PlanStatus"];
@@ -6863,6 +6873,9 @@ export interface operations {
                 content: {
                     "application/json": {
                         id: string;
+                        key: string;
+                        /** Format: int64 */
+                        number: number;
                         name: string;
                         description: string;
                         status: components["schemas"]["PlanStatus"];
@@ -6921,8 +6934,11 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
+                    /** @description Plan id: short key 'PL-1' (case-insensitive) or the full UUID. */
                     plan_id: string;
                     patch?: unknown;
+                    /** @description Short plan id in 'PL-NUMBER' form, e.g. 'PL-1'. Must be unique. */
+                    key?: string | null;
                     name?: string | null;
                     description?: string | null;
                     status?: components["schemas"]["PlanStatus"] | null;
@@ -6939,6 +6955,9 @@ export interface operations {
                 content: {
                     "application/json": {
                         id: string;
+                        key: string;
+                        /** Format: int64 */
+                        number: number;
                         name: string;
                         description: string;
                         status: components["schemas"]["PlanStatus"];
@@ -6997,6 +7016,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
+                    /** @description Plan id: short key 'PL-1' (case-insensitive) or the full UUID. */
                     plan_id: string;
                 };
             };
@@ -7010,6 +7030,9 @@ export interface operations {
                 content: {
                     "application/json": {
                         id: string;
+                        key: string;
+                        /** Format: int64 */
+                        number: number;
                         name: string;
                         description: string;
                         status: components["schemas"]["PlanStatus"];
@@ -7068,6 +7091,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
+                    /** @description Plan id: short key 'PL-1' (case-insensitive) or the full UUID. */
                     plan_id: string;
                 };
             };
@@ -7081,6 +7105,9 @@ export interface operations {
                 content: {
                     "application/json": {
                         id: string;
+                        key: string;
+                        /** Format: int64 */
+                        number: number;
                         name: string;
                         description: string;
                         status: components["schemas"]["PlanStatus"];
@@ -7201,6 +7228,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
+                    /** @description Plan id: short key 'PL-1' (case-insensitive) or the full UUID. */
                     plan_id: string;
                     /** @description Full task id, e.g. 'LOG-42'. */
                     task_id: string;
@@ -7273,6 +7301,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
+                    /** @description Plan id: short key 'PL-1' (case-insensitive) or the full UUID. */
                     plan_id: string;
                     /** @description Full task id, e.g. 'LOG-42'. */
                     task_id: string;
@@ -7337,6 +7366,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
+                    /** @description Plan id: short key 'PL-1' (case-insensitive) or the full UUID. */
                     plan_id: string;
                     /** @description Every task id of the plan in the new order, full 'PREFIX-NUMBER' ids. */
                     task_ids: string[];
@@ -7403,6 +7433,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
+                    /** @description Plan id: short key 'PL-1' (case-insensitive) or the full UUID. */
                     plan_id: string;
                 };
             };
@@ -7467,6 +7498,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
+                    /** @description Plan id: short key 'PL-1' (case-insensitive) or the full UUID. */
                     plan_id: string;
                     /** @description Full task id, e.g. 'LOG-42'. */
                     task_id: string;
@@ -7753,6 +7785,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
+                    /** @description Plan id: short key 'PL-1' (case-insensitive) or the full UUID. */
                     plan_id: string;
                 };
             };
@@ -8506,6 +8539,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
+                    /** @description Plan id: short key 'PL-1' (case-insensitive) or the full UUID. */
                     plan_id: string;
                     /** @description Only documents of these projects: one project id or an array of them. */
                     project_id?: components["schemas"]["OneOrList"] | null;
@@ -8609,6 +8643,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
+                    /** @description Plan id: short key 'PL-1' (case-insensitive) or the full UUID. */
                     plan_id: string;
                     document_id: string;
                 };
@@ -8687,6 +8722,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
+                    /** @description Plan id: short key 'PL-1' (case-insensitive) or the full UUID. */
                     plan_id: string;
                     document_id: string;
                 };

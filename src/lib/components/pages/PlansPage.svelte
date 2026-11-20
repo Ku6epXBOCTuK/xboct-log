@@ -26,6 +26,7 @@
 		reorderPlanItems,
 		restorePlanNote,
 		type TextRevision,
+		updatePlan,
 	} from "#lib/api/plans.ts";
 	import { getTasks } from "#lib/api/tasks.ts";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
@@ -64,6 +65,11 @@
 	let revisionNoteId = $state<string | null>(null);
 	let revisions = $state<TextRevision[]>([]);
 	let revisionsFailed = $state(false);
+	let editingKey = $state(false);
+	let keyDraft = $state("");
+	let keyFailed = $state(false);
+	let openId = $state("");
+	let openFailed = $state(false);
 
 	async function submitNew(): Promise<void> {
 		const name = newName.trim();
@@ -79,6 +85,38 @@
 			createFailed = true;
 		} finally {
 			creating = false;
+		}
+	}
+
+	async function openById(): Promise<void> {
+		const value = openId.trim();
+		if (value === "") return;
+		try {
+			const plan = await getPlan({ plan_id: value });
+			openFailed = false;
+			openId = "";
+			selectedId = plan.id;
+			await reloadPlans();
+		} catch {
+			openFailed = true;
+		}
+	}
+
+	async function saveKey(): Promise<void> {
+		if (detail === null) return;
+		const id = detail.id;
+		const key = keyDraft.trim();
+		if (key === "") {
+			keyFailed = true;
+			return;
+		}
+		try {
+			await updatePlan({ plan_id: id, patch: { key } });
+			keyFailed = false;
+			await reloadPlans();
+			await loadDetail(id);
+		} catch {
+			keyFailed = true;
 		}
 	}
 
@@ -112,6 +150,8 @@
 					fetchFresh(listDeletedPlanNotes({ plan_id: id })),
 				]);
 			detail = plan;
+			keyDraft = plan.key;
+			editingKey = false;
 			items = page.items;
 			candidates = all.items;
 			planDocuments = linked;
@@ -329,6 +369,25 @@
 		{#if createFailed}
 			<span class="create-error">Could not create the plan</span>
 		{/if}
+		<form
+			class="open"
+			onsubmit={(event) => {
+				event.preventDefault();
+				void openById();
+			}}
+		>
+			<TextInput
+				class="open-input"
+				placeholder="PL-1"
+				aria-label="Open plan by id"
+				maxlength={40}
+				bind:value={openId}
+			/>
+			<Button type="submit" disabled={openId.trim() === ""}>Open</Button>
+		</form>
+		{#if openFailed}
+			<span class="create-error">No plan with that id</span>
+		{/if}
 	</header>
 
 	{#if failed}
@@ -351,6 +410,7 @@
 							class:active={plan.id === (selectedId ?? plans[0]?.id)}
 							onclick={() => (selectedId = plan.id)}
 						>
+							<span class="plan-key">{plan.key}</span>
 							<span class="plan-name">{plan.name}</span>
 							<span class="plan-meta">
 								{plan.status}
@@ -364,10 +424,55 @@
 			<div class="detail">
 				{#if detail}
 					{@const planId = detail.id}
+					{@const planKey = detail.key}
 					<header class="detail-head">
 						<h2>{detail.name}</h2>
 						<span class="status">{detail.status}</span>
+						{#if editingKey}
+							<form
+								class="key-edit"
+								onsubmit={(event) => {
+									event.preventDefault();
+									void saveKey();
+								}}
+							>
+								<TextInput
+									class="key-input"
+									placeholder="PL-1"
+									aria-label="Plan id"
+									maxlength={20}
+									bind:value={keyDraft}
+								/>
+								<Button
+									variant="primary"
+									type="submit"
+									disabled={keyDraft.trim() === ""}
+								>
+									Save
+								</Button>
+								<Button
+									onclick={() => {
+										editingKey = false;
+										keyDraft = planKey;
+										keyFailed = false;
+									}}
+								>
+									Cancel
+								</Button>
+							</form>
+						{:else}
+							<button
+								class="plan-key-button"
+								title="Edit plan id"
+								onclick={() => (editingKey = true)}
+							>
+								{planKey}
+							</button>
+						{/if}
 					</header>
+					{#if keyFailed}
+						<p class="item-error">Use a free PL-NUMBER id</p>
+					{/if}
 					{#if detail.description !== ""}
 						<p class="description">{detail.description}</p>
 					{/if}
@@ -661,6 +766,15 @@
 		font-size: var(--text-sm);
 	}
 
+	.open {
+		display: flex;
+		gap: var(--space-2);
+	}
+
+	.open :global(.open-input) {
+		width: 9rem;
+	}
+
 	.error-wrap {
 		margin: 0 var(--edge-pad) var(--space-3);
 	}
@@ -711,6 +825,12 @@
 		color: var(--foreground);
 	}
 
+	.plan-key {
+		color: var(--text-muted);
+		font-size: var(--text-xs);
+		font-variant-numeric: tabular-nums;
+	}
+
 	.plan-name {
 		font-size: var(--text-md);
 		font-weight: 500;
@@ -737,6 +857,30 @@
 	.detail-head h2 {
 		margin: 0;
 		font-size: var(--text-xl);
+	}
+
+	.plan-key-button {
+		padding: 0;
+		border: 0;
+		background: none;
+		color: var(--text-muted);
+		font-size: var(--text-xs);
+		font-variant-numeric: tabular-nums;
+		cursor: pointer;
+	}
+
+	.plan-key-button:hover {
+		color: var(--foreground);
+	}
+
+	.key-edit {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+	}
+
+	.key-edit :global(.key-input) {
+		width: 8rem;
 	}
 
 	.status {
