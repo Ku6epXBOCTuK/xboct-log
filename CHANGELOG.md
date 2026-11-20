@@ -2,6 +2,40 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.12.0](https://github.com/Ku6epXBOCTuK/xboct-log/compare/8ae3ddad111188053da1117e136d1df6cb26c4d0..v0.12.0) - 2026-11-20
+#### Features
+- (**core**) add plans schema migrations - ([8ae3dda](https://github.com/Ku6epXBOCTuK/xboct-log/commit/8ae3ddad111188053da1117e136d1df6cb26c4d0)) - Ku6epXBOCTuK
+- (**documents**) add full filters and sor to document lists - ([689bb23](https://github.com/Ku6epXBOCTuK/xboct-log/commit/689bb23731ad9944b0268b31796da1a87e3b78d5)) - Ku6epXBOCTuK
+- (**documents**) add documents UI and plan notes - ([d14fcd6](https://github.com/Ku6epXBOCTuK/xboct-log/commit/d14fcd6736168c1a0787b97d76adb8790b89c3f8)) - Ku6epXBOCTuK
+- (**documents**) add document opeations and plan links - ([856bb65](https://github.com/Ku6epXBOCTuK/xboct-log/commit/856bb65fa2875eb8266a9298a50bb891a7225a86)) - Ku6epXBOCTuK
+- (**documents**) add document domain, revisions and plan links - ([c7bdbfb](https://github.com/Ku6epXBOCTuK/xboct-log/commit/c7bdbfb76ffb1cad12a67b79a34cdf804cc0e1be)) - Ku6epXBOCTuK
+- (**mcp**) expose document text as an MCP resource - ([102cef8](https://github.com/Ku6epXBOCTuK/xboct-log/commit/102cef828f21db8639d95e48d06cb9e042219dda)) - Ku6epXBOCTuK
+- (**ops**) document readable plan refs on every task response - ([250343e](https://github.com/Ku6epXBOCTuK/xboct-log/commit/250343e3896e849228fd4d9e855fe5c5af08f548)) - Ku6epXBOCTuK
+- (**ops**) return compact document lists and named plans - ([9c43025](https://github.com/Ku6epXBOCTuK/xboct-log/commit/9c4302550f59d26c86d1c536b0a75e3b82e15eab)) - Ku6epXBOCTuK
+- (**plans**) add deleted_only to plan lists - ([96f88cf](https://github.com/Ku6epXBOCTuK/xboct-log/commit/96f88cfbcbe10c4d7ad8c0611b73c620868684dd)) - Ku6epXBOCTuK
+- (**plans**) add note history, restore and stale-edit checks - ([22eb678](https://github.com/Ku6epXBOCTuK/xboct-log/commit/22eb678ae9aef8a3cf97954b807e0ec6661ff2d4)) - Ku6epXBOCTuK
+- (**plans**) add plan components - add plan, add tasks - ([0ccb846](https://github.com/Ku6epXBOCTuK/xboct-log/commit/0ccb846ff2a3751b9e3b2dd715c123d2dc07117b)) - Ku6epXBOCTuK
+- (**plans**) add global plans page - ([4a636b6](https://github.com/Ku6epXBOCTuK/xboct-log/commit/4a636b66ad6f5e40da8a7fc3a97356cfcc0bdd7b)) - Ku6epXBOCTuK
+- (**plans**) add plan operations for CRUD, items, reorder and notes - ([48c2bb9](https://github.com/Ku6epXBOCTuK/xboct-log/commit/48c2bb930cfa93c009dee35373a689b7dc31024c)) - Ku6epXBOCTuK
+- (**plans**) add plan domain and SSE entities - ([bd4826a](https://github.com/Ku6epXBOCTuK/xboct-log/commit/bd4826a621608487e8845f042f04d7796bccfd45)) - Ku6epXBOCTuK
+- (**ui**) add plan note history and restore - ([48c3727](https://github.com/Ku6epXBOCTuK/xboct-log/commit/48c3727360614d1ada315b998a47f9686285893e)) - Ku6epXBOCTuK
+- expose plan membershop on task reads - ([424b8b3](https://github.com/Ku6epXBOCTuK/xboct-log/commit/424b8b34cfcd48edefdcdc03478ddcaa35aa6559)) - Ku6epXBOCTuK
+#### Bug Fixes
+- (**documents**) make update and revision atomic - ([50587e5](https://github.com/Ku6epXBOCTuK/xboct-log/commit/50587e5b13054545fdfc4d96866597bb051aa96f)) - Ku6epXBOCTuK
+- (**documents**) accept human readable keys in document operations - ([3b7fac4](https://github.com/Ku6epXBOCTuK/xboct-log/commit/3b7fac49e20176648183040b7d6cc904fcb48c0b)) - Ku6epXBOCTuK
+- (**mcp**) make tasks_create_many item requirements discoverable - ([a7b3ee8](https://github.com/Ku6epXBOCTuK/xboct-log/commit/a7b3ee880fd91195f3fea0920b30df60a3196dd7)) - Ku6epXBOCTuK
+- (**plans**) correct plan item read instructions - ([e1c547b](https://github.com/Ku6epXBOCTuK/xboct-log/commit/e1c547bf69c127ab566da517b01011a4a5a1641c)) - Ku6epXBOCTuK
+#### Refactoring
+- (**core**) share push_in_text helper across query builders - ([ac023a6](https://github.com/Ku6epXBOCTuK/xboct-log/commit/ac023a689c07b5067732ff37735b6552ad986c21)) - Ku6epXBOCTuK
+- (**core**) extract shared like_pattern helper - ([59284bc](https://github.com/Ku6epXBOCTuK/xboct-log/commit/59284bc1f6da6b3debba9b79fa9b8b72e39c76a8)) - Ku6epXBOCTuK
+- (**core**) unify pagination validation with Limit and Offset newtypes - ([ab32abb](https://github.com/Ku6epXBOCTuK/xboct-log/commit/ab32abb18e10d3394ddaabaef4795c1ea6809f57)) - Ku6epXBOCTuK
+- (**core**) add fetch helpers with FromRow mapping - ([6edf123](https://github.com/Ku6epXBOCTuK/xboct-log/commit/6edf123b445e54a6d3be5ce9da774d572bda6780)) - Ku6epXBOCTuK
+- (**core**) db implement table_exist helper - ([47dd83c](https://github.com/Ku6epXBOCTuK/xboct-log/commit/47dd83c4edd4947ac5004948c7fb361c5f0e3cd9)) - Ku6epXBOCTuK
+- (**ops**) unify empty input types into ops:EmptyInput - ([3ba1de6](https://github.com/Ku6epXBOCTuK/xboct-log/commit/3ba1de6058e211bee983bf64ae80490b8d8a50f3)) - Ku6epXBOCTuK
+- (**ui**) make document update atomic with its text revision - ([68798ba](https://github.com/Ku6epXBOCTuK/xboct-log/commit/68798babc11a5b91f2f1b05d10dd215b4e110ba0)) - Ku6epXBOCTuK
+
+- - -
+
 ## [v0.11.1](https://github.com/Ku6epXBOCTuK/xboct-log/compare/6609da1ab61f242d47fd0619740469bd16508ca9..v0.11.1) - 2026-11-18
 #### Bug Fixes
 - (**core**) make tasks_list projections schema match its response - ([a902900](https://github.com/Ku6epXBOCTuK/xboct-log/commit/a902900846ce9dd19382ebead7913cd54f74deea)) - Ku6epXBOCTuK
