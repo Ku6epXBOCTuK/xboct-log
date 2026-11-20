@@ -55,7 +55,7 @@
 	async function reload(): Promise<void> {
 		try {
 			const items = await fetchFresh(
-				getDocuments({ project_id: project ?? "" }),
+				getDocuments({ project_id: project ?? undefined }),
 			);
 			store.replaceAll(items);
 			failed = false;
@@ -68,7 +68,7 @@
 	async function loadDetail(id: string): Promise<void> {
 		try {
 			const [document, history] = await Promise.all([
-				fetchFresh(getDocuments({ project_id: project ?? "" })),
+				fetchFresh(getDocuments({ project_id: project ?? undefined })),
 				fetchFresh(getDocumentRevisions({ document_id: id })),
 			]);
 			const found = document.find((item) => item.id === id) ?? null;
@@ -179,39 +179,41 @@
 		<span class="muted">{documents.length} documents</span>
 	</header>
 
-	<div class="toolbar">
-		<form
-			class="create"
-			onsubmit={(event) => {
-				event.preventDefault();
-				void submitNew();
-			}}
-		>
-			<select class="kind" aria-label="Document kind" bind:value={newKind}>
-				{#each KINDS as kind (kind)}
-					<option value={kind}>{kind}</option>
-				{/each}
-			</select>
-			<TextInput
-				class="create-input"
-				placeholder="New document"
-				aria-label="New document title"
-				maxlength={200}
-				bind:value={newTitle}
-			/>
-			<Button
-				variant="primary"
-				type="submit"
-				disabled={creating || newTitle.trim() === ""}
-				title="Create a document"
+	{#if project !== null}
+		<div class="toolbar">
+			<form
+				class="create"
+				onsubmit={(event) => {
+					event.preventDefault();
+					void submitNew();
+				}}
 			>
-				{#snippet icon()}
-					<Plus />
-				{/snippet}
-				Create
-			</Button>
-		</form>
-	</div>
+				<select class="kind" aria-label="Document kind" bind:value={newKind}>
+					{#each KINDS as kind (kind)}
+						<option value={kind}>{kind}</option>
+					{/each}
+				</select>
+				<TextInput
+					class="create-input"
+					placeholder="New document"
+					aria-label="New document title"
+					maxlength={200}
+					bind:value={newTitle}
+				/>
+				<Button
+					variant="primary"
+					type="submit"
+					disabled={creating || newTitle.trim() === ""}
+					title="Create a document"
+				>
+					{#snippet icon()}
+						<Plus />
+					{/snippet}
+					Create
+				</Button>
+			</form>
+		</div>
+	{/if}
 
 	{#if failed}
 		<div class="error-wrap">

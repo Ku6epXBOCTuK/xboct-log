@@ -342,6 +342,9 @@ test("a document is created and edited on the documents page", async ({
 	await page.getByLabel("Document kind").selectOption("adr");
 	await page.getByLabel("New document title").fill("UI document");
 	await page.getByRole("button", { name: "Create", exact: true }).click();
+	created.document = await page
+		.locator(".document-link.active .document-key")
+		.innerText();
 	await expect(
 		page.getByRole("heading", { name: /UI document/ }),
 	).toBeVisible();
@@ -355,6 +358,22 @@ test("a document is created and edited on the documents page", async ({
 		page.locator("details.revision pre").filter({ hasText: "first version" }),
 	).toHaveCount(1);
 	await page.getByLabel("Document status").selectOption("accepted");
+});
+
+test("documents open from a global page without a project", async ({
+	page,
+}) => {
+	await page.goto("/plans");
+	await page.getByRole("button", { name: "Show all pages" }).click();
+	await page
+		.getByRole("navigation", { name: "Primary navigation" })
+		.getByRole("link", { name: "Documents" })
+		.click();
+	await expect(page).toHaveURL("/documents");
+	await expect(page.getByRole("heading", { name: "Documents" })).toBeVisible();
+	await expect(
+		page.locator("ul.document-list li").filter({ hasText: created.document }),
+	).toBeVisible();
 });
 
 test("a plan note and a document link survive on the plans page", async ({
