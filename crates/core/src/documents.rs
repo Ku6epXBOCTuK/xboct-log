@@ -5,7 +5,7 @@ use sqlx::{FromRow, QueryBuilder, Row, sqlite::SqliteRow};
 use crate::{
     AppError, Db, DocumentKey, Limit, Offset, ProjectId, Result, Tx,
     fetch::{fetch_by_id, unexpected},
-    query::{FieldSelection, OneOrList, Order, like_pattern},
+    query::{FieldSelection, OneOrList, Order, like_pattern, push_in_text},
     validate_limit, validate_offset,
 };
 
@@ -468,15 +468,6 @@ fn pick_document_fields(view: DocumentView, fields: Option<&[String]>) -> Docume
         closed_at,
         deleted_at,
     )
-}
-
-fn push_in_text<T: AsRef<str>>(qb: &mut QueryBuilder<sqlx::Sqlite>, column: &str, values: &[T]) {
-    qb.push(column).push(" IN (");
-    let mut separated = qb.separated(", ");
-    for value in values {
-        separated.push_bind(value.as_ref().to_string());
-    }
-    separated.push_unseparated(")");
 }
 
 fn push_document_where(

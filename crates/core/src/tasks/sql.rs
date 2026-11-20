@@ -11,7 +11,7 @@ use super::model::{
     BlockingInfo, Estimate, Priority, Status, Task, TaskList, TaskListEntry, TaskRow, TaskView,
 };
 use super::resolve::{normalize_task_id_input, resolve_task_id};
-use crate::query::{FieldSelection, like_pattern};
+use crate::query::{FieldSelection, like_pattern, push_in_text};
 
 const SEARCH_COLUMNS: [&str; 5] = [
     "ULOWER(tasks.title) LIKE ",
@@ -28,15 +28,6 @@ fn push_and(qb: &mut QueryBuilder<Sqlite>, first: &mut bool) {
     } else {
         qb.push(" AND ");
     }
-}
-
-fn push_in_text<T: AsRef<str>>(qb: &mut QueryBuilder<Sqlite>, column: &str, values: &[T]) {
-    qb.push(column).push(" IN (");
-    let mut separated = qb.separated(", ");
-    for value in values {
-        separated.push_bind(value.as_ref().to_string());
-    }
-    separated.push_unseparated(")");
 }
 
 fn push_in_int(qb: &mut QueryBuilder<Sqlite>, column: &str, values: &[i64]) {
