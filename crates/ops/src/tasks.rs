@@ -265,6 +265,7 @@ impl Op for TasksDelete {
     const NAME: OpName = OpName::TasksDelete;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = DeleteInput;
     type Output = Deleted;
@@ -288,6 +289,7 @@ impl Op for TasksRestore {
     const NAME: OpName = OpName::TasksRestore;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = DeleteInput;
     type Output = Task;
@@ -319,6 +321,7 @@ impl Op for TasksMove {
     const NAME: OpName = OpName::TasksMove;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = MoveInput;
     type Output = Task;
@@ -351,6 +354,7 @@ impl Op for TasksCreateMany {
     const NAME: OpName = OpName::TasksCreateMany;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = CreateManyInput;
     type Output = BatchSummary;
@@ -397,6 +401,7 @@ impl Op for TasksUpdateMany {
     const NAME: OpName = OpName::TasksUpdateMany;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = UpdateManyInput;
     type Output = BatchSummary;
@@ -450,6 +455,7 @@ impl Op for TasksCloseMany {
     const NAME: OpName = OpName::TasksCloseMany;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = CloseManyInput;
     type Output = BatchSummary;
@@ -526,6 +532,7 @@ impl Op for TasksAddLink {
     const NAME: OpName = OpName::TasksAddLink;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = LinkInput;
     type Output = Linked;
@@ -558,6 +565,7 @@ impl Op for TasksRemoveLink {
     const NAME: OpName = OpName::TasksRemoveLink;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = LinkInput;
     type Output = Linked;
@@ -590,6 +598,7 @@ impl Op for TasksAddBlocker {
     const NAME: OpName = OpName::TasksAddBlocker;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = BlockerInput;
     type Output = Linked;
@@ -618,6 +627,7 @@ impl Op for TasksRemoveBlocker {
     const NAME: OpName = OpName::TasksRemoveBlocker;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = BlockerInput;
     type Output = Linked;
@@ -662,6 +672,7 @@ impl Op for TasksOptions {
     const NAME: OpName = OpName::TasksOptions;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
+    const LAZY: bool = true;
     type Input = OptionsInput;
     type Output = TaskList;
 
@@ -691,6 +702,7 @@ impl Op for TasksStats {
     const NAME: OpName = OpName::TasksStats;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
+    const LAZY: bool = true;
     type Input = StatsInput;
     type Output = TaskStats;
 
@@ -723,6 +735,7 @@ impl Op for TasksRevisionsList {
     const NAME: OpName = OpName::TasksRevisionsList;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
+    const LAZY: bool = true;
     type Input = RevisionsInput;
     type Output = RevisionsPage;
 
@@ -773,6 +786,7 @@ impl Op for TasksDeletedList {
     const NAME: OpName = OpName::TasksDeletedList;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
+    const LAZY: bool = true;
     type Input = DeletedListInput;
     type Output = TaskList;
 
@@ -812,6 +826,7 @@ impl Op for TasksGetMany {
     const NAME: OpName = OpName::TasksGetMany;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
+    const LAZY: bool = true;
     type Input = GetManyInput;
     type Output = TaskMany;
 

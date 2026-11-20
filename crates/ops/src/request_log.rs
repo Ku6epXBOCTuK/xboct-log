@@ -11,6 +11,7 @@ impl Op for RequestLogList {
     const NAME: OpName = OpName::RequestLogList;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
+    const LAZY: bool = true;
     type Input = RequestLogSearch;
     type Output = RequestLogPage;
 
@@ -30,6 +31,7 @@ impl Op for RequestLogExport {
     const NAME: OpName = OpName::RequestLogExport;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
+    const LAZY: bool = true;
     type Input = RequestLogSearch;
     type Output = ExportResult;
 

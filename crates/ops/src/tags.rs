@@ -34,6 +34,7 @@ impl Op for TagsList {
     const NAME: OpName = OpName::TagsList;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = ListInput;
     type Output = TagListOutput;
@@ -69,6 +70,7 @@ impl Op for TagsDictionary {
     const NAME: OpName = OpName::TagsDictionary;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = EmptyInput;
     type Output = DictionaryOutput;
@@ -100,6 +102,7 @@ impl Op for TagsInventory {
     const NAME: OpName = OpName::TagsInventory;
     const KIND: Kind = Kind::Query;
     const MCP: bool = false;
+    const LAZY: bool = true;
 
     type Input = EmptyInput;
     type Output = InventoryOutput;
@@ -129,6 +132,7 @@ impl Op for TagsCreate {
     const NAME: OpName = OpName::TagsCreate;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = CreateInput;
     type Output = TagRecord;
@@ -165,6 +169,7 @@ impl Op for TagsUpdate {
     const NAME: OpName = OpName::TagsUpdate;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = UpdateInput;
     type Output = TagRecord;
@@ -195,6 +200,7 @@ impl Op for TagsRename {
     const NAME: OpName = OpName::TagsRename;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = RenameInput;
     type Output = TagRecord;

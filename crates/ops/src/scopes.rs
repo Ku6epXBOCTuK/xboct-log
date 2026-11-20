@@ -29,6 +29,7 @@ impl Op for ScopesList {
     const NAME: OpName = OpName::ScopesList;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = ListInput;
     type Output = Items<ScopeWithCounts>;
@@ -69,6 +70,7 @@ impl Op for ScopesGet {
     const NAME: OpName = OpName::ScopesGet;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = GetInput;
     type Output = ScopeWithCounts;
@@ -93,6 +95,7 @@ impl Op for ScopesProjectIds {
     const NAME: OpName = OpName::ScopesProjectIds;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = EmptyInput;
     type Output = Items<ProjectId>;
@@ -120,6 +123,7 @@ impl Op for ScopesCreate {
     const NAME: OpName = OpName::ScopesCreate;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = CreateInput;
     type Output = Scope;
@@ -157,6 +161,7 @@ impl Op for ScopesUpdate {
     const NAME: OpName = OpName::ScopesUpdate;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = UpdateInput;
     type Output = Scope;
@@ -190,6 +195,7 @@ impl Op for ScopesDelete {
     const NAME: OpName = OpName::ScopesDelete;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = DeleteInput;
     type Output = ScopeDeleteReport;

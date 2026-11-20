@@ -177,6 +177,7 @@ impl Op for PlansDelete {
     const NAME: OpName = OpName::PlansDelete;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = PlanIdInput;
     type Output = Plan;
@@ -200,6 +201,7 @@ impl Op for PlansRestore {
     const NAME: OpName = OpName::PlansRestore;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = PlanIdInput;
     type Output = Plan;
@@ -223,6 +225,7 @@ impl Op for PlansDeletedList {
     const NAME: OpName = OpName::PlansDeletedList;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = EmptyInput;
     type Output = Items<Plan>;
@@ -432,6 +435,7 @@ impl Op for PlansNotesDelete {
     const NAME: OpName = OpName::PlansNotesDelete;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = DeleteNoteInput;
     type Output = PlanNote;
@@ -455,6 +459,7 @@ impl Op for PlansNotesRestore {
     const NAME: OpName = OpName::PlansNotesRestore;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = DeleteNoteInput;
     type Output = PlanNote;
@@ -478,6 +483,7 @@ impl Op for PlansNotesDeletedList {
     const NAME: OpName = OpName::PlansNotesDeletedList;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = PlanIdInput;
     type Output = Items<PlanNote>;
@@ -499,6 +505,7 @@ impl Op for PlansNotesRevisionsList {
     const NAME: OpName = OpName::PlansNotesRevisionsList;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = DeleteNoteInput;
     type Output = Items<TextRevision>;

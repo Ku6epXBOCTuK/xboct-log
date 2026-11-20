@@ -73,6 +73,7 @@ impl Op for DocumentsCreate {
     const NAME: OpName = OpName::DocumentsCreate;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = CreateInput;
     type Output = Document;
@@ -115,6 +116,7 @@ impl Op for DocumentsUpdate {
     const NAME: OpName = OpName::DocumentsUpdate;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = UpdateInput;
     type Output = Document;
@@ -149,6 +151,7 @@ impl Op for DocumentsDelete {
     const NAME: OpName = OpName::DocumentsDelete;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = DocumentIdInput;
     type Output = Document;
@@ -172,6 +175,7 @@ impl Op for DocumentsRestore {
     const NAME: OpName = OpName::DocumentsRestore;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = DocumentIdInput;
     type Output = Document;
@@ -195,6 +199,7 @@ impl Op for DocumentsDeletedList {
     const NAME: OpName = OpName::DocumentsDeletedList;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = EmptyInput;
     type Output = Items<Document>;
@@ -216,6 +221,7 @@ impl Op for DocumentsRevisionsList {
     const NAME: OpName = OpName::DocumentsRevisionsList;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = DocumentIdInput;
     type Output = Items<TextRevision>;
@@ -270,6 +276,7 @@ impl Op for PlansDocumentsLink {
     const NAME: OpName = OpName::PlansDocumentsLink;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = PlanDocumentInput;
     type Output = Document;
@@ -294,6 +301,7 @@ impl Op for PlansDocumentsUnlink {
     const NAME: OpName = OpName::PlansDocumentsUnlink;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = PlanDocumentInput;
     type Output = Document;

@@ -17,11 +17,11 @@ use rmcp::model::{
 use rmcp::service::RequestContext;
 use serde_json::{Map, Value, json};
 use xboct_log_core::{
-    ActivitySource, AppError, Attachment, AttachmentContents, AttachmentId, AutoBackup, Config, Db,
-    Document, Events, RequestLogEntry, RequestStatus, attachment_by_id, attachment_format,
+    ActivitySource, AppError, Attachment, AttachmentContents, AutoBackup, Config, Db, Document,
+    Events, RequestLogEntry, RequestStatus, attachment_by_id, attachment_format,
     list_all_attachments, list_documents, read_attachment_file, record_request, require_document,
 };
-use xboct_log_ops::{Ctx, dispatch, metadata, patch_fields, schema_of, tool_schema};
+use xboct_log_ops::{Ctx, Kind, OpInfo, dispatch, metadata, patch_fields, schema_of, tool_schema};
 
 use crate::mcp_text;
 
@@ -30,16 +30,47 @@ const ATTACHMENT_URI_PREFIX: &str = "xboct-log://attachment/";
 const DOCUMENT_INDEX_URI: &str = "xboct-log://documents";
 const DOCUMENT_URI_PREFIX: &str = "xboct-log://document/";
 const CLIENT_LABEL_MAX_LENGTH: usize = 80;
+const MAX_FIND_RESULTS: usize = 8;
 
 #[derive(serde::Serialize, schemars::JsonSchema)]
 struct ReadAttachmentInput {
     #[schemars(description = "The `id` field of an item from attachments_list.")]
-    attachment_id: AttachmentId,
+    attachment_id: String,
+}
+
+#[derive(serde::Deserialize, schemars::JsonSchema)]
+#[serde(deny_unknown_fields)]
+struct FindInput {
+    #[schemars(description = "Words to match against a tool name or its description.")]
+    query: String,
 }
 
 #[derive(serde::Serialize, schemars::JsonSchema)]
-struct ReadAttachmentOutput {
-    item: Attachment,
+struct FindOutput {
+    items: Vec<CatalogEntry>,
+}
+
+#[derive(serde::Serialize, schemars::JsonSchema)]
+struct CatalogEntry {
+    name: String,
+    description: String,
+    params: Vec<CatalogParam>,
+}
+
+#[derive(serde::Serialize, schemars::JsonSchema)]
+struct CatalogParam {
+    name: String,
+    required: bool,
+    description: String,
+}
+
+#[derive(serde::Deserialize, schemars::JsonSchema)]
+#[serde(deny_unknown_fields)]
+struct CallInput {
+    #[schemars(description = "The exact tool name returned by xboct_log_find.")]
+    tool: String,
+    #[schemars(description = "The arguments of that tool as a JSON object.")]
+    args: Value,
 }
 
 #[derive(Clone)]
@@ -120,39 +151,17 @@ impl ServerHandler for Backlog {
         context: RequestContext<RoleServer>,
     ) -> Result<CallToolResponse, McpError> {
         let started = Instant::now();
-        let name = request.name.clone();
+        let requested = request.name.clone();
         let arguments = Value::Object(request.arguments.unwrap_or_default());
-        let arguments = normalize_arguments(name.as_ref(), arguments);
         let client = client_label(&context);
 
-        let (result, status, error_kind, error_message): (
-            CallToolResponse,
-            RequestStatus,
-            Option<String>,
-            Option<String>,
-        ) = if let Some(message) = validation_error(name.as_ref(), &arguments) {
-            (
-                bare_failure(&message).into(),
-                RequestStatus::Error,
-                Some("validation".to_string()),
-                Some(message),
-            )
-        } else {
-            let tool_result = if name == "attachments_read" {
-                self.call_attachments_read(&arguments).await
-            } else {
-                let ctx = self.context(client.clone());
-                match dispatch(&ctx, name.as_ref(), arguments.clone()).await {
-                    Ok(value) => success(value),
-                    Err(error) => failure(&error),
-                }
-            };
-            let (status, error_kind, error_message) = match failure_details(&tool_result) {
-                Some((kind, message)) => (RequestStatus::Error, Some(kind), Some(message)),
-                None => (RequestStatus::Ok, None, None),
-            };
-            (tool_result.into(), status, error_kind, error_message)
+        let (name, arguments, tool_result) =
+            self.call_named(&requested, arguments, client.clone()).await;
+        let (status, error_kind, error_message) = match failure_details(&tool_result) {
+            Some((kind, message)) => (RequestStatus::Error, Some(kind), Some(message)),
+            None => (RequestStatus::Ok, None, None),
         };
+        let result: CallToolResponse = tool_result.into();
 
         if name.starts_with("attachments_") || name.starts_with("documents_") {
             let _ = context.peer.notify_resource_list_changed().await;
@@ -311,6 +320,116 @@ impl ServerHandler for Backlog {
 }
 
 impl Backlog {
+    async fn call_named(
+        &self,
+        name: &str,
+        arguments: Value,
+        client: Option<String>,
+    ) -> (String, Value, CallToolResult) {
+        if name == "xboct_log_call" {
+            let input: CallInput = match serde_json::from_value(arguments.clone()) {
+                Ok(input) => input,
+                Err(error) => {
+                    let message = format!("Input validation error for xboct_log_call: {error}");
+                    return (name.to_string(), arguments, bare_failure(&message));
+                }
+            };
+            if input.tool == "xboct_log_call" || input.tool == "xboct_log_find" {
+                let message = "xboct_log_call cannot call xboct_log_find or xboct_log_call";
+                return (name.to_string(), arguments, bare_failure(message));
+            }
+            return self.call_direct(&input.tool, input.args, client).await;
+        }
+        if name == "xboct_log_find" {
+            let result = match serde_json::from_value::<FindInput>(arguments.clone()) {
+                Ok(input) => self.call_find(&input.query),
+                Err(error) => {
+                    let message = format!("Input validation error for xboct_log_find: {error}");
+                    bare_failure(&message)
+                }
+            };
+            return (name.to_string(), arguments, result);
+        }
+        self.call_direct(name, arguments, client).await
+    }
+
+    async fn call_direct(
+        &self,
+        name: &str,
+        arguments: Value,
+        client: Option<String>,
+    ) -> (String, Value, CallToolResult) {
+        let arguments = normalize_arguments(name, arguments);
+        let result = if let Some(message) = validation_error(name, &arguments) {
+            bare_failure(&message)
+        } else if name == "attachments_read" {
+            self.call_attachments_read(&arguments).await
+        } else {
+            let ctx = self.context(client);
+            match dispatch(&ctx, name, arguments.clone()).await {
+                Ok(value) => success(value),
+                Err(error) => failure(&error),
+            }
+        };
+        (name.to_string(), arguments, result)
+    }
+
+    fn call_find(&self, query: &str) -> CallToolResult {
+        let needle = query.trim().to_lowercase();
+        let words: Vec<&str> = needle.split_whitespace().collect();
+        let mut found: Vec<(usize, CatalogEntry)> = tool_catalog()
+            .into_iter()
+            .filter_map(|info| {
+                let name = info.name.to_lowercase();
+                let description = info.description.to_lowercase();
+                let mut score = 0;
+                if !needle.is_empty() {
+                    if name.contains(&needle) {
+                        score += 6;
+                    }
+                    if description.contains(&needle) {
+                        score += 3;
+                    }
+                    for word in &words {
+                        if name.contains(word) {
+                            score += 2;
+                        }
+                        if description.contains(word) {
+                            score += 1;
+                        }
+                    }
+                    if score == 0 {
+                        return None;
+                    }
+                }
+                let (input, _) = match tool_schema(info.name) {
+                    Some(schema) => schema,
+                    None if info.name == "attachments_read" => {
+                        (schema_of::<ReadAttachmentInput>(), Value::Null)
+                    }
+                    None => return None,
+                };
+                Some((
+                    score,
+                    CatalogEntry {
+                        name: info.name.to_string(),
+                        description: clip(info.description, 240),
+                        params: catalog_params(&input),
+                    },
+                ))
+            })
+            .collect();
+        found.sort_by(|left, right| {
+            right
+                .0
+                .cmp(&left.0)
+                .then_with(|| left.1.name.cmp(&right.1.name))
+        });
+        found.truncate(MAX_FIND_RESULTS);
+        let items = found.into_iter().map(|(_, entry)| entry).collect();
+        success(json!(FindOutput { items }))
+    }
+
     async fn call_attachments_read(&self, arguments: &Value) -> CallToolResult {
         let id = match arguments.get("attachment_id").and_then(Value::as_str) {
             Some(id) => id,
@@ -412,7 +531,7 @@ fn attachment_mime(file_name: &str) -> String {
 
 fn tools() -> Result<Vec<Tool>, McpError> {
     let mut tools = Vec::new();
-    for info in metadata().iter().filter(|info| info.mcp) {
+    for info in metadata().iter().filter(|info| info.mcp && !info.lazy) {
         let (input, output) = tool_schema(info.name).ok_or_else(|| {
             McpError::internal_error(format!("no schema for the tool {}", info.name), None)
         })?;
@@ -427,13 +546,71 @@ fn tools() -> Result<Vec<Tool>, McpError> {
     }
     tools.push(
         Tool::new_with_raw(
-            "attachments_read",
-            Some(Cow::Borrowed(mcp_text::ATTACHMENTS_READ_DESCRIPTION)),
-            parse_schema(schema_of::<ReadAttachmentInput>()),
+            "xboct_log_find",
+            Some(Cow::Borrowed(mcp_text::XBOCT_LOG_FIND_DESCRIPTION)),
+            parse_schema(schema_of::<FindInput>()),
         )
-        .with_raw_output_schema(parse_schema(schema_of::<ReadAttachmentOutput>())),
+        .with_raw_output_schema(parse_schema(schema_of::<FindOutput>())),
     );
+    tools.push(Tool::new_with_raw(
+        "xboct_log_call",
+        Some(Cow::Borrowed(mcp_text::XBOCT_LOG_CALL_DESCRIPTION)),
+        parse_schema(schema_of::<CallInput>()),
+    ));
     Ok(tools)
+}
+
+fn tool_catalog() -> Vec<OpInfo> {
+    let mut infos: Vec<OpInfo> = metadata()
+        .into_iter()
+        .filter(|info| info.mcp && info.lazy)
+        .collect();
+    infos.push(OpInfo {
+        name: "attachments_read",
+        kind: Kind::Query,
+        mcp: true,
+        lazy: true,
+        description: mcp_text::ATTACHMENTS_READ_DESCRIPTION,
+        entity: None,
+    });
+    infos
+}
+
+fn catalog_params(schema: &Value) -> Vec<CatalogParam> {
+    let Some(properties) = schema.get("properties").and_then(Value::as_object) else {
+        return Vec::new();
+    };
+    let required: Vec<&str> = schema
+        .get("required")
+        .and_then(Value::as_array)
+        .map(|fields| fields.iter().filter_map(Value::as_str).collect())
+        .unwrap_or_default();
+    properties
+        .iter()
+        .map(|(name, property)| CatalogParam {
+            name: name.clone(),
+            required: required.contains(&name.as_str()),
+            description: property
+                .get("description")
+                .and_then(Value::as_str)
+                .map(|text| clip(text, 160))
+                .unwrap_or_default(),
+        })
+        .collect()
+}
+
+fn clip(text: &str, limit: usize) -> String {
+    let mut clipped = String::new();
+    for character in text.chars() {
+        if clipped.len() + character.len_utf8() > limit {
+            break;
+        }
+        clipped.push(character);
+    }
+    if clipped.len() < text.len() {
+        clipped.push_str("...");
+    }
+    clipped
 }
 
 fn parse_schema(mut schema: Value) -> Arc<JsonObject> {
@@ -704,7 +881,84 @@ fn flatten_patch(arguments: &mut Map<String, Value>, fields: &[&str]) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use xboct_log_core::OpName;
+    use xboct_log_core::{Config, Events, OpName};
+
+    async fn backlog() -> Backlog {
+        let db = Db::open(":memory:").await.unwrap();
+        db.migrate().await.unwrap();
+        let config =
+            Config::from_lookup(|name| (name == "XBOCT_LOG_DB").then(|| ":memory:".to_string()))
+                .unwrap();
+        Backlog::new(Arc::new(db), Arc::new(config), Arc::new(Events::new()))
+    }
+
+    #[test]
+    fn lists_only_the_common_tools() {
+        let listed = tools().unwrap();
+        let names: Vec<String> = listed.iter().map(|tool| tool.name.to_string()).collect();
+        assert_eq!(names.len(), 20);
+        for expected in [
+            "tasks_list",
+            "plans_notes_add",
+            "xboct_log_find",
+            "xboct_log_call",
+        ] {
+            assert!(names.iter().any(|name| name == expected), "{expected}");
+        }
+        for missing in ["tasks_delete", "plans_notes_delete", "attachments_read"] {
+            assert!(!names.iter().any(|name| name == missing), "{missing}");
+        }
+    }
+
+    #[tokio::test]
+    async fn find_and_call_reach_lazy_tools() {
+        let backlog = backlog().await;
+        let (name, _, result) = backlog
+            .call_named(
+                "xboct_log_find",
+                json!({"query": "restore deleted task"}),
+                None,
+            )
+            .await;
+        assert_eq!(name, "xboct_log_find");
+        assert_eq!(result.is_error, None);
+        let payload = result.structured_content.unwrap();
+        let items = payload["items"].as_array().unwrap();
+        assert!(items.iter().any(|item| item["name"] == "tasks_restore"));
+        assert!(items.iter().any(|item| {
+            item["params"]
+                .as_array()
+                .is_some_and(|params| params.iter().any(|param| param["name"] == "task_id"))
+        }));
+
+        let (_, _, result) = backlog
+            .call_named("xboct_log_find", json!({"query": "attachment file"}), None)
+            .await;
+        let payload = result.structured_content.unwrap();
+        assert!(
+            payload["items"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|item| item["name"] == "attachments_read")
+        );
+
+        let (name, args, result) = backlog
+            .call_named(
+                "xboct_log_call",
+                json!({"tool": "request_log_list", "args": {}}),
+                None,
+            )
+            .await;
+        assert_eq!(name, "request_log_list");
+        assert_eq!(args, json!({}));
+        assert_eq!(result.is_error, None);
+
+        let (_, _, result) = backlog
+            .call_named("xboct_log_call", json!({"tool": "tasks_delete"}), None)
+            .await;
+        assert_eq!(result.is_error, Some(true));
+    }
 
     #[test]
     fn lists_the_operation_names_in_the_activity_filter() {

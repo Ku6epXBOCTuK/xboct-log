@@ -87,6 +87,7 @@ impl Op for AttachmentsList {
     const NAME: OpName = OpName::AttachmentsList;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
+    const LAZY: bool = true;
     type Input = ListInput;
     type Output = Items<Attachment>;
 
@@ -108,6 +109,7 @@ impl Op for AttachmentsDeletedList {
     const NAME: OpName = OpName::AttachmentsDeletedList;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
+    const LAZY: bool = true;
     type Input = OptionalTaskInput;
     type Output = Items<DeletedAttachment>;
 
@@ -134,6 +136,7 @@ impl Op for AttachmentsAdd {
     const NAME: OpName = OpName::AttachmentsAdd;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
+    const LAZY: bool = true;
     type Input = AddInput;
     type Output = Created<Attachment>;
 
@@ -178,6 +181,7 @@ impl Op for AttachmentsDelete {
     const NAME: OpName = OpName::AttachmentsDelete;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
+    const LAZY: bool = true;
     type Input = AttachmentInput;
     type Output = Attachment;
 
@@ -200,6 +204,7 @@ impl Op for AttachmentsRestore {
     const NAME: OpName = OpName::AttachmentsRestore;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
+    const LAZY: bool = true;
     type Input = DeletedAttachmentInput;
     type Output = Attachment;
 
@@ -223,6 +228,7 @@ impl Op for AttachmentsMove {
     const NAME: OpName = OpName::AttachmentsMove;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
+    const LAZY: bool = true;
     type Input = MoveInput;
     type Output = MovedAttachment;
 
@@ -253,6 +259,7 @@ impl Op for AttachmentsCopy {
     const NAME: OpName = OpName::AttachmentsCopy;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
+    const LAZY: bool = true;
     type Input = MoveInput;
     type Output = Created<Attachment>;
 
@@ -284,6 +291,7 @@ impl Op for AttachmentsPurge {
     const NAME: OpName = OpName::AttachmentsPurge;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
+    const LAZY: bool = true;
     type Input = DeletedAttachmentInput;
     type Output = PurgedAttachment;
 
@@ -307,6 +315,7 @@ impl Op for AttachmentsVerify {
     const NAME: OpName = OpName::AttachmentsVerify;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
+    const LAZY: bool = true;
     type Input = OptionalTaskInput;
     type Output = AttachmentCheck;
 

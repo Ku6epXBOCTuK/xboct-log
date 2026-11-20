@@ -23,6 +23,7 @@ impl Op for CommentsList {
     const NAME: OpName = OpName::TasksCommentsList;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = ListInput;
     type Output = CommentList;
@@ -57,6 +58,7 @@ impl Op for CommentsAdd {
     const NAME: OpName = OpName::TasksCommentsAdd;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = AddInput;
     type Output = Comment;
@@ -91,6 +93,7 @@ impl Op for CommentsEdit {
     const NAME: OpName = OpName::TasksCommentsEdit;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = EditInput;
     type Output = Comment;
@@ -121,6 +124,7 @@ impl Op for CommentsDelete {
     const NAME: OpName = OpName::TasksCommentsDelete;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = DeleteInput;
     type Output = Comment;

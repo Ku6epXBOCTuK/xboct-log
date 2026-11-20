@@ -175,9 +175,30 @@ fn lists_the_registered_operations() {
         "plans_documents_link",
         "plans_documents_unlink",
     ];
+    let common = [
+        "tasks_list",
+        "tasks_get",
+        "tasks_create",
+        "tasks_update",
+        "tasks_close",
+        "documents_list",
+        "documents_get",
+        "plans_documents_list",
+        "plans_list",
+        "plans_get",
+        "plans_create",
+        "plans_update",
+        "plans_items_add",
+        "plans_items_remove",
+        "plans_reorder",
+        "plans_notes_list",
+        "plans_notes_add",
+        "plans_notes_edit",
+    ];
     for op in &ops {
         let hidden = ["tags_inventory", "backups_inspect", "backups_restore"];
         assert_eq!(op.mcp, !hidden.contains(&op.name), "{} mcp", op.name);
+        assert_eq!(op.lazy, !common.contains(&op.name), "{} lazy", op.name);
         assert!(!op.description.is_empty(), "{} has a description", op.name);
         let kind = if commands.contains(&op.name) {
             Kind::Command

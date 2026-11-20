@@ -76,6 +76,7 @@ pub struct OpInfo {
     pub name: &'static str,
     pub kind: Kind,
     pub mcp: bool,
+    pub lazy: bool,
     pub description: &'static str,
     pub entity: Option<Entity>,
 }
@@ -116,6 +117,7 @@ pub trait Op {
     const NAME: OpName;
     const KIND: Kind;
     const MCP: bool;
+    const LAZY: bool = false;
 
     type Input: DeserializeOwned + Send + JsonSchema;
     type Output: Serialize + Send + JsonSchema;
@@ -179,6 +181,7 @@ macro_rules! ops {
 					name: <$op as $crate::Op>::NAME.as_str(),
 					kind: <$op as $crate::Op>::KIND,
 					mcp: <$op as $crate::Op>::MCP,
+					lazy: <$op as $crate::Op>::LAZY,
 					description: <$op as $crate::Op>::description(),
 					entity: <$op as $crate::Op>::entity(),
 				}),+

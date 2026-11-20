@@ -34,6 +34,7 @@ impl crate::Op for BackupCreate {
     const NAME: OpName = OpName::BackupCreate;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = EmptyInput;
     type Output = BackupCreated;
@@ -61,6 +62,7 @@ impl crate::Op for BackupListOp {
     const NAME: OpName = OpName::BackupList;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = EmptyInput;
     type Output = BackupList;
@@ -82,6 +84,7 @@ impl crate::Op for BackupsInspect {
     const NAME: OpName = OpName::BackupsInspect;
     const KIND: Kind = Kind::Command;
     const MCP: bool = false;
+    const LAZY: bool = true;
 
     type Input = TargetInput;
     type Output = SnapshotInfo;
@@ -102,6 +105,7 @@ impl crate::Op for BackupsRestore {
     const NAME: OpName = OpName::BackupsRestore;
     const KIND: Kind = Kind::Command;
     const MCP: bool = false;
+    const LAZY: bool = true;
 
     type Input = TargetInput;
     type Output = RestoreOutcome;

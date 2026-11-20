@@ -29,6 +29,7 @@ impl Op for ProjectsList {
     const NAME: OpName = OpName::ProjectsList;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = ListInput;
     type Output = Items<ProjectWithCounts>;
@@ -103,6 +104,7 @@ impl Op for ProjectsGet {
     const NAME: OpName = OpName::ProjectsGet;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = GetInput;
     type Output = ProjectDetails;
@@ -152,6 +154,7 @@ impl Op for ProjectsCreate {
     const NAME: OpName = OpName::ProjectsCreate;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = CreateInput;
     type Output = Project;
@@ -206,6 +209,7 @@ impl Op for ProjectsUpdate {
     const NAME: OpName = OpName::ProjectsUpdate;
     const KIND: Kind = Kind::Command;
     const MCP: bool = true;
+    const LAZY: bool = true;
 
     type Input = UpdateInput;
     type Output = Project;

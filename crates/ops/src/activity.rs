@@ -22,6 +22,7 @@ impl Op for TasksHistory {
     const NAME: OpName = OpName::TasksHistory;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
+    const LAZY: bool = true;
     type Input = HistoryInput;
     type Output = HistoryPage;
 
@@ -45,6 +46,7 @@ impl Op for ActivitiesList {
     const NAME: OpName = OpName::ActivityList;
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
+    const LAZY: bool = true;
     type Input = ActivitySearch;
     type Output = ActivityPage;
 
