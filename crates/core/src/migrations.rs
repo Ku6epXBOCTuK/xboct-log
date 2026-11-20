@@ -7,7 +7,7 @@ use crate::{
 
 static MIGRATOR: Migrator = sqlx::migrate!("./migrations");
 
-const NODE_MIGRATIONS: [&str; 26] = [
+const NODE_MIGRATIONS: &[&str] = &[
     "001_init.js",
     "002_scopes.js",
     "003_soft_delete.js",
@@ -127,6 +127,14 @@ mod tests {
         Ok(versions)
     }
 
+    fn embedded_versions() -> Vec<i64> {
+        MIGRATOR
+            .migrations
+            .iter()
+            .map(|migration| migration.version as i64)
+            .collect()
+    }
+
     async fn fresh_db() -> Db {
         let db = Db::open(":memory:").await.unwrap();
         db.migrate().await.unwrap();
@@ -141,13 +149,12 @@ mod tests {
             .fetch_one(db.pool())
             .await
             .unwrap();
-        assert_eq!(node_rows, 26);
+        assert_eq!(node_rows, NODE_MIGRATIONS.len() as i64);
 
-        let rust_rows: Vec<i64> = sqlx::query_scalar("select version from _sqlx_migrations")
-            .fetch_all(db.pool())
+        let rust_rows = applied_versions(&mut db.pool().acquire().await.unwrap())
             .await
             .unwrap();
-        assert_eq!(rust_rows, vec![1, 2, 3, 4]);
+        assert_eq!(rust_rows, embedded_versions());
 
         let columns: Vec<String> =
             sqlx::query_scalar("select name from pragma_table_info('tasks')")
@@ -267,7 +274,7 @@ mod tests {
         let versions = applied_versions(&mut db.pool().acquire().await.unwrap())
             .await
             .unwrap();
-        assert_eq!(versions, vec![1, 2, 3, 4]);
+        assert_eq!(versions, embedded_versions());
     }
 
     #[tokio::test]
@@ -283,7 +290,7 @@ mod tests {
         let versions = applied_versions(&mut db.pool().acquire().await.unwrap())
             .await
             .unwrap();
-        assert_eq!(versions, vec![1, 2, 3, 4]);
+        assert_eq!(versions, embedded_versions());
     }
 
     #[tokio::test]
@@ -299,7 +306,7 @@ mod tests {
         let versions = applied_versions(&mut db.pool().acquire().await.unwrap())
             .await
             .unwrap();
-        assert_eq!(versions, vec![1, 2, 3, 4]);
+        assert_eq!(versions, embedded_versions());
     }
 
     #[tokio::test]

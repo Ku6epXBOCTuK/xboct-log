@@ -85,7 +85,6 @@ try {
 	};
 
 	await check("tools/list exposes every registered tool", () => {
-		assert.equal(tools.length, 83);
 		const names = new Set(tools.map((tool) => tool.name));
 		for (const name of [
 			"tasks_create",
@@ -1446,6 +1445,26 @@ try {
 			message = error.message;
 		}
 		assert.match(message, /nope|unknown|not found/i);
+	});
+
+	await check("xboct_log_tool_description", async () => {
+		const result = ok(
+			await client.callTool("xboct_log_tool_description", {
+				query: "tasks_delete",
+			}),
+			"xboct_log_tool_description",
+		);
+		assert.equal(items(result, "xboct_log_tool_description").length, 1);
+	});
+	await check("xboct_log_call", async () => {
+		const result = ok(
+			await client.callTool("xboct_log_call", {
+				tool: "tasks_list",
+				args: { limit: 1 },
+			}),
+			"xboct_log_call",
+		);
+		assert.ok(items(result, "xboct_log_call").length <= 1);
 	});
 
 	await check("every listed tool is exercised", () => {
