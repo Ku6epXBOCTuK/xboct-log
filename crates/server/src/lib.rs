@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use axum::{
     Extension, Json, Router,
-    body::{Body, Bytes},
+    body::{Body, Bytes, to_bytes},
     extract::{Path, State},
     http::{HeaderMap, HeaderName, HeaderValue, Method, Request, StatusCode, header},
     response::{
@@ -154,14 +154,49 @@ async fn mcp_entry(Extension(service): Extension<McpService>, request: Request<B
         )
             .into_response();
     }
-    match service.oneshot(request).await {
+    let response = match service.oneshot(request).await {
         Ok(response) => response.into_response(),
         Err(never) => match never {},
-    }
+    };
+    normalize_mcp_response(response).await
 }
 
 const METHOD_NOT_ALLOWED_BODY: &str =
     r#"{"jsonrpc":"2.0","error":{"code":-32000,"message":"Method not allowed."},"id":null}"#;
+
+const SESSION_EXPIRED_BODY: &str = "Not Found: Session expired. Reconnect to the MCP server.";
+const MAX_ERROR_BODY: usize = 64 * 1024;
+const SESSION_ERROR_CONTEXTS: [&str; 4] = [
+    "check session",
+    "restore session",
+    "get session",
+    "accept message",
+];
+
+async fn normalize_mcp_response(response: Response) -> Response {
+    if response.status() != StatusCode::INTERNAL_SERVER_ERROR {
+        return response;
+    }
+    let (parts, body) = response.into_parts();
+    let bytes = match to_bytes(body, MAX_ERROR_BODY).await {
+        Ok(bytes) => bytes,
+        Err(_) => return StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+    };
+    if session_error(&bytes) {
+        return (StatusCode::NOT_FOUND, SESSION_EXPIRED_BODY).into_response();
+    }
+    Response::from_parts(parts, Body::from(bytes))
+}
+
+fn session_error(body: &[u8]) -> bool {
+    let text = String::from_utf8_lossy(body);
+    let Some(text) = text.strip_prefix("Encounter an error when ") else {
+        return false;
+    };
+    SESSION_ERROR_CONTEXTS
+        .iter()
+        .any(|context| text.starts_with(context))
+}
 
 #[derive(serde::Serialize)]
 struct Health {
@@ -819,5 +854,38 @@ mod tests {
         assert_eq!(error["kind"], "validation");
 
         app.stop().await;
+    }
+
+    #[tokio::test]
+    async fn maps_a_terminated_session_error_to_not_found() {
+        for body in [
+            "Encounter an error when restore session: Session error: Session service terminated",
+            "Encounter an error when get session: Session error: Session service terminated",
+        ] {
+            let response = Response::builder()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .body(Body::from(body))
+                .unwrap();
+            let response = normalize_mcp_response(response).await;
+
+            assert_eq!(response.status(), StatusCode::NOT_FOUND);
+            let bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+            assert_eq!(bytes, SESSION_EXPIRED_BODY);
+        }
+    }
+
+    #[tokio::test]
+    async fn keeps_other_internal_errors_unchanged() {
+        let response = Response::builder()
+            .status(StatusCode::INTERNAL_SERVER_ERROR)
+            .header(header::CONTENT_TYPE, "text/plain")
+            .body(Body::from("boom"))
+            .unwrap();
+        let response = normalize_mcp_response(response).await;
+
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(header(response.headers(), "content-type"), "text/plain");
+        let bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        assert_eq!(&bytes[..], b"boom");
     }
 }
