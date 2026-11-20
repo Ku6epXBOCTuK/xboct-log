@@ -4,11 +4,10 @@
 	import { listDeletedTasks, restoreTask } from "#lib/api/tasks.ts";
 	import DeletedAttachments from "#lib/components/attachments/DeletedAttachments.svelte";
 	import SearchBar from "#lib/components/filters/SearchBar.svelte";
-	import BackendBadge from "#lib/components/layout/BackendBadge.svelte";
+	import AppBar from "#lib/components/layout/AppBar.svelte";
 	import TaskTable from "#lib/components/table/TaskTable.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import Pager from "#lib/components/ui/Pager.svelte";
-	import { reloadApp } from "#lib/reload.ts";
 	import { useBoard } from "#lib/state/board.svelte.ts";
 	import { createDebouncedValue } from "#lib/state/debounce.svelte.ts";
 	import { createPagedQuery } from "#lib/state/paged.svelte.ts";
@@ -21,13 +20,10 @@
 	} from "#lib/tasks/sort.ts";
 	import type { Task } from "#lib/types.ts";
 	import ArchiveRestore from "~icons/lucide/archive-restore";
-	import Moon from "~icons/lucide/moon";
-	import RefreshCw from "~icons/lucide/refresh-cw";
-	import Sun from "~icons/lucide/sun";
 
 	const LIMIT = 50;
 
-	const { projects, scopes, filters, theme, fresh } = useBoard();
+	const { projects, scopes, filters, fresh } = useBoard();
 
 	let error = $state("");
 	let busy = $state("");
@@ -112,33 +108,16 @@
 {/snippet}
 
 <section class="deleted-page">
-	<header class="page-head">
-		<h1>{tab === "tasks" ? "Deleted tasks" : "Deleted attachments"}</h1>
-		<span class="muted">
-			{tab === "tasks"
-				? `${activeProjectName ?? "All projects"} · ${paged.total} deleted`
-				: "Kept for 30 days, then removed"}
-		</span>
-		<div class="head-actions">
-			<BackendBadge />
-			<IconButton
-				label={theme.appearance === "light"
-					? "Switch to dark theme"
-					: "Switch to light theme"}
-				size="md"
-				onclick={theme.toggle}
-			>
-				{#if theme.appearance === "light"}
-					<Moon />
-				{:else}
-					<Sun />
-				{/if}
-			</IconButton>
-			<IconButton label="Reload" size="md" onclick={reloadApp}>
-				<RefreshCw />
-			</IconButton>
-		</div>
-	</header>
+	<AppBar>
+		{#snippet leading()}
+			<h1>{tab === "tasks" ? "Deleted tasks" : "Deleted attachments"}</h1>
+			<span class="muted">
+				{tab === "tasks"
+					? `${activeProjectName ?? "All projects"} · ${paged.total} deleted`
+					: "Kept for 30 days, then removed"}
+			</span>
+		{/snippet}
+	</AppBar>
 
 	<nav class="tabs">
 		<button
@@ -209,33 +188,6 @@
 		flex-direction: column;
 		height: 100%;
 		background: var(--background);
-	}
-
-	.page-head {
-		flex: none;
-		display: flex;
-		align-items: center;
-		gap: var(--space-3);
-		padding: var(--edge-pad) var(--edge-pad) var(--space-3);
-	}
-
-	.head-actions {
-		margin-left: auto;
-		display: flex;
-		gap: var(--space-2);
-	}
-
-	.page-head h1 {
-		margin: 0;
-		font-size: var(--text-2xl);
-		line-height: 1.1;
-		letter-spacing: -0.02em;
-	}
-
-	.muted {
-		color: var(--text-muted);
-		font-size: var(--text-sm);
-		font-variant-numeric: tabular-nums;
 	}
 
 	.tabs {

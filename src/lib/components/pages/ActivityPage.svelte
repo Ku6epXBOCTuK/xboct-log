@@ -4,6 +4,7 @@
 	import { fetchFresh } from "#lib/api/fresh.ts";
 	import ActivityFilters from "#lib/components/activity/ActivityFilters.svelte";
 	import ActivityTable from "#lib/components/activity/ActivityTable.svelte";
+	import AppBar from "#lib/components/layout/AppBar.svelte";
 	import Pager from "#lib/components/ui/Pager.svelte";
 	import { useBoard } from "#lib/state/board.svelte.ts";
 	import { createPagedQuery } from "#lib/state/paged.svelte.ts";
@@ -68,10 +69,12 @@
 </script>
 
 <section class="activity-page">
-	<header class="page-head">
-		<h1>Activity</h1>
-		<span class="muted">{paged.total} entries</span>
-	</header>
+	<AppBar>
+		{#snippet leading()}
+			<h1>Activity</h1>
+			<span class="muted">{paged.total} entries</span>
+		{/snippet}
+	</AppBar>
 
 	<ActivityFilters
 		projects={projects.all}
@@ -116,27 +119,6 @@
 		flex-direction: column;
 		height: 100%;
 		background: var(--background);
-	}
-
-	.page-head {
-		flex: none;
-		display: flex;
-		align-items: baseline;
-		gap: var(--space-3);
-		padding: var(--edge-pad) var(--edge-pad) var(--space-3);
-	}
-
-	.page-head h1 {
-		margin: 0;
-		font-size: var(--text-2xl);
-		line-height: 1.1;
-		letter-spacing: -0.02em;
-	}
-
-	.muted {
-		color: var(--text-muted);
-		font-size: var(--text-sm);
-		font-variant-numeric: tabular-nums;
 	}
 
 	.table-wrap {

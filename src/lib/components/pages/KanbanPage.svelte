@@ -1,4 +1,5 @@
 <script lang="ts">
+	import AppBar from "#lib/components/layout/AppBar.svelte";
 	import type { Status } from "#lib/types.ts";
 
 	const COLUMNS: { status: Status; label: string }[] = [
@@ -11,9 +12,11 @@
 </script>
 
 <section class="kanban-workspace">
-	<header class="kanban-header">
-		<h1>Kanban</h1>
-	</header>
+	<AppBar>
+		{#snippet leading()}
+			<h1>Kanban</h1>
+		{/snippet}
+	</AppBar>
 
 	<div class="kanban-board">
 		{#each COLUMNS as column (column.status)}
@@ -29,17 +32,3 @@
 		{/each}
 	</div>
 </section>
-
-<style>
-	.kanban-header {
-		flex: none;
-		padding: var(--edge-pad) var(--edge-pad) 0;
-	}
-
-	.kanban-header h1 {
-		margin: 0;
-		font-size: var(--text-2xl);
-		line-height: 1.1;
-		letter-spacing: -0.02em;
-	}
-</style>

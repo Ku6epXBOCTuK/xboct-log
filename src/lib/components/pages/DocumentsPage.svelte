@@ -10,6 +10,7 @@
 		type TextRevision,
 	} from "#lib/api/documents.ts";
 	import { fetchFresh } from "#lib/api/fresh.ts";
+	import AppBar from "#lib/components/layout/AppBar.svelte";
 	import MarkdownEditor from "#lib/components/markdown/MarkdownEditor.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import { useBoard } from "#lib/state/board.svelte.ts";
@@ -174,10 +175,12 @@
 </script>
 
 <section class="documents-page">
-	<header class="page-head">
-		<h1>Documents</h1>
-		<span class="muted">{documents.length} documents</span>
-	</header>
+	<AppBar>
+		{#snippet leading()}
+			<h1>Documents</h1>
+			<span class="muted">{documents.length} documents</span>
+		{/snippet}
+	</AppBar>
 
 	{#if project !== null}
 		<div class="toolbar">
@@ -315,24 +318,6 @@
 		flex-direction: column;
 		height: 100%;
 		background: var(--background);
-	}
-
-	.page-head {
-		flex: none;
-		display: flex;
-		align-items: baseline;
-		gap: var(--space-3);
-		padding: var(--edge-pad) var(--edge-pad) var(--space-3);
-	}
-
-	.page-head h1 {
-		margin: 0;
-		font-size: var(--text-2xl);
-	}
-
-	.muted {
-		color: var(--text-muted);
-		font-size: var(--text-sm);
 	}
 
 	.toolbar {

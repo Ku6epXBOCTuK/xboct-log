@@ -1,5 +1,6 @@
 <script lang="ts">
 	import TextInput from "@ku6epxboctuk/ui-kit/components/TextInput.svelte";
+	import AppBar from "#lib/components/layout/AppBar.svelte";
 	import TagCreateForm from "#lib/components/tags/TagCreateForm.svelte";
 	import TagList from "#lib/components/tags/TagList.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
@@ -17,13 +18,15 @@
 </script>
 
 <section class="tags-page">
-	<header class="page-head">
-		<h1>Tags</h1>
-		<span class="muted">
-			{page.activeTotal}
-			active · {page.archivedTotal} archived
-		</span>
-	</header>
+	<AppBar>
+		{#snippet leading()}
+			<h1>Tags</h1>
+			<span class="muted">
+				{page.activeTotal}
+				active · {page.archivedTotal} archived
+			</span>
+		{/snippet}
+	</AppBar>
 
 	<div class="toolbar">
 		<TextInput
@@ -81,31 +84,6 @@
 		overflow: auto;
 		background: var(--background);
 		--page-max: 48rem;
-	}
-
-	.page-head {
-		flex: none;
-		display: flex;
-		align-items: baseline;
-		gap: var(--space-3);
-		max-width: var(--page-max);
-		padding: var(--edge-pad) var(--edge-pad) var(--space-3);
-	}
-
-	.page-head h1 {
-		margin: 0;
-		font-size: var(--text-2xl);
-		line-height: 1.1;
-		letter-spacing: -0.02em;
-	}
-
-	.muted {
-		color: var(--text-muted);
-	}
-
-	.page-head .muted {
-		font-size: var(--text-sm);
-		font-variant-numeric: tabular-nums;
 	}
 
 	.toolbar {

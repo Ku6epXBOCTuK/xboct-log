@@ -29,6 +29,7 @@
 		updatePlan,
 	} from "#lib/api/plans.ts";
 	import { getTasks } from "#lib/api/tasks.ts";
+	import AppBar from "#lib/components/layout/AppBar.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import TaskSelect from "#lib/components/ui/select/TaskSelect.svelte";
 	import { taskHref } from "#lib/navigation/href.ts";
@@ -337,58 +338,60 @@
 </script>
 
 <section class="plans-page">
-	<header class="page-head">
-		<h1>Plans</h1>
-		<span class="muted">{plans.length} plans</span>
-		<form
-			class="create"
-			onsubmit={(event) => {
-				event.preventDefault();
-				void submitNew();
-			}}
-		>
-			<TextInput
-				class="create-input"
-				placeholder="New plan"
-				aria-label="New plan name"
-				maxlength={200}
-				bind:value={newName}
-			/>
-			<Button
-				variant="primary"
-				type="submit"
-				disabled={creating || newName.trim() === ""}
-				title="Create a plan"
+	<AppBar>
+		{#snippet leading()}
+			<h1>Plans</h1>
+			<span class="muted">{plans.length} plans</span>
+			<form
+				class="create"
+				onsubmit={(event) => {
+					event.preventDefault();
+					void submitNew();
+				}}
 			>
-				{#snippet icon()}
-					<Plus />
-				{/snippet}
-				Create
-			</Button>
-		</form>
-		{#if createFailed}
-			<span class="create-error">Could not create the plan</span>
-		{/if}
-		<form
-			class="open"
-			onsubmit={(event) => {
-				event.preventDefault();
-				void openById();
-			}}
-		>
-			<TextInput
-				class="open-input"
-				placeholder="PL-1"
-				aria-label="Open plan by id"
-				maxlength={40}
-				bind:value={openId}
-			/>
-			<Button type="submit" disabled={openId.trim() === ""}>Open</Button>
-		</form>
-		{#if openFailed}
-			<span class="create-error">No plan with that id</span>
-		{/if}
-	</header>
+				<TextInput
+					class="create-input"
+					placeholder="New plan"
+					aria-label="New plan name"
+					maxlength={200}
+					bind:value={newName}
+				/>
+				<Button
+					variant="primary"
+					type="submit"
+					disabled={creating || newName.trim() === ""}
+					title="Create a plan"
+				>
+					{#snippet icon()}
+						<Plus />
+					{/snippet}
+					Create
+				</Button>
+			</form>
+			{#if createFailed}
+				<span class="create-error">Could not create the plan</span>
+			{/if}
+			<form
+				class="open"
+				onsubmit={(event) => {
+					event.preventDefault();
+					void openById();
+				}}
+			>
+				<TextInput
+					class="open-input"
+					placeholder="PL-1"
+					aria-label="Open plan by id"
+					maxlength={40}
+					bind:value={openId}
+				/>
+				<Button type="submit" disabled={openId.trim() === ""}>Open</Button>
+			</form>
+			{#if openFailed}
+				<span class="create-error">No plan with that id</span>
+			{/if}
+		{/snippet}
+	</AppBar>
 
 	{#if failed}
 		<div class="error-wrap">
@@ -728,27 +731,6 @@
 		flex-direction: column;
 		height: 100%;
 		background: var(--background);
-	}
-
-	.page-head {
-		flex: none;
-		display: flex;
-		align-items: center;
-		gap: var(--space-3);
-		padding: var(--edge-pad) var(--edge-pad) var(--space-3);
-	}
-
-	.page-head h1 {
-		margin: 0;
-		font-size: var(--text-2xl);
-		line-height: 1.1;
-		letter-spacing: -0.02em;
-	}
-
-	.muted {
-		color: var(--text-muted);
-		font-size: var(--text-sm);
-		font-variant-numeric: tabular-nums;
 	}
 
 	.create {
@@ -1100,10 +1082,6 @@
 	}
 
 	@media (max-width: 48rem) {
-		.page-head {
-			flex-wrap: wrap;
-		}
-
 		.create {
 			margin-left: 0;
 			flex: 1 1 100%;

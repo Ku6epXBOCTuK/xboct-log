@@ -2,17 +2,20 @@
 	import { goto } from "$app/navigation";
 	import { page } from "$app/state";
 	import DetailPanel from "#lib/components/detail/DetailPanel.svelte";
+	import AppBar from "#lib/components/layout/AppBar.svelte";
 	import NewTaskModal from "#lib/components/newtask/NewTaskModal.svelte";
 	import TaskTable from "#lib/components/table/TaskTable.svelte";
 	import Pager from "#lib/components/ui/Pager.svelte";
+	import SearchHelp from "#lib/components/workspace/SearchHelp.svelte";
 	import WorkspaceHeader from "#lib/components/workspace/WorkspaceHeader.svelte";
 	import { isTypingTarget, matchesHotkey } from "#lib/hotkeys/hotkeys.ts";
 	import { listHref, taskHref } from "#lib/navigation/href.ts";
 	import { parsePath } from "#lib/navigation/paths.ts";
-	import { reloadApp } from "#lib/reload.ts";
 	import { useBoard } from "#lib/state/board.svelte.ts";
 	import { TASK_PAGE_SIZE } from "#lib/tasks/paging.ts";
 	import type { Task } from "#lib/types.ts";
+	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
+	import Plus from "~icons/lucide/plus";
 
 	const { tasks, projects, scopes, stats, filters, selection } = useBoard();
 
@@ -26,6 +29,10 @@
 	const visibleTasks = $derived(tasks.tasks);
 
 	const total = $derived(tasks.total);
+
+	const activeProjectName = $derived(
+		projects.all.find((project) => project.id === filters.activeProject)?.name,
+	);
 
 	const createDefaults = $derived({
 		projectId: childEpic?.project_id ?? filters.activeProject ?? undefined,
@@ -72,7 +79,19 @@
 <svelte:window {onkeydown} />
 
 <section class="workspace">
-	<WorkspaceHeader onnew={openNew} onreload={reloadApp} />
+	<AppBar>
+		{#snippet leading()}
+			<h1>{activeProjectName ?? "Projects"}</h1>
+			<SearchHelp />
+			<Button variant="primary" onclick={openNew}>
+				{#snippet icon()}
+					<Plus />
+				{/snippet}
+				New task
+			</Button>
+		{/snippet}
+	</AppBar>
+	<WorkspaceHeader />
 	{#if tasks.error !== null}
 		<p class="load-error" role="alert">Could not load tasks: {tasks.error}</p>
 	{/if}
