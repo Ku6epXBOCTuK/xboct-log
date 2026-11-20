@@ -6,7 +6,7 @@ use xboct_log_core::{
     AppError, Change, Closed, ClosedReason, Created, Deleted, Entity, Linked, NewTask, OpName,
     ProjectId, ReleasedLink, Result, RevisionsPage, Task, TaskKey, TaskList, TaskMany, TaskPatch,
     TaskStats, Updated, close_task, close_task_detailed, count_epic_children_by_status,
-    create_task, get_task, list_tasks, update_task, warnings_for,
+    create_task, get_task, list_tasks, update_task, validate_limit, validate_offset, warnings_for,
 };
 
 use crate::{Ctx, Kind, Op};
@@ -670,11 +670,7 @@ impl Op for TasksOptions {
     }
 
     async fn run(ctx: &Ctx, input: Self::Input) -> Result<Self::Output> {
-        if let Some(limit) = input.limit
-            && !(1..=5000).contains(&limit)
-        {
-            return Err(AppError::validation("limit must be between 1 and 5000"));
-        }
+        validate_limit(input.limit, 50, 5000)?;
         xboct_log_core::task_options(
             &ctx.db,
             input.project_id.as_ref().map(ProjectId::as_str),
@@ -743,11 +739,7 @@ impl Op for TasksRevisionsList {
                 "field must be 'description' or 'comment'",
             ));
         }
-        if let Some(limit) = input.limit
-            && !(1..=200).contains(&limit)
-        {
-            return Err(AppError::validation("limit must be between 1 and 200"));
-        }
+        validate_limit(input.limit, 50, 200)?;
         xboct_log_core::list_revisions(
             &ctx.db,
             input.task_id.as_str(),
@@ -789,14 +781,8 @@ impl Op for TasksDeletedList {
     }
 
     async fn run(ctx: &Ctx, input: Self::Input) -> Result<Self::Output> {
-        let limit = input.limit.unwrap_or(50);
-        if !(1..=200).contains(&limit) {
-            return Err(AppError::validation("limit must be between 1 and 200"));
-        }
-        let offset = input.offset.unwrap_or(0);
-        if offset < 0 {
-            return Err(AppError::validation("offset must be zero or positive"));
-        }
+        let limit = validate_limit(input.limit, 50, 200)?.get();
+        let offset = validate_offset(input.offset)?.get();
         let mut query = json!({
             "deleted_only": true,
             "limit": limit,

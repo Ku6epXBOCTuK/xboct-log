@@ -4,7 +4,10 @@ use serde::Deserialize;
 use serde_json::Value;
 use sqlx::{QueryBuilder, Sqlite};
 
-use crate::{ActivitySource, AppError, Db, OpName, ProjectId, Result};
+use crate::{
+    ActivitySource, DEFAULT_LIMIT, Db, MAX_LIMIT, OpName, ProjectId, Result, validate_limit,
+    validate_offset,
+};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
@@ -88,10 +91,6 @@ fn parse_changes(raw: Option<&str>) -> Vec<Value> {
             .collect(),
         _ => Vec::new(),
     }
-}
-
-fn clamp_limit(limit: Option<i64>) -> i64 {
-    limit.unwrap_or(50).clamp(1, 200)
 }
 
 #[derive(Debug, Clone, serde::Serialize, JsonSchema)]
@@ -211,8 +210,8 @@ pub async fn search_activity(db: &Db, search: &ActivitySearch) -> Result<Activit
             ops: Vec::new(),
         });
     }
-    let limit = clamp_limit(search.limit);
-    let offset = search.offset.unwrap_or(0).max(0);
+    let limit = validate_limit(search.limit, DEFAULT_LIMIT, MAX_LIMIT)?;
+    let offset = validate_offset(search.offset)?;
 
     let mut count = QueryBuilder::<Sqlite>::new("SELECT COUNT(*) FROM activity WHERE 1 = 1");
     push_search(&mut count, search);
@@ -224,9 +223,9 @@ pub async fn search_activity(db: &Db, search: &ActivitySearch) -> Result<Activit
     push_search(&mut query, search);
     query
         .push(" ORDER BY id DESC LIMIT ")
-        .push_bind(limit)
+        .push_bind(limit.get())
         .push(" OFFSET ")
-        .push_bind(offset);
+        .push_bind(offset.get());
     let rows: Vec<SearchRow> = query.build_query_as().fetch_all(db.pool()).await?;
     let items: Vec<ActivityItem> = rows
         .into_iter()
@@ -268,6 +267,9 @@ pub async fn list_activity(
             total: 0,
         });
     }
+    let limit = validate_limit(limit, DEFAULT_LIMIT, MAX_LIMIT)?;
+    let offset = validate_offset(offset)?;
+
     let mut count = QueryBuilder::<Sqlite>::new("SELECT COUNT(*) FROM activity WHERE 1 = 1");
     push_history(&mut count, entity, entity_id);
     let total: i64 = count.build_query_scalar().fetch_one(db.pool()).await?;
@@ -278,9 +280,9 @@ pub async fn list_activity(
     push_history(&mut query, entity, entity_id);
     query
         .push(" ORDER BY id DESC LIMIT ")
-        .push_bind(clamp_limit(limit))
+        .push_bind(limit.get())
         .push(" OFFSET ")
-        .push_bind(offset.unwrap_or(0).max(0));
+        .push_bind(offset.get());
     let rows: Vec<HistoryRow> = query.build_query_as().fetch_all(db.pool()).await?;
     let items: Vec<HistoryItem> = rows
         .into_iter()
@@ -297,11 +299,7 @@ pub async fn list_activity(
 }
 
 pub fn validate_activity_search(search: &ActivitySearch) -> Result<()> {
-    if search.limit.is_some_and(|limit| limit <= 0) {
-        return Err(AppError::validation("limit must be a positive number"));
-    }
-    if search.offset.is_some_and(|offset| offset < 0) {
-        return Err(AppError::validation("offset must be zero or positive"));
-    }
+    validate_limit(search.limit, DEFAULT_LIMIT, MAX_LIMIT)?;
+    validate_offset(search.offset)?;
     Ok(())
 }

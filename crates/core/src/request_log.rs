@@ -5,12 +5,10 @@ use serde_json::{Map, Value};
 use sha2::{Digest, Sha256};
 use sqlx::{QueryBuilder, Sqlite};
 
-use crate::{AppError, Db, Result};
+use crate::{AppError, DEFAULT_LIMIT, Db, MAX_LIMIT, Result, validate_limit, validate_offset};
 
 const REDACTED_VALUE: &str = "<omitted>";
 const REDACTED_FIELDS: [&str; 3] = ["description", "body", "content_base64"];
-const DEFAULT_LIMIT: i64 = 50;
-const MAX_LIMIT: i64 = 200;
 const EXPORT_LIMIT: i64 = 10000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -144,12 +142,8 @@ pub fn params_hash(op: &str, params: &Value) -> String {
 }
 
 pub fn validate_request_log_search(search: &RequestLogSearch) -> Result<()> {
-    if search.limit.is_some_and(|limit| limit <= 0) {
-        return Err(AppError::validation("limit must be a positive number"));
-    }
-    if search.offset.is_some_and(|offset| offset < 0) {
-        return Err(AppError::validation("offset must be zero or positive"));
-    }
+    validate_limit(search.limit, DEFAULT_LIMIT, MAX_LIMIT)?;
+    validate_offset(search.offset)?;
     Ok(())
 }
 
@@ -240,8 +234,8 @@ pub async fn search_request_log(db: &Db, search: &RequestLogSearch) -> Result<Re
             total: 0,
         });
     }
-    let limit = search.limit.unwrap_or(DEFAULT_LIMIT).clamp(1, MAX_LIMIT);
-    let offset = search.offset.unwrap_or(0).max(0);
+    let limit = validate_limit(search.limit, DEFAULT_LIMIT, MAX_LIMIT)?;
+    let offset = validate_offset(search.offset)?;
 
     let mut count = QueryBuilder::<Sqlite>::new("SELECT COUNT(*) FROM request_log WHERE 1 = 1");
     push_filters(&mut count, search);
@@ -253,9 +247,9 @@ pub async fn search_request_log(db: &Db, search: &RequestLogSearch) -> Result<Re
     push_filters(&mut query, search);
     query
         .push(" ORDER BY id DESC LIMIT ")
-        .push_bind(limit)
+        .push_bind(limit.get())
         .push(" OFFSET ")
-        .push_bind(offset);
+        .push_bind(offset.get());
     let rows: Vec<Row> = query.build_query_as().fetch_all(db.pool()).await?;
     Ok(RequestLogPage {
         items: rows.into_iter().map(to_item).collect(),
@@ -270,16 +264,17 @@ pub async fn export_request_log(db: &Db, search: &RequestLogSearch) -> Result<Re
             count: 0,
         });
     }
-    let limit = search.limit.unwrap_or(EXPORT_LIMIT).clamp(1, EXPORT_LIMIT);
+    let limit = validate_limit(search.limit, EXPORT_LIMIT, EXPORT_LIMIT)?;
+    let offset = validate_offset(search.offset)?;
     let mut query = QueryBuilder::<Sqlite>::new(
         "SELECT created_at, client, op, params_hash, params, status, error_kind, error_message, duration_ms FROM request_log WHERE 1 = 1",
     );
     push_filters(&mut query, search);
     query
         .push(" ORDER BY id ASC LIMIT ")
-        .push_bind(limit)
+        .push_bind(limit.get())
         .push(" OFFSET ")
-        .push_bind(search.offset.unwrap_or(0).max(0));
+        .push_bind(offset.get());
     let rows: Vec<Row> = query.build_query_as().fetch_all(db.pool()).await?;
     let mut content = String::new();
     for row in rows {

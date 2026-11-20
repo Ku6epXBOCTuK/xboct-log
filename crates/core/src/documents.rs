@@ -3,9 +3,10 @@ use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, QueryBuilder, Row, sqlite::SqliteRow};
 
 use crate::{
-    AppError, Db, DocumentKey, ProjectId, Result, Tx,
+    AppError, Db, DocumentKey, Limit, Offset, ProjectId, Result, Tx,
     fetch::{fetch_by_id, unexpected},
     query::{FieldSelection, OneOrList, Order},
+    validate_limit, validate_offset,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -207,11 +208,11 @@ impl Default for DocumentQuery {
 }
 
 impl DocumentQuery {
-    pub fn validate(&self) -> Result<()> {
-        if !(1..=1000).contains(&self.limit) {
-            return Err(AppError::validation("limit must be between 1 and 1000"));
-        }
-        Ok(())
+    pub(crate) fn pagination(&self) -> Result<(Limit, Offset)> {
+        Ok((
+            validate_limit(Some(i64::from(self.limit)), 100, 1000)?,
+            validate_offset(Some(i64::from(self.offset)))?,
+        ))
     }
 }
 
@@ -572,7 +573,7 @@ pub async fn query_documents(
     plan_id: Option<&str>,
     query: &DocumentQuery,
 ) -> Result<DocumentList> {
-    query.validate()?;
+    let (limit, offset) = query.pagination()?;
     let fields = parse_document_fields(query.fields.as_ref());
     let include_body = query.include_body == Some(true)
         || fields
@@ -594,9 +595,9 @@ pub async fn query_documents(
     push_document_order(&mut select, query);
     select
         .push(" LIMIT ")
-        .push_bind(query.limit)
+        .push_bind(limit.get())
         .push(" OFFSET ")
-        .push_bind(query.offset);
+        .push_bind(offset.get());
     let rows: Vec<Document> = select.build_query_as().fetch_all(db.pool()).await?;
 
     let items = rows

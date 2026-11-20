@@ -5,12 +5,12 @@ use serde_json::{Value, json};
 use std::collections::BTreeMap;
 
 use crate::ids::TaskKey;
-use crate::{AppError, Db, Result};
+use crate::{AppError, Db, Result, validate_limit, validate_offset};
 
 use super::filters::TaskFilters;
 use super::model::{Status, Task, TaskListEntry, TaskStats};
 use super::resolve::resolve_task_id;
-use super::sql::{list_tasks, task_by_key};
+use super::sql::{list_tasks, list_tasks_unchecked, task_by_key};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SearchTerm {
@@ -180,9 +180,8 @@ pub async fn task_options(
         input["project_id"] = json!(project_id);
     }
     let terms = query.map(parse_search_query).unwrap_or_default();
-    if terms.is_empty() {
-        input["limit"] = json!(limit.unwrap_or(5000).min(5000));
-    } else {
+    let default = if terms.is_empty() { 5000 } else { 50 };
+    if !terms.is_empty() {
         let mut q_any = Vec::new();
         let mut number_exact = Vec::new();
         let mut id_exact = Vec::new();
@@ -206,10 +205,12 @@ pub async fn task_options(
         if !id_exact.is_empty() {
             input["id_exact"] = json!(id_exact);
         }
-        input["limit"] = json!(limit.unwrap_or(50).min(5000));
     }
+    let limit = validate_limit(limit, default, 5000)?;
+    let offset = validate_offset(None)?;
+    input["limit"] = json!(limit.get());
     let filters: TaskFilters = serde_json::from_value(input)?;
-    super::sql::list_tasks_unchecked(db, &filters).await
+    list_tasks_unchecked(db, &filters, limit, offset).await
 }
 
 pub fn revision_item(row: &(i64, String, String, Option<String>, String, String)) -> Revision {
@@ -252,7 +253,7 @@ pub async fn list_revisions(
     .bind(key.as_str())
     .fetch_all(db.pool())
     .await?;
-    let limit = limit.unwrap_or(50).clamp(1, 200) as usize;
+    let limit = validate_limit(limit, 50, 200)?.get() as usize;
     let items: Vec<Revision> = rows
         .iter()
         .filter(|row| field.is_none_or(|wanted| row.2 == wanted))

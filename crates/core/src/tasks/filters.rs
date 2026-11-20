@@ -2,8 +2,9 @@ use schemars::JsonSchema;
 use serde::Deserialize;
 
 use crate::{
-    AppError, Result,
+    AppError, Limit, Offset, Result,
     ids::{ProjectId, ScopeId, Seq, TagName, TaskKey},
+    validate_limit, validate_offset,
 };
 
 use super::model::{Estimate, Priority, Status};
@@ -200,9 +201,6 @@ fn default_limit() -> u32 {
 
 impl TaskFilters {
     pub fn validate(&self) -> Result<()> {
-        if !(1..=1000).contains(&self.limit) {
-            return Err(AppError::validation("limit must be between 1 and 1000"));
-        }
         if self.q_any.as_ref().is_some_and(Vec::is_empty) {
             return Err(AppError::validation("q_any needs at least one term"));
         }
@@ -220,12 +218,11 @@ impl TaskFilters {
         Ok(())
     }
 
-    pub fn limit(&self) -> i64 {
-        i64::from(self.limit)
-    }
-
-    pub fn offset(&self) -> i64 {
-        i64::from(self.offset)
+    pub(crate) fn pagination(&self) -> Result<(Limit, Offset)> {
+        Ok((
+            validate_limit(Some(i64::from(self.limit)), 100, 1000)?,
+            validate_offset(Some(i64::from(self.offset)))?,
+        ))
     }
 
     pub fn descending(&self) -> bool {

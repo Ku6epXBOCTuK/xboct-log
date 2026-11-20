@@ -4,7 +4,7 @@ use sqlx::{QueryBuilder, Sqlite};
 
 use crate::ids::{ProjectId, ScopeId, Seq, TagName, TaskKey};
 use crate::plans::PlanRef;
-use crate::{AppError, Db, Result, fetch::fetch_by_id};
+use crate::{AppError, Db, Limit, Offset, Result, fetch::fetch_by_id};
 
 use super::filters::{LinkFilter, Sort, TaskFilters};
 use super::model::{
@@ -694,10 +694,16 @@ fn pick_fields(task: Task, fields: Option<&[String]>) -> TaskListEntry {
 
 pub async fn list_tasks(db: &Db, filters: &TaskFilters) -> Result<TaskList> {
     filters.validate()?;
-    list_tasks_unchecked(db, filters).await
+    let (limit, offset) = filters.pagination()?;
+    list_tasks_unchecked(db, filters, limit, offset).await
 }
 
-pub(crate) async fn list_tasks_unchecked(db: &Db, filters: &TaskFilters) -> Result<TaskList> {
+pub(crate) async fn list_tasks_unchecked(
+    db: &Db,
+    filters: &TaskFilters,
+    limit: Limit,
+    offset: Offset,
+) -> Result<TaskList> {
     let include_project = filters.include_project == Some(true);
     let include_scope = filters.include_scope == Some(true);
     let include_description = filters.include_description == Some(true)
@@ -730,9 +736,9 @@ pub(crate) async fn list_tasks_unchecked(db: &Db, filters: &TaskFilters) -> Resu
     push_order(&mut query, filters);
     query
         .push(" LIMIT ")
-        .push_bind(filters.limit())
+        .push_bind(limit.get())
         .push(" OFFSET ")
-        .push_bind(filters.offset());
+        .push_bind(offset.get());
 
     let rows: Vec<TaskRow> = query.build_query_as().fetch_all(db.pool()).await?;
     let keys: Vec<String> = rows.iter().map(|row| row.key.clone()).collect();
