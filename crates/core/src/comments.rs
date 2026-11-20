@@ -2,10 +2,11 @@ use schemars::JsonSchema;
 
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
-use sqlx::Row;
+use sqlx::{FromRow, Row, sqlite::SqliteRow};
 
 use crate::{
     AppError, Db, Result, TaskKey,
+    fetch::fetch_by_id,
     tasks::{now_iso, record_revision, resolve_task_id},
 };
 
@@ -21,37 +22,40 @@ pub struct Comment {
     pub deleted_at: Option<String>,
 }
 
-fn map(row: &sqlx::sqlite::SqliteRow) -> Result<Comment> {
-    Ok(Comment {
-        id: row.try_get("id")?,
-        task_id: TaskKey::new(row.try_get::<String, _>("task_id")?),
-        body: row.try_get("body")?,
-        created_at: row.try_get("created_at")?,
-        edited_at: row.try_get("edited_at")?,
-        deleted_at: row.try_get("deleted_at")?,
-    })
+impl<'r> FromRow<'r, SqliteRow> for Comment {
+    fn from_row(row: &'r SqliteRow) -> sqlx::Result<Self> {
+        Ok(Comment {
+            id: row.try_get("id")?,
+            task_id: TaskKey::new(row.try_get::<String, _>("task_id")?),
+            body: row.try_get("body")?,
+            created_at: row.try_get("created_at")?,
+            edited_at: row.try_get("edited_at")?,
+            deleted_at: row.try_get("deleted_at")?,
+        })
+    }
 }
 
 const SELECT_COMMENT: &str = "SELECT c.id, tasks.key AS task_id, c.body, c.created_at, c.edited_at, c.deleted_at FROM task_comments c JOIN tasks ON tasks.id = c.task_id";
 
 pub async fn get_comment(db: &Db, id: &str) -> Result<Option<Comment>> {
-    let row = sqlx::query(sqlx::AssertSqlSafe(format!(
-        "{SELECT_COMMENT} WHERE c.id = ?"
-    )))
-    .bind(id)
-    .fetch_optional(db.pool())
-    .await?;
-    row.as_ref().map(map).transpose()
+    fetch_by_id(
+        sqlx::query(sqlx::AssertSqlSafe(format!(
+            "{SELECT_COMMENT} WHERE c.id = ?"
+        )))
+        .bind(id),
+        db.pool(),
+    )
+    .await
 }
 
 pub async fn list_comments(db: &Db, task_id: &str) -> Result<Vec<Comment>> {
-    let rows = sqlx::query(sqlx::AssertSqlSafe(format!(
+    let rows = sqlx::query_as::<_, Comment>(sqlx::AssertSqlSafe(format!(
         "{SELECT_COMMENT} WHERE tasks.key = ? AND c.deleted_at IS NULL ORDER BY c.created_at ASC, c.rowid ASC"
     )))
     .bind(task_id)
     .fetch_all(db.pool())
     .await?;
-    rows.iter().map(map).collect()
+    Ok(rows)
 }
 
 fn normalize_body(body: &str) -> Result<String> {

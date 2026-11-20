@@ -1,8 +1,10 @@
 use schemars::JsonSchema;
 use serde::Serialize;
-use sqlx::Row;
+use sqlx::{FromRow, Row};
 
-use crate::{AppError, Db, Result, TextRevision, now_iso, require_plan, resolve_task_id};
+use crate::{
+    AppError, Db, Result, TextRevision, fetch::fetch_by_id, now_iso, require_plan, resolve_task_id,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
 pub struct PlanItem {
@@ -14,7 +16,7 @@ pub struct PlanItem {
     pub deleted: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema, FromRow)]
 pub struct PlanNote {
     pub id: String,
     pub plan_id: String,
@@ -33,18 +35,6 @@ fn row_to_item(row: &sqlx::sqlite::SqliteRow) -> Result<PlanItem> {
         is_epic: row.get::<i64, _>("is_epic") == 1,
         position: row.get("position"),
         deleted: row.get::<Option<String>, _>("deleted_at").is_some(),
-    })
-}
-
-fn row_to_note(row: &sqlx::sqlite::SqliteRow) -> Result<PlanNote> {
-    Ok(PlanNote {
-        id: row.get("id"),
-        plan_id: row.get("plan_id"),
-        key: row.get("key"),
-        body: row.get("body"),
-        created_at: row.get("created_at"),
-        edited_at: row.get("edited_at"),
-        deleted_at: row.get("deleted_at"),
     })
 }
 
@@ -176,7 +166,7 @@ pub async fn reorder_plan_items(db: &Db, plan_id: &str, keys: &[String]) -> Resu
 }
 
 pub async fn list_plan_notes(db: &Db, plan_id: &str) -> Result<Vec<PlanNote>> {
-    let rows = sqlx::query(
+    let rows = sqlx::query_as::<_, PlanNote>(
         "SELECT pn.id, pn.plan_id, pn.body, pn.created_at, pn.edited_at, pn.deleted_at, t.key
          FROM plan_notes pn
          JOIN tasks t ON t.id = pn.task_id
@@ -186,7 +176,7 @@ pub async fn list_plan_notes(db: &Db, plan_id: &str) -> Result<Vec<PlanNote>> {
     .bind(plan_id)
     .fetch_all(db.pool())
     .await?;
-    rows.iter().map(row_to_note).collect()
+    Ok(rows)
 }
 
 async fn require_plan_item(db: &Db, plan_id: &str, task_id: &str) -> Result<String> {
@@ -230,17 +220,18 @@ pub async fn add_plan_note(db: &Db, plan_id: &str, task_id: &str, body: &str) ->
 }
 
 async fn get_plan_note(db: &Db, id: &str) -> Result<PlanNote> {
-    let row = sqlx::query(
-        "SELECT pn.id, pn.plan_id, pn.body, pn.created_at, pn.edited_at, pn.deleted_at, t.key
-         FROM plan_notes pn
-         JOIN tasks t ON t.id = pn.task_id
-         WHERE pn.id = ?",
+    fetch_by_id(
+        sqlx::query(
+            "SELECT pn.id, pn.plan_id, pn.body, pn.created_at, pn.edited_at, pn.deleted_at, t.key
+             FROM plan_notes pn
+             JOIN tasks t ON t.id = pn.task_id
+             WHERE pn.id = ?",
+        )
+        .bind(id),
+        db.pool(),
     )
-    .bind(id)
-    .fetch_optional(db.pool())
     .await?
-    .ok_or_else(|| AppError::not_found(format!("plan note {id} not found")))?;
-    row_to_note(&row)
+    .ok_or_else(|| AppError::not_found(format!("plan note {id} not found")))
 }
 
 pub async fn edit_plan_note(
@@ -254,17 +245,18 @@ pub async fn edit_plan_note(
         return Err(AppError::validation("note body is required"));
     }
     let mut tx = db.begin().await?;
-    let row = sqlx::query(
-        "SELECT pn.id, pn.plan_id, pn.body, pn.created_at, pn.edited_at, pn.deleted_at, t.key
-         FROM plan_notes pn
-         JOIN tasks t ON t.id = pn.task_id
-         WHERE pn.id = ?",
+    let current = fetch_by_id::<PlanNote, _>(
+        sqlx::query(
+            "SELECT pn.id, pn.plan_id, pn.body, pn.created_at, pn.edited_at, pn.deleted_at, t.key
+             FROM plan_notes pn
+             JOIN tasks t ON t.id = pn.task_id
+             WHERE pn.id = ?",
+        )
+        .bind(id),
+        &mut *tx,
     )
-    .bind(id)
-    .fetch_optional(&mut *tx)
     .await?
     .ok_or_else(|| AppError::not_found(format!("plan note {id} not found")))?;
-    let current = row_to_note(&row)?;
     if current.deleted_at.is_some() {
         return Err(AppError::not_found(format!("plan note {id} not found")));
     }
@@ -326,7 +318,7 @@ pub async fn restore_plan_note(db: &Db, id: &str) -> Result<PlanNote> {
 }
 
 pub async fn list_deleted_plan_notes(db: &Db, plan_id: &str) -> Result<Vec<PlanNote>> {
-    let rows = sqlx::query(
+    let rows = sqlx::query_as::<_, PlanNote>(
         "SELECT pn.id, pn.plan_id, pn.body, pn.created_at, pn.edited_at, pn.deleted_at, t.key
          FROM plan_notes pn
          JOIN tasks t ON t.id = pn.task_id
@@ -336,7 +328,7 @@ pub async fn list_deleted_plan_notes(db: &Db, plan_id: &str) -> Result<Vec<PlanN
     .bind(plan_id)
     .fetch_all(db.pool())
     .await?;
-    rows.iter().map(row_to_note).collect()
+    Ok(rows)
 }
 
 pub async fn list_plan_note_revisions(db: &Db, id: &str) -> Result<Vec<TextRevision>> {

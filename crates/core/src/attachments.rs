@@ -6,6 +6,7 @@ use serde::Serialize;
 use sqlx::FromRow;
 use uuid::Uuid;
 
+use crate::fetch::fetch_by_id;
 use crate::ids::{AttachmentId, TaskKey};
 use crate::media::{attachment_format, extension_of, stored_path};
 use crate::tasks::now_iso;
@@ -94,13 +95,14 @@ async fn is_missing(media_dir: &Path, row: &Row) -> bool {
 }
 
 async fn row_by_id(db: &Db, id: &str) -> Result<Option<Row>> {
-    let sql = format!(
-        "SELECT {COLUMNS} FROM task_attachments a JOIN tasks t ON t.id = a.task_id WHERE a.id = ?"
-    );
-    Ok(sqlx::query_as::<_, Row>(sqlx::AssertSqlSafe(sql))
-        .bind(id)
-        .fetch_optional(db.pool())
-        .await?)
+    fetch_by_id(
+        sqlx::query(sqlx::AssertSqlSafe(format!(
+            "SELECT {COLUMNS} FROM task_attachments a JOIN tasks t ON t.id = a.task_id WHERE a.id = ?"
+        )))
+        .bind(id),
+        db.pool(),
+    )
+    .await
 }
 
 async fn rows_of(db: &Db, task_id: Option<&str>) -> Result<Vec<Row>> {

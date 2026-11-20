@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 
+use crate::fetch::fetch_by_id;
 use crate::{AppError, Db, Result};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -108,13 +109,15 @@ async fn read_stored(
     id: &str,
     deleted: bool,
 ) -> Result<AttachmentContents> {
-    let row: Option<(String, String, Option<String>)> = sqlx::query_as(
-        "SELECT a.file_name, a.stored_name, a.deleted_at
-         FROM task_attachments a JOIN tasks t ON t.id = a.task_id
-         WHERE a.id = ?",
+    let row: Option<(String, String, Option<String>)> = fetch_by_id(
+        sqlx::query(
+            "SELECT a.file_name, a.stored_name, a.deleted_at
+             FROM task_attachments a JOIN tasks t ON t.id = a.task_id
+             WHERE a.id = ?",
+        )
+        .bind(id),
+        db.pool(),
     )
-    .bind(id)
-    .fetch_optional(db.pool())
     .await?;
 
     let not_found = || {

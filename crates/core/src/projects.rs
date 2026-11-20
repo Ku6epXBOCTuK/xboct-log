@@ -5,8 +5,9 @@ use std::sync::OnceLock;
 
 use regex::Regex;
 use serde::Serialize;
-use sqlx::{Row, SqliteConnection};
+use sqlx::{FromRow, Row, SqliteConnection, sqlite::SqliteRow};
 
+use crate::fetch::fetch_by_id;
 use crate::ids::{Prefix, ProjectId, ScopeId};
 use crate::tasks::{Status, count_by_status};
 use crate::{AppError, Db, Result};
@@ -207,23 +208,25 @@ pub fn repo_error(value: &str) -> Option<String> {
     None
 }
 
-fn row_to_project(row: &sqlx::sqlite::SqliteRow) -> Project {
-    Project {
-        id: ProjectId::new(row.get::<String, _>("id")),
-        name: row.get("name"),
-        prefix: Prefix::new(row.get::<String, _>("prefix")),
-        repo: row.get("repo"),
-        created_at: row.get("created_at"),
-        archived_at: row.get("archived_at"),
+impl<'r> FromRow<'r, SqliteRow> for Project {
+    fn from_row(row: &'r SqliteRow) -> sqlx::Result<Self> {
+        Ok(Project {
+            id: ProjectId::new(row.get::<String, _>("id")),
+            name: row.get("name"),
+            prefix: Prefix::new(row.get::<String, _>("prefix")),
+            repo: row.get("repo"),
+            created_at: row.get("created_at"),
+            archived_at: row.get("archived_at"),
+        })
     }
 }
 
 async fn project_by_id(connection: &mut SqliteConnection, id: &str) -> Result<Option<Project>> {
-    let row = sqlx::query("SELECT * FROM projects WHERE id = ?")
-        .bind(id)
-        .fetch_optional(&mut *connection)
-        .await?;
-    Ok(row.as_ref().map(row_to_project))
+    fetch_by_id(
+        sqlx::query("SELECT * FROM projects WHERE id = ?").bind(id),
+        &mut *connection,
+    )
+    .await
 }
 
 pub async fn get_project(db: &Db, id: &str) -> Result<Option<Project>> {
@@ -274,11 +277,11 @@ pub async fn resolve_project_ref(db: &Db, reference: &str) -> Result<Option<Proj
     if let Some(project) = project_by_id(&mut connection, trimmed).await? {
         return Ok(Some(project));
     }
-    let row = sqlx::query("SELECT * FROM projects WHERE prefix = ? COLLATE NOCASE")
-        .bind(trimmed)
-        .fetch_optional(&mut *connection)
-        .await?;
-    Ok(row.as_ref().map(row_to_project))
+    fetch_by_id(
+        sqlx::query("SELECT * FROM projects WHERE prefix = ? COLLATE NOCASE").bind(trimmed),
+        &mut *connection,
+    )
+    .await
 }
 
 pub async fn list_projects(db: &Db, include_archived: bool) -> Result<Vec<Project>> {
@@ -288,11 +291,11 @@ pub async fn list_projects(db: &Db, include_archived: bool) -> Result<Vec<Projec
     } else {
         "SELECT * FROM projects WHERE archived_at IS NULL ORDER BY CASE WHEN id = ? THEN 0 ELSE 1 END, name"
     };
-    let rows = sqlx::query(sql)
+    let rows = sqlx::query_as::<_, Project>(sql)
         .bind(INBOX_PROJECT_ID)
         .fetch_all(&mut *connection)
         .await?;
-    Ok(rows.iter().map(row_to_project).collect())
+    Ok(rows)
 }
 
 pub async fn create_project(db: &Db, input: NewProject) -> Result<Project> {

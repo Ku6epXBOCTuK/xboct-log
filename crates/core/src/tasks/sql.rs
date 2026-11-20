@@ -4,7 +4,7 @@ use sqlx::{QueryBuilder, Sqlite};
 
 use crate::ids::{ProjectId, ScopeId, Seq, TagName, TaskKey};
 use crate::plans::PlanRef;
-use crate::{AppError, Db, Result};
+use crate::{AppError, Db, Result, fetch::fetch_by_id};
 
 use super::filters::{LinkFilter, Sort, TaskFilters};
 use super::model::{
@@ -796,12 +796,14 @@ pub async fn count_epic_children_by_status(
 }
 
 pub(crate) async fn task_by_key(db: &Db, key: &str) -> Result<Option<Task>> {
-    let row: Option<TaskRow> = sqlx::query_as(
-		"SELECT tasks.*, (SELECT key FROM tasks epic WHERE epic.id = tasks.epic_id) AS epic_key, (SELECT COUNT(*) FROM task_attachments a WHERE a.task_id = tasks.id AND a.deleted_at IS NULL) AS attachments_count, NULL AS project_name, NULL AS scope_name FROM tasks WHERE tasks.key = ?",
-	)
-	.bind(key)
-	.fetch_optional(db.pool())
-	.await?;
+    let row = fetch_by_id::<TaskRow, _>(
+        sqlx::query(
+			"SELECT tasks.*, (SELECT key FROM tasks epic WHERE epic.id = tasks.epic_id) AS epic_key, (SELECT COUNT(*) FROM task_attachments a WHERE a.task_id = tasks.id AND a.deleted_at IS NULL) AS attachments_count, NULL AS project_name, NULL AS scope_name FROM tasks WHERE tasks.key = ?",
+		)
+		.bind(key),
+        db.pool(),
+    )
+    .await?;
     let Some(row) = row else {
         return Ok(None);
     };

@@ -1,9 +1,10 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use sqlx::{QueryBuilder, Row};
+use sqlx::{FromRow, QueryBuilder, Row, sqlite::SqliteRow};
 
 use crate::{
     AppError, Db, DocumentKey, ProjectId, Result, Tx,
+    fetch::{fetch_by_id, unexpected},
     query::{FieldSelection, OneOrList, Order},
 };
 
@@ -286,50 +287,52 @@ pub struct TextRevision {
     pub created_at: String,
 }
 
-fn row_to_document(row: &sqlx::sqlite::SqliteRow) -> Result<Document> {
-    let kind: String = row.get("kind");
-    let status: String = row.get("status");
-    Ok(Document {
-        id: row.get("id"),
-        project_id: row.get("project_id"),
-        number: row.get("number"),
-        key: row.get("key"),
-        kind: DocumentKind::from_db(&kind).ok_or_else(|| {
-            AppError::unexpected(format!(
-                "document {} has unknown kind {kind}",
-                row.get::<String, _>("id")
-            ))
-        })?,
-        title: row.get("title"),
-        body: row.get("body"),
-        status: DocumentStatus::from_db(&status).ok_or_else(|| {
-            AppError::unexpected(format!(
-                "document {} has unknown status {status}",
-                row.get::<String, _>("id")
-            ))
-        })?,
-        source_file: row.get("source_file"),
-        created_at: row.get("created_at"),
-        updated_at: row.get("updated_at"),
-        closed_at: row.get("closed_at"),
-        deleted_at: row.get("deleted_at"),
-    })
+impl<'r> FromRow<'r, SqliteRow> for Document {
+    fn from_row(row: &'r SqliteRow) -> sqlx::Result<Self> {
+        let kind: String = row.get("kind");
+        let status: String = row.get("status");
+        Ok(Document {
+            id: row.get("id"),
+            project_id: row.get("project_id"),
+            number: row.get("number"),
+            key: row.get("key"),
+            kind: DocumentKind::from_db(&kind).ok_or_else(|| {
+                unexpected(format!(
+                    "document {} has unknown kind {kind}",
+                    row.get::<String, _>("id")
+                ))
+            })?,
+            title: row.get("title"),
+            body: row.get("body"),
+            status: DocumentStatus::from_db(&status).ok_or_else(|| {
+                unexpected(format!(
+                    "document {} has unknown status {status}",
+                    row.get::<String, _>("id")
+                ))
+            })?,
+            source_file: row.get("source_file"),
+            created_at: row.get("created_at"),
+            updated_at: row.get("updated_at"),
+            closed_at: row.get("closed_at"),
+            deleted_at: row.get("deleted_at"),
+        })
+    }
 }
 
 pub async fn get_document(db: &Db, id: &str) -> Result<Option<Document>> {
-    let row = sqlx::query("SELECT * FROM documents WHERE id = ?")
-        .bind(id)
-        .fetch_optional(db.pool())
-        .await?;
-    row.as_ref().map(row_to_document).transpose()
+    fetch_by_id(
+        sqlx::query("SELECT * FROM documents WHERE id = ?").bind(id),
+        db.pool(),
+    )
+    .await
 }
 
 pub async fn get_document_by_key(db: &Db, key: &str) -> Result<Option<Document>> {
-    let row = sqlx::query("SELECT * FROM documents WHERE key = ?")
-        .bind(key)
-        .fetch_optional(db.pool())
-        .await?;
-    row.as_ref().map(row_to_document).transpose()
+    fetch_by_id(
+        sqlx::query("SELECT * FROM documents WHERE key = ?").bind(key),
+        db.pool(),
+    )
+    .await
 }
 
 pub async fn resolve_document_id(db: &Db, id: &str) -> Result<String> {
@@ -352,9 +355,9 @@ pub async fn require_document(db: &Db, id: &str) -> Result<Document> {
 }
 
 pub async fn list_documents(db: &Db, project_id: Option<&str>) -> Result<Vec<Document>> {
-    let rows = match project_id {
+    let rows: Vec<Document> = match project_id {
         Some(id) => {
-            sqlx::query(
+            sqlx::query_as::<_, Document>(
                 "SELECT * FROM documents WHERE deleted_at IS NULL AND project_id = ?
                  ORDER BY project_id, number",
             )
@@ -363,23 +366,23 @@ pub async fn list_documents(db: &Db, project_id: Option<&str>) -> Result<Vec<Doc
             .await?
         }
         None => {
-            sqlx::query(
+            sqlx::query_as::<_, Document>(
                 "SELECT * FROM documents WHERE deleted_at IS NULL ORDER BY project_id, number",
             )
             .fetch_all(db.pool())
             .await?
         }
     };
-    rows.iter().map(row_to_document).collect()
+    Ok(rows)
 }
 
 pub async fn list_deleted_documents(db: &Db) -> Result<Vec<Document>> {
-    let rows = sqlx::query(
+    let rows = sqlx::query_as::<_, Document>(
         "SELECT * FROM documents WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC",
     )
     .fetch_all(db.pool())
     .await?;
-    rows.iter().map(row_to_document).collect()
+    Ok(rows)
 }
 
 fn add_field(parsed: &mut Vec<String>, field: &str) {
@@ -594,13 +597,12 @@ pub async fn query_documents(
         .push_bind(query.limit)
         .push(" OFFSET ")
         .push_bind(query.offset);
-    let rows: Vec<sqlx::sqlite::SqliteRow> = select.build().fetch_all(db.pool()).await?;
+    let rows: Vec<Document> = select.build_query_as().fetch_all(db.pool()).await?;
 
     let items = rows
-        .iter()
-        .map(row_to_document)
+        .into_iter()
         .map(|document| {
-            let mut view = DocumentView::from(document?);
+            let mut view = DocumentView::from(document);
             if include_body {
                 view.short_body = None;
             } else {
@@ -685,12 +687,12 @@ pub async fn update_document(
 ) -> Result<Document> {
     let id = resolve_document_id(db, id).await?;
     let mut tx = db.begin().await?;
-    let row = sqlx::query("SELECT * FROM documents WHERE id = ?")
-        .bind(&id)
-        .fetch_optional(&mut *tx)
-        .await?
-        .ok_or_else(|| AppError::not_found(format!("document {id} not found")))?;
-    let current = row_to_document(&row)?;
+    let current = fetch_by_id::<Document, _>(
+        sqlx::query("SELECT * FROM documents WHERE id = ?").bind(&id),
+        &mut *tx,
+    )
+    .await?
+    .ok_or_else(|| AppError::not_found(format!("document {id} not found")))?;
     if current.deleted_at.is_some() {
         return Err(AppError::not_found(format!("document {id} not found")));
     }
@@ -834,7 +836,7 @@ pub async fn unlink_document_from_plan(db: &Db, plan_id: &str, document_id: &str
 }
 
 pub async fn documents_for_plan(db: &Db, plan_id: &str) -> Result<Vec<Document>> {
-    let rows = sqlx::query(
+    let rows = sqlx::query_as::<_, Document>(
         "SELECT d.* FROM plan_documents pd
          JOIN documents d ON d.id = pd.document_id
          WHERE pd.plan_id = ? AND d.deleted_at IS NULL
@@ -843,7 +845,7 @@ pub async fn documents_for_plan(db: &Db, plan_id: &str) -> Result<Vec<Document>>
     .bind(plan_id)
     .fetch_all(db.pool())
     .await?;
-    rows.iter().map(row_to_document).collect()
+    Ok(rows)
 }
 
 #[cfg(test)]

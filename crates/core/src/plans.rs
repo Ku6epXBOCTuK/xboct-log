@@ -2,9 +2,12 @@ use std::collections::BTreeMap;
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use sqlx::Row;
+use sqlx::{FromRow, Row, sqlite::SqliteRow};
 
-use crate::{AppError, Db, Result};
+use crate::{
+    AppError, Db, Result,
+    fetch::{fetch_by_id, unexpected},
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
@@ -87,31 +90,33 @@ pub struct PlanPatch {
     pub status: Option<PlanStatus>,
 }
 
-fn row_to_plan(row: &sqlx::sqlite::SqliteRow) -> Result<Plan> {
-    let status: String = row.get("status");
-    Ok(Plan {
-        id: row.get("id"),
-        name: row.get("name"),
-        description: row.get("description"),
-        status: PlanStatus::from_db(&status).ok_or_else(|| {
-            AppError::unexpected(format!(
-                "plan {} has unknown status {status}",
-                row.get::<String, _>("id")
-            ))
-        })?,
-        created_at: row.get("created_at"),
-        updated_at: row.get("updated_at"),
-        closed_at: row.get("closed_at"),
-        deleted_at: row.get("deleted_at"),
-    })
+impl<'r> FromRow<'r, SqliteRow> for Plan {
+    fn from_row(row: &'r SqliteRow) -> sqlx::Result<Self> {
+        let status: String = row.get("status");
+        Ok(Plan {
+            id: row.get("id"),
+            name: row.get("name"),
+            description: row.get("description"),
+            status: PlanStatus::from_db(&status).ok_or_else(|| {
+                unexpected(format!(
+                    "plan {} has unknown status {status}",
+                    row.get::<String, _>("id")
+                ))
+            })?,
+            created_at: row.get("created_at"),
+            updated_at: row.get("updated_at"),
+            closed_at: row.get("closed_at"),
+            deleted_at: row.get("deleted_at"),
+        })
+    }
 }
 
 pub async fn get_plan(db: &Db, id: &str) -> Result<Option<Plan>> {
-    let row = sqlx::query("SELECT * FROM plans WHERE id = ?")
-        .bind(id)
-        .fetch_optional(db.pool())
-        .await?;
-    row.as_ref().map(row_to_plan).transpose()
+    fetch_by_id(
+        sqlx::query("SELECT * FROM plans WHERE id = ?").bind(id),
+        db.pool(),
+    )
+    .await
 }
 
 pub async fn require_plan(db: &Db, id: &str) -> Result<Plan> {
@@ -121,18 +126,20 @@ pub async fn require_plan(db: &Db, id: &str) -> Result<Plan> {
 }
 
 pub async fn list_plans(db: &Db) -> Result<Vec<Plan>> {
-    let rows = sqlx::query("SELECT * FROM plans WHERE deleted_at IS NULL ORDER BY name, id")
-        .fetch_all(db.pool())
-        .await?;
-    rows.iter().map(row_to_plan).collect()
+    let rows =
+        sqlx::query_as::<_, Plan>("SELECT * FROM plans WHERE deleted_at IS NULL ORDER BY name, id")
+            .fetch_all(db.pool())
+            .await?;
+    Ok(rows)
 }
 
 pub async fn list_deleted_plans(db: &Db) -> Result<Vec<Plan>> {
-    let rows =
-        sqlx::query("SELECT * FROM plans WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC")
-            .fetch_all(db.pool())
-            .await?;
-    rows.iter().map(row_to_plan).collect()
+    let rows = sqlx::query_as::<_, Plan>(
+        "SELECT * FROM plans WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC",
+    )
+    .fetch_all(db.pool())
+    .await?;
+    Ok(rows)
 }
 
 pub async fn count_plan_items(db: &Db) -> Result<BTreeMap<String, PlanCounts>> {

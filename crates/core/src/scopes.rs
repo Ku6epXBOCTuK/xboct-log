@@ -3,8 +3,9 @@ use schemars::JsonSchema;
 use std::collections::BTreeMap;
 
 use serde::Serialize;
-use sqlx::Row;
+use sqlx::{FromRow, Row, sqlite::SqliteRow};
 
+use crate::fetch::fetch_by_id;
 use crate::ids::{ProjectId, ScopeId, TaskKey};
 use crate::tasks::Status;
 use crate::{AppError, Db, Result};
@@ -52,38 +53,40 @@ pub struct ScopeDeleteReport {
     pub dry_run: bool,
 }
 
-fn row_to_scope(row: &sqlx::sqlite::SqliteRow) -> Scope {
-    Scope {
-        id: ScopeId::new(row.get::<i64, _>("id")),
-        project_id: ProjectId::new(row.get::<String, _>("project_id")),
-        name: row.get("name"),
-        created_at: row.get("created_at"),
+impl<'r> FromRow<'r, SqliteRow> for Scope {
+    fn from_row(row: &'r SqliteRow) -> sqlx::Result<Self> {
+        Ok(Scope {
+            id: ScopeId::new(row.get::<i64, _>("id")),
+            project_id: ProjectId::new(row.get::<String, _>("project_id")),
+            name: row.get("name"),
+            created_at: row.get("created_at"),
+        })
     }
 }
 
 pub async fn get_scope(db: &Db, id: ScopeId) -> Result<Option<Scope>> {
-    let row = sqlx::query("SELECT * FROM scopes WHERE id = ?")
-        .bind(id.get())
-        .fetch_optional(db.pool())
-        .await?;
-    Ok(row.as_ref().map(row_to_scope))
+    fetch_by_id(
+        sqlx::query("SELECT * FROM scopes WHERE id = ?").bind(id.get()),
+        db.pool(),
+    )
+    .await
 }
 
 pub async fn list_scopes(db: &Db, project_id: Option<&ProjectId>) -> Result<Vec<Scope>> {
     let rows = match project_id {
         None => {
-            sqlx::query("SELECT * FROM scopes ORDER BY project_id, name")
+            sqlx::query_as::<_, Scope>("SELECT * FROM scopes ORDER BY project_id, name")
                 .fetch_all(db.pool())
                 .await?
         }
         Some(project_id) => {
-            sqlx::query("SELECT * FROM scopes WHERE project_id = ? ORDER BY name")
+            sqlx::query_as::<_, Scope>("SELECT * FROM scopes WHERE project_id = ? ORDER BY name")
                 .bind(project_id.as_str())
                 .fetch_all(db.pool())
                 .await?
         }
     };
-    Ok(rows.iter().map(row_to_scope).collect())
+    Ok(rows)
 }
 
 pub async fn find_scope_by_name(
@@ -91,14 +94,15 @@ pub async fn find_scope_by_name(
     project_id: &ProjectId,
     name: &str,
 ) -> Result<Option<Scope>> {
-    let row = sqlx::query(
-        "SELECT * FROM scopes WHERE project_id = ? AND lower(name) = lower(?) ORDER BY id LIMIT 1",
+    fetch_by_id(
+        sqlx::query(
+            "SELECT * FROM scopes WHERE project_id = ? AND lower(name) = lower(?) ORDER BY id LIMIT 1",
+        )
+        .bind(project_id.as_str())
+        .bind(name.trim()),
+        db.pool(),
     )
-    .bind(project_id.as_str())
-    .bind(name.trim())
-    .fetch_optional(db.pool())
-    .await?;
-    Ok(row.as_ref().map(row_to_scope))
+    .await
 }
 
 pub async fn scoped_project_ids(db: &Db) -> Result<Vec<ProjectId>> {

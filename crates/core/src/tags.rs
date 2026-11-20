@@ -3,8 +3,9 @@ use schemars::JsonSchema;
 use std::collections::BTreeMap;
 
 use serde::Serialize;
-use sqlx::Row;
+use sqlx::{FromRow, Row, sqlite::SqliteRow};
 
+use crate::fetch::fetch_by_id;
 use crate::ids::{ProjectId, TagName};
 use crate::tasks::Status;
 use crate::{AppError, Db, Result};
@@ -69,27 +70,29 @@ pub fn tag_name_error(name: &str) -> Option<String> {
     None
 }
 
-fn row_to_tag(row: &sqlx::sqlite::SqliteRow) -> TagRecord {
-    TagRecord {
-        name: TagName::new(row.get::<String, _>("name")),
-        archived: row.get::<i64, _>("archived") == 1,
-        created_at: row.get("created_at"),
+impl<'r> FromRow<'r, SqliteRow> for TagRecord {
+    fn from_row(row: &'r SqliteRow) -> sqlx::Result<Self> {
+        Ok(TagRecord {
+            name: TagName::new(row.get::<String, _>("name")),
+            archived: row.get::<i64, _>("archived") == 1,
+            created_at: row.get("created_at"),
+        })
     }
 }
 
 pub async fn get_tag(db: &Db, raw: &str) -> Result<Option<TagRecord>> {
-    let row = sqlx::query("SELECT * FROM tags WHERE name = ?")
-        .bind(normalize_tag_name(raw))
-        .fetch_optional(db.pool())
-        .await?;
-    Ok(row.as_ref().map(row_to_tag))
+    fetch_by_id(
+        sqlx::query("SELECT * FROM tags WHERE name = ?").bind(normalize_tag_name(raw)),
+        db.pool(),
+    )
+    .await
 }
 
 pub async fn list_dictionary(db: &Db) -> Result<Vec<TagRecord>> {
-    let rows = sqlx::query("SELECT * FROM tags ORDER BY name")
+    let rows = sqlx::query_as::<_, TagRecord>("SELECT * FROM tags ORDER BY name")
         .fetch_all(db.pool())
         .await?;
-    Ok(rows.iter().map(row_to_tag).collect())
+    Ok(rows)
 }
 
 pub async fn list_tags(db: &Db, query: &TagQuery) -> Result<Vec<TagCount>> {
@@ -162,15 +165,16 @@ pub async fn list_tag_inventory(db: &Db) -> Result<Vec<TagInventoryEntry>> {
     }
 
     let rows = statement.fetch_all(db.pool()).await?;
-    Ok(rows
-        .iter()
-        .map(|row| TagInventoryEntry {
-            tag: row_to_tag(row),
+    let mut items = Vec::with_capacity(rows.len());
+    for row in rows {
+        items.push(TagInventoryEntry {
+            tag: TagRecord::from_row(&row)?,
             count: row.get("count"),
             active: row.get("active"),
             backlog: row.get("backlog"),
-        })
-        .collect())
+        });
+    }
+    Ok(items)
 }
 
 pub async fn ensure_tag(db: &Db, raw: &str) -> Result<TagRecord> {

@@ -11,6 +11,7 @@ pub mod db;
 pub mod documents;
 pub mod error;
 pub mod events;
+pub mod fetch;
 pub mod ids;
 pub mod media;
 mod migrations;
