@@ -2,6 +2,13 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.13.0](https://github.com/Ku6epXBOCTuK/xboct-log/compare/f235f756e3513782c9c1edd7a92714db441f42d3..v0.13.0) - 2026-11-20
+#### Features
+- (**mcp**) list every tool with brief rare descriptions and on-demand schemas - ([66e9a3e](https://github.com/Ku6epXBOCTuK/xboct-log/commit/66e9a3e3ac567601baf8860e98b897307d950fc2)) - Ku6epXBOCTuK
+- (**mcp**) expose a tiered tool surface with on-demand tool discovery - ([f235f75](https://github.com/Ku6epXBOCTuK/xboct-log/commit/f235f756e3513782c9c1edd7a92714db441f42d3)) - Ku6epXBOCTuK
+
+- - -
+
 ## [v0.12.0](https://github.com/Ku6epXBOCTuK/xboct-log/compare/8ae3ddad111188053da1117e136d1df6cb26c4d0..v0.12.0) - 2026-11-20
 #### Features
 - (**core**) add plans schema migrations - ([8ae3dda](https://github.com/Ku6epXBOCTuK/xboct-log/commit/8ae3ddad111188053da1117e136d1df6cb26c4d0)) - Ku6epXBOCTuK
