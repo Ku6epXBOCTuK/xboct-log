@@ -130,7 +130,10 @@ impl ServerHandler for Backlog {
             .enable_resources_list_changed()
             .build();
         InitializeResult::new(capabilities)
-            .with_instructions(mcp_text::INSTRUCTIONS)
+            .with_instructions(mcp_text::build_instructions(
+                &tool_names(),
+                &everyday_arguments(),
+            ))
             .with_server_info(rmcp::model::Implementation::new(
                 crate::APP_NAME,
                 env!("CARGO_PKG_VERSION"),
@@ -378,8 +381,16 @@ impl Backlog {
 
     fn call_tool_description(&self, query: &str) -> CallToolResult {
         let needle = query.trim().to_lowercase();
+        let catalog = tool_catalog();
+        if let Some(entry) = catalog
+            .iter()
+            .find(|info| info.name == needle)
+            .and_then(catalog_entry)
+        {
+            return success(json!(ToolDescriptionOutput { items: vec![entry] }));
+        }
         let words: Vec<&str> = needle.split_whitespace().collect();
-        let mut found: Vec<(usize, CatalogEntry)> = tool_catalog()
+        let mut found: Vec<(usize, CatalogEntry)> = catalog
             .into_iter()
             .filter_map(|info| {
                 let name = info.name.to_lowercase();
@@ -404,21 +415,7 @@ impl Backlog {
                         return None;
                     }
                 }
-                let (input, _) = match tool_schema(info.name) {
-                    Some(schema) => schema,
-                    None if info.name == "attachments_read" => {
-                        (schema_of::<ReadAttachmentInput>(), Value::Null)
-                    }
-                    None => return None,
-                };
-                Some((
-                    score,
-                    CatalogEntry {
-                        name: info.name.to_string(),
-                        description: info.description.to_string(),
-                        params: catalog_params(&input),
-                    },
-                ))
+                catalog_entry(&info).map(|entry| (score, entry))
             })
             .collect();
         found.sort_by(|left, right| {
@@ -579,10 +576,7 @@ fn tools() -> Result<Vec<Tool>, McpError> {
 }
 
 fn tool_catalog() -> Vec<OpInfo> {
-    let mut infos: Vec<OpInfo> = metadata()
-        .into_iter()
-        .filter(|info| info.mcp && info.lazy)
-        .collect();
+    let mut infos: Vec<OpInfo> = metadata().into_iter().filter(|info| info.mcp).collect();
     infos.push(OpInfo {
         name: "attachments_read",
         kind: Kind::Query,
@@ -592,6 +586,128 @@ fn tool_catalog() -> Vec<OpInfo> {
         entity: None,
     });
     infos
+}
+
+fn tool_names() -> Vec<(String, String)> {
+    let mut names: Vec<(String, String)> = metadata()
+        .into_iter()
+        .filter(|info| info.mcp)
+        .map(|info| (info.name.to_string(), summary(info.description)))
+        .collect();
+    names.push((
+        "attachments_read".to_string(),
+        summary(mcp_text::ATTACHMENTS_READ_DESCRIPTION),
+    ));
+    names.push((
+        "xboct_log_tool_description".to_string(),
+        summary(mcp_text::TOOL_DESCRIPTION_DESCRIPTION),
+    ));
+    names.push((
+        "xboct_log_call".to_string(),
+        summary(mcp_text::XBOCT_LOG_CALL_DESCRIPTION),
+    ));
+    names.sort_by(|left, right| left.0.cmp(&right.0));
+    names
+}
+
+fn everyday_arguments() -> Vec<(String, String)> {
+    let mut arguments = Vec::new();
+    for info in metadata().into_iter().filter(|info| info.mcp && !info.lazy) {
+        if let Some((input, _)) = tool_schema(info.name) {
+            arguments.push((info.name.to_string(), format_arguments(&input)));
+        }
+    }
+    arguments.sort_by(|left, right| left.0.cmp(&right.0));
+    arguments
+}
+
+fn format_arguments(schema: &Value) -> String {
+    let Some(properties) = schema.get("properties").and_then(Value::as_object) else {
+        return "no arguments".to_string();
+    };
+    let required: Vec<&str> = schema
+        .get("required")
+        .and_then(Value::as_array)
+        .map(|fields| fields.iter().filter_map(Value::as_str).collect())
+        .unwrap_or_default();
+    properties
+        .iter()
+        .map(|(name, property)| {
+            let marker = if required.contains(&name.as_str()) {
+                "required"
+            } else {
+                "optional"
+            };
+            format!("{}: {} [{}]", name, argument_type(property, schema), marker)
+        })
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn argument_type<'a>(schema: &'a Value, root: &'a Value) -> &'static str {
+    let schema = deref(schema, root);
+    if let Some(name) = schema
+        .get("type")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .find(|name| *name != "null")
+    {
+        return primitive_type(name);
+    }
+    if let Some(name) = schema.get("type").and_then(Value::as_str) {
+        return primitive_type(name);
+    }
+    let variants = schema
+        .get("anyOf")
+        .and_then(Value::as_array)
+        .or_else(|| schema.get("oneOf").and_then(Value::as_array));
+    if let Some(variants) = variants {
+        for variant in variants {
+            let name = argument_type(variant, root);
+            if name != "value" {
+                return name;
+            }
+        }
+    }
+    if schema.get("enum").is_some() {
+        "enum"
+    } else {
+        "value"
+    }
+}
+
+fn primitive_type(name: &str) -> &'static str {
+    match name {
+        "string" => "string",
+        "integer" => "integer",
+        "number" => "number",
+        "boolean" => "boolean",
+        "array" => "array",
+        "object" => "object",
+        _ => "value",
+    }
+}
+
+fn summary(description: &str) -> String {
+    let sentence = description.split(". ").next().unwrap_or(description);
+    clip(sentence.trim().trim_end_matches(['.', ',', ' ']), 140)
+}
+
+fn catalog_entry(info: &OpInfo) -> Option<CatalogEntry> {
+    let (input, _) = match tool_schema(info.name) {
+        Some(schema) => schema,
+        None if info.name == "attachments_read" => {
+            (schema_of::<ReadAttachmentInput>(), Value::Null)
+        }
+        None => return None,
+    };
+    Some(CatalogEntry {
+        name: info.name.to_string(),
+        description: info.description.to_string(),
+        params: catalog_params(&input),
+    })
 }
 
 fn catalog_params(schema: &Value) -> Vec<CatalogParam> {
@@ -618,8 +734,7 @@ fn catalog_params(schema: &Value) -> Vec<CatalogParam> {
 }
 
 fn brief_description(name: &str, description: &str) -> String {
-    let sentence = description.split(". ").next().unwrap_or(description);
-    let sentence = clip(sentence.trim(), 140);
+    let sentence = summary(description);
     let sentence = sentence.trim_end_matches(['.', ',', ' ']);
     format!(
         "{sentence}. Get the argument schema with xboct_log_tool_description {{query: '{name}'}}."
@@ -975,6 +1090,44 @@ mod tests {
         assert!(attachment.output_schema.is_none());
     }
 
+    #[test]
+    fn instructions_cover_every_tool_and_everyday_arguments() {
+        let text = mcp_text::build_instructions(&tool_names(), &everyday_arguments());
+        for info in metadata().into_iter().filter(|info| info.mcp) {
+            assert!(
+                text.contains(&format!("- {}: ", info.name)),
+                "{} is named in the instructions",
+                info.name
+            );
+        }
+        for name in [
+            "attachments_read",
+            "xboct_log_tool_description",
+            "xboct_log_call",
+        ] {
+            assert!(text.contains(&format!("- {name}: ")), "{name}");
+        }
+        for info in metadata().into_iter().filter(|info| info.mcp && !info.lazy) {
+            let (input, _) = tool_schema(info.name).expect("everyday schema");
+            let line = text
+                .lines()
+                .find(|line| line.starts_with(&format!("- {}(", info.name)))
+                .unwrap_or_else(|| panic!("{} arguments are listed", info.name));
+            for field in input["required"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter_map(Value::as_str)
+            {
+                assert!(
+                    line.contains(&format!("{field}: ")),
+                    "{} lists required {field}: {line}",
+                    info.name
+                );
+            }
+        }
+    }
+
     #[tokio::test]
     async fn tool_description_and_call_reach_rare_tools() {
         let backlog = backlog().await;
@@ -1028,6 +1181,18 @@ mod tests {
             .description;
         assert_eq!(item["name"], "tasks_delete");
         assert_eq!(item["description"], full);
+
+        let (_, _, result) = backlog
+            .call_named(
+                "xboct_log_tool_description",
+                json!({"query": "tasks_get"}),
+                None,
+            )
+            .await;
+        let payload = result.structured_content.unwrap();
+        let items = payload["items"].as_array().unwrap();
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0]["name"], "tasks_get");
 
         let (name, args, result) = backlog
             .call_named(
