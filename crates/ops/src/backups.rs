@@ -9,11 +9,7 @@ use xboct_log_core::{
     resolve_backup, restore_backup, run_backup,
 };
 
-use crate::{Ctx, Kind, descriptions};
-
-#[derive(Debug, Default, Clone, Serialize, Deserialize, JsonSchema)]
-#[serde(default, deny_unknown_fields)]
-pub struct EmptyInput {}
+use crate::{Ctx, EmptyInput, Kind, descriptions};
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]

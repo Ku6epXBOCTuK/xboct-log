@@ -9,11 +9,7 @@ use xboct_log_core::{
     restore_plan, restore_plan_note, update_plan,
 };
 
-use crate::{Ctx, Items, Kind, Op};
-
-#[derive(Debug, Default, Deserialize, JsonSchema)]
-#[serde(default, deny_unknown_fields)]
-pub struct Empty {}
+use crate::{Ctx, EmptyInput, Items, Kind, Op};
 
 #[derive(Debug, Default, Deserialize, JsonSchema)]
 #[serde(default, deny_unknown_fields)]
@@ -228,7 +224,7 @@ impl Op for PlansDeletedList {
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
 
-    type Input = Empty;
+    type Input = EmptyInput;
     type Output = Items<Plan>;
 
     fn description() -> &'static str {

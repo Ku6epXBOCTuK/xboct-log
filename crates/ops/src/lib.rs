@@ -55,6 +55,10 @@ pub fn patch_fields(name: &str) -> &'static [&'static str] {
     }
 }
 
+#[derive(Debug, Default, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(default, deny_unknown_fields)]
+pub struct EmptyInput {}
+
 #[derive(Debug, Serialize, JsonSchema)]
 pub struct Items<T> {
     pub items: Vec<T>,

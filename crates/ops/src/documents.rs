@@ -8,7 +8,7 @@ use xboct_log_core::{
     restore_document, unlink_document_from_plan, update_document,
 };
 
-use crate::{Ctx, Items, Kind, Op, plans::Empty};
+use crate::{Ctx, EmptyInput, Items, Kind, Op};
 
 pub struct DocumentsList;
 
@@ -196,7 +196,7 @@ impl Op for DocumentsDeletedList {
     const KIND: Kind = Kind::Query;
     const MCP: bool = true;
 
-    type Input = Empty;
+    type Input = EmptyInput;
     type Output = Items<Document>;
 
     fn description() -> &'static str {

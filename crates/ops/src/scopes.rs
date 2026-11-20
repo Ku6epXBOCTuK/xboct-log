@@ -7,7 +7,7 @@ use xboct_log_core::{
     list_scopes, preview_scope_delete, scoped_project_ids, update_scope,
 };
 
-use crate::{Ctx, Items, Kind, Op};
+use crate::{Ctx, EmptyInput, Items, Kind, Op};
 
 fn required_project(value: &str) -> Result<ProjectId> {
     let trimmed = value.trim();
@@ -106,10 +106,6 @@ impl Op for ScopesProjectIds {
         Ok(Items { items })
     }
 }
-
-#[derive(Debug, Default, Deserialize, JsonSchema)]
-#[serde(default, deny_unknown_fields)]
-pub struct EmptyInput {}
 
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]

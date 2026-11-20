@@ -7,7 +7,7 @@ use xboct_log_core::{
     set_tag_archived,
 };
 
-use crate::{Ctx, Kind, Op};
+use crate::{Ctx, EmptyInput, Kind, Op};
 
 #[derive(Debug, Default, Deserialize, JsonSchema)]
 #[serde(default, deny_unknown_fields)]
@@ -57,10 +57,6 @@ impl Op for TagsList {
         })
     }
 }
-
-#[derive(Debug, Default, Deserialize, JsonSchema)]
-#[serde(default, deny_unknown_fields)]
-pub struct EmptyInput {}
 
 #[derive(Debug, Serialize, JsonSchema)]
 pub struct DictionaryOutput {

@@ -275,6 +275,24 @@ async fn rejects_unknown_operations_and_fields() {
 }
 
 #[tokio::test]
+async fn empty_input_accepts_empty_object_and_rejects_fields() {
+    let ctx = context().await;
+    dispatch(&ctx, "scopes_project_ids", json!({}))
+        .await
+        .unwrap();
+
+    let field = dispatch(&ctx, "scopes_project_ids", json!({ "project_id": "log" }))
+        .await
+        .unwrap_err();
+    assert_eq!(field.kind(), AppErrorKind::Validation);
+    assert!(
+        field.message().contains("unknown field"),
+        "{}",
+        field.message()
+    );
+}
+
+#[tokio::test]
 async fn records_activity_and_publishes_a_change_for_commands() {
     let ctx = context().await;
     let mut receiver = ctx.events.subscribe();
