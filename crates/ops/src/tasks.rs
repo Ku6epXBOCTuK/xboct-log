@@ -341,6 +341,9 @@ pub struct TasksCreateMany;
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct CreateManyInput {
+    #[schemars(
+        description = "At least one item; every item needs its own project_id and title, and epic_id is optional. A top-level project_id is not accepted. Example: {\"items\":[{\"project_id\":\"brul\",\"title\":\"...\",\"epic_id\":\"BRUL-276\"}]}"
+    )]
     pub items: Vec<NewTask>,
 }
 

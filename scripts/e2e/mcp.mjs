@@ -259,6 +259,15 @@ try {
 		batchB = created[1].task;
 		assert.equal(batchA.title, "Batch A");
 	});
+	await check("tasks_create_many rejects a missing project_id", async () => {
+		const error = failed(
+			await client.callTool("tasks_create_many", {
+				items: [{ title: "No project" }],
+			}),
+			"tasks_create_many missing project_id",
+		);
+		assert.match(error.message, /project_id/);
+	});
 
 	console.log("\nreads");
 	await check("tasks_get", async () => {

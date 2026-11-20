@@ -727,6 +727,25 @@ mod tests {
         assert_eq!(failure_details(&success(json!({"ok": true}))), None);
     }
 
+    #[test]
+    fn create_many_item_schema_documents_required_fields_and_example() {
+        let (input, _) = tool_schema("tasks_create_many").expect("tasks_create_many schema");
+        let items = &input["properties"]["items"];
+        let description = items["description"].as_str().unwrap_or_default();
+        assert!(
+            description.contains("\"items\":[{\"project_id\":\"brul\""),
+            "items description: {description}"
+        );
+        let item = deref(&items["items"], &input);
+        let required = item["required"].as_array().expect("item required fields");
+        assert!(
+            required
+                .iter()
+                .any(|field| field.as_str() == Some("project_id"))
+        );
+        assert!(required.iter().any(|field| field.as_str() == Some("title")));
+    }
+
     fn assert_refs_resolve(schema: &Map<String, Value>, name: &str) {
         let mut refs = Vec::new();
         collect_refs(&Value::Object(schema.clone()), &mut refs);

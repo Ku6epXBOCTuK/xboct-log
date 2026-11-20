@@ -875,7 +875,7 @@ export interface paths {
         put?: never;
         /**
          * Create several tasks in one call
-         * @description Create several tasks in one call. Each item is created independently and the response reports ok/error per item; a failing item does not cancel the others. Items are created in the given order, so task numbers are allocated sequentially. Each item needs its own project_id and title and accepts the same fields as tasks_create, including epic_id as a full epic id of the item's project. Returns: {items, succeeded, failed} - every item is {index, id, ok, task, changes, released, warnings} when it worked and {index, id, ok:false, error:{kind, message}} when it failed, where index is the position in the request list and id is the id of the created task (null for a failed item). changes is empty for a created task, released is empty when nothing was released. Every item carries its own warnings array. Tags are a closed dictionary here as well: an unknown tag fails that item and leaves the others untouched. Every returned task keeps plan_ids and adds plan_names ({id, name}) for readable plan references.
+         * @description Create several tasks in one call. Each item is created independently and the response reports ok/error per item; a failing item does not cancel the others. Items are created in the given order, so task numbers are allocated sequentially. Each item needs its own project_id and title and accepts the same fields as tasks_create, including epic_id as a full epic id of the item's project. Example: {"items":[{"project_id":"brul","title":"...","epic_id":"BRUL-276"}]}. A top-level project_id is not accepted. Returns: {items, succeeded, failed} - every item is {index, id, ok, task, changes, released, warnings} when it worked and {index, id, ok:false, error:{kind, message}} when it failed, where index is the position in the request list and id is the id of the created task (null for a failed item). changes is empty for a created task, released is empty when nothing was released. Every item carries its own warnings array. Tags are a closed dictionary here as well: an unknown tag fails that item and leaves the others untouched. Every returned task keeps plan_ids and adds plan_names ({id, name}) for readable plan references.
          */
         post: operations["tasks_create_many"];
         delete?: never;
@@ -5595,6 +5595,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
+                    /** @description At least one item; every item needs its own project_id and title, and epic_id is optional. A top-level project_id is not accepted. Example: {"items":[{"project_id":"brul","title":"...","epic_id":"BRUL-276"}]} */
                     items: components["schemas"]["NewTask"][];
                 };
             };
