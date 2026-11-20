@@ -30,7 +30,7 @@ const ATTACHMENT_URI_PREFIX: &str = "xboct-log://attachment/";
 const DOCUMENT_INDEX_URI: &str = "xboct-log://documents";
 const DOCUMENT_URI_PREFIX: &str = "xboct-log://document/";
 const CLIENT_LABEL_MAX_LENGTH: usize = 80;
-const MAX_FIND_RESULTS: usize = 8;
+const MAX_DESCRIPTION_RESULTS: usize = 8;
 
 #[derive(serde::Serialize, schemars::JsonSchema)]
 struct ReadAttachmentInput {
@@ -40,13 +40,13 @@ struct ReadAttachmentInput {
 
 #[derive(serde::Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
-struct FindInput {
+struct ToolDescriptionInput {
     #[schemars(description = "Words to match against a tool name or its description.")]
     query: String,
 }
 
 #[derive(serde::Serialize, schemars::JsonSchema)]
-struct FindOutput {
+struct ToolDescriptionOutput {
     items: Vec<CatalogEntry>,
 }
 
@@ -67,7 +67,7 @@ struct CatalogParam {
 #[derive(serde::Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
 struct CallInput {
-    #[schemars(description = "The exact tool name returned by xboct_log_find.")]
+    #[schemars(description = "The exact tool name returned by xboct_log_tool_description.")]
     tool: String,
     #[schemars(description = "The arguments of that tool as a JSON object.")]
     args: Value,
@@ -334,17 +334,19 @@ impl Backlog {
                     return (name.to_string(), arguments, bare_failure(&message));
                 }
             };
-            if input.tool == "xboct_log_call" || input.tool == "xboct_log_find" {
-                let message = "xboct_log_call cannot call xboct_log_find or xboct_log_call";
+            if input.tool == "xboct_log_call" || input.tool == "xboct_log_tool_description" {
+                let message =
+                    "xboct_log_call cannot call xboct_log_tool_description or xboct_log_call";
                 return (name.to_string(), arguments, bare_failure(message));
             }
             return self.call_direct(&input.tool, input.args, client).await;
         }
-        if name == "xboct_log_find" {
-            let result = match serde_json::from_value::<FindInput>(arguments.clone()) {
-                Ok(input) => self.call_find(&input.query),
+        if name == "xboct_log_tool_description" {
+            let result = match serde_json::from_value::<ToolDescriptionInput>(arguments.clone()) {
+                Ok(input) => self.call_tool_description(&input.query),
                 Err(error) => {
-                    let message = format!("Input validation error for xboct_log_find: {error}");
+                    let message =
+                        format!("Input validation error for xboct_log_tool_description: {error}");
                     bare_failure(&message)
                 }
             };
@@ -374,7 +376,7 @@ impl Backlog {
         (name.to_string(), arguments, result)
     }
 
-    fn call_find(&self, query: &str) -> CallToolResult {
+    fn call_tool_description(&self, query: &str) -> CallToolResult {
         let needle = query.trim().to_lowercase();
         let words: Vec<&str> = needle.split_whitespace().collect();
         let mut found: Vec<(usize, CatalogEntry)> = tool_catalog()
@@ -413,7 +415,7 @@ impl Backlog {
                     score,
                     CatalogEntry {
                         name: info.name.to_string(),
-                        description: clip(info.description, 240),
+                        description: info.description.to_string(),
                         params: catalog_params(&input),
                     },
                 ))
@@ -425,9 +427,9 @@ impl Backlog {
                 .cmp(&left.0)
                 .then_with(|| left.1.name.cmp(&right.1.name))
         });
-        found.truncate(MAX_FIND_RESULTS);
+        found.truncate(MAX_DESCRIPTION_RESULTS);
         let items = found.into_iter().map(|(_, entry)| entry).collect();
-        success(json!(FindOutput { items }))
+        success(json!(ToolDescriptionOutput { items }))
     }
 
     async fn call_attachments_read(&self, arguments: &Value) -> CallToolResult {
@@ -531,7 +533,15 @@ fn attachment_mime(file_name: &str) -> String {
 
 fn tools() -> Result<Vec<Tool>, McpError> {
     let mut tools = Vec::new();
-    for info in metadata().iter().filter(|info| info.mcp && !info.lazy) {
+    for info in metadata().iter().filter(|info| info.mcp) {
+        if info.lazy {
+            tools.push(Tool::new_with_raw(
+                info.name,
+                Some(Cow::Owned(brief_description(info.name, info.description))),
+                parse_schema(json!({"type": "object"})),
+            ));
+            continue;
+        }
         let (input, output) = tool_schema(info.name).ok_or_else(|| {
             McpError::internal_error(format!("no schema for the tool {}", info.name), None)
         })?;
@@ -544,13 +554,21 @@ fn tools() -> Result<Vec<Tool>, McpError> {
             .with_raw_output_schema(parse_schema(output)),
         );
     }
+    tools.push(Tool::new_with_raw(
+        "attachments_read",
+        Some(Cow::Owned(brief_description(
+            "attachments_read",
+            mcp_text::ATTACHMENTS_READ_DESCRIPTION,
+        ))),
+        parse_schema(json!({"type": "object"})),
+    ));
     tools.push(
         Tool::new_with_raw(
-            "xboct_log_find",
-            Some(Cow::Borrowed(mcp_text::XBOCT_LOG_FIND_DESCRIPTION)),
-            parse_schema(schema_of::<FindInput>()),
+            "xboct_log_tool_description",
+            Some(Cow::Borrowed(mcp_text::TOOL_DESCRIPTION_DESCRIPTION)),
+            parse_schema(schema_of::<ToolDescriptionInput>()),
         )
-        .with_raw_output_schema(parse_schema(schema_of::<FindOutput>())),
+        .with_raw_output_schema(parse_schema(schema_of::<ToolDescriptionOutput>())),
     );
     tools.push(Tool::new_with_raw(
         "xboct_log_call",
@@ -597,6 +615,15 @@ fn catalog_params(schema: &Value) -> Vec<CatalogParam> {
                 .unwrap_or_default(),
         })
         .collect()
+}
+
+fn brief_description(name: &str, description: &str) -> String {
+    let sentence = description.split(". ").next().unwrap_or(description);
+    let sentence = clip(sentence.trim(), 140);
+    let sentence = sentence.trim_end_matches(['.', ',', ' ']);
+    format!(
+        "{sentence}. Get the argument schema with xboct_log_tool_description {{query: '{name}'}}."
+    )
 }
 
 fn clip(text: &str, limit: usize) -> String {
@@ -893,34 +920,72 @@ mod tests {
     }
 
     #[test]
-    fn lists_only_the_common_tools() {
+    fn lists_every_tool_with_brief_descriptions_for_rare_ones() {
         let listed = tools().unwrap();
         let names: Vec<String> = listed.iter().map(|tool| tool.name.to_string()).collect();
-        assert_eq!(names.len(), 20);
+        assert_eq!(
+            names.len(),
+            metadata().iter().filter(|info| info.mcp).count() + 3
+        );
         for expected in [
             "tasks_list",
             "plans_notes_add",
-            "xboct_log_find",
+            "tasks_delete",
+            "plans_notes_delete",
+            "attachments_read",
+            "xboct_log_tool_description",
             "xboct_log_call",
         ] {
             assert!(names.iter().any(|name| name == expected), "{expected}");
         }
-        for missing in ["tasks_delete", "plans_notes_delete", "attachments_read"] {
-            assert!(!names.iter().any(|name| name == missing), "{missing}");
-        }
+
+        let find = |name: &str| {
+            listed
+                .iter()
+                .find(|tool| tool.name == name)
+                .unwrap_or_else(|| panic!("{name} is listed"))
+        };
+        let common = find("tasks_list");
+        let full = metadata()
+            .into_iter()
+            .find(|info| info.name == "tasks_list")
+            .unwrap()
+            .description;
+        assert_eq!(common.description.as_deref(), Some(full));
+        assert!(common.output_schema.is_some());
+        assert!(common.input_schema.contains_key("properties"));
+
+        let rare = find("tasks_delete");
+        let brief = rare.description.as_deref().unwrap();
+        assert!(brief.contains("Get the argument schema"), "{brief}");
+        assert_eq!(
+            &*rare.input_schema,
+            json!({"type":"object"}).as_object().unwrap()
+        );
+        assert!(rare.output_schema.is_none());
+
+        let attachment = find("attachments_read");
+        assert!(
+            attachment
+                .description
+                .as_deref()
+                .unwrap()
+                .contains("xboct_log_tool_description")
+        );
+        assert!(attachment.output_schema.is_none());
     }
 
     #[tokio::test]
-    async fn find_and_call_reach_lazy_tools() {
+    async fn tool_description_and_call_reach_rare_tools() {
         let backlog = backlog().await;
         let (name, _, result) = backlog
             .call_named(
-                "xboct_log_find",
+                "xboct_log_tool_description",
                 json!({"query": "restore deleted task"}),
                 None,
             )
             .await;
-        assert_eq!(name, "xboct_log_find");
+        assert_eq!(name, "xboct_log_tool_description");
         assert_eq!(result.is_error, None);
         let payload = result.structured_content.unwrap();
         let items = payload["items"].as_array().unwrap();
@@ -932,7 +997,11 @@ mod tests {
         }));
 
         let (_, _, result) = backlog
-            .call_named("xboct_log_find", json!({"query": "attachment file"}), None)
+            .call_named(
+                "xboct_log_tool_description",
+                json!({"query": "attachment file"}),
+                None,
+            )
             .await;
         let payload = result.structured_content.unwrap();
         assert!(
@@ -942,6 +1011,23 @@ mod tests {
                 .iter()
                 .any(|item| item["name"] == "attachments_read")
         );
+
+        let (_, _, result) = backlog
+            .call_named(
+                "xboct_log_tool_description",
+                json!({"query": "tasks_delete"}),
+                None,
+            )
+            .await;
+        let payload = result.structured_content.unwrap();
+        let item = &payload["items"][0];
+        let full = metadata()
+            .into_iter()
+            .find(|info| info.name == "tasks_delete")
+            .unwrap()
+            .description;
+        assert_eq!(item["name"], "tasks_delete");
+        assert_eq!(item["description"], full);
 
         let (name, args, result) = backlog
             .call_named(
