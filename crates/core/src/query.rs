@@ -30,3 +30,20 @@ pub enum Order {
     Asc,
     Desc,
 }
+
+pub(crate) fn like_pattern(term: &str) -> String {
+    format!("%{}%", term.to_lowercase())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::like_pattern;
+
+    #[test]
+    fn wraps_lowercased_term_in_percent_signs() {
+        assert_eq!(like_pattern("Ab"), "%ab%");
+        assert_eq!(like_pattern(""), "%%");
+        assert_eq!(like_pattern("ПРИВЕТ"), "%привет%");
+        assert_eq!(like_pattern("ΟΣ"), "%ος%");
+    }
+}

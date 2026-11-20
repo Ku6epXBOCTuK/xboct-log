@@ -11,7 +11,7 @@ use super::model::{
     BlockingInfo, Estimate, Priority, Status, Task, TaskList, TaskListEntry, TaskRow, TaskView,
 };
 use super::resolve::{normalize_task_id_input, resolve_task_id};
-use crate::query::FieldSelection;
+use crate::query::{FieldSelection, like_pattern};
 
 const SEARCH_COLUMNS: [&str; 5] = [
     "ULOWER(tasks.title) LIKE ",
@@ -49,7 +49,7 @@ fn push_in_int(qb: &mut QueryBuilder<Sqlite>, column: &str, values: &[i64]) {
 }
 
 fn push_search(qb: &mut QueryBuilder<Sqlite>, term: &str) {
-    let pattern = format!("%{}%", term.to_lowercase());
+    let pattern = like_pattern(term);
     qb.push("(");
     for (index, column) in SEARCH_COLUMNS.iter().enumerate() {
         if index > 0 {
@@ -338,7 +338,7 @@ fn push_where(qb: &mut QueryBuilder<Sqlite>, filters: &TaskFilters) {
     if let Some(title) = &filters.title {
         push_and(qb, &mut first);
         qb.push("ULOWER(tasks.title) LIKE ")
-            .push_bind(format!("%{}%", title.to_lowercase()));
+            .push_bind(like_pattern(title));
     }
     if let Some(title) = &filters.title_exact {
         push_and(qb, &mut first);
@@ -349,7 +349,7 @@ fn push_where(qb: &mut QueryBuilder<Sqlite>, filters: &TaskFilters) {
     if let Some(source_file) = &filters.source_file {
         push_and(qb, &mut first);
         qb.push("ULOWER(tasks.source_file) LIKE ")
-            .push_bind(format!("%{}%", source_file.to_lowercase()));
+            .push_bind(like_pattern(source_file));
     }
     if let Some(project_archived) = filters.project_archived {
         push_and(qb, &mut first);

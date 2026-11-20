@@ -5,7 +5,7 @@ use sqlx::{FromRow, QueryBuilder, Row, sqlite::SqliteRow};
 use crate::{
     AppError, Db, DocumentKey, Limit, Offset, ProjectId, Result, Tx,
     fetch::{fetch_by_id, unexpected},
-    query::{FieldSelection, OneOrList, Order},
+    query::{FieldSelection, OneOrList, Order, like_pattern},
     validate_limit, validate_offset,
 };
 
@@ -514,7 +514,7 @@ fn push_document_where(
         push_in_text(qb, "d.status", &values);
     }
     if let Some(term) = &query.q {
-        let pattern = format!("%{}%", term.to_lowercase());
+        let pattern = like_pattern(term);
         qb.push(" AND (ULOWER(d.title) LIKE ")
             .push_bind(pattern.clone())
             .push(" OR ULOWER(d.key) LIKE ")
@@ -525,7 +525,7 @@ fn push_document_where(
     }
     if let Some(title) = &query.title {
         qb.push(" AND ULOWER(d.title) LIKE ")
-            .push_bind(format!("%{}%", title.to_lowercase()));
+            .push_bind(like_pattern(title));
     }
     if let Some(title) = &query.title_exact {
         qb.push(" AND ULOWER(d.title) = ")
@@ -533,7 +533,7 @@ fn push_document_where(
     }
     if let Some(source) = &query.source_file {
         qb.push(" AND ULOWER(COALESCE(d.source_file, '')) LIKE ")
-            .push_bind(format!("%{}%", source.to_lowercase()));
+            .push_bind(like_pattern(source));
     }
     if query.deleted_only == Some(true) {
         qb.push(" AND d.deleted_at IS NOT NULL");
