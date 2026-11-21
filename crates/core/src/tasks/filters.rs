@@ -156,9 +156,13 @@ pub struct TaskFilters {
     )]
     pub fields: Option<FieldSelection>,
     #[schemars(
-        description = "Include the full description. By default each task carries short_description (first line, trimmed, truncated to ~120 chars) instead of the full text; with include_description the full text is returned and short_description is omitted."
+        description = "Include the full description. By default each task carries short_description (first line, trimmed, truncated to ~120 chars) instead of the full text; with include_description the full text is returned and short_description is omitted. Use description_chars to cap the text: include_description on many tasks overflows the response, so prefer description_chars for a backlog or tasks_get for one task."
     )]
     pub include_description: Option<bool>,
+    #[schemars(
+        description = "Limit description text to this many characters (1..=2000). Unlike the default short_description, which is only the first line, the text is taken from the whole description with Markdown removed and newlines joined; the result is truncated to N characters plus an ellipsis. Combine with fields containing short_description to skim many tasks, or with include_description / fields containing description to get the capped text in description. For the uncut text call tasks_get."
+    )]
+    pub description_chars: Option<usize>,
     #[schemars(
         description = "Attach the project name (project_name) to each task. Does not filter by project archival; use project_archived for that."
     )]
@@ -214,6 +218,13 @@ impl TaskFilters {
         }
         if self.sort == Some(Sort::PlanPosition) && self.plan_id.is_none() {
             return Err(AppError::validation("sort=plan_position requires plan_id"));
+        }
+        if let Some(chars) = self.description_chars
+            && !(1..=2000).contains(&chars)
+        {
+            return Err(AppError::validation(
+                "description_chars must be between 1 and 2000",
+            ));
         }
         Ok(())
     }

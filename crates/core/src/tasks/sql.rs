@@ -687,10 +687,32 @@ fn pick_fields(task: Task, fields: Option<&[String]>) -> TaskListEntry {
     )
 }
 
+const RESPONSE_BUDGET_BYTES: usize = 24 * 1024;
+
 pub async fn list_tasks(db: &Db, filters: &TaskFilters) -> Result<TaskList> {
     filters.validate()?;
     let (limit, offset) = filters.pagination()?;
-    list_tasks_unchecked(db, filters, limit, offset).await
+    let page = list_tasks_unchecked(db, filters, limit, offset).await?;
+    Ok(bound_page(page, offset.get()))
+}
+
+fn bound_page(mut page: TaskList, offset: i64) -> TaskList {
+    let mut bytes = 0usize;
+    let mut keep = page.items.len();
+    for (index, item) in page.items.iter().enumerate() {
+        let Ok(json) = serde_json::to_string(item) else {
+            continue;
+        };
+        if index > 0 && bytes.saturating_add(json.len()) > RESPONSE_BUDGET_BYTES {
+            keep = index;
+            break;
+        }
+        bytes = bytes.saturating_add(json.len());
+    }
+    page.items.truncate(keep);
+    let next = offset.saturating_add(i64::try_from(keep).unwrap_or(i64::MAX));
+    page.next_offset = (page.total > next).then_some(next);
+    page
 }
 
 pub(crate) async fn list_tasks_unchecked(
@@ -769,7 +791,17 @@ pub(crate) async fn list_tasks_unchecked(
             );
             task.plan_ids = plan_ids.remove(&key).unwrap_or_default();
             task.plan_names = plan_names.remove(&key);
-            if include_description {
+            if let Some(chars) = filters.description_chars {
+                let preview =
+                    description_preview(task.description.as_deref().unwrap_or_default(), chars);
+                if include_description {
+                    task.short_description = None;
+                    task.description = Some(preview);
+                } else {
+                    task.short_description = Some(preview);
+                    task.description = None;
+                }
+            } else if include_description {
                 task.short_description = None;
             } else {
                 task.short_description = Some(short_description(
@@ -781,7 +813,11 @@ pub(crate) async fn list_tasks_unchecked(
         })
         .collect();
 
-    Ok(TaskList { items, total })
+    Ok(TaskList {
+        items,
+        total,
+        next_offset: None,
+    })
 }
 
 pub async fn count_epic_children_by_status(
@@ -851,6 +887,18 @@ fn short_description(description: &str) -> String {
     let plain = plain_line(&line);
     if plain.chars().count() > 120 {
         let cut: String = plain.chars().take(120).collect();
+        format!("{cut}…")
+    } else {
+        plain
+    }
+}
+
+fn description_preview(description: &str, chars: usize) -> String {
+    let joined = description.replace('\n', " ").replace("```", "");
+    let collapsed = joined.split_whitespace().collect::<Vec<_>>().join(" ");
+    let plain = plain_line(&collapsed);
+    if plain.chars().count() > chars {
+        let cut: String = plain.chars().take(chars).collect();
         format!("{cut}…")
     } else {
         plain
@@ -945,6 +993,12 @@ mod tests {
             plan_ids: Vec::new(),
             plan_names: None,
         }
+    }
+
+    #[test]
+    fn description_preview_collapses_blank_lines() {
+        let preview = description_preview("## Цель\n\nСнять   налог\n\nна тесты", 40);
+        assert_eq!(preview, "Цель Снять налог на тесты");
     }
 
     #[test]

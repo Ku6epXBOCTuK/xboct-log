@@ -655,3 +655,86 @@ fn task_writes_reject_plan_fields() {
     );
     assert!(serde_json::from_value::<TaskPatch>(json!({"plan_id": "p1"})).is_err());
 }
+
+#[tokio::test]
+async fn description_chars_previews_the_whole_description() {
+    let db = database().await;
+    let page = list_tasks(&db, &filters(json!({"description_chars": 14})))
+        .await
+        .unwrap();
+    let task = page
+        .items
+        .iter()
+        .find(|item| item.as_json()["id"] == "LOG-2")
+        .unwrap();
+    assert_eq!(task.as_json()["short_description"], "Heading Second…");
+    assert!(task.as_json().get("description").is_none());
+}
+
+#[tokio::test]
+async fn description_chars_caps_the_description_field() {
+    let db = database().await;
+    let page = list_tasks(
+        &db,
+        &filters(json!({
+            "description_chars": 14,
+            "fields": ["id", "description"],
+        })),
+    )
+    .await
+    .unwrap();
+    let task = page
+        .items
+        .iter()
+        .find(|item| item.as_json()["id"] == "LOG-2")
+        .unwrap();
+    assert_eq!(task.as_json()["description"], "Heading Second…");
+    assert!(task.as_json().get("short_description").is_none());
+}
+
+#[tokio::test]
+async fn rejects_invalid_description_chars() {
+    let db = database().await;
+    for value in [0, 2001] {
+        let error = list_tasks(&db, &filters(json!({"description_chars": value})))
+            .await
+            .unwrap_err();
+        assert_eq!(error.kind(), AppErrorKind::Validation);
+    }
+}
+
+#[tokio::test]
+async fn pages_large_lists_with_next_offset() {
+    let db = database().await;
+    for number in 1..=3 {
+        let input: NewTask = serde_json::from_value(json!({
+            "project_id": "log",
+            "title": format!("Big {number}"),
+            "description": "x".repeat(15_000),
+        }))
+        .unwrap();
+        create_task(&db, input).await.unwrap();
+    }
+    let mut ids = Vec::new();
+    let mut offset = None;
+    loop {
+        let mut query = json!({"include_description": true, "limit": 100});
+        if let Some(value) = offset {
+            query["offset"] = json!(value);
+        }
+        let page = list_tasks(&db, &filters(query)).await.unwrap();
+        for item in &page.items {
+            ids.push(item.as_json()["id"].as_str().unwrap().to_string());
+        }
+        let Some(next) = page.next_offset else {
+            break;
+        };
+        assert!(next > offset.unwrap_or(0));
+        offset = Some(next);
+    }
+    let mut unique = ids.clone();
+    unique.sort();
+    unique.dedup();
+    assert_eq!(ids.len(), 9);
+    assert_eq!(unique.len(), ids.len());
+}

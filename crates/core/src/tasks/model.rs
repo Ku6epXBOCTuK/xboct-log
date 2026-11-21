@@ -321,6 +321,11 @@ pub enum TaskListEntry {
 pub struct TaskList {
     pub items: Vec<TaskListEntry>,
     pub total: i64,
+    #[schemars(
+        description = "Present when more tasks match the filters: repeat the same call with offset set to this value. A page is capped at about 24 KB, so this can happen before limit is reached."
+    )]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub next_offset: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, JsonSchema)]
