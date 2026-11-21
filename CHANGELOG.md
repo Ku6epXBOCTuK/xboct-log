@@ -2,6 +2,30 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.14.0](https://github.com/Ku6epXBOCTuK/xboct-log/compare/a7b4e8d57e8696dd3a9ea889e5f20e7dec9b5385..v0.14.0) - 2026-11-21
+#### Features
+- (**documents**) use disjoint PERFIX-DOC-N keys - ([d24016c](https://github.com/Ku6epXBOCTuK/xboct-log/commit/d24016cc8f6a3384929532008cdb3afebb5ef78b)) - Ku6epXBOCTuK
+- (**mcp**) generate tool instructions from the operation registry - ([a7b4e8d](https://github.com/Ku6epXBOCTuK/xboct-log/commit/a7b4e8d57e8696dd3a9ea889e5f20e7dec9b5385)) - Ku6epXBOCTuK
+- (**plans**) add copy button for plan keys - ([b72fc75](https://github.com/Ku6epXBOCTuK/xboct-log/commit/b72fc7546cc6d570f994f0582ba9a8bb2f720bd8)) - Ku6epXBOCTuK
+- (**plans**) add short plan ids and reserve PL prefix - ([7c52df7](https://github.com/Ku6epXBOCTuK/xboct-log/commit/7c52df72926da6f125277f005aa3bed161833b75)) - Ku6epXBOCTuK
+- (**tasks**) auto-blocks tasks with open blockers - ([ffa30af](https://github.com/Ku6epXBOCTuK/xboct-log/commit/ffa30afe792a45df487de692ccb9a7bdbf007d37)) - Ku6epXBOCTuK
+- (**ui**) deafult markdown fields to preview for existing content - ([480e24c](https://github.com/Ku6epXBOCTuK/xboct-log/commit/480e24c6c431400ae25861a74b6e630dd98c222b)) - Ku6epXBOCTuK
+#### Bug Fixes
+- (**activity**) include document events in project filter - ([5b41c30](https://github.com/Ku6epXBOCTuK/xboct-log/commit/5b41c304aee6f17e746a7e947adb7d023b401785)) - Ku6epXBOCTuK
+- (**core**) project id lookup and filters ignore case - ([0c38003](https://github.com/Ku6epXBOCTuK/xboct-log/commit/0c38003021dcee66bb516ce2262fe928ee3d7572)) - Ku6epXBOCTuK
+- (**documents**) derive dirty state from saved document body - ([981d66d](https://github.com/Ku6epXBOCTuK/xboct-log/commit/981d66d30a83486175745d83664e9d7c7bc97700)) - Ku6epXBOCTuK
+- (**documents**) add project-less route and list all documents - ([8cec5ef](https://github.com/Ku6epXBOCTuK/xboct-log/commit/8cec5efac6a8f915f0f50e50a87586e40d6bf465)) - Ku6epXBOCTuK
+- (**mcp**) prevent task-list truncation with bounded pages and previews - ([ce6e1d3](https://github.com/Ku6epXBOCTuK/xboct-log/commit/ce6e1d393efe8704ca85abb98fc3a526106e90c9)) - Ku6epXBOCTuK
+- (**mcp**) align update description and e2e calls with nested patch schema - ([b850781](https://github.com/Ku6epXBOCTuK/xboct-log/commit/b850781d17d831c6ab9b8df591fadf4861978c71)) - Ku6epXBOCTuK
+- (**ops**) reject unknown fields in batched task updates - ([2aa8c65](https://github.com/Ku6epXBOCTuK/xboct-log/commit/2aa8c65edb68bdf605c6e1b9dde5d18282a0f83e)) - Ku6epXBOCTuK
+- (**server**) map expired MCP sessions to a clear 404 - ([d295a67](https://github.com/Ku6epXBOCTuK/xboct-log/commit/d295a674c408eec093d018cb138e706e4faf590a)) - Ku6epXBOCTuK
+- (**tasks**) use server counts for epic close warnings - ([bd990c0](https://github.com/Ku6epXBOCTuK/xboct-log/commit/bd990c0a4439c6853bdc29e097ac4b8be630971a)) - Ku6epXBOCTuK
+- clippy warnings - ([c73f979](https://github.com/Ku6epXBOCTuK/xboct-log/commit/c73f97940c00d5481d06851b97541de0b9b37cdf)) - Ku6epXBOCTuK
+#### Refactoring
+- (**layout**) share app bar with service buttons across pages - ([dd1ca71](https://github.com/Ku6epXBOCTuK/xboct-log/commit/dd1ca714deb00713a6c97d4a0a7a6fa243c4d849)) - Ku6epXBOCTuK
+
+- - -
+
 ## [v0.13.0](https://github.com/Ku6epXBOCTuK/xboct-log/compare/f235f756e3513782c9c1edd7a92714db441f42d3..v0.13.0) - 2026-11-20
 #### Features
 - (**mcp**) list every tool with brief rare descriptions and on-demand schemas - ([66e9a3e](https://github.com/Ku6epXBOCTuK/xboct-log/commit/66e9a3e3ac567601baf8860e98b897307d950fc2)) - Ku6epXBOCTuK
