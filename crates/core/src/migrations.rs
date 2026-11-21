@@ -368,6 +368,55 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn rekeys_documents_created_before_migration_five() {
+        let db = fresh_db().await;
+        sqlx::query("DELETE FROM _sqlx_migrations WHERE version = 5")
+            .execute(db.pool())
+            .await
+            .unwrap();
+        sqlx::query(
+            "INSERT INTO projects (id, prefix, name, created_at)
+             VALUES ('log', 'LOG', 'Log', '2026-01-01T00:00:00.000Z')",
+        )
+        .execute(db.pool())
+        .await
+        .unwrap();
+        for (id, number, key) in [("d1", 1, "LOG-1"), ("d2", 2, "log-doc-2")] {
+            sqlx::query(
+                "INSERT INTO documents (id, project_id, number, key, kind, title, created_at, updated_at)
+                 VALUES (?, 'log', ?, ?, 'adr', 'ADR', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z')",
+            )
+            .bind(id)
+            .bind(number)
+            .bind(key)
+            .execute(db.pool())
+            .await
+            .unwrap();
+        }
+        sqlx::query(
+            "INSERT INTO document_number_high_water (project_id, last_number) VALUES ('log', 2)",
+        )
+        .execute(db.pool())
+        .await
+        .unwrap();
+
+        db.migrate().await.unwrap();
+
+        let keys: Vec<String> = sqlx::query_scalar("SELECT key FROM documents ORDER BY number")
+            .fetch_all(db.pool())
+            .await
+            .unwrap();
+        assert_eq!(keys, vec!["LOG-DOC-1", "log-doc-2"]);
+        let high: i64 = sqlx::query_scalar(
+            "SELECT last_number FROM document_number_high_water WHERE project_id = 'log'",
+        )
+        .fetch_one(db.pool())
+        .await
+        .unwrap();
+        assert_eq!(high, 2);
+    }
+
+    #[tokio::test]
     async fn refuses_an_incomplete_node_history() {
         let db = fresh_db().await;
         sqlx::query("delete from schema_migrations where name = '026_task_auto_closed.js'")

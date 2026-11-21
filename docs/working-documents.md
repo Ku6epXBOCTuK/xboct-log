@@ -15,10 +15,17 @@ task's internal id, so a task move changes only the displayed `PREFIX-NNN` key.
 Item order is explicit; use `plans_reorder` with the full key list after all
 items exist. Notes on items are kept in the tracker with their own history.
 
-A document stays project-owned and gets its own `PREFIX-NNN` key. Set
-`source_file` to the original path for provenance only: it is not an import
-identity, several documents may share it, and there is no re-import or upsert.
-Plans may link documents from any project with `plans_documents_link`.
+A document stays project-owned and gets its own `PREFIX-DOC-NNN` key (e.g.
+`BRUL-DOC-1`). The `DOC` marker keeps document keys disjoint from task keys:
+a task stays `PREFIX-NNN`, so a bare key from prose can only address one kind
+of entity. Set `source_file` to the original path for provenance only: it is
+not an import identity, several documents may share it, and there is no
+re-import or upsert. Plans may link documents from any project with
+`plans_documents_link`.
+
+Migrations rewrite existing keys to this format. A database backup taken
+before that migration still holds the old keys; restoring it brings them back
+until the migration runs again.
 
 ## What stays in the repository
 

@@ -105,8 +105,30 @@ impl TaskKey {
 }
 
 impl DocumentKey {
+    pub const MARKER: &'static str = "DOC";
+
     pub fn parse(value: &str) -> Result<Self, AppError> {
-        Ok(Self(parse_prefixed_key(value)?))
+        let trimmed = value.trim();
+        let mut parts = trimmed.split('-');
+        let prefix = parts.next().unwrap_or_default();
+        let marker = parts.next().unwrap_or_default();
+        let number = parts.next().unwrap_or_default();
+        if parts.next().is_some()
+            || !marker.eq_ignore_ascii_case(Self::MARKER)
+            || number.is_empty()
+            || !number.bytes().all(|byte| byte.is_ascii_digit())
+        {
+            return Err(AppError::validation(format!(
+                "Use the document id 'PREFIX-DOC-NUMBER' (e.g. 'BRUL-DOC-1'); '{trimmed}' is not a document id."
+            )));
+        }
+        let prefix = Prefix::parse(prefix)?;
+        Ok(Self(format!(
+            "{}-{}-{}",
+            prefix.as_str(),
+            Self::MARKER,
+            number
+        )))
     }
 }
 
@@ -294,6 +316,22 @@ mod tests {
         assert!(TaskKey::parse("82").is_err());
         assert!(TaskKey::parse("LOG-").is_err());
         assert!(TaskKey::parse("LOG-x").is_err());
+    }
+
+    #[test]
+    fn task_and_document_keys_are_disjoint() {
+        assert_eq!(TaskKey::parse("log-82").unwrap().as_str(), "LOG-82");
+        assert!(TaskKey::parse("LOG-DOC-1").is_err());
+        assert_eq!(
+            DocumentKey::parse(" brul-doc-1 ").unwrap().as_str(),
+            "BRUL-DOC-1"
+        );
+        assert!(DocumentKey::parse("BRUL-1").is_err());
+        assert!(DocumentKey::parse("BRUL-DOC-1-2").is_err());
+        assert!(DocumentKey::parse("BRUL-NOTE-1").is_err());
+        assert!(DocumentKey::parse("BRUL-DOC-x").is_err());
+        assert!(DocumentKey::parse("BRUL-DOC-").is_err());
+        assert!(DocumentKey::parse("-DOC-1").is_err());
     }
 
     #[test]

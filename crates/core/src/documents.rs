@@ -654,7 +654,12 @@ pub async fn create_document(
     let now = crate::tasks::now_iso();
     let mut tx = db.begin().await?;
     let number = allocate_number_tx(&mut tx, project.id.as_str()).await?;
-    let key = format!("{}-{number}", project.prefix.as_str());
+    let key = format!(
+        "{}-{}-{}",
+        project.prefix.as_str(),
+        DocumentKey::MARKER,
+        number
+    );
     sqlx::query(
         "INSERT INTO documents (id, project_id, number, key, kind, title, body, status,
                                 source_file, created_at, updated_at)
@@ -894,7 +899,7 @@ mod tests {
         )
         .await
         .expect("create");
-        assert_eq!(doc.key, "LOG-1");
+        assert_eq!(doc.key, "LOG-DOC-1");
         assert_eq!(doc.title, "Decision");
         assert_eq!(doc.body, "first");
         assert_eq!(doc.status, DocumentStatus::Draft);
@@ -912,7 +917,7 @@ mod tests {
         )
         .await
         .expect("update");
-        assert_eq!(updated.key, "LOG-1");
+        assert_eq!(updated.key, "LOG-DOC-1");
         assert_eq!(updated.body, "second");
         assert_eq!(updated.status, DocumentStatus::Accepted);
         assert!(updated.closed_at.is_some());
@@ -1031,8 +1036,8 @@ mod tests {
         let spa = create_document(&db, "spa", DocumentKind::Spec, "Spec", "", None)
             .await
             .expect("spa document");
-        assert_eq!(log.key, "LOG-1");
-        assert_eq!(spa.key, "SPA-1");
+        assert_eq!(log.key, "LOG-DOC-1");
+        assert_eq!(spa.key, "SPA-DOC-1");
         assert_eq!(list_documents(&db, None).await.expect("all").len(), 2);
         assert_eq!(
             list_documents(&db, Some("spa")).await.expect("spa").len(),
@@ -1063,7 +1068,7 @@ mod tests {
         let next = create_document(&db, "spa", DocumentKind::Guide, "Guide", "", None)
             .await
             .expect("next");
-        assert_eq!(next.key, "SPA-2");
+        assert_eq!(next.key, "SPA-DOC-2");
     }
 
     #[tokio::test]
@@ -1077,11 +1082,14 @@ mod tests {
             .expect("spa document");
 
         assert_eq!(
-            require_document(&db, "LOG-1").await.expect("key").id,
+            require_document(&db, "LOG-DOC-1").await.expect("key").id,
             log.id
         );
         assert_eq!(
-            require_document(&db, " log-1 ").await.expect("trimmed").id,
+            require_document(&db, " log-doc-1 ")
+                .await
+                .expect("trimmed")
+                .id,
             log.id
         );
         assert_eq!(
@@ -1096,7 +1104,7 @@ mod tests {
             crate::AppErrorKind::Validation
         );
         assert_eq!(
-            require_document(&db, "LOG-9")
+            require_document(&db, "LOG-DOC-9")
                 .await
                 .expect_err("unknown key")
                 .kind(),
@@ -1105,7 +1113,7 @@ mod tests {
 
         let updated = update_document(
             &db,
-            "LOG-1",
+            "LOG-DOC-1",
             &DocumentPatch {
                 body: Some("second".into()),
                 ..DocumentPatch::default()
@@ -1115,7 +1123,7 @@ mod tests {
         .await
         .expect("update by key");
         assert_eq!(updated.body, "second");
-        let revisions = list_document_revisions(&db, "LOG-1")
+        let revisions = list_document_revisions(&db, "LOG-DOC-1")
             .await
             .expect("revisions");
         assert_eq!(revisions.len(), 1);
@@ -1125,7 +1133,7 @@ mod tests {
         let plan = crate::create_plan(&db, "Docs", "", crate::PlanStatus::Active)
             .await
             .expect("plan");
-        link_document_to_plan(&db, &plan.id, "SPA-1")
+        link_document_to_plan(&db, &plan.id, "SPA-DOC-1")
             .await
             .expect("link by key");
         assert_eq!(
@@ -1135,7 +1143,7 @@ mod tests {
                 .len(),
             1
         );
-        unlink_document_from_plan(&db, &plan.id, "spa-1")
+        unlink_document_from_plan(&db, &plan.id, "spa-doc-1")
             .await
             .expect("unlink by key");
         assert!(
@@ -1145,14 +1153,16 @@ mod tests {
                 .is_empty()
         );
 
-        delete_document(&db, "LOG-1").await.expect("delete by key");
+        delete_document(&db, "LOG-DOC-1")
+            .await
+            .expect("delete by key");
         assert!(
             list_documents(&db, Some("log"))
                 .await
                 .expect("list")
                 .is_empty()
         );
-        restore_document(&db, "LOG-1")
+        restore_document(&db, "LOG-DOC-1")
             .await
             .expect("restore by key");
         assert_eq!(
@@ -1164,7 +1174,7 @@ mod tests {
         let next = create_document(&db, "log", DocumentKind::Guide, "Guide", "", None)
             .await
             .expect("next");
-        assert_eq!(next.key, "LOG-2");
+        assert_eq!(next.key, "LOG-DOC-2");
         let _ = &spa;
     }
 
@@ -1198,7 +1208,7 @@ mod tests {
         assert_eq!(default.items.len(), 2);
         let json = serde_json::to_value(&default.items[0]).unwrap();
         assert_eq!(json["id"], first.id);
-        assert_eq!(json["key"], "LOG-1");
+        assert_eq!(json["key"], "LOG-DOC-1");
         assert_eq!(json["kind"], "adr");
         assert_eq!(json["short_body"], "intro");
         assert!(json.get("body").is_none());
@@ -1235,7 +1245,7 @@ mod tests {
         assert_eq!(paged.items.len(), 1);
         assert_eq!(
             serde_json::to_value(&paged.items[0]).unwrap()["key"],
-            "SPA-1"
+            "SPA-DOC-1"
         );
 
         let linked = query_documents(&db, Some(&plan.id), &DocumentQuery::default())
@@ -1485,7 +1495,7 @@ mod tests {
             .iter()
             .map(|item| item["key"].as_str().unwrap().to_string())
             .collect();
-        assert_eq!(keys, vec!["SPA-1", "LOG-2", "LOG-1"]);
+        assert_eq!(keys, vec!["SPA-DOC-1", "LOG-DOC-2", "LOG-DOC-1"]);
 
         delete_document(&db, &beta.id).await.expect("delete");
         let only_deleted = query_documents(

@@ -595,14 +595,14 @@ mod tests {
         let document = create_document(&db, "log", DocumentKind::Adr, "ADR", "", None)
             .await
             .expect("document");
-        link_document_to_plan(&db, "PL-1", "LOG-1")
+        link_document_to_plan(&db, "PL-1", "LOG-DOC-1")
             .await
             .expect("link by plan key");
         assert_eq!(
             documents_for_plan(&db, "pl-1").await.expect("linked").len(),
             1
         );
-        unlink_document_from_plan(&db, "PL-1", "LOG-1")
+        unlink_document_from_plan(&db, "PL-1", "LOG-DOC-1")
             .await
             .expect("unlink by plan key");
         assert!(
