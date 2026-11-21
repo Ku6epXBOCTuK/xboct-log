@@ -30,6 +30,7 @@
 	} from "#lib/api/plans.ts";
 	import { getTasks } from "#lib/api/tasks.ts";
 	import AppBar from "#lib/components/layout/AppBar.svelte";
+	import CopyButton from "#lib/components/ui/CopyButton.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import TaskSelect from "#lib/components/ui/select/TaskSelect.svelte";
 	import { taskHref } from "#lib/navigation/href.ts";
@@ -407,12 +408,11 @@
 		<div class="columns">
 			<ul class="plan-list">
 				{#each plans as plan (plan.id)}
-					<li>
-						<button
-							class="plan-link"
-							class:active={plan.id === (selectedId ?? plans[0]?.id)}
-							onclick={() => (selectedId = plan.id)}
-						>
+					<li
+						class="plan-row"
+						class:active={plan.id === (selectedId ?? plans[0]?.id)}
+					>
+						<button class="plan-link" onclick={() => (selectedId = plan.id)}>
 							<span class="plan-key">{plan.key}</span>
 							<span class="plan-name">{plan.name}</span>
 							<span class="plan-meta">
@@ -420,6 +420,14 @@
 								· {plan.tasks_count} tasks · {plan.epics_count} epics
 							</span>
 						</button>
+						<div class="plan-copy">
+							<CopyButton
+								size="sm"
+								text={plan.key}
+								label="Copy plan id"
+								title="Copy plan id"
+							/>
+						</div>
 					</li>
 				{/each}
 			</ul>
@@ -464,13 +472,21 @@
 								</Button>
 							</form>
 						{:else}
-							<button
-								class="plan-key-button"
-								title="Edit plan id"
-								onclick={() => (editingKey = true)}
-							>
-								{planKey}
-							</button>
+							<div class="plan-key-group">
+								<button
+									class="plan-key-button"
+									title="Edit plan id"
+									onclick={() => (editingKey = true)}
+								>
+									{planKey}
+								</button>
+								<CopyButton
+									size="sm"
+									text={planKey}
+									label="Copy plan id"
+									title="Copy plan id"
+								/>
+							</div>
 						{/if}
 					</header>
 					{#if keyFailed}
@@ -784,27 +800,40 @@
 		border-right: 1px solid var(--border);
 	}
 
+	.plan-row {
+		display: flex;
+		align-items: flex-start;
+		gap: var(--space-1);
+		border-radius: var(--radius);
+		color: var(--text-secondary);
+	}
+
+	.plan-row:hover {
+		background: var(--hover);
+	}
+
+	.plan-row.active {
+		background: var(--selected);
+		color: var(--foreground);
+	}
+
 	.plan-link {
-		width: 100%;
+		flex: 1 1 auto;
+		min-width: 0;
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-1);
 		padding: var(--space-2) var(--space-3);
 		border: 0;
-		border-radius: var(--radius);
 		background: transparent;
-		color: var(--text-secondary);
+		color: inherit;
 		text-align: left;
 		cursor: pointer;
 	}
 
-	.plan-link:hover {
-		background: var(--hover);
-	}
-
-	.plan-link.active {
-		background: var(--selected);
-		color: var(--foreground);
+	.plan-copy {
+		margin-top: var(--space-2);
+		margin-right: var(--space-2);
 	}
 
 	.plan-key {
@@ -839,6 +868,12 @@
 	.detail-head h2 {
 		margin: 0;
 		font-size: var(--text-xl);
+	}
+
+	.plan-key-group {
+		display: flex;
+		align-items: center;
+		gap: var(--space-1);
 	}
 
 	.plan-key-button {

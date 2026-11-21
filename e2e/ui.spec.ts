@@ -357,6 +357,47 @@ test("a plan is created and filled from the plans page", async ({ page }) => {
 	await expect(panel.getByText(name, { exact: true })).toBeVisible();
 });
 
+test("a plan id can be copied from the plans page", async ({
+	page,
+	context,
+}) => {
+	await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+	const firstName = `UI Copy A ${suffix}`;
+	const secondName = `UI Copy B ${suffix}`;
+	await page.goto("/plans");
+
+	await page.getByLabel("New plan name").fill(firstName);
+	await page.getByRole("button", { name: "Create", exact: true }).click();
+	await expect(
+		page.getByRole("heading", { name: firstName, exact: true }),
+	).toBeVisible();
+
+	const firstKey = await page.locator(".plan-key-button").innerText();
+	await page
+		.locator(".detail-head")
+		.getByRole("button", { name: "Copy plan id" })
+		.click();
+	await expect
+		.poll(() => page.evaluate(() => navigator.clipboard.readText()))
+		.toBe(firstKey);
+
+	await page.getByLabel("New plan name").fill(secondName);
+	await page.getByRole("button", { name: "Create", exact: true }).click();
+	await expect(
+		page.getByRole("heading", { name: secondName, exact: true }),
+	).toBeVisible();
+
+	const firstRow = page.locator(".plan-row").filter({ hasText: firstName });
+	const rowKey = await firstRow.locator(".plan-key").innerText();
+	await firstRow.getByRole("button", { name: "Copy plan id" }).click();
+	await expect
+		.poll(() => page.evaluate(() => navigator.clipboard.readText()))
+		.toBe(rowKey);
+	await expect(
+		page.getByRole("heading", { name: secondName, exact: true }),
+	).toBeVisible();
+});
+
 test("a document is created and edited on the documents page", async ({
 	page,
 }) => {
