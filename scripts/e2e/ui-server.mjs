@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, rmSync } from "node:fs";
+import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import {
 	ensureBinary,
@@ -17,9 +17,6 @@ const BUILD = join(ROOT, "build");
 mkdirSync(E2E, { recursive: true });
 
 function build() {
-	if (existsSync(join(BUILD, "index.html"))) {
-		return;
-	}
 	console.log("[e2e] building the spa");
 	const result = spawnSync("pnpm", ["build"], {
 		cwd: ROOT,
