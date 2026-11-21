@@ -42,3 +42,11 @@ tracing = "0.1.41"
 tracing-subscriber = "0.3.23"
 async-stream = "0.3.6"
 futures-util = "0.3.34"
+
+[profile.dev]
+incremental = false
+debug = "line-tables-only"
+
+[profile.test]
+incremental = false
+debug = "line-tables-only"
