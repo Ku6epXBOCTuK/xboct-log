@@ -391,3 +391,36 @@ async fn document_list_ops_filter_kind_status_and_search() {
     assert_eq!(deleted["items"][0]["id"], beta_id);
     let _ = alpha_id;
 }
+
+#[tokio::test]
+async fn document_activity_is_visible_with_a_project_filter() {
+    let ctx = context().await;
+    let created = call(
+        &ctx,
+        "documents_create",
+        json!({"project_id": "log", "kind": "adr", "title": "Visible", "body": "first"}),
+    )
+    .await;
+    let id = created["id"].as_str().unwrap();
+
+    let unfiltered = call(&ctx, "activity_list", json!({"entity": "document"})).await;
+    assert_eq!(unfiltered["total"], 1);
+    assert_eq!(unfiltered["items"][0]["entity_id"], id);
+
+    let filtered = call(
+        &ctx,
+        "activity_list",
+        json!({"project_id": "log", "entity": "document"}),
+    )
+    .await;
+    assert_eq!(filtered["total"], 1);
+    assert_eq!(filtered["items"][0]["op"], "documents_create");
+
+    let other = call(
+        &ctx,
+        "activity_list",
+        json!({"project_id": "spa", "entity": "document"}),
+    )
+    .await;
+    assert_eq!(other["total"], 0);
+}

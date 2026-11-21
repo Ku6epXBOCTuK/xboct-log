@@ -46,7 +46,7 @@ pub struct ActivitySearch {
     #[serde(default)]
     pub entity: Option<ActivityEntity>,
     #[schemars(
-        description = "Project id: keeps the project's own events, events of its tasks and of its scopes."
+        description = "Project id: keeps the project's own events, events of its tasks, scopes and documents."
     )]
     #[serde(default)]
     pub project_id: Option<ProjectId>,
@@ -156,7 +156,7 @@ fn push_search(query: &mut QueryBuilder<Sqlite>, search: &ActivitySearch) {
                 " COLLATE NOCASE))) OR (entity = 'scope' AND entity_id IN (SELECT CAST(id AS TEXT) FROM scopes WHERE project_id = ",
             )
             .push_bind(project_id.as_str())
-            .push(" COLLATE NOCASE) OR (entity = 'document' AND entity_id IN (SELECT key FROM documents WHERE project_id = ")
+            .push(" COLLATE NOCASE) OR (entity = 'document' AND entity_id IN (SELECT id FROM documents WHERE project_id = ")
             .push_bind(project_id.as_str())
             .push(" COLLATE NOCASE))))");
     }

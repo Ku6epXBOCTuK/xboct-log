@@ -145,7 +145,7 @@ async fn project_scoped_reads_ignore_case() {
     insert_activity(&db, "task", &key, None).await;
     insert_activity(&db, "task", "other", Some(&task_id)).await;
     insert_activity(&db, "scope", &scope.id.get().to_string(), None).await;
-    insert_activity(&db, "document", &document.key, None).await;
+    insert_activity(&db, "document", &document.id, None).await;
     let lower_activity = search_activity(&db, &search(json!({"project_id": "log"})))
         .await
         .expect("activity");

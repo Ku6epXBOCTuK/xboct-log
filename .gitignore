@@ -6,6 +6,9 @@ node_modules
 # Rust
 /target
 
+# Test artifacts
+/crates/server/auto/
+
 # Output
 .output
 .vercel
