@@ -2,14 +2,15 @@ use std::collections::HashSet;
 
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use sqlx::SqliteConnection;
 
 use crate::ids::TaskKey;
 use crate::{AppError, Db, Result};
 
-use super::model::{Change, Task};
+use super::model::{Change, ReleasedLink, Task};
 use super::resolve::resolve_task_id;
 use super::sql::get_task;
-use super::write::release_blocked_status;
+use super::write::{blocking_downstream, shifts_to_released, sync_blocking_status};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -41,11 +42,11 @@ impl LinkType {
     }
 }
 
-async fn task_uuid(db: &Db, key: &TaskKey) -> Result<Option<String>> {
+async fn task_uuid(conn: &mut SqliteConnection, key: &TaskKey) -> Result<Option<String>> {
     let row: Option<(String,)> =
         sqlx::query_as("SELECT id FROM tasks WHERE key = ? AND deleted_at IS NULL")
             .bind(key.as_str())
-            .fetch_optional(db.pool())
+            .fetch_optional(&mut *conn)
             .await?;
     Ok(row.map(|(id,)| id))
 }
@@ -58,7 +59,12 @@ fn ordered_pair<'a>(source: &'a str, target: &'a str, link: LinkType) -> (&'a st
     }
 }
 
-async fn has_directed_path(db: &Db, link: LinkType, from: &str, to: &str) -> Result<bool> {
+async fn has_directed_path(
+    conn: &mut SqliteConnection,
+    link: LinkType,
+    from: &str,
+    to: &str,
+) -> Result<bool> {
     let mut seen: HashSet<String> = HashSet::new();
     let mut stack = vec![from.to_string()];
     while let Some(current) = stack.pop() {
@@ -73,7 +79,7 @@ async fn has_directed_path(db: &Db, link: LinkType, from: &str, to: &str) -> Res
         )
         .bind(link.as_str())
         .bind(&current)
-        .fetch_all(db.pool())
+        .fetch_all(&mut *conn)
         .await?;
         for (next,) in rows {
             if !seen.contains(&next) {
@@ -84,7 +90,12 @@ async fn has_directed_path(db: &Db, link: LinkType, from: &str, to: &str) -> Res
     Ok(false)
 }
 
-async fn has_link(db: &Db, link: LinkType, source: &str, target: &str) -> Result<bool> {
+async fn has_link(
+    conn: &mut SqliteConnection,
+    link: LinkType,
+    source: &str,
+    target: &str,
+) -> Result<bool> {
     let (source, target) = ordered_pair(source, target, link);
     let row: Option<(i64,)> = sqlx::query_as(
         "SELECT 1 FROM task_links WHERE source_task_id = ? AND target_task_id = ? AND link_type = ?",
@@ -92,12 +103,17 @@ async fn has_link(db: &Db, link: LinkType, source: &str, target: &str) -> Result
     .bind(source)
     .bind(target)
     .bind(link.as_str())
-    .fetch_optional(db.pool())
+    .fetch_optional(&mut *conn)
     .await?;
     Ok(row.is_some())
 }
 
-async fn insert_link(db: &Db, link: LinkType, source: &str, target: &str) -> Result<()> {
+async fn insert_link(
+    conn: &mut SqliteConnection,
+    link: LinkType,
+    source: &str,
+    target: &str,
+) -> Result<()> {
     let (source, target) = ordered_pair(source, target, link);
     sqlx::query(
         "INSERT OR IGNORE INTO task_links (source_task_id, target_task_id, link_type, created_at) VALUES (?, ?, ?, ?)",
@@ -106,12 +122,17 @@ async fn insert_link(db: &Db, link: LinkType, source: &str, target: &str) -> Res
     .bind(target)
     .bind(link.as_str())
     .bind(chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true))
-    .execute(db.pool())
+    .execute(&mut *conn)
     .await?;
     Ok(())
 }
 
-pub async fn add_link(db: &Db, link: LinkType, source_key: &str, target_key: &str) -> Result<()> {
+pub async fn add_link(
+    db: &Db,
+    link: LinkType,
+    source_key: &str,
+    target_key: &str,
+) -> Result<Vec<ReleasedLink>> {
     let source = resolve_task_id(db, source_key).await?;
     let target = resolve_task_id(db, target_key).await?;
     if source == target {
@@ -120,19 +141,20 @@ pub async fn add_link(db: &Db, link: LinkType, source_key: &str, target_key: &st
             link.verb()
         )));
     }
-    let Some(source_uuid) = task_uuid(db, &source).await? else {
+    let mut tx = db.begin().await?;
+    let Some(source_uuid) = task_uuid(&mut tx, &source).await? else {
         return Err(AppError::not_found(format!(
             "task {} not found",
             source.as_str()
         )));
     };
-    let Some(target_uuid) = task_uuid(db, &target).await? else {
+    let Some(target_uuid) = task_uuid(&mut tx, &target).await? else {
         return Err(AppError::not_found(format!(
             "task {} not found",
             target.as_str()
         )));
     };
-    if !link.symmetric() && has_directed_path(db, link, &target_uuid, &source_uuid).await? {
+    if !link.symmetric() && has_directed_path(&mut tx, link, &target_uuid, &source_uuid).await? {
         return Err(AppError::conflict(format!(
             "{} cycle: {} already {} {}",
             link.as_str(),
@@ -141,10 +163,18 @@ pub async fn add_link(db: &Db, link: LinkType, source_key: &str, target_key: &st
             source.as_str()
         )));
     }
-    if has_link(db, link, &source_uuid, &target_uuid).await? {
-        return Ok(());
+    if has_link(&mut tx, link, &source_uuid, &target_uuid).await? {
+        return Ok(Vec::new());
     }
-    insert_link(db, link, &source_uuid, &target_uuid).await
+    insert_link(&mut tx, link, &source_uuid, &target_uuid).await?;
+    if link != LinkType::Blocks {
+        tx.commit().await?;
+        return Ok(Vec::new());
+    }
+    let affected = blocking_downstream(&mut tx, std::slice::from_ref(&target)).await?;
+    let shifts = sync_blocking_status(&mut tx, &affected).await?;
+    tx.commit().await?;
+    Ok(shifts_to_released(shifts))
 }
 
 pub async fn remove_link(
@@ -152,7 +182,7 @@ pub async fn remove_link(
     link: LinkType,
     source_key: &str,
     target_key: &str,
-) -> Result<()> {
+) -> Result<Vec<ReleasedLink>> {
     let source = resolve_task_id(db, source_key).await?;
     let target = resolve_task_id(db, target_key).await?;
     let message = || {
@@ -163,11 +193,17 @@ pub async fn remove_link(
             target.as_str()
         ))
     };
-    let Some(source_uuid) = task_uuid(db, &source).await? else {
+    let mut tx = db.begin().await?;
+    let Some(source_uuid) = task_uuid(&mut tx, &source).await? else {
         return Err(message());
     };
-    let Some(target_uuid) = task_uuid(db, &target).await? else {
+    let Some(target_uuid) = task_uuid(&mut tx, &target).await? else {
         return Err(message());
+    };
+    let affected = if link == LinkType::Blocks {
+        blocking_downstream(&mut tx, std::slice::from_ref(&target)).await?
+    } else {
+        Vec::new()
     };
     let (ordered_source, ordered_target) = ordered_pair(&source_uuid, &target_uuid, link);
     let result = sqlx::query(
@@ -176,22 +212,33 @@ pub async fn remove_link(
     .bind(ordered_source)
     .bind(ordered_target)
     .bind(link.as_str())
-    .execute(db.pool())
+    .execute(&mut *tx)
     .await?;
     if result.rows_affected() == 0 {
         return Err(message());
     }
-    if link == LinkType::Blocks {
-        release_blocked_status(db, std::slice::from_ref(&target)).await?;
+    if link != LinkType::Blocks {
+        tx.commit().await?;
+        return Ok(Vec::new());
     }
-    Ok(())
+    let shifts = sync_blocking_status(&mut tx, &affected).await?;
+    tx.commit().await?;
+    Ok(shifts_to_released(shifts))
 }
 
-pub async fn add_blocker(db: &Db, blocked_key: &str, blocker_key: &str) -> Result<()> {
+pub async fn add_blocker(
+    db: &Db,
+    blocked_key: &str,
+    blocker_key: &str,
+) -> Result<Vec<ReleasedLink>> {
     add_link(db, LinkType::Blocks, blocker_key, blocked_key).await
 }
 
-pub async fn remove_blocker(db: &Db, blocked_key: &str, blocker_key: &str) -> Result<()> {
+pub async fn remove_blocker(
+    db: &Db,
+    blocked_key: &str,
+    blocker_key: &str,
+) -> Result<Vec<ReleasedLink>> {
     remove_link(db, LinkType::Blocks, blocker_key, blocked_key).await
 }
 

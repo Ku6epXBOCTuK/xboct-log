@@ -1226,6 +1226,49 @@ mod tests {
         assert_eq!(result.is_error, Some(true));
     }
 
+    #[tokio::test]
+    async fn call_named_reports_open_blockers_when_setting_a_status() {
+        let backlog = backlog().await;
+        for (op, args) in [
+            (
+                "projects_create",
+                json!({"project_id": "log", "name": "Log", "prefix": "LOG"}),
+            ),
+            (
+                "tasks_create",
+                json!({"project_id": "log", "title": "Blocker"}),
+            ),
+            (
+                "tasks_create",
+                json!({"project_id": "log", "title": "Blocked"}),
+            ),
+            (
+                "tasks_add_blocker",
+                json!({"task_id": "LOG-2", "blocked_by": "LOG-1"}),
+            ),
+        ] {
+            let (_, _, result) = backlog.call_named(op, args, None).await;
+            assert_eq!(result.is_error, None, "{op} failed");
+        }
+
+        let (_, _, result) = backlog
+            .call_named(
+                "tasks_update",
+                json!({"task_id": "LOG-2", "status": "in-progress"}),
+                None,
+            )
+            .await;
+        let (kind, message) = failure_details(&result).expect("validation error");
+        assert_eq!(kind, "validation");
+        assert!(
+            message.contains("task LOG-2 has open blocked_by [LOG-1]"),
+            "{message}"
+        );
+        assert!(message.contains("tasks_close"), "{message}");
+        assert!(!message.contains("tasks_remove_blocker"), "{message}");
+        assert!(message.contains("in-progress"), "{message}");
+    }
+
     fn assert_refs_resolve(schema: &Map<String, Value>, name: &str) {
         let mut refs = Vec::new();
         collect_refs(&Value::Object(schema.clone()), &mut refs);

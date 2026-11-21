@@ -1,7 +1,10 @@
+use std::collections::{HashSet, VecDeque};
+
 use schemars::JsonSchema;
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
+use sqlx::SqliteConnection;
 
 use crate::ids::{ProjectId, ScopeId, TagName, TaskKey};
 use crate::{AppError, Db, Result, Tx};
@@ -492,64 +495,134 @@ async fn reopen_auto_closed_epic(db: &Db, child: &TaskKey, now: &str) -> Result<
     Ok(Some(read_task(db, &TaskKey::from(epic_key)).await?))
 }
 
-async fn is_restorable_status(status: &str) -> bool {
-    matches!(status, "backlog" | "open" | "in-progress")
+fn is_restorable_status(status: Status) -> bool {
+    matches!(status, Status::Backlog | Status::Open | Status::InProgress)
 }
 
-async fn has_open_blocked_by(db: &Db, key: &str) -> Result<bool> {
-    let (count,): (i64,) = sqlx::query_as(
-        "SELECT COUNT(*) FROM task_links l JOIN tasks ON tasks.id = l.source_task_id WHERE l.link_type = 'blocks' AND l.target_task_id = (SELECT id FROM tasks target WHERE target.key = ?) AND tasks.deleted_at IS NULL AND tasks.status NOT IN ('done', 'cancelled')",
+async fn list_open_blocked_by(conn: &mut SqliteConnection, key: &str) -> Result<Vec<TaskKey>> {
+    let rows: Vec<(String,)> = sqlx::query_as(
+        "SELECT tasks.key FROM task_links l JOIN tasks ON tasks.id = l.source_task_id WHERE l.link_type = 'blocks' AND l.target_task_id = (SELECT id FROM tasks target WHERE target.key = ?) AND tasks.deleted_at IS NULL AND tasks.status NOT IN ('done', 'cancelled') ORDER BY tasks.key",
     )
     .bind(key)
-    .fetch_one(db.pool())
+    .fetch_all(&mut *conn)
     .await?;
-    Ok(count > 0)
+    Ok(rows.into_iter().map(|(key,)| TaskKey::from(key)).collect())
 }
 
-pub async fn release_blocked_status(db: &Db, keys: &[TaskKey]) -> Result<Vec<(TaskKey, Status)>> {
-    let mut released = Vec::new();
+async fn has_open_blocked_by(conn: &mut SqliteConnection, key: &str) -> Result<bool> {
+    Ok(!list_open_blocked_by(conn, key).await?.is_empty())
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct StatusShift {
+    pub task_id: TaskKey,
+    pub from: Status,
+    pub to: Status,
+}
+
+pub(crate) fn shifts_to_released(shifts: Vec<StatusShift>) -> Vec<ReleasedLink> {
+    shifts
+        .into_iter()
+        .map(|shift| ReleasedLink {
+            task_id: shift.task_id,
+            changes: vec![change("status", json!(shift.from), json!(shift.to))],
+        })
+        .collect()
+}
+
+pub(crate) async fn blocking_downstream(
+    conn: &mut SqliteConnection,
+    roots: &[TaskKey],
+) -> Result<Vec<TaskKey>> {
+    let mut seen: HashSet<TaskKey> = HashSet::new();
+    let mut queue: VecDeque<TaskKey> = VecDeque::new();
+    for key in roots {
+        if seen.insert(key.clone()) {
+            queue.push_back(key.clone());
+        }
+    }
+    let mut ordered = Vec::new();
+    while let Some(current) = queue.pop_front() {
+        ordered.push(current.clone());
+        let rows: Vec<(String,)> = sqlx::query_as(
+            "SELECT target.key FROM task_links l JOIN tasks target ON target.id = l.target_task_id WHERE l.link_type = 'blocks' AND l.source_task_id = (SELECT id FROM tasks WHERE key = ?) AND target.deleted_at IS NULL ORDER BY target.key",
+        )
+        .bind(current.as_str())
+        .fetch_all(&mut *conn)
+        .await?;
+        for (key,) in rows {
+            let key = TaskKey::from(key);
+            if seen.insert(key.clone()) {
+                queue.push_back(key);
+            }
+        }
+    }
+    Ok(ordered)
+}
+
+pub(crate) async fn sync_blocking_status(
+    conn: &mut SqliteConnection,
+    keys: &[TaskKey],
+) -> Result<Vec<StatusShift>> {
+    let mut shifts = Vec::new();
     for key in keys {
         let row: Option<(String, Option<String>)> = sqlx::query_as(
             "SELECT status, blocked_from_status FROM tasks WHERE key = ? AND deleted_at IS NULL",
         )
         .bind(key.as_str())
-        .fetch_optional(db.pool())
+        .fetch_optional(&mut *conn)
         .await?;
         let Some((status, blocked_from)) = row else {
             continue;
         };
-        if status != "blocked" || has_open_blocked_by(db, key.as_str()).await? {
+        let status = match Status::from_db(&status) {
+            Some(status) => status,
+            None => continue,
+        };
+        if matches!(status, Status::Done | Status::Cancelled) {
             continue;
         }
-        let restored = blocked_from
-            .as_deref()
-            .filter(|value| matches!(*value, "backlog" | "open" | "in-progress"))
-            .unwrap_or("open");
-        let now = now_iso();
-        sqlx::query(
-            "UPDATE tasks SET status = ?, blocked_from_status = NULL, blocked_reason = NULL, updated_at = ? WHERE key = ?",
-        )
-        .bind(restored)
-        .bind(&now)
-        .bind(key.as_str())
-        .execute(db.pool())
-        .await?;
-        let status = Status::from_db(restored).unwrap_or(Status::Open);
-        released.push((key.clone(), status));
+        let has_blocker = has_open_blocked_by(conn, key.as_str()).await?;
+        if has_blocker {
+            if status == Status::Blocked {
+                continue;
+            }
+            let previous = is_restorable_status(status).then(|| status.as_str().to_string());
+            sqlx::query(
+                "UPDATE tasks SET status = 'blocked', blocked_from_status = ?, updated_at = ? WHERE key = ?",
+            )
+            .bind(previous)
+            .bind(now_iso())
+            .bind(key.as_str())
+            .execute(&mut *conn)
+            .await?;
+            shifts.push(StatusShift {
+                task_id: key.clone(),
+                from: status,
+                to: Status::Blocked,
+            });
+        } else if status == Status::Blocked && blocked_from.is_some() {
+            let restored = blocked_from
+                .as_deref()
+                .and_then(Status::from_db)
+                .filter(|status| is_restorable_status(*status))
+                .unwrap_or(Status::Open);
+            sqlx::query(
+                "UPDATE tasks SET status = ?, blocked_from_status = NULL, blocked_reason = NULL, updated_at = ? WHERE key = ?",
+            )
+            .bind(restored.as_str())
+            .bind(now_iso())
+            .bind(key.as_str())
+            .execute(&mut *conn)
+            .await?;
+            shifts.push(StatusShift {
+                task_id: key.clone(),
+                from: Status::Blocked,
+                to: restored,
+            });
+        }
     }
-    Ok(released)
-}
-
-async fn list_blocks(db: &Db, key: &str) -> Result<Vec<TaskKey>> {
-    let rows: Vec<(String,)> = sqlx::query_as(
-        "SELECT tasks.key FROM task_links l JOIN tasks ON tasks.id = l.target_task_id WHERE l.link_type = 'blocks' AND l.source_task_id = (SELECT id FROM tasks source WHERE source.key = ?) AND tasks.deleted_at IS NULL",
-    )
-    .bind(key)
-    .fetch_all(db.pool())
-    .await?;
-    let mut keys: Vec<TaskKey> = rows.into_iter().map(|(key,)| TaskKey::from(key)).collect();
-    keys.sort();
-    Ok(keys)
+    Ok(shifts)
 }
 
 pub async fn update_task_detailed(db: &Db, id: &str, patch: TaskPatch) -> Result<UpdateOutcome> {
@@ -560,6 +633,25 @@ pub async fn update_task_detailed(db: &Db, id: &str, patch: TaskPatch) -> Result
     }
     let target = super::resolve::resolve_task_id(db, id).await?;
     let current = read_task(db, &target).await?;
+    if let Some(status) = patch.status
+        && status != Status::Blocked
+        && !matches!(status, Status::Done | Status::Cancelled)
+        && !matches!(current.status, Status::Done | Status::Cancelled)
+    {
+        let mut conn = db.pool().acquire().await?;
+        let blockers = list_open_blocked_by(&mut conn, target.as_str()).await?;
+        if !blockers.is_empty() {
+            let ids = blockers
+                .iter()
+                .map(TaskKey::as_str)
+                .collect::<Vec<_>>()
+                .join(", ");
+            return Err(AppError::validation(format!(
+                "task {target} has open blocked_by [{ids}]; finish the blockers first with tasks_close (reason fixed) or tasks_update status 'done' before setting status to '{}'",
+                status.as_str()
+            )));
+        }
+    }
     let mut changes: Vec<Change> = Vec::new();
     let mut sets: Vec<String> = Vec::new();
     let mut params: Vec<Option<String>> = Vec::new();
@@ -609,7 +701,7 @@ pub async fn update_task_detailed(db: &Db, id: &str, patch: TaskPatch) -> Result
         }
         if status == Status::Blocked {
             if current.status != Status::Blocked {
-                let previous = if is_restorable_status(current.status.as_str()).await {
+                let previous = if is_restorable_status(current.status) {
                     Some(current.status.as_str().to_string())
                 } else {
                     None
@@ -867,7 +959,25 @@ pub async fn update_task_detailed(db: &Db, id: &str, patch: TaskPatch) -> Result
             .await?;
         }
     }
+    let affected = blocking_downstream(&mut tx, std::slice::from_ref(&target)).await?;
+    let reblocked = reopened_now
+        && matches!(current.status, Status::Done | Status::Cancelled)
+        && patch.status.is_some_and(is_restorable_status);
+    let checked = if reblocked {
+        affected.as_slice()
+    } else {
+        &affected[1..]
+    };
+    let mut shifts = sync_blocking_status(&mut tx, checked).await?;
     tx.commit().await?;
+
+    let mut changes = changes;
+    if let Some(index) = shifts.iter().position(|shift| shift.task_id == target) {
+        let shift = shifts.remove(index);
+        if let Some(change) = changes.iter_mut().find(|change| change.field == "status") {
+            change.to = json!(shift.to);
+        }
+    }
 
     let closed_epic = if closed_now {
         auto_close_epic(db, &target, &now).await?
@@ -882,7 +992,7 @@ pub async fn update_task_detailed(db: &Db, id: &str, patch: TaskPatch) -> Result
     Ok(UpdateOutcome {
         task: read_task(db, &target).await?,
         changes,
-        released: Vec::new(),
+        released: shifts_to_released(shifts),
         closed_epic,
         reopened_epic,
     })
@@ -894,6 +1004,7 @@ pub async fn update_task(db: &Db, id: &str, patch: TaskPatch) -> Result<Updated>
     Ok(Updated {
         task: outcome.task,
         changes: outcome.changes,
+        released: outcome.released,
         warnings,
         closed_epic: outcome.closed_epic,
         reopened_epic: outcome.reopened_epic,
@@ -924,17 +1035,11 @@ pub async fn close_task_detailed(
     .bind(target.as_str())
     .execute(&mut *tx)
     .await?;
+    let affected = blocking_downstream(&mut tx, std::slice::from_ref(&target)).await?;
+    let shifts = sync_blocking_status(&mut tx, &affected[1..]).await?;
     tx.commit().await?;
 
-    let blocks = list_blocks(db, target.as_str()).await?;
-    let released_status = release_blocked_status(db, &blocks).await?;
-    let released: Vec<ReleasedLink> = released_status
-        .into_iter()
-        .map(|(task_id, status)| ReleasedLink {
-            task_id,
-            changes: vec![change("status", json!(Status::Blocked), json!(status))],
-        })
-        .collect();
+    let released = shifts_to_released(shifts);
     let closed_epic = auto_close_epic(db, &target, &now).await?;
     Ok(UpdateOutcome {
         task: read_task(db, &target).await?,
@@ -993,6 +1098,7 @@ pub async fn delete_task(db: &Db, id: &str) -> Result<Deleted> {
 
     let now = now_iso();
     let mut tx = db.begin().await?;
+    let affected = blocking_downstream(&mut tx, std::slice::from_ref(&target)).await?;
     sqlx::query(
         "UPDATE tasks SET epic_id = NULL, updated_at = ? WHERE epic_id = (SELECT id FROM tasks epic WHERE epic.key = ?)",
     )
@@ -1013,24 +1119,26 @@ pub async fn delete_task(db: &Db, id: &str) -> Result<Deleted> {
     .bind(target.as_str())
     .execute(&mut *tx)
     .await?;
+    let shifts = sync_blocking_status(&mut tx, &affected[1..]).await?;
     tx.commit().await?;
 
-    let restored = release_blocked_status(db, &blocked_ids).await?;
-    let mut released: Vec<ReleasedLink> = Vec::new();
+    let mut released: Vec<ReleasedLink> = shifts_to_released(shifts);
     for (blocked, before) in &blocked_before {
         let after: Vec<TaskKey> = before
             .iter()
             .filter(|blocker| blocker.as_str() != target.as_str())
             .cloned()
             .collect();
-        let mut changes = vec![change("blocked_by", json!(before), json!(after))];
-        if let Some((_, status)) = restored.iter().find(|(key, _)| key == blocked) {
-            changes.push(change("status", json!(Status::Blocked), json!(status)));
+        let changes = vec![change("blocked_by", json!(before), json!(after))];
+        match released.iter_mut().find(|link| link.task_id == *blocked) {
+            Some(link) => {
+                link.changes.splice(0..0, changes);
+            }
+            None => released.push(ReleasedLink {
+                task_id: blocked.clone(),
+                changes,
+            }),
         }
-        released.push(ReleasedLink {
-            task_id: blocked.clone(),
-            changes,
-        });
     }
     for (child,) in children {
         released.push(ReleasedLink {

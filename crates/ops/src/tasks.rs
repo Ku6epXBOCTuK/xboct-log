@@ -522,8 +522,12 @@ pub struct BlockerInput {
     pub blocked_by: TaskKey,
 }
 
-fn linked_output(task: Task, changes: Vec<Change>) -> Linked {
-    Linked { task, changes }
+fn linked_output(task: Task, changes: Vec<Change>, released: Vec<ReleasedLink>) -> Linked {
+    Linked {
+        task,
+        changes,
+        released,
+    }
 }
 
 pub struct TasksAddLink;
@@ -555,7 +559,7 @@ impl Op for TasksAddLink {
             .await?;
         let after = get_task(&ctx.db, input.task_id.as_str()).await?;
         let changes = xboct_log_core::link_changes(&before, &after, field);
-        Ok(linked_output(after, changes))
+        Ok(linked_output(after, changes, Vec::new()))
     }
 }
 
@@ -588,7 +592,7 @@ impl Op for TasksRemoveLink {
             .await?;
         let after = get_task(&ctx.db, input.task_id.as_str()).await?;
         let changes = xboct_log_core::link_changes(&before, &after, field);
-        Ok(linked_output(after, changes))
+        Ok(linked_output(after, changes, Vec::new()))
     }
 }
 
@@ -613,11 +617,16 @@ impl Op for TasksAddBlocker {
 
     async fn run(ctx: &Ctx, input: Self::Input) -> Result<Self::Output> {
         let before = get_task(&ctx.db, input.task_id.as_str()).await?;
-        xboct_log_core::add_blocker(&ctx.db, input.task_id.as_str(), input.blocked_by.as_str())
-            .await?;
+        let released =
+            xboct_log_core::add_blocker(&ctx.db, input.task_id.as_str(), input.blocked_by.as_str())
+                .await?;
         let after = get_task(&ctx.db, input.task_id.as_str()).await?;
         let changes = xboct_log_core::link_changes(&before, &after, "blocked_by");
-        Ok(linked_output(after, changes))
+        let released = released
+            .into_iter()
+            .filter(|link| link.task_id != input.task_id)
+            .collect();
+        Ok(linked_output(after, changes, released))
     }
 }
 
@@ -642,11 +651,19 @@ impl Op for TasksRemoveBlocker {
 
     async fn run(ctx: &Ctx, input: Self::Input) -> Result<Self::Output> {
         let before = get_task(&ctx.db, input.task_id.as_str()).await?;
-        xboct_log_core::remove_blocker(&ctx.db, input.task_id.as_str(), input.blocked_by.as_str())
-            .await?;
+        let released = xboct_log_core::remove_blocker(
+            &ctx.db,
+            input.task_id.as_str(),
+            input.blocked_by.as_str(),
+        )
+        .await?;
         let after = get_task(&ctx.db, input.task_id.as_str()).await?;
         let changes = xboct_log_core::link_changes(&before, &after, "blocked_by");
-        Ok(linked_output(after, changes))
+        let released = released
+            .into_iter()
+            .filter(|link| link.task_id != input.task_id)
+            .collect();
+        Ok(linked_output(after, changes, released))
     }
 }
 

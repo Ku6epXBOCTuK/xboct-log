@@ -31,6 +31,7 @@ pub fn entries(op: &str, input: &Value, output: &Value) -> Vec<ActivityEntry> {
                 patch_fields(input),
                 array(output.get("changes")),
             )];
+            entries.extend(released_entries(output.get("released")));
             entries.extend(epic_entries(output));
             entries
         }
@@ -49,6 +50,7 @@ pub fn entries(op: &str, input: &Value, output: &Value) -> Vec<ActivityEntry> {
                     patch_fields(&source),
                     array(item.get("changes")),
                 )];
+                entries.extend(released_entries(item.get("released")));
                 entries.extend(epic_entries(item));
                 entries
             })
@@ -109,11 +111,15 @@ pub fn entries(op: &str, input: &Value, output: &Value) -> Vec<ActivityEntry> {
                 array(output.get("changes")),
             )]
         }
-        "tasks_add_blocker" | "tasks_remove_blocker" => vec![ActivityEntry::task(
-            text(output, "id"),
-            strings(&["blocked_by"]),
-            array(output.get("changes")),
-        )],
+        "tasks_add_blocker" | "tasks_remove_blocker" => {
+            let mut entries = vec![ActivityEntry::task(
+                text(output, "id"),
+                strings(&["blocked_by"]),
+                array(output.get("changes")),
+            )];
+            entries.extend(released_entries(output.get("released")));
+            entries
+        }
         "tasks_comments_add" | "tasks_comments_edit" | "tasks_comments_delete" => {
             vec![ActivityEntry::task(
                 text(output, "task_id"),

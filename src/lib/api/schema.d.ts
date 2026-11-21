@@ -355,7 +355,7 @@ export interface paths {
         put?: never;
         /**
          * Link two tasks: the task `task_id` becomes blocked by the task `blocked_by` (that is the blocker)
-         * @description Link two tasks: the task `task_id` becomes blocked by the task `blocked_by` (that is the blocker). Both ids use the full task id form 'PREFIX-NUMBER'. The blocker may live in another project. A task cannot block itself and cycles are rejected. The blocked task keeps its current status: set status 'blocked' with tasks_update yourself. The link is history and stays after the blocker is closed or the task is released, so never remove it for cleanup. Returns: the updated blocked task - {id, project_id, number, title, description, status, priority, is_epic, epic_id, scope_id, source_file, tags, estimate, assignee, due_at, attachments_count, created_at, updated_at, closed_at, closed_reason, blocked_reason, deleted_at, project_name, scope_name, short_description, blocked_by, blocks, relates_to, duplicates, duplicated_by, children_counts, plan_ids, plan_names} with a changes array describing the link.
+         * @description Link two tasks: the task `task_id` becomes blocked by the task `blocked_by` (that is the blocker). Both ids use the full task id form 'PREFIX-NUMBER'. The blocker may live in another project. A task cannot block itself and cycles are rejected. When the blocker is open (status not 'done' or 'cancelled'), the blocked task automatically enters status 'blocked' and its previous status is saved; tasks blocked downstream follow in a cascade. An already done or cancelled task is not reopened. The link is history and stays after the blocker is closed or the task is released, so never remove it for cleanup. Returns: the updated blocked task - {id, project_id, number, title, description, status, priority, is_epic, epic_id, scope_id, source_file, tags, estimate, assignee, due_at, attachments_count, created_at, updated_at, closed_at, closed_reason, blocked_reason, deleted_at, project_name, scope_name, short_description, blocked_by, blocks, relates_to, duplicates, duplicated_by, children_counts, plan_ids, plan_names} with a changes array describing the link and a released array listing cascaded status changes of downstream tasks.
          */
         post: operations["tasks_add_blocker"];
         delete?: never;
@@ -375,7 +375,7 @@ export interface paths {
         put?: never;
         /**
          * Remove a blocking link that was recorded by mistake: the task `task_id` is no longer blocked by the task `blocked_by`
-         * @description Remove a blocking link that was recorded by mistake: the task `task_id` is no longer blocked by the task `blocked_by`. Both ids use the full task id form 'PREFIX-NUMBER'. A closed blocker and a task that already left status 'blocked' are not reasons to remove the link: it is the history of the wait and must stay in blocked_by. If no open blocker remains, the blocked task leaves status 'blocked' and returns to the status it had before it was blocked ('open' when that status is unknown). Returns: the updated blocked task - {id, project_id, number, title, description, status, priority, is_epic, epic_id, scope_id, source_file, tags, estimate, assignee, due_at, attachments_count, created_at, updated_at, closed_at, closed_reason, blocked_reason, deleted_at, project_name, scope_name, short_description, blocked_by, blocks, relates_to, duplicates, duplicated_by, children_counts, plan_ids, plan_names} with a changes array describing the link and the status release.
+         * @description Remove a blocking link that was recorded by mistake: the task `task_id` is no longer blocked by the task `blocked_by`. Both ids use the full task id form 'PREFIX-NUMBER'. A closed blocker and a task that already left status 'blocked' are not reasons to remove the link: it is the history of the wait and must stay in blocked_by. If no open blocker remains, the blocked task leaves status 'blocked' and returns to the status it had before it was blocked ('open' when that status is unknown); downstream tasks are released in a cascade and listed in released. Returns: the updated blocked task - {id, project_id, number, title, description, status, priority, is_epic, epic_id, scope_id, source_file, tags, estimate, assignee, due_at, attachments_count, created_at, updated_at, closed_at, closed_reason, blocked_reason, deleted_at, project_name, scope_name, short_description, blocked_by, blocks, relates_to, duplicates, duplicated_by, children_counts, plan_ids, plan_names} with a changes array describing the link and the status release and a released array listing cascaded status changes of downstream tasks.
          */
         post: operations["tasks_remove_blocker"];
         delete?: never;
@@ -895,7 +895,7 @@ export interface paths {
         put?: never;
         /**
          * Update fields of an existing task by task_id
-         * @description Update fields of an existing task by task_id. Pass the fields to change next to task_id (e.g. {task_id: 'LOG-87', status: 'in-progress'}); a nested patch object {task_id, patch: {status}} is accepted too. description is Markdown and formatting is rendered: a short log or config in a fenced block is welcome, source code belongs in the repository. The task_id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). epic_id accepts a full epic id (e.g. 'LOG-5') of the task's current project, scope takes the name of a scope of that project (case-insensitive; scope_id takes the id) and scope: null clears it, estimate takes the size of the task ('S', 'M' or 'L') or null to clear it, assignee takes the name of the responsible person or null to clear it, due_at takes the due date (YYYY-MM-DD) or null to clear it, and blocked_reason is one line of free text explaining a block outside the tracker, allowed only on a blocked task; leaving status 'blocked' clears it. The call must name at least one field with a value: no field, a field set to undefined, an unknown field or an epic id that does not exist is an error, the task is left untouched. Returns: the updated task - {id, project_id, number, title, description, status, priority, is_epic, epic_id, scope_id, source_file, tags, estimate, assignee, due_at, attachments_count, created_at, updated_at, closed_at, closed_reason, blocked_reason, deleted_at, project_name, scope_name, short_description, blocked_by, blocks, relates_to, duplicates, duplicated_by, children_counts, plan_ids, plan_names} with a changes array and a warnings array, which is not empty when the task is blocked with neither a blocker task nor a blocked_reason, or when an epic is closed while some of its subtasks are still open. Closing the last open subtask of an epic closes the epic itself with reason 'fixed' and returns it in closed_epic; reopening a subtask of an epic that was closed automatically reopens the epic in open and returns it in reopened_epic. An unknown tag is rejected: tags are a closed dictionary, see tags_list and tags_create.
+         * @description Update fields of an existing task by task_id. Pass the fields to change next to task_id (e.g. {task_id: 'LOG-87', status: 'in-progress'}); a nested patch object {task_id, patch: {status}} is accepted too. description is Markdown and formatting is rendered: a short log or config in a fenced block is welcome, source code belongs in the repository. The task_id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). epic_id accepts a full epic id (e.g. 'LOG-5') of the task's current project, scope takes the name of a scope of that project (case-insensitive; scope_id takes the id) and scope: null clears it, estimate takes the size of the task ('S', 'M' or 'L') or null to clear it, assignee takes the name of the responsible person or null to clear it, due_at takes the due date (YYYY-MM-DD) or null to clear it, and blocked_reason is one line of free text explaining a block outside the tracker, allowed only on a blocked task; leaving status 'blocked' clears it. A task with open blockers cannot be moved to a non-'blocked', non-closed status: the error names the task and its open blocked_by ids and tells to finish them first with tasks_close (reason fixed) or tasks_update status 'done'. Reopening from 'done' or 'cancelled' is allowed and re-blocks the task if blockers remain. Closing or reopening a blocker releases or re-blocks every downstream task in a cascade; those status changes are listed in released. The call must name at least one field with a value: no field, a field set to undefined, an unknown field or an epic id that does not exist is an error, the task is left untouched. Returns: the updated task - {id, project_id, number, title, description, status, priority, is_epic, epic_id, scope_id, source_file, tags, estimate, assignee, due_at, attachments_count, created_at, updated_at, closed_at, closed_reason, blocked_reason, deleted_at, project_name, scope_name, short_description, blocked_by, blocks, relates_to, duplicates, duplicated_by, children_counts, plan_ids, plan_names} with a changes array and a warnings array, which is not empty when the task is blocked with neither a blocker task nor a blocked_reason, or when an epic is closed while some of its subtasks are still open. Closing the last open subtask of an epic closes the epic itself with reason 'fixed' and returns it in closed_epic; reopening a subtask of an epic that was closed automatically reopens the epic in open and returns it in reopened_epic. An unknown tag is rejected: tags are a closed dictionary, see tags_list and tags_create.
          */
         post: operations["tasks_update"];
         delete?: never;
@@ -915,7 +915,7 @@ export interface paths {
         put?: never;
         /**
          * Update several tasks in one call
-         * @description Update several tasks in one call. Each item is applied independently and the response reports ok/error per item; a failing item does not cancel the others. Every item carries task_id plus the fields to change next to it (e.g. {items: [{task_id: 'LOG-87', status: 'done'}]}); a nested patch object {task_id, patch: {...}} is accepted too. Every task_id must use the full 'PREFIX-NUMBER' form. Every item must name at least one field with a value: no field, a field set to undefined, an unknown field or an epic id that does not exist is an error for that item, the task is left untouched and the item reports ok:false. Returns: {items, succeeded, failed} - every item is {index, id, ok, task, changes, released, warnings} when it worked and {index, id, ok:false, error:{kind, message}} when it failed, where index is the position in the request list and id is the id of the task. released is empty when nothing was released. Every successful item carries its own warnings array. An unknown tag fails that item only: tags are a closed dictionary, see tags_list and tags_create. Every returned task keeps plan_ids and adds plan_names ({id, name}) for readable plan references.
+         * @description Update several tasks in one call. Each item is applied independently and the response reports ok/error per item; a failing item does not cancel the others. Every item carries task_id plus the fields to change next to it (e.g. {items: [{task_id: 'LOG-87', status: 'done'}]}); a nested patch object {task_id, patch: {...}} is accepted too. Every task_id must use the full 'PREFIX-NUMBER' form. Every item must name at least one field with a value: no field, a field set to undefined, an unknown field or an epic id that does not exist is an error for that item, the task is left untouched and the item reports ok:false. A task with open blockers rejects a non-'blocked', non-closed status with an error naming the task and its open blocked_by ids and telling to finish them with tasks_close or tasks_update status 'done'. Returns: {items, succeeded, failed} - every item is {index, id, ok, task, changes, released, warnings} when it worked and {index, id, ok:false, error:{kind, message}} when it failed, where index is the position in the request list and id is the id of the task. released lists cascaded status changes of downstream tasks and is empty when nothing changed. Every successful item carries its own warnings array. An unknown tag fails that item only: tags are a closed dictionary, see tags_list and tags_create. Every returned task keeps plan_ids and adds plan_names ({id, name}) for readable plan references.
          */
         post: operations["tasks_update_many"];
         delete?: never;
@@ -935,7 +935,7 @@ export interface paths {
         put?: never;
         /**
          * Close a task by task_id with a reason: 'fixed' → done, 'wontfix' | 'obsolete' | 'duplicate' | 'not-reproduced' → cancelled
-         * @description Close a task by task_id with a reason: 'fixed' → done, 'wontfix' | 'obsolete' | 'duplicate' | 'not-reproduced' → cancelled. 'not-reproduced' marks a report that could not be reproduced. The task_id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). Closing a task that blocks others releases them from status 'blocked' - every released task returns to the status it had before it was blocked ('open' when that status is unknown), and those tasks are listed in released. The blocking links stay in place as history, so do not remove them afterwards. Returns: the closed task - {id, project_id, number, title, description, status, priority, is_epic, epic_id, scope_id, source_file, tags, estimate, assignee, due_at, attachments_count, created_at, updated_at, closed_at, closed_reason, blocked_reason, deleted_at, project_name, scope_name, short_description, blocked_by, blocks, relates_to, duplicates, duplicated_by, children_counts, plan_ids, plan_names} with a changes array, a released array and a warnings array, which is not empty when an epic is closed while some of its subtasks are still open. Closing the last open subtask of an epic closes the epic itself with reason 'fixed' and returns it in closed_epic.
+         * @description Close a task by task_id with a reason: 'fixed' → done, 'wontfix' | 'obsolete' | 'duplicate' | 'not-reproduced' → cancelled. 'not-reproduced' marks a report that could not be reproduced. The task_id must use the full 'PREFIX-NUMBER' form (e.g. 'LOG-82'). Closing a task that blocks others releases them from status 'blocked', including tasks blocked by them downstream in a cascade - every released task returns to the status it had before it was blocked ('open' when that status is unknown), and those tasks are listed in released. The blocking links stay in place as history, so do not remove them afterwards. Returns: the closed task - {id, project_id, number, title, description, status, priority, is_epic, epic_id, scope_id, source_file, tags, estimate, assignee, due_at, attachments_count, created_at, updated_at, closed_at, closed_reason, blocked_reason, deleted_at, project_name, scope_name, short_description, blocked_by, blocks, relates_to, duplicates, duplicated_by, children_counts, plan_ids, plan_names} with a changes array, a released array and a warnings array, which is not empty when an epic is closed while some of its subtasks are still open. Closing the last open subtask of an epic closes the epic itself with reason 'fixed' and returns it in closed_epic.
          */
         post: operations["tasks_close"];
         delete?: never;
@@ -1807,6 +1807,10 @@ export interface components {
             from: unknown;
             to: unknown;
         };
+        ReleasedLink: {
+            task_id: string;
+            changes: components["schemas"]["Change"][];
+        };
         /** @enum {string} */
         LinkKindInput: "relates_to" | "duplicates";
         Comment: {
@@ -2034,10 +2038,6 @@ export interface components {
             warnings: string[];
             closed_epic?: components["schemas"]["Task"] | null;
             reopened_epic?: components["schemas"]["Task"] | null;
-        };
-        ReleasedLink: {
-            task_id: string;
-            changes: components["schemas"]["Change"][];
         };
         BatchFailure: {
             /** Format: uint */
@@ -3492,6 +3492,7 @@ export interface operations {
                         plan_ids: string[];
                         plan_names?: components["schemas"]["PlanRef"][] | null;
                         changes: components["schemas"]["Change"][];
+                        released: components["schemas"]["ReleasedLink"][];
                     };
                 };
             };
@@ -3597,6 +3598,7 @@ export interface operations {
                         plan_ids: string[];
                         plan_names?: components["schemas"]["PlanRef"][] | null;
                         changes: components["schemas"]["Change"][];
+                        released: components["schemas"]["ReleasedLink"][];
                     };
                 };
             };
@@ -3704,6 +3706,7 @@ export interface operations {
                         plan_ids: string[];
                         plan_names?: components["schemas"]["PlanRef"][] | null;
                         changes: components["schemas"]["Change"][];
+                        released: components["schemas"]["ReleasedLink"][];
                     };
                 };
             };
@@ -3811,6 +3814,7 @@ export interface operations {
                         plan_ids: string[];
                         plan_names?: components["schemas"]["PlanRef"][] | null;
                         changes: components["schemas"]["Change"][];
+                        released: components["schemas"]["ReleasedLink"][];
                     };
                 };
             };
@@ -5749,6 +5753,7 @@ export interface operations {
                         plan_ids: string[];
                         plan_names?: components["schemas"]["PlanRef"][] | null;
                         changes: components["schemas"]["Change"][];
+                        released: components["schemas"]["ReleasedLink"][];
                         warnings: string[];
                         closed_epic?: components["schemas"]["Task"] | null;
                         reopened_epic?: components["schemas"]["Task"] | null;

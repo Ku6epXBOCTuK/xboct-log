@@ -348,6 +348,7 @@ pub struct Updated {
     #[serde(flatten)]
     pub task: Task,
     pub changes: Vec<Change>,
+    pub released: Vec<ReleasedLink>,
     pub warnings: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub closed_epic: Option<Task>,
@@ -379,6 +380,7 @@ pub struct Linked {
     #[serde(flatten)]
     pub task: Task,
     pub changes: Vec<Change>,
+    pub released: Vec<ReleasedLink>,
 }
 
 #[derive(Debug, Serialize, JsonSchema)]
