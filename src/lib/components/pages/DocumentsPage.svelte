@@ -44,7 +44,7 @@
 	let detail = $state<Document | null>(null);
 	let revisions = $state<TextRevision[]>([]);
 	let body = $state("");
-	let dirty = $state(false);
+	const dirty = $derived(detail !== null && body !== detail.body);
 	let saving = $state(false);
 	let failedDetail = $state(false);
 	let newTitle = $state("");
@@ -66,17 +66,19 @@
 		loaded = true;
 	}
 
+	async function reloadRevisions(id: string): Promise<void> {
+		revisions = await fetchFresh(getDocumentRevisions({ document_id: id }));
+	}
+
 	async function loadDetail(id: string): Promise<void> {
 		try {
-			const [document, history] = await Promise.all([
-				fetchFresh(getDocuments({ project_id: project ?? undefined })),
-				fetchFresh(getDocumentRevisions({ document_id: id })),
-			]);
+			const document = await fetchFresh(
+				getDocuments({ project_id: project ?? undefined }),
+			);
 			const found = document.find((item) => item.id === id) ?? null;
 			detail = found;
-			revisions = history;
 			body = found?.body ?? "";
-			dirty = false;
+			await reloadRevisions(id);
 			failedDetail = false;
 		} catch {
 			failedDetail = true;
@@ -108,14 +110,14 @@
 		if (detail === null || !dirty) return;
 		saving = true;
 		try {
-			detail = await store.update({
+			const updated = await store.update({
 				document_id: detail.id,
 				patch: { body },
 				expected_updated_at: detail.updated_at,
 			});
-			dirty = false;
+			detail = updated;
 			failedDetail = false;
-			await loadDetail(detail.id);
+			await reloadRevisions(updated.id);
 		} catch {
 			failedDetail = true;
 		} finally {
@@ -280,7 +282,6 @@
 						target={detail.id}
 						height="24rem"
 						resizable
-						oninput={() => (dirty = true)}
 					/>
 					<div class="save-row">
 						<Button

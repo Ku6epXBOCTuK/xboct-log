@@ -462,6 +462,33 @@ test("a document is created and edited on the documents page", async ({
 	await page.getByLabel("Document status").selectOption("accepted");
 });
 
+test("editing a document while saving keeps the new text", async ({ page }) => {
+	await page.goto(`/documents/project/${project}`);
+	await page.getByLabel("Document kind").selectOption("adr");
+	await page.getByLabel("New document title").fill("UI race document");
+	await page.getByRole("button", { name: "Create", exact: true }).click();
+	await expect(
+		page.getByRole("heading", { name: /UI race document/ }),
+	).toBeVisible();
+
+	const editor = page.getByPlaceholder("Document body");
+	const save = page.getByRole("button", { name: "Save", exact: true });
+	await editor.fill("first version");
+	await page.route("**/api/documents_update", async (route) => {
+		await new Promise((resolve) => setTimeout(resolve, 400));
+		await route.continue();
+	});
+	await save.click();
+	await expect(save).toBeDisabled();
+	await editor.fill("second version");
+	await expect(save).toBeEnabled();
+	await save.click();
+	await expect(
+		page.locator("details.revision pre").filter({ hasText: "first version" }),
+	).toHaveCount(1);
+	await expect(editor).toHaveValue("second version");
+});
+
 test("documents open from a global page without a project", async ({
 	page,
 }) => {
