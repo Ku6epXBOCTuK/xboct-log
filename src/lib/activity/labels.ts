@@ -46,12 +46,6 @@ const OP_LABELS: Record<string, string> = {
 	attachments_copy: "Attachment copied",
 };
 
-const ENTITY_LABELS: Record<string, string> = {
-	tasks: "Task",
-	projects: "Project",
-	scopes: "Scope",
-};
-
 const ACTION_LABELS: Record<string, string> = {
 	create: "created",
 	update: "updated",
@@ -59,29 +53,43 @@ const ACTION_LABELS: Record<string, string> = {
 	delete: "deleted",
 	restore: "restored",
 	move: "moved",
+	rename: "renamed",
+	reorder: "reordered",
+	add: "added",
+	remove: "removed",
+	link: "linked",
+	unlink: "unlinked",
+	archive: "archived",
 };
+
+const ACTION_OP =
+	/^(.+)_(create|update|close|delete|restore|move|rename|reorder|add|remove|link|unlink|archive)(_many)?$/;
+
+function capitalize(word: string): string {
+	return word.charAt(0).toUpperCase() + word.slice(1);
+}
+
+function entityLabel(prefix: string): string {
+	const parts = prefix.split("_");
+	const word = parts[parts.length - 1] ?? prefix;
+	const singular =
+		word.length > 2 && word.endsWith("s") && !word.endsWith("ss")
+			? word.slice(0, -1)
+			: word;
+	return capitalize(singular);
+}
 
 export function activityOpLabel(op: string): string {
 	const explicit = OP_LABELS[op];
 	if (explicit !== undefined) {
 		return explicit;
 	}
-	const match = /^(tasks|projects|scopes)_(.+)$/.exec(op);
+	const match = ACTION_OP.exec(op);
 	if (match) {
-		const entity = ENTITY_LABELS[match[1]];
-		const many = match[2].endsWith("_many");
-		const action = many ? match[2].slice(0, -"_many".length) : match[2];
-		const verb = ACTION_LABELS[action];
-		if (entity !== undefined && verb !== undefined) {
-			return `${many ? `${entity}s` : entity} ${verb}`;
-		}
+		const entity = entityLabel(match[1]);
+		return `${match[3] ? `${entity}s` : entity} ${ACTION_LABELS[match[2]]}`;
 	}
-	const action = op
-		.replace(/^(tasks|projects|scopes)_/, "")
-		.replace(/_many$/, "");
-	if (action === op) return op;
-	const text = action.replace(/_/g, " ");
-	return text.charAt(0).toUpperCase() + text.slice(1);
+	return op.split("_").map(capitalize).join(" ");
 }
 
 export function activityFieldLabel(field: string): string {

@@ -24,9 +24,17 @@ describe("activityOpLabel", () => {
 		expect(activityOpLabel("tasks_remove_blocker")).toBe("Blocker removed");
 	});
 
+	it("labels operations of any entity without a per-entity table", () => {
+		expect(activityOpLabel("tags_create")).toBe("Tag created");
+		expect(activityOpLabel("tags_rename")).toBe("Tag renamed");
+		expect(activityOpLabel("documents_delete")).toBe("Document deleted");
+		expect(activityOpLabel("plans_documents_link")).toBe("Document linked");
+		expect(activityOpLabel("widgets_create")).toBe("Widget created");
+	});
+
 	it("falls back to a readable form for unknown operations", () => {
-		expect(activityOpLabel("tasks_something_new")).toBe("Something new");
-		expect(activityOpLabel("custom_op")).toBe("custom_op");
+		expect(activityOpLabel("tasks_something_new")).toBe("Tasks Something New");
+		expect(activityOpLabel("custom_op")).toBe("Custom Op");
 	});
 });
 
