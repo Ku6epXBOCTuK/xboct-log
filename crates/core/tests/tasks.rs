@@ -354,6 +354,17 @@ fn tells_a_missing_link_filter_from_an_explicit_null() {
 }
 
 #[tokio::test]
+async fn searching_for_null_does_not_match_missing_epic_or_source() {
+    let db = database().await;
+
+    for filter in [json!({"q": "null"}), json!({"q_any": ["null"]})] {
+        let page = list_tasks(&db, &filters(filter.clone())).await.unwrap();
+        assert_eq!(page.total, 0, "{filter}");
+        assert!(page.items.is_empty(), "{filter}");
+    }
+}
+
+#[tokio::test]
 async fn keeps_exact_matches_first_next_to_text_terms() {
     let db = database().await;
     let page = list_tasks(
