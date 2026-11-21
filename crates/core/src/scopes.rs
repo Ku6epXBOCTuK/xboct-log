@@ -80,10 +80,12 @@ pub async fn list_scopes(db: &Db, project_id: Option<&ProjectId>) -> Result<Vec<
                 .await?
         }
         Some(project_id) => {
-            sqlx::query_as::<_, Scope>("SELECT * FROM scopes WHERE project_id = ? ORDER BY name")
-                .bind(project_id.as_str())
-                .fetch_all(db.pool())
-                .await?
+            sqlx::query_as::<_, Scope>(
+                "SELECT * FROM scopes WHERE project_id = ? COLLATE NOCASE ORDER BY name",
+            )
+            .bind(project_id.as_str())
+            .fetch_all(db.pool())
+            .await?
         }
     };
     Ok(rows)
@@ -127,7 +129,7 @@ pub async fn count_tasks_by_scope(
          WHERE scope_id IS NOT NULL AND deleted_at IS NULL"
     );
     if project_id.is_some() {
-        sql.push_str(" AND project_id = ?");
+        sql.push_str(" AND project_id = ? COLLATE NOCASE");
     }
     sql.push_str(" GROUP BY scope_id");
 
@@ -176,22 +178,19 @@ pub async fn create_scope(db: &Db, project_id: &ProjectId, name: &str) -> Result
     if name.is_empty() {
         return Err(AppError::validation("scope name is required"));
     }
-    if crate::projects::get_project(db, project_id.as_str())
-        .await?
-        .is_none()
-    {
+    let Some(project) = crate::projects::get_project(db, project_id.as_str()).await? else {
         return Err(AppError::not_found(format!(
             "project {project_id} not found"
         )));
-    }
-    if name_conflict(db, project_id, &name, None).await? {
+    };
+    if name_conflict(db, &project.id, &name, None).await? {
         return Err(AppError::conflict(format!(
             "scope \"{name}\" already exists"
         )));
     }
 
     let result = sqlx::query("INSERT INTO scopes (project_id, name, created_at) VALUES (?, ?, ?)")
-        .bind(project_id.as_str())
+        .bind(project.id.as_str())
         .bind(&name)
         .bind(crate::tasks::now_iso())
         .execute(db.pool())

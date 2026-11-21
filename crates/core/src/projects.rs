@@ -228,7 +228,7 @@ impl<'r> FromRow<'r, SqliteRow> for Project {
 
 async fn project_by_id(connection: &mut SqliteConnection, id: &str) -> Result<Option<Project>> {
     fetch_by_id(
-        sqlx::query("SELECT * FROM projects WHERE id = ?").bind(id),
+        sqlx::query("SELECT * FROM projects WHERE id = ? COLLATE NOCASE").bind(id),
         &mut *connection,
     )
     .await

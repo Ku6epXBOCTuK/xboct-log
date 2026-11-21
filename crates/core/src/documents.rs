@@ -482,7 +482,7 @@ fn push_document_where(
     if let Some(projects) = &query.project_id {
         let values = projects.clone().into_vec();
         qb.push(" AND ");
-        push_in_text(qb, "d.project_id", &values);
+        push_in_text(qb, "d.project_id COLLATE NOCASE", &values);
     }
     if let Some(kinds) = &query.kind {
         let values: Vec<&str> = kinds
@@ -653,7 +653,7 @@ pub async fn create_document(
     let id = uuid::Uuid::new_v4().to_string();
     let now = crate::tasks::now_iso();
     let mut tx = db.begin().await?;
-    let number = allocate_number_tx(&mut tx, project_id).await?;
+    let number = allocate_number_tx(&mut tx, project.id.as_str()).await?;
     let key = format!("{}-{number}", project.prefix.as_str());
     sqlx::query(
         "INSERT INTO documents (id, project_id, number, key, kind, title, body, status,
@@ -661,7 +661,7 @@ pub async fn create_document(
          VALUES (?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?)",
     )
     .bind(&id)
-    .bind(project_id)
+    .bind(project.id.as_str())
     .bind(number)
     .bind(&key)
     .bind(kind.as_str())

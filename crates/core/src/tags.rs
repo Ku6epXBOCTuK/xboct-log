@@ -108,7 +108,9 @@ pub async fn list_tags(db: &Db, query: &TagQuery) -> Result<Vec<TagCount>> {
     );
     if !query.project_ids.is_empty() {
         let slots = vec!["?"; query.project_ids.len()].join(", ");
-        sql.push_str(&format!(" AND tasks.project_id IN ({slots})"));
+        sql.push_str(&format!(
+            " AND tasks.project_id COLLATE NOCASE IN ({slots})"
+        ));
     }
     if !query.statuses.is_empty() {
         let slots = vec!["?"; query.statuses.len()].join(", ");

@@ -145,20 +145,20 @@ fn push_search(query: &mut QueryBuilder<Sqlite>, search: &ActivitySearch) {
             )
             .push_bind(project_id.as_str())
             .push(
-                ") OR (entity = 'task' AND (entity_id IN (SELECT key FROM tasks WHERE project_id = ",
+                " COLLATE NOCASE) OR (entity = 'task' AND (entity_id IN (SELECT key FROM tasks WHERE project_id = ",
             )
             .push_bind(project_id.as_str())
             .push(
-                ") OR entity_task_id IN (SELECT id FROM tasks WHERE project_id = ",
+                " COLLATE NOCASE) OR entity_task_id IN (SELECT id FROM tasks WHERE project_id = ",
             )
             .push_bind(project_id.as_str())
             .push(
-                "))) OR (entity = 'scope' AND entity_id IN (SELECT CAST(id AS TEXT) FROM scopes WHERE project_id = ",
+                " COLLATE NOCASE))) OR (entity = 'scope' AND entity_id IN (SELECT CAST(id AS TEXT) FROM scopes WHERE project_id = ",
             )
             .push_bind(project_id.as_str())
-            .push(") OR (entity = 'document' AND entity_id IN (SELECT key FROM documents WHERE project_id = ")
+            .push(" COLLATE NOCASE) OR (entity = 'document' AND entity_id IN (SELECT key FROM documents WHERE project_id = ")
             .push_bind(project_id.as_str())
-            .push("))))");
+            .push(" COLLATE NOCASE))))");
     }
     if let Some(from) = &search.from {
         query.push(" AND created_at >= ").push_bind(from.as_str());

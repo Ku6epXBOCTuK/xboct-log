@@ -126,11 +126,15 @@ fn push_where(qb: &mut QueryBuilder<Sqlite>, filters: &TaskFilters) {
 
     if let Some(values) = &filters.project_id {
         push_and(qb, &mut first);
-        push_in_text(qb, "tasks.project_id", &values.clone().into_vec());
+        push_in_text(
+            qb,
+            "tasks.project_id COLLATE NOCASE",
+            &values.clone().into_vec(),
+        );
     }
     if let Some(values) = &filters.exclude_project_id {
         push_and(qb, &mut first);
-        qb.push("tasks.project_id NOT IN (");
+        qb.push("tasks.project_id COLLATE NOCASE NOT IN (");
         let mut separated = qb.separated(", ");
         for value in values.clone().into_vec() {
             separated.push_bind(value.into_string());
