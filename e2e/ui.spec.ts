@@ -267,6 +267,29 @@ test("an attachment is uploaded and removed", async ({ page }) => {
 	await expect(panel.getByText(file)).toHaveCount(0);
 });
 
+test("Escape closes the task panel after adding a tag", async ({ page }) => {
+	await page.goto(`/tasks/project/${project}`);
+	await page.locator(`[data-task-id="${created.critical}"]`).click();
+	const panel = page.getByRole("complementary", { name: "Task details" });
+	const input = panel.getByRole("combobox", { name: "Tags" });
+
+	await input.click();
+	await panel
+		.getByRole("listbox", { name: "Tags" })
+		.getByRole("option")
+		.filter({ hasText: tag })
+		.click();
+	await expect(
+		panel.getByRole("button", { name: `Remove ${tag}` }),
+	).toBeVisible();
+
+	await input.press("Escape");
+	await expect(panel).toBeVisible();
+
+	await input.press("Escape");
+	await expect(panel).toBeHidden();
+});
+
 test("a task is deleted and restored", async ({ page }) => {
 	await page.goto(`/tasks/project/${project}`);
 	await page.locator(`[data-task-id="${created.deletable}"]`).click();
