@@ -500,7 +500,7 @@ pub struct LinkInput {
     )]
     pub task_id: TaskKey,
     #[schemars(
-        description = "Link type: 'relates_to' is symmetric (one record, visible from both tasks); 'duplicates' is directed (id duplicates target). Blocking uses tasks_add_blocker instead."
+        description = "Link type: 'relates_to' is symmetric (one record, visible from both tasks) and does not gate completion; use tasks_add_blocker when one task cannot close until the other lands. 'duplicates' is directed (id duplicates target)."
     )]
     pub link_type: LinkKindInput,
     #[schemars(
