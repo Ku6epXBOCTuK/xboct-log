@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { Snippet } from "svelte";
 	import TextArea from "@ku6epxboctuk/ui-kit/components/TextArea.svelte";
+	import { type Snippet, untrack } from "svelte";
 	import MarkdownView from "#lib/components/markdown/MarkdownView.svelte";
 	import { appendMarkdown, markdownDrop } from "#lib/files/markdown-drop.ts";
 	import { matchesHotkey } from "#lib/hotkeys/hotkeys.ts";
@@ -41,16 +41,25 @@
 		onblur,
 	}: Props = $props();
 
+	type EditorMode = "edit" | "preview";
+
+	function initialMode(text: string): EditorMode {
+		return text.trim() === "" ? "edit" : "preview";
+	}
+
 	let area: HTMLTextAreaElement | undefined = $state();
-	let preview = $state(false);
-	let previewText = $state("");
+	let mode = $state<EditorMode>(initialMode(value));
+	let previewText = $state(value);
 	let wrap = $state(true);
 	let shownTarget: string | undefined;
 
 	$effect(() => {
 		if (target === undefined || target === shownTarget) return;
 		shownTarget = target;
-		preview = false;
+		untrack(() => {
+			mode = initialMode(value);
+			previewText = value;
+		});
 	});
 
 	function change(event: Event) {
@@ -62,17 +71,17 @@
 		const next = appendMarkdown(value, markdown);
 		if (next === value) return;
 		value = next;
-		preview = false;
+		mode = "edit";
 		oninsert?.(next);
 	}
 
 	function togglePreview() {
-		if (preview) {
-			preview = false;
+		if (mode === "preview") {
+			mode = "edit";
 			return;
 		}
 		previewText = value;
-		preview = true;
+		mode = "preview";
 	}
 
 	function toggleWrap() {
@@ -115,7 +124,7 @@
 		style:resize={resizable ? "vertical" : undefined}
 		use:markdownDrop={{ ontext: takeMarkdown }}
 	>
-		{#if preview}
+		{#if mode === "preview"}
 			<div class="md-preview">
 				{#if previewText.trim() === ""}
 					<p class="md-empty">Nothing to preview</p>
@@ -147,9 +156,9 @@
 			class="md-toggle"
 			type="button"
 			onclick={togglePreview}
-			aria-pressed={preview}
+			aria-pressed={mode === "preview"}
 		>
-			{#if preview}
+			{#if mode === "preview"}
 				<EyeOff />
 				Edit
 			{:else}
@@ -157,7 +166,7 @@
 				Preview
 			{/if}
 		</button>
-		{#if !preview}
+		{#if mode !== "preview"}
 			<button
 				class="md-toggle"
 				type="button"

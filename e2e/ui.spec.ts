@@ -196,6 +196,44 @@ test("a task is closed and reopened from its panel", async ({ page }) => {
 	).toBeVisible();
 });
 
+test("markdown fields default to preview for existing content and edit for new content", async ({
+	page,
+}) => {
+	await page.goto(`/tasks/project/${project}`);
+	await page.locator(`[data-task-id="${created.open}"]`).click();
+	const panel = page.getByRole("complementary", { name: "Task details" });
+
+	await expect(
+		panel.getByRole("button", { name: "Edit", exact: true }),
+	).toBeVisible();
+	await expect(
+		panel.getByText("A task seeded through the rest api"),
+	).toBeVisible();
+	await expect(panel.getByRole("textbox", { name: "Description" })).toHaveCount(
+		0,
+	);
+
+	await panel.getByRole("button", { name: "Edit", exact: true }).click();
+	await expect(
+		panel.getByRole("textbox", { name: "Description" }),
+	).toBeVisible();
+	await expect(
+		panel.getByRole("button", { name: "Preview", exact: true }),
+	).toBeVisible();
+
+	await panel.getByRole("button", { name: "Close task details" }).click();
+	await page
+		.locator("header")
+		.getByRole("button", { name: "New task" })
+		.click();
+	await expect(
+		page.getByRole("button", { name: "Preview", exact: true }),
+	).toBeVisible();
+	await expect(
+		page.getByRole("textbox", { name: "Description" }),
+	).toBeVisible();
+});
+
 test("task filters narrow the list by status and priority", async ({
 	page,
 }) => {
