@@ -37,7 +37,7 @@ const NODE_MIGRATIONS: &[&str] = &[
 ];
 
 pub fn known_migrations() -> &'static [&'static str] {
-    &NODE_MIGRATIONS
+    NODE_MIGRATIONS
 }
 
 const CREATE_SQLX_MIGRATIONS: &str = "CREATE TABLE IF NOT EXISTS _sqlx_migrations (
@@ -131,7 +131,7 @@ mod tests {
         MIGRATOR
             .migrations
             .iter()
-            .map(|migration| migration.version as i64)
+            .map(|migration| migration.version)
             .collect()
     }
 
