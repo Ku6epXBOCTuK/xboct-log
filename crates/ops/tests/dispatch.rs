@@ -296,6 +296,105 @@ async fn rejects_unknown_operations_and_fields() {
 }
 
 #[tokio::test]
+async fn rejects_relationship_fields_in_update_many_items() {
+    let ctx = context().await;
+    let error = dispatch(
+        &ctx,
+        "tasks_update_many",
+        json!({"items": [{"task_id": "LOG-1", "blocked_by": ["LOG-2"]}]}),
+    )
+    .await
+    .unwrap_err();
+    assert_eq!(error.kind(), AppErrorKind::Validation);
+    assert!(
+        error.message().contains("blocked_by"),
+        "{}",
+        error.message()
+    );
+    assert!(error.message().contains("items[0]"), "{}", error.message());
+    assert!(
+        error.message().contains("tasks_add_blocker"),
+        "{}",
+        error.message()
+    );
+
+    let alongside = dispatch(
+        &ctx,
+        "tasks_update_many",
+        json!({"items": [{"task_id": "LOG-1", "status": "open", "blocked_by": ["LOG-2"]}]}),
+    )
+    .await
+    .unwrap_err();
+    assert_eq!(alongside.kind(), AppErrorKind::Validation);
+    assert!(
+        alongside.message().contains("blocked_by"),
+        "{}",
+        alongside.message()
+    );
+}
+
+#[tokio::test]
+async fn rejects_unknown_fields_in_a_nested_patch() {
+    let ctx = context().await;
+    let error = dispatch(
+        &ctx,
+        "tasks_update",
+        json!({"task_id": "LOG-1", "patch": {"status": "open", "blocked_by": ["LOG-2"]}}),
+    )
+    .await
+    .unwrap_err();
+    assert_eq!(error.kind(), AppErrorKind::Validation);
+    assert!(
+        error.message().contains("blocked_by"),
+        "{}",
+        error.message()
+    );
+    assert!(
+        error.message().contains("tasks_add_blocker"),
+        "{}",
+        error.message()
+    );
+}
+
+#[tokio::test]
+async fn updates_a_task_epic() {
+    let ctx = context().await;
+    sqlx::query("INSERT INTO projects (id, prefix, name, created_at) VALUES ('log', 'LOG', 'Log', '2026-01-01T00:00:00.000Z')")
+        .execute(ctx.db.pool())
+        .await
+        .unwrap();
+    let epic = dispatch(
+        &ctx,
+        "tasks_create",
+        json!({"project_id": "log", "title": "Epic", "is_epic": true}),
+    )
+    .await
+    .unwrap();
+    let task = dispatch(
+        &ctx,
+        "tasks_create",
+        json!({"project_id": "log", "title": "Task"}),
+    )
+    .await
+    .unwrap();
+    let epic_id = epic["id"].as_str().unwrap();
+    let task_id = task["id"].as_str().unwrap();
+
+    dispatch(
+        &ctx,
+        "tasks_update",
+        json!({"task_id": task_id, "epic_id": epic_id}),
+    )
+    .await
+    .unwrap();
+
+    let updated = dispatch(&ctx, "tasks_get", json!({"task_id": task_id}))
+        .await
+        .unwrap();
+    assert_eq!(updated["epic_id"].as_str(), Some(epic_id));
+}
+
+#[tokio::test]
 async fn empty_input_accepts_empty_object_and_rejects_fields() {
     let ctx = context().await;
     dispatch(&ctx, "scopes_project_ids", json!({}))

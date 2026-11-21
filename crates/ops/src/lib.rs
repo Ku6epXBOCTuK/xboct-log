@@ -23,6 +23,7 @@ pub mod request_log;
 pub mod scopes;
 pub mod tags;
 pub mod tasks;
+pub mod validation;
 
 pub fn schema_of<T: JsonSchema>() -> serde_json::Value {
     serde_json::to_value(schemars::schema_for!(T)).unwrap_or(serde_json::Value::Null)
@@ -228,6 +229,7 @@ macro_rules! ops {
 		) -> ::xboct_log_core::Result<::serde_json::Value> {
 			$(
 				if name == <$op as $crate::Op>::NAME.as_str() {
+					$crate::validation::validate_arguments(name, &input)?;
 					let parsed = ::serde_json::from_value::<<$op as $crate::Op>::Input>(input.clone())
 						.map_err(|error| ::xboct_log_core::AppError::validation(error.to_string()))?;
 					return $crate::execute::<$op>(ctx, parsed, input).await;

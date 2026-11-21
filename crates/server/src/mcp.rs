@@ -21,7 +21,9 @@ use xboct_log_core::{
     Events, RequestLogEntry, RequestStatus, attachment_by_id, attachment_format,
     list_all_attachments, list_documents, read_attachment_file, record_request, require_document,
 };
-use xboct_log_ops::{Ctx, Kind, OpInfo, dispatch, metadata, patch_fields, schema_of, tool_schema};
+use xboct_log_ops::{
+    Ctx, Kind, OpInfo, dispatch, metadata, patch_fields, schema_of, tool_schema, validation,
+};
 
 use crate::mcp_text;
 
@@ -364,8 +366,9 @@ impl Backlog {
         arguments: Value,
         client: Option<String>,
     ) -> (String, Value, CallToolResult) {
+        let problem = validation_error(name, &arguments);
         let arguments = normalize_arguments(name, arguments);
-        let result = if let Some(message) = validation_error(name, &arguments) {
+        let result = if let Some(message) = problem {
             bare_failure(&message)
         } else if name == "attachments_read" {
             self.call_attachments_read(&arguments).await
@@ -838,29 +841,12 @@ fn client_label(context: &RequestContext<RoleServer>) -> Option<String> {
 fn validation_error(name: &str, arguments: &Value) -> Option<String> {
     let schema = tool_schema(name)?.0;
     let properties = schema.get("properties")?.as_object()?;
-    let allowed: Vec<String> = properties.keys().cloned().collect();
     let object = arguments.as_object()?;
-    let unknown: Vec<&str> = object
-        .keys()
-        .filter(|key| !allowed.iter().any(|name| name == key.as_str()))
-        .map(String::as_str)
-        .collect();
-    if !unknown.is_empty() {
-        let mut message = format!(
-            "Input validation error: Invalid arguments for tool {name}: Unknown parameter(s): {}.",
-            unknown.join(", ")
-        );
-        let hints: Vec<String> = unknown
-            .iter()
-            .filter_map(|key| {
-                suggestion(key, &allowed).map(|matched| format!("{key} -> {matched}"))
-            })
-            .collect();
-        if !hints.is_empty() {
-            message.push_str(&format!(" Did you mean: {}?", hints.join(", ")));
-        }
-        message.push_str(&format!(" Allowed parameters: {}", allowed.join(", ")));
-        return Some(message);
+    if let Err(error) = validation::validate_arguments(name, arguments) {
+        return Some(format!(
+            "Input validation error: Invalid arguments for tool {name}: {}",
+            error.message()
+        ));
     }
 
     let mut problems = Vec::new();
@@ -936,42 +922,6 @@ fn expected_type(schema: &Value) -> &str {
             None => "value",
         },
     }
-}
-
-fn suggestion<'a>(key: &str, allowed: &'a [String]) -> Option<&'a str> {
-    let suffix = format!("_{key}");
-    let endings: Vec<&String> = allowed
-        .iter()
-        .filter(|name| name.ends_with(&suffix))
-        .collect();
-    if endings.len() == 1 {
-        return Some(endings[0]);
-    }
-    let mut nearest: Option<(&String, usize)> = None;
-    for name in allowed {
-        let distance = edit_distance(key, name);
-        if distance <= 2 && nearest.is_none_or(|(_, best)| distance < best) {
-            nearest = Some((name, distance));
-        }
-    }
-    nearest.map(|(name, _)| name.as_str())
-}
-
-fn edit_distance(left: &str, right: &str) -> usize {
-    let target: Vec<char> = right.chars().collect();
-    let mut previous: Vec<usize> = (0..=target.len()).collect();
-    let mut current = vec![0; target.len() + 1];
-    for (row, source) in left.chars().enumerate() {
-        current[0] = row + 1;
-        for (column, value) in target.iter().enumerate() {
-            let cost = usize::from(source != *value);
-            current[column + 1] = (previous[column + 1] + 1)
-                .min(current[column] + 1)
-                .min(previous[column] + cost);
-        }
-        std::mem::swap(&mut previous, &mut current);
-    }
-    previous[target.len()]
 }
 
 fn normalize_arguments(name: &str, arguments: Value) -> Value {
@@ -1249,6 +1199,31 @@ mod tests {
                 .any(|field| field.as_str() == Some("project_id"))
         );
         assert!(required.iter().any(|field| field.as_str() == Some("title")));
+    }
+
+    #[test]
+    fn validation_error_reports_relationship_fields_inside_batch_items() {
+        let message = validation_error(
+            "tasks_update_many",
+            &json!({"items": [{"task_id": "LOG-1", "blocked_by": ["LOG-2"]}]}),
+        )
+        .expect("invalid item");
+        assert!(message.contains("blocked_by"), "{message}");
+        assert!(message.contains("items[0]"), "{message}");
+        assert!(message.contains("tasks_add_blocker"), "{message}");
+    }
+
+    #[tokio::test]
+    async fn call_named_rejects_relationship_fields_in_batch_items() {
+        let backlog = backlog().await;
+        let (_, _, result) = backlog
+            .call_named(
+                "tasks_update_many",
+                json!({"items": [{"task_id": "LOG-1", "blocked_by": ["LOG-2"]}]}),
+                None,
+            )
+            .await;
+        assert_eq!(result.is_error, Some(true));
     }
 
     fn assert_refs_resolve(schema: &Map<String, Value>, name: &str) {
