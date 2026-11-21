@@ -161,7 +161,7 @@ try {
 		const tag = ok(
 			await client.callTool("tags_update", {
 				name: "e2e-tag",
-				archived: false,
+				patch: { archived: false },
 			}),
 			"tags_update",
 		);
@@ -1258,7 +1258,7 @@ try {
 		const updated = ok(
 			await client.callTool("scopes_update", {
 				scope_id: scope.id,
-				name: "api",
+				patch: { name: "api" },
 			}),
 			"scopes_update",
 		);
@@ -1286,7 +1286,7 @@ try {
 		const project = ok(
 			await client.callTool("projects_update", {
 				project_id: "e2e",
-				name: "E2E renamed",
+				patch: { name: "E2E renamed" },
 			}),
 			"projects_update",
 		);

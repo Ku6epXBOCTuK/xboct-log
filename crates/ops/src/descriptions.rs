@@ -43,7 +43,7 @@ pub const PROJECTS_GET: &str = "Get a single project by project_id, including ta
 
 pub const PROJECTS_CREATE: &str = "Create a project. name, project_id and prefix are required. The project_id is a lowercase slug of latin letters, digits and dashes; it is the key of the project in links and in the project_id parameter, and it cannot be changed later. The prefix is 1-6 uppercase letters or digits, it is stored uppercase and starts every task id of the project, and it cannot be changed later either. The prefix PL is reserved for plans. repo is optional and accepts a git URL; it is stored as host/owner/name. Returns: the created project - {id, name, prefix, repo, created_at, archived_at, task_counts, epic_counts}.";
 
-pub const PROJECTS_UPDATE: &str = "Rename a project, change its archived flag or set its repository. Pass the fields to change next to project_id (e.g. {project_id: 'spa', name: 'Shop'}); a nested patch object is accepted too. The prefix is immutable \u{2014} it defines task ids. repo takes host/owner/name or a git URL and null clears it. Returns: the updated project - {id, name, prefix, repo, created_at, archived_at, task_counts, epic_counts}.";
+pub const PROJECTS_UPDATE: &str = "Rename a project, change its archived flag or set its repository. Pass the fields to change in patch next to project_id (e.g. {project_id: 'spa', patch: {name: 'Shop'}}). The prefix is immutable \u{2014} it defines task ids. repo takes host/owner/name or a git URL and null clears it. Returns: the updated project - {id, name, prefix, repo, created_at, archived_at, task_counts, epic_counts}.";
 
 pub const SCOPES_LIST: &str = "List scopes, each with task_count (active non-epic tasks assigned, i.e. open/in-progress/blocked), tasks_total (all unfinished and closed non-epic tasks assigned) and epics_count (non-deleted epics assigned). Pass project_id to limit to one project; omit it to list scopes across all projects. Returns: {items} - every item is {id, project_id, name, created_at, task_count, tasks_total, epics_count}.";
 
@@ -53,7 +53,7 @@ pub const SCOPES_PROJECT_IDS: &str = "List ids of all projects that have at leas
 
 pub const SCOPES_CREATE: &str = "Create a scope in a project. A scope groups the tasks of that project; a task points at its scope through scope_id. Returns: the created scope - {id, project_id, name, created_at, task_count, tasks_total, epics_count}.";
 
-pub const SCOPES_UPDATE: &str = "Rename a scope by scope_id: pass the new name next to scope_id (e.g. {scope_id: 3, name: 'Design'}); a nested patch object {scope_id, patch: {name}} is accepted too. Returns: the updated scope - {id, project_id, name, created_at, task_count, tasks_total, epics_count}.";
+pub const SCOPES_UPDATE: &str = "Rename a scope by scope_id: pass the new name in patch next to scope_id (e.g. {scope_id: 3, patch: {name: 'Design'}}). Returns: the updated scope - {id, project_id, name, created_at, task_count, tasks_total, epics_count}.";
 
 pub const SCOPES_DELETE: &str = "Delete a scope by scope_id; its tasks lose the scope assignment. Pass dry_run: true to preview the deletion - it returns the scope and the ids of the tasks and epics that would lose it, and changes nothing. Returns: {scope, task_ids, epic_ids, dry_run} - the deleted scope and the ids of the tasks and epics that lost it; with dry_run the same report without changing anything.";
 
@@ -65,7 +65,7 @@ pub const TAGS_INVENTORY: &str = "The whole tag dictionary including the archive
 
 pub const TAGS_CREATE: &str = "Add a tag to the dictionary. Tags are a closed list: tasks_create and tasks_update accept only names that are in it. Names are trimmed and lowercased. Calling it on an existing tag changes nothing, and an archived tag is restored. Returns: the tag - {name, archived, created_at}.";
 
-pub const TAGS_UPDATE: &str = "Archive or restore a tag by name: pass archived next to name (e.g. {name: 'design', archived: true}); a nested patch object is accepted too. An archived tag keeps the tasks that already carry it, but it disappears from tags_list and cannot be assigned again. Returns: the tag - {name, archived, created_at}.";
+pub const TAGS_UPDATE: &str = "Archive or restore a tag by name: pass archived in patch next to name (e.g. {name: 'design', patch: {archived: true}}). An archived tag keeps the tasks that already carry it, but it disappears from tags_list and cannot be assigned again. Returns: the tag - {name, archived, created_at}.";
 
 pub const TAGS_RENAME: &str = "Rename a tag everywhere: the dictionary entry and every task that carries it. Fails when the new name is already taken. Returns: the tag - {name, archived, created_at}.";
 
