@@ -10,9 +10,10 @@ import {
 } from "#lib/navigation/search.ts";
 import { createCommentsStore } from "#lib/state/comments.svelte.ts";
 import { createDraftStore } from "#lib/state/draft.svelte.ts";
+import { createEpicProgress } from "#lib/state/epic-progress.svelte.ts";
 import { createFilters } from "#lib/state/filters.svelte.ts";
-import { createFreshness } from "#lib/state/live.ts";
 import { createHealth } from "#lib/state/health.svelte.ts";
+import { createFreshness } from "#lib/state/live.ts";
 import { createProjectData } from "#lib/state/project-data.svelte.ts";
 import { createProjectStore } from "#lib/state/projects.svelte.ts";
 import { createScopeStore } from "#lib/state/scopes.svelte.ts";
@@ -59,6 +60,7 @@ export function createBoard(input: BoardInput) {
 	);
 	const scopes = createScopeStore(input.scopes);
 	const data = createProjectData();
+	const epicProgress = createEpicProgress();
 	const tags = createTagStore(input.tags, input.tagNames);
 	const comments = createCommentsStore();
 	const filters = createFilters(input.project);
@@ -69,6 +71,7 @@ export function createBoard(input: BoardInput) {
 
 	fresh.register("tasks", () => tasks.refresh());
 	fresh.register("tasks", () => data.refresh());
+	fresh.register("tasks", () => epicProgress.refresh());
 	fresh.register("counters", () => stats.refresh());
 	fresh.register("projects", () => projects.refresh());
 	fresh.register("navigation", () => invalidate("app:projects"));
@@ -137,6 +140,7 @@ export function createBoard(input: BoardInput) {
 		scopes,
 		stats,
 		data,
+		epicProgress,
 		tags,
 		comments,
 		filters,

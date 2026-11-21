@@ -34,12 +34,7 @@
 		validateTaskDraft,
 	} from "#lib/tasks/fields.ts";
 	import type { LinkField } from "#lib/tasks/links.ts";
-	import {
-		CLOSED_STATUSES,
-		type ClosedReason,
-		type Status,
-		type Task,
-	} from "#lib/types.ts";
+	import type { ClosedReason, Status, Task } from "#lib/types.ts";
 
 	interface Props {
 		task: Task;
@@ -51,8 +46,17 @@
 
 	let { task, onclear, ondelete, oncreatechild, onmoved }: Props = $props();
 
-	const { tasks, projects, scopes, tags, data, comments, stats, ui } =
-		useBoard();
+	const {
+		tasks,
+		projects,
+		scopes,
+		tags,
+		data,
+		comments,
+		stats,
+		epicProgress: epicProgressStore,
+		ui,
+	} = useBoard();
 
 	let saving = $state(false);
 	let failure = $state<string | null>(null);
@@ -69,18 +73,9 @@
 			null,
 	);
 	let tagPicker = $derived(tags.picker(projectData?.tags ?? []));
-	let epicProgress = $derived.by(() => {
-		if (!task.is_epic) return null;
-		const children = (projectData?.tasks ?? []).filter(
-			(child) => child.epic_id === task.id,
-		);
-		if (children.length === 0) return null;
-		return {
-			closed: children.filter((child) => CLOSED_STATUSES.includes(child.status))
-				.length,
-			total: children.length,
-		};
-	});
+	let epicProgress = $derived(
+		task.is_epic ? epicProgressStore.of(task.id) : null,
+	);
 
 	async function onunknowntag(name: string) {
 		await tags.create(name);
@@ -105,6 +100,10 @@
 
 	$effect(() => {
 		data.ensure(task.project_id);
+	});
+
+	$effect(() => {
+		if (task.is_epic) epicProgressStore.load(task.id);
 	});
 
 	$effect(() => {

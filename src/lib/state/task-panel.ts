@@ -1,5 +1,5 @@
 import { getContext, setContext } from "svelte";
-import type { EpicProgress } from "#lib/tasks/filter.ts";
+import type { EpicProgress } from "#lib/tasks/epic-progress.ts";
 import type { ClosedReason, Task } from "#lib/types.ts";
 
 export interface TaskPanel {

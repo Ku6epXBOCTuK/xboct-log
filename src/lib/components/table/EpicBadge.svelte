@@ -1,6 +1,6 @@
 <script lang="ts">
 	import InfoPopover from "@ku6epxboctuk/ui-kit/components/InfoPopover.svelte";
-	import type { EpicProgress } from "#lib/tasks/filter.ts";
+	import type { EpicProgress } from "#lib/tasks/epic-progress.ts";
 
 	interface Props {
 		id: string;

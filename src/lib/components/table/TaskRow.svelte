@@ -1,16 +1,16 @@
 <script lang="ts">
+	import Badge from "@ku6epxboctuk/ui-kit/components/Badge.svelte";
+	import Chip from "@ku6epxboctuk/ui-kit/components/Chip.svelte";
+	import InfoPopover from "@ku6epxboctuk/ui-kit/components/InfoPopover.svelte";
+	import type { Snippet } from "svelte";
 	import BlockedBadge from "#lib/components/table/BlockedBadge.svelte";
 	import BlockingBadge from "#lib/components/table/BlockingBadge.svelte";
 	import EpicBadge from "#lib/components/table/EpicBadge.svelte";
 	import CopyButton from "#lib/components/ui/CopyButton.svelte";
-	import InfoPopover from "@ku6epxboctuk/ui-kit/components/InfoPopover.svelte";
 	import StatusDot from "#lib/components/ui/StatusDot.svelte";
-	import { STATUS_LABELS, formatDate, localToday } from "#lib/tasks/display.ts";
-	import type { EpicProgress } from "#lib/tasks/filter.ts";
+	import { formatDate, localToday, STATUS_LABELS } from "#lib/tasks/display.ts";
+	import type { EpicProgress } from "#lib/tasks/epic-progress.ts";
 	import { CLOSED_STATUSES, type Scope, type Task } from "#lib/types.ts";
-	import Badge from "@ku6epxboctuk/ui-kit/components/Badge.svelte";
-	import Chip from "@ku6epxboctuk/ui-kit/components/Chip.svelte";
-	import type { Snippet } from "svelte";
 	import Paperclip from "~icons/lucide/paperclip";
 
 	interface Props {

@@ -1,3 +1,4 @@
+import { hasLinks, type TaskLinkDraft } from "#lib/tasks/links.ts";
 import {
 	CLOSED_STATUSES,
 	type Project,
@@ -5,7 +6,7 @@ import {
 	type Scope,
 	type Task,
 } from "#lib/types.ts";
-import { hasLinks, type TaskLinkDraft } from "#lib/tasks/links.ts";
+import { openChildren } from "./epic-progress.ts";
 
 export type TaskPatch = Partial<
 	Pick<
@@ -130,12 +131,6 @@ export function epicsForProject(
 		if (!CLOSED_STATUSES.includes(epic.status)) return true;
 		return openChildren(epic) > 0;
 	});
-}
-
-function openChildren(epic: Task): number {
-	const counts = epic.children_counts;
-	if (counts === undefined) return 0;
-	return (counts.total ?? 0) - (counts.done ?? 0) - (counts.cancelled ?? 0);
 }
 
 export function siblingEpics(epics: Task[], selected: Task | null): Task[] {

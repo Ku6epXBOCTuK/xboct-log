@@ -1,14 +1,10 @@
 import { CLOSED_STATUSES, type Task } from "#lib/types.ts";
+import { type EpicProgress, epicProgress } from "./epic-progress.ts";
 
 export interface TagCount {
 	tag: string;
 	count: number;
 	active: number;
-}
-
-export interface EpicProgress {
-	closed: number;
-	total: number;
 }
 
 export function collectEpicProgress(
@@ -35,16 +31,10 @@ export function collectEpicProgress(
 	}
 
 	for (const epic of epics) {
-		const counts = epic.children_counts;
-		if (counts === undefined) continue;
+		const counts = epicProgress(epic.children_counts);
+		if (counts === null) continue;
 
-		progress.set(epic.id, {
-			closed: CLOSED_STATUSES.reduce(
-				(sum, status) => sum + (counts[status] ?? 0),
-				0,
-			),
-			total: counts.total ?? 0,
-		});
+		progress.set(epic.id, counts);
 	}
 
 	return progress;
