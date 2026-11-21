@@ -1,5 +1,8 @@
 node_modules
 
+# Generated API types
+/src/lib/api/schema.d.ts
+
 # Rust
 /target
 

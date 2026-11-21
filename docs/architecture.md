@@ -77,7 +77,9 @@ core/ops DTO  ──▶  openapi.json  ──openapi-typescript──▶  src/li
 `src/lib/api/client.ts` — `openapi-fetch` с таймаутом, заголовком
 `x-xboct-client` и `ApiError {status, kind, message}`. Обёртки в `src/lib/api/`
 повторяют имена прежних remote-функций, поэтому сторы и компоненты не были
-переписаны. Дрейф ловится `pnpm contract:check`.
+переписаны. `pnpm contract:generate` вызывается автоматически перед `check`,
+`build` и `dev`, поэтому `schema.d.ts` не хранится в репозитории и не может
+разойтись с реестром операций.
 
 ## База
 

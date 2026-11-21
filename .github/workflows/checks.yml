@@ -29,6 +29,17 @@ jobs:
       - name: Refresh ui-kit
         run: pnpm update @ku6epxboctuk/ui-kit
 
+      - name: Setup Rust
+        shell: pwsh
+        run: |
+          rustup show
+          cargo --version
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "."
+
       - name: Lint
         run: pnpm lint
 

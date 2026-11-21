@@ -62,15 +62,6 @@ jobs:
       - name: Refresh ui-kit
         run: pnpm update @ku6epxboctuk/ui-kit
 
-      - name: Lint
-        run: pnpm lint
-
-      - name: Check
-        run: pnpm check
-
-      - name: Test
-        run: pnpm test
-
       - name: Setup Rust
         shell: pwsh
         run: |
@@ -81,6 +72,15 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: "."
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Check
+        run: pnpm check
+
+      - name: Test
+        run: pnpm test
 
       - name: Build static SPA
         run: pnpm build
