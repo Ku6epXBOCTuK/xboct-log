@@ -56,6 +56,16 @@ export function taskHrefFor(
 	return task === undefined ? null : taskHref(task.project_id, task.id);
 }
 
+export function documentHref(
+	project: string,
+	documentId: string,
+): ResolvedPathname {
+	return resolve(
+		`/documents/project/[project]/[id]${page.url.search}` as "/documents/project/[project]/[id]",
+		{ project, id: documentId },
+	);
+}
+
 export function mediaHref(id: string): string {
 	return `/media/${encodeURIComponent(id)}`;
 }

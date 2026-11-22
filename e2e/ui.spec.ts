@@ -632,9 +632,19 @@ test("a plan note and a document link survive on the plans page", async ({
 		.filter({ hasText: "UI document" })
 		.first()
 		.click();
-	await expect(
-		page.locator(".plan-documents li").filter({ hasText: "UI document" }),
-	).toBeVisible();
+	const documentCard = page
+		.locator(".plan-documents li")
+		.filter({ hasText: "UI document" });
+	await expect(documentCard).toBeVisible();
+
+	const documentLink = documentCard.getByRole("link");
+	await expect(documentLink).toHaveAttribute(
+		"href",
+		/\/documents\/project\/[^/]+\/[^/]+/,
+	);
+	await documentLink.click();
+	await expect(page).toHaveURL(/\/documents\/project\/[^/]+\/[^/]+/);
+	await expect(page.locator(".detail-head")).toContainText("UI document");
 });
 
 test("the activity page shows the recorded changes", async ({ page }) => {

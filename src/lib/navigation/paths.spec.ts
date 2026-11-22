@@ -12,11 +12,13 @@ describe("parsePath", () => {
 			category: null,
 			project: null,
 			taskId: null,
+			documentId: null,
 		});
 		expect(parsePath("/backups")).toEqual({
 			category: null,
 			project: null,
 			taskId: null,
+			documentId: null,
 		});
 	});
 
@@ -25,11 +27,13 @@ describe("parsePath", () => {
 			category: "tasks",
 			project: null,
 			taskId: null,
+			documentId: null,
 		});
 		expect(parsePath("/activity")).toEqual({
 			category: "activity",
 			project: null,
 			taskId: null,
+			documentId: null,
 		});
 	});
 
@@ -38,11 +42,13 @@ describe("parsePath", () => {
 			category: "tasks",
 			project: "xboct-log",
 			taskId: null,
+			documentId: null,
 		});
 		expect(parsePath("/kanban/project/inbox/")).toEqual({
 			category: "kanban",
 			project: "inbox",
 			taskId: null,
+			documentId: null,
 		});
 	});
 
@@ -51,11 +57,22 @@ describe("parsePath", () => {
 			category: "tasks",
 			project: "xboct-log",
 			taskId: "LOG-42",
+			documentId: null,
 		});
 		expect(parsePath("/tasks/project/xboct-log/log-42")).toEqual({
 			category: "tasks",
 			project: "xboct-log",
 			taskId: "log-42",
+			documentId: null,
+		});
+	});
+
+	it("reads a nested document", () => {
+		expect(parsePath("/documents/project/xboct-log/DOC-1")).toEqual({
+			category: "documents",
+			project: "xboct-log",
+			taskId: null,
+			documentId: "DOC-1",
 		});
 	});
 
@@ -64,6 +81,7 @@ describe("parsePath", () => {
 			category: "tasks",
 			project: null,
 			taskId: "LOG-42",
+			documentId: null,
 		});
 	});
 
@@ -72,6 +90,7 @@ describe("parsePath", () => {
 			category: "kanban",
 			project: "inbox",
 			taskId: null,
+			documentId: null,
 		});
 	});
 
@@ -80,11 +99,13 @@ describe("parsePath", () => {
 			category: "tasks",
 			project: null,
 			taskId: null,
+			documentId: null,
 		});
 		expect(parsePath("/tasks/42")).toEqual({
 			category: "tasks",
 			project: null,
 			taskId: null,
+			documentId: null,
 		});
 	});
 });
@@ -103,7 +124,7 @@ describe("appPath", () => {
 		expect(appPath("/tags/x")).toBeNull();
 	});
 
-	it("accepts project and task routes", () => {
+	it("accepts project, task and document routes", () => {
 		expect(appPath("/kanban/project/xboct-log")).toBe(
 			"/kanban/project/xboct-log",
 		);
@@ -116,6 +137,9 @@ describe("appPath", () => {
 		expect(appPath("/tasks/LOG-42")).toBe("/tasks/LOG-42");
 		expect(appPath("/tasks/project/xboct-log/LOG-42")).toBe(
 			"/tasks/project/xboct-log/LOG-42",
+		);
+		expect(appPath("/documents/project/xboct-log/DOC-1")).toBe(
+			"/documents/project/xboct-log/DOC-1",
 		);
 	});
 

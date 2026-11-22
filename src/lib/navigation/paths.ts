@@ -14,6 +14,7 @@ export interface AppLocation {
 	category: Category | null;
 	project: string | null;
 	taskId: string | null;
+	documentId: string | null;
 }
 
 export function parsePath(pathname: string): AppLocation {
@@ -21,13 +22,13 @@ export function parsePath(pathname: string): AppLocation {
 	const category = CATEGORIES.find((item) => item === segments[0]);
 
 	if (category === undefined) {
-		return { category: null, project: null, taskId: null };
+		return { category: null, project: null, taskId: null, documentId: null };
 	}
 
 	if (segments.length === 2) {
 		const taskId =
 			category === "tasks" && isTaskId(segments[1]) ? segments[1] : null;
-		return { category, project: null, taskId };
+		return { category, project: null, taskId, documentId: null };
 	}
 
 	if (segments[1] === "project" && segments[2] !== undefined) {
@@ -35,10 +36,12 @@ export function parsePath(pathname: string): AppLocation {
 			category === "tasks" && segments.length === 4 && isTaskId(segments[3])
 				? segments[3]
 				: null;
-		return { category, project: segments[2], taskId };
+		const documentId =
+			category === "documents" && segments.length === 4 ? segments[3] : null;
+		return { category, project: segments[2], taskId, documentId };
 	}
 
-	return { category, project: null, taskId: null };
+	return { category, project: null, taskId: null, documentId: null };
 }
 
 export function appPath(pathname: string): string | null {
@@ -64,8 +67,9 @@ export function appPath(pathname: string): string | null {
 
 	if (second === "project" && third !== undefined) {
 		if (segments.length === 3) return pathname;
-		if (segments.length === 4 && category === "tasks") {
-			return isTaskId(fourth) ? pathname : null;
+		if (segments.length === 4 && fourth !== undefined) {
+			if (category === "tasks") return isTaskId(fourth) ? pathname : null;
+			if (category === "documents") return pathname;
 		}
 		return null;
 	}

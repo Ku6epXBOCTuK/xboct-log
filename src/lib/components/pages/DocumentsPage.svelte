@@ -18,6 +18,11 @@
 	import { page } from "$app/state";
 	import Plus from "~icons/lucide/plus";
 
+	interface Props {
+		initialDocumentId?: string;
+	}
+
+	let { initialDocumentId }: Props = $props();
 	const { fresh } = useBoard();
 	const store = createDocumentStore([]);
 
@@ -40,6 +45,7 @@
 	const project = $derived(page.params.project ?? null);
 	let loaded = $state(false);
 	let failed = $state(false);
+	let appliedInitialId = $state<string | null>(null);
 	let selectedId = $state<string | null>(null);
 	let detail = $state<Document | null>(null);
 	let revisions = $state<TextRevision[]>([]);
@@ -59,6 +65,17 @@
 				getDocuments({ project_id: project ?? undefined }),
 			);
 			store.replaceAll(items);
+			if (
+				initialDocumentId !== undefined &&
+				appliedInitialId !== initialDocumentId &&
+				items.some(
+					(item) =>
+						item.id === initialDocumentId && item.project_id === project,
+				)
+			) {
+				selectedId = initialDocumentId;
+				appliedInitialId = initialDocumentId;
+			}
 			failed = false;
 		} catch {
 			failed = true;
