@@ -66,8 +66,15 @@ async fn plan_ops_keep_mixed_items_and_notes_across_moves() {
         json!({"plan_id": plan_id, "task_id": "SPA-1"}),
     )
     .await;
+    call(
+        &ctx,
+        "tasks_close",
+        json!({"task_id": "LOG-1", "reason": "fixed"}),
+    )
+    .await;
     let listed = call(&ctx, "plans_list", json!({})).await;
     assert_eq!(listed["items"][0]["tasks_count"], 2);
+    assert_eq!(listed["items"][0]["closed_tasks_count"], 1);
 
     let reordered = call(
         &ctx,

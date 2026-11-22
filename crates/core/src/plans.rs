@@ -55,6 +55,7 @@ pub struct Plan {
 pub struct PlanCounts {
     pub tasks: i64,
     pub epics: i64,
+    pub closed_tasks: i64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
@@ -69,6 +70,7 @@ pub struct PlanWithCounts {
     pub plan: Plan,
     pub tasks_count: i64,
     pub epics_count: i64,
+    pub closed_tasks_count: i64,
 }
 
 impl PlanWithCounts {
@@ -77,6 +79,7 @@ impl PlanWithCounts {
             plan,
             tasks_count: counts.tasks,
             epics_count: counts.epics,
+            closed_tasks_count: counts.closed_tasks,
         }
     }
 }
@@ -195,7 +198,8 @@ pub async fn count_plan_items(db: &Db) -> Result<BTreeMap<String, PlanCounts>> {
     let rows = sqlx::query(
         "SELECT pi.plan_id,
             SUM(CASE WHEN t.is_epic = 0 THEN 1 ELSE 0 END) AS tasks,
-            SUM(CASE WHEN t.is_epic = 1 THEN 1 ELSE 0 END) AS epics
+            SUM(CASE WHEN t.is_epic = 1 THEN 1 ELSE 0 END) AS epics,
+            SUM(CASE WHEN t.is_epic = 0 AND t.status IN ('done', 'cancelled') THEN 1 ELSE 0 END) AS closed_tasks
          FROM plan_items pi
          JOIN tasks t ON t.id = pi.task_id
          WHERE t.deleted_at IS NULL
@@ -210,6 +214,7 @@ pub async fn count_plan_items(db: &Db) -> Result<BTreeMap<String, PlanCounts>> {
             PlanCounts {
                 tasks: row.get("tasks"),
                 epics: row.get("epics"),
+                closed_tasks: row.get("closed_tasks"),
             },
         );
     }
@@ -221,7 +226,8 @@ pub async fn plan_counts(db: &Db, id: &str) -> Result<PlanCounts> {
     let row = sqlx::query(
         "SELECT
             COALESCE(SUM(CASE WHEN t.is_epic = 0 THEN 1 ELSE 0 END), 0) AS tasks,
-            COALESCE(SUM(CASE WHEN t.is_epic = 1 THEN 1 ELSE 0 END), 0) AS epics
+            COALESCE(SUM(CASE WHEN t.is_epic = 1 THEN 1 ELSE 0 END), 0) AS epics,
+            COALESCE(SUM(CASE WHEN t.is_epic = 0 AND t.status IN ('done', 'cancelled') THEN 1 ELSE 0 END), 0) AS closed_tasks
          FROM plan_items pi
          JOIN tasks t ON t.id = pi.task_id
          WHERE pi.plan_id = ? AND t.deleted_at IS NULL",
@@ -232,6 +238,7 @@ pub async fn plan_counts(db: &Db, id: &str) -> Result<PlanCounts> {
     Ok(PlanCounts {
         tasks: row.get("tasks"),
         epics: row.get("epics"),
+        closed_tasks: row.get("closed_tasks"),
     })
 }
 
@@ -487,18 +494,23 @@ mod tests {
         let plan = create_plan(&db, "Release", "", PlanStatus::Active)
             .await
             .expect("create");
-        for (index, (key, is_epic)) in [("LOG-1", 0), ("LOG-2", 0), ("LOG-3", 1)]
-            .into_iter()
-            .enumerate()
+        for (index, (key, is_epic, status)) in [
+            ("LOG-1", 0, "open"),
+            ("LOG-2", 0, "done"),
+            ("LOG-3", 1, "done"),
+        ]
+        .into_iter()
+        .enumerate()
         {
             sqlx::query(
                 "INSERT INTO tasks (id, project_id, number, is_epic, key, title, status, priority, created_at, updated_at)
-                 VALUES (?, 'log', ?, ?, ?, 't', 'backlog', 'medium', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z')",
+                 VALUES (?, 'log', ?, ?, ?, 't', ?, 'medium', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z')",
             )
             .bind(key)
             .bind(index as i64 + 1)
             .bind(is_epic)
             .bind(key)
+            .bind(status)
             .execute(db.pool())
             .await
             .expect("task");
@@ -513,6 +525,7 @@ mod tests {
         let counts = plan_counts(&db, &plan.id).await.expect("counts");
         assert_eq!(counts.tasks, 2);
         assert_eq!(counts.epics, 1);
+        assert_eq!(counts.closed_tasks, 1);
         assert_eq!(
             count_plan_items(&db)
                 .await

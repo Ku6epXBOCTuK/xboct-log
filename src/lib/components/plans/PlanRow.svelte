@@ -18,7 +18,8 @@
 		<span class="plan-name">{plan.name}</span>
 		<span class="plan-meta">
 			{plan.status}
-			· {plan.tasks_count} tasks · {plan.epics_count} epics
+			· {plan.closed_tasks_count}/{plan.tasks_count}
+			closed · {plan.epics_count} epics
 		</span>
 	</Button>
 	<div class="plan-copy">

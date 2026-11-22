@@ -3,6 +3,7 @@
 	import PlanDocumentsSection from "./PlanDocumentsSection.svelte";
 	import PlanItemsSection from "./PlanItemsSection.svelte";
 	import PlanKeyEditor from "./PlanKeyEditor.svelte";
+	import PlanProgress from "./PlanProgress.svelte";
 
 	interface Props {
 		store: PlanStore;
@@ -21,6 +22,7 @@
 	{#if plan.description !== ""}
 		<p class="description">{plan.description}</p>
 	{/if}
+	<PlanProgress progress={store.progress} />
 	<PlanItemsSection {store} planId={plan.id} />
 	<PlanDocumentsSection {store} planId={plan.id} />
 {/if}

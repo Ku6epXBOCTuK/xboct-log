@@ -27,6 +27,7 @@ import {
 } from "#lib/api/plans.ts";
 import { getTasks } from "#lib/api/tasks.ts";
 import { taskHref } from "#lib/navigation/href.ts";
+import { planProgress } from "#lib/tasks/plan-progress.ts";
 import type { Task } from "#lib/types.ts";
 import { SvelteMap } from "svelte/reactivity";
 
@@ -75,6 +76,8 @@ export function createPlanStore() {
 			(document) => !planDocuments.some((linked) => linked.id === document.id),
 		),
 	);
+
+	const progress = $derived(planProgress(items));
 
 	function notesFor(key: string): PlanNote[] {
 		return notes.filter((note) => note.key === key);
@@ -284,6 +287,9 @@ export function createPlanStore() {
 		},
 		get items() {
 			return items;
+		},
+		get progress() {
+			return progress;
 		},
 		get candidates() {
 			return candidates;

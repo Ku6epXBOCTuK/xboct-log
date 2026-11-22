@@ -174,6 +174,43 @@ test.beforeAll(async ({ request }) => {
 		task_id: created.done,
 		reason: "fixed",
 	});
+
+	created.completionDone = (
+		await callTool(request, "tasks_create", {
+			project_id: project,
+			title: "Seeded completion done task",
+			status: "open",
+		})
+	).id;
+	await callTool(request, "tasks_close", {
+		task_id: created.completionDone,
+		reason: "fixed",
+	});
+	created.completionCancelled = (
+		await callTool(request, "tasks_create", {
+			project_id: project,
+			title: "Seeded completion cancelled task",
+			status: "open",
+		})
+	).id;
+	await callTool(request, "tasks_close", {
+		task_id: created.completionCancelled,
+		reason: "obsolete",
+	});
+	created.completionOpenA = (
+		await callTool(request, "tasks_create", {
+			project_id: project,
+			title: "Seeded completion open task A",
+			status: "open",
+		})
+	).id;
+	created.completionOpenB = (
+		await callTool(request, "tasks_create", {
+			project_id: project,
+			title: "Seeded completion open task B",
+			status: "open",
+		})
+	).id;
 });
 
 test("the task list shows seeded tasks and filters by search", async ({
@@ -456,6 +493,43 @@ test("a plan shows blockers and asks before removing an item", async ({
 	await expect(
 		page.locator("ol.items li").filter({ hasText: created.blocked }),
 	).toHaveCount(0);
+});
+
+test("a plan shows completion from its tasks", async ({ page, request }) => {
+	const name = `UI Completion ${suffix}`;
+	await page.goto("/plans");
+	await page.getByLabel("New plan name").fill(name);
+	await page.getByRole("button", { name: "Create", exact: true }).click();
+	await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
+
+	const key = await page.locator(".plan-key-button").innerText();
+	for (const task of [
+		created.completionDone,
+		created.completionCancelled,
+		created.completionOpenA,
+		created.completionOpenB,
+	]) {
+		await callTool(request, "plans_items_add", { plan_id: key, task_id: task });
+	}
+	await page.reload();
+	const row = page.locator(".plan-row").filter({ hasText: name });
+	await row.getByRole("button").first().click();
+
+	const progress = page.getByRole("progressbar", { name: "Plan completion" });
+	await expect(progress).toHaveAttribute("aria-valuenow", "50");
+	await expect(page.getByText("2 of 4 tasks closed")).toBeVisible();
+	await expect(page.getByText("Completed", { exact: true })).toHaveCount(0);
+
+	for (const task of [created.completionOpenA, created.completionOpenB]) {
+		await callTool(request, "tasks_close", { task_id: task, reason: "fixed" });
+	}
+	await page.reload();
+	await row.getByRole("button").first().click();
+
+	await expect(page.getByText("4 of 4 tasks closed")).toBeVisible();
+	await expect(page.getByText("Completed", { exact: true })).toBeVisible();
+	await expect(progress).toHaveAttribute("aria-valuenow", "100");
+	await expect(row).toContainText("4/4 closed");
 });
 
 test("a plan id can be copied from the plans page", async ({
