@@ -47,20 +47,23 @@
 		display: flex;
 		flex-direction: column;
 		min-height: 0;
-		border-right: var(--ui-line-w) solid var(--ui-line);
+		padding: var(--ui-space-3);
+		border-right: 1px solid var(--ui-line);
 	}
 
 	.plan-toolbar {
 		display: flex;
-		align-items: center;
-		gap: var(--ui-space-3);
-		padding: var(--ui-space-3) var(--ui-space-2) var(--ui-space-2)
-			var(--ui-space-4);
+		flex-direction: column;
+		align-items: stretch;
+		gap: var(--ui-space-2);
+		margin-bottom: var(--ui-space-3);
+		padding-bottom: var(--ui-space-3);
+		border-bottom: 1px solid var(--ui-line);
 	}
 
 	.filter-label {
-		color: var(--ui-fg-muted);
-		font-family: var(--font-mono);
+		color: var(--ui-fg-secondary);
+		font-family: var(--ui-font-mono);
 		font-size: var(--ui-fs-xs);
 		letter-spacing: 0.08em;
 		text-transform: uppercase;
@@ -70,7 +73,7 @@
 		min-height: 0;
 		overflow: auto;
 		margin: 0;
-		padding: 0 var(--ui-space-2) var(--ui-space-6) var(--ui-space-4);
+		padding: 0 0 var(--ui-space-6);
 		list-style: none;
 	}
 </style>

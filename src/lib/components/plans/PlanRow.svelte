@@ -1,5 +1,4 @@
 <script lang="ts">
-	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
 	import type { PlanWithCounts } from "#lib/api/plans.ts";
 	import CopyButton from "#lib/components/ui/CopyButton.svelte";
 	import PlanStatusDot from "./PlanStatusDot.svelte";
@@ -14,16 +13,15 @@
 </script>
 
 <li class="plan-row" class:active>
-	<Button class="plan-link" variant="ghost" type="button" onclick={onselect}>
+	<button class="plan-link" type="button" onclick={onselect}>
 		<span class="plan-key">{plan.key}</span>
 		<span class="plan-name">{plan.name}</span>
 		<span class="plan-meta">
 			<PlanStatusDot status={plan.status} />
 			{plan.status}
-			· {plan.closed_tasks_count}/{plan.tasks_count}
-			closed · {plan.epics_count} epics
+			· {plan.tasks_count} tasks · {plan.epics_count} epics
 		</span>
-	</Button>
+	</button>
 	<div class="plan-copy">
 		<CopyButton
 			size="sm"
@@ -36,60 +34,71 @@
 
 <style>
 	.plan-row {
+		--row-fg: var(--ui-fg-secondary);
 		display: flex;
 		align-items: flex-start;
-		gap: var(--ui-space-1);
+		gap: var(--ui-space-2);
+		padding: var(--ui-space-2);
 		border-radius: var(--ui-r-control);
-		color: var(--ui-fg-secondary);
+		color: var(--row-fg);
 	}
 
 	.plan-row:hover {
+		--row-fg: var(--ui-fg);
 		background: var(--ui-hover);
 	}
 
 	.plan-row.active {
+		--row-fg: var(--ui-fg);
 		background: var(--ui-selected);
-		color: var(--ui-fg);
 	}
 
-	.plan-row :global(.plan-link) {
+	.plan-link {
 		flex: 1 1 auto;
 		min-width: 0;
 		display: flex;
 		flex-direction: column;
 		align-items: stretch;
 		gap: var(--ui-space-1);
-		padding: var(--ui-space-2) var(--ui-space-3);
+		padding: 0;
 		border: 0;
 		background: transparent;
 		color: inherit;
 		text-align: left;
+		cursor: pointer;
 	}
 
 	.plan-key {
-		color: var(--ui-fg-muted);
+		color: var(--row-fg);
 		font-family: var(--ui-font-mono);
+		font-size: var(--ui-fs-xs);
 	}
 
 	.plan-name {
 		max-width: 100%;
 		overflow: hidden;
-		font-weight: 600;
+		font-size: var(--ui-fs-md);
+		font-weight: 500;
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
 
 	.plan-meta {
-		display: inline-flex;
+		display: flex;
 		align-items: center;
 		gap: var(--ui-space-1);
-		color: var(--ui-fg-muted);
-		font-size: var(--ui-fs-sm);
+		color: var(--row-fg);
+		font-size: var(--ui-fs-xs);
 		white-space: nowrap;
 	}
 
 	.plan-copy {
-		margin-top: var(--ui-space-2);
-		margin-right: var(--ui-space-2);
+		flex: 0 0 auto;
+		opacity: 0;
+	}
+
+	.plan-row:hover .plan-copy,
+	.plan-row:focus-within .plan-copy {
+		opacity: 1;
 	}
 </style>

@@ -92,7 +92,7 @@
 
 	.note-dot {
 		flex: 0 0 auto;
-		color: var(--ui-fg-muted);
+		color: var(--ui-fg-secondary);
 	}
 
 	.note-body {
@@ -134,7 +134,7 @@
 
 	.revision time,
 	.note-empty {
-		color: var(--ui-fg-muted);
+		color: var(--ui-fg-secondary);
 		font-size: var(--ui-fs-xs);
 	}
 

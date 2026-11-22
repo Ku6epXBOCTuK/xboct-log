@@ -158,7 +158,7 @@
 	}
 
 	.plan-item.cancelled {
-		border-left-color: var(--ui-fg-muted);
+		border-left-color: var(--ui-fg-secondary);
 	}
 
 	.plan-item.dragging {
@@ -167,7 +167,7 @@
 
 	.grip {
 		flex: 0 0 auto;
-		color: var(--ui-fg-muted);
+		color: var(--ui-fg-secondary);
 		font-size: var(--ui-fs-sm);
 		line-height: 1.5;
 		user-select: none;
@@ -209,7 +209,7 @@
 	}
 
 	.item-title.closed {
-		color: var(--ui-fg-muted);
+		color: var(--ui-fg-secondary);
 		text-decoration: line-through;
 	}
 
@@ -218,7 +218,7 @@
 		flex-wrap: wrap;
 		align-items: center;
 		gap: var(--ui-space-1);
-		color: var(--ui-fg-muted);
+		color: var(--ui-fg-secondary);
 		font-size: var(--ui-fs-sm);
 	}
 

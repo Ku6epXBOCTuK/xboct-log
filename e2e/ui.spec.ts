@@ -529,7 +529,7 @@ test("a plan shows completion from its tasks", async ({ page, request }) => {
 	await expect(page.getByText("4 of 4 tasks closed")).toBeVisible();
 	await expect(page.getByText("Completed", { exact: true })).toBeVisible();
 	await expect(progress).toHaveAttribute("aria-valuenow", "100");
-	await expect(row).toContainText("4/4 closed");
+	await expect(row).toContainText("4 tasks");
 });
 
 test("a plan id can be copied from the plans page", async ({

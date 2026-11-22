@@ -58,7 +58,7 @@
 		align-items: center;
 		gap: var(--ui-space-2);
 		margin: var(--ui-space-5) 0 var(--ui-space-2);
-		color: var(--ui-fg-muted);
+		color: var(--ui-fg-secondary);
 		font-family: var(--ui-font-mono);
 		font-size: var(--ui-fs-sm);
 		letter-spacing: 0.08em;
@@ -86,7 +86,7 @@
 
 	.empty {
 		margin: 0;
-		color: var(--ui-fg-muted);
+		color: var(--ui-fg-secondary);
 		font-size: var(--ui-fs-sm);
 	}
 

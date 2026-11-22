@@ -67,7 +67,7 @@
 	}
 
 	.document-kind {
-		color: var(--ui-fg-muted);
+		color: var(--ui-fg-secondary);
 		font-size: var(--ui-fs-sm);
 	}
 </style>

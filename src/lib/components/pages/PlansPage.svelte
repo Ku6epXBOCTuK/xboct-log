@@ -103,7 +103,7 @@
 	.empty {
 		margin: 0;
 		padding: var(--ui-space-8) var(--ui-space-4);
-		color: var(--ui-fg-muted);
+		color: var(--ui-fg-secondary);
 		font-size: var(--ui-fs-sm);
 	}
 
