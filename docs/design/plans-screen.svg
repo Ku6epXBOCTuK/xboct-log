@@ -1,0 +1,1424 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<svg
+	xmlns="http://www.w3.org/2000/svg"
+	xmlns:xlink="http://www.w3.org/1999/xlink"
+	width="1440"
+	height="1288"
+	viewBox="0 0 1440 1288"
+>
+	<defs>
+		<clipPath id="clip0">
+			<path d="M0 0L1360 0L1360 1000L0 1000L0 0Z" />
+		</clipPath>
+		<clipPath id="clip1">
+			<path d="M0 0L208 0L208 998L0 998L0 0Z" />
+		</clipPath>
+		<clipPath id="clip2">
+			<path d="M0 0L175 0L175 34L0 34L0 0Z" />
+		</clipPath>
+		<clipPath id="clip3">
+			<path d="M0 0L1150 0L1150 61L0 61L0 0Z" />
+		</clipPath>
+		<clipPath id="clip4">
+			<path
+				d="M4 0L172 0A4 4 0 0 1 176 4L176 28A4 4 0 0 1 172 32L4 32A4 4 0 0 1 0 28L0 4A4 4 0 0 1 4 0Z"
+			/>
+		</clipPath>
+		<clipPath id="clip5">
+			<path
+				d="M4 0L57 0A4 4 0 0 1 61 4L61 28A4 4 0 0 1 57 32L4 32A4 4 0 0 1 0 28L0 4A4 4 0 0 1 4 0Z"
+			/>
+		</clipPath>
+		<clipPath id="clip6">
+			<path
+				d="M4 0L128 0A4 4 0 0 1 132 4L132 28A4 4 0 0 1 128 32L4 32A4 4 0 0 1 0 28L0 4A4 4 0 0 1 4 0Z"
+			/>
+		</clipPath>
+		<clipPath id="clip7">
+			<path
+				d="M4 0L51 0A4 4 0 0 1 55 4L55 28A4 4 0 0 1 51 32L4 32A4 4 0 0 1 0 28L0 4A4 4 0 0 1 4 0Z"
+			/>
+		</clipPath>
+		<clipPath id="clip8">
+			<rect width="288" height="937" />
+		</clipPath>
+		<clipPath id="clip9">
+			<path d="M0 0L288 0L288 937L0 937L0 0Z" />
+		</clipPath>
+		<clipPath id="clip10">
+			<rect width="862" height="937" />
+		</clipPath>
+		<clipPath id="clip11">
+			<path
+				d="M4 0L228 0A4 4 0 0 1 232 4L232 28A4 4 0 0 1 228 32L4 32A4 4 0 0 1 0 28L0 4A4 4 0 0 1 4 0Z"
+			/>
+		</clipPath>
+		<clipPath id="clip12">
+			<path
+				d="M4 0L69 0A4 4 0 0 1 73 4L73 28A4 4 0 0 1 69 32L4 32A4 4 0 0 1 0 28L0 4A4 4 0 0 1 4 0Z"
+			/>
+		</clipPath>
+		<clipPath id="clip13">
+			<path d="M0 0L814 0L814 87L0 87L0 0Z" />
+		</clipPath>
+		<clipPath id="clip14">
+			<path d="M0 0L814 0L814 68L0 68L0 0Z" />
+		</clipPath>
+		<clipPath id="clip15">
+			<path d="M0 0L814 0L814 68L0 68L0 0Z" />
+		</clipPath>
+		<clipPath id="clip16">
+			<path d="M0 0L814 0L814 68L0 68L0 0Z" />
+		</clipPath>
+		<clipPath id="clip17">
+			<path d="M0 0L814 0L814 68L0 68L0 0Z" />
+		</clipPath>
+		<clipPath id="clip18">
+			<path
+				d="M4 0L172 0A4 4 0 0 1 176 4L176 28A4 4 0 0 1 172 32L4 32A4 4 0 0 1 0 28L0 4A4 4 0 0 1 4 0Z"
+			/>
+		</clipPath>
+		<clipPath id="clip19">
+			<path
+				d="M4 0L44 0A4 4 0 0 1 48 4L48 28A4 4 0 0 1 44 32L4 32A4 4 0 0 1 0 28L0 4A4 4 0 0 1 4 0Z"
+			/>
+		</clipPath>
+		<clipPath id="clip20">
+			<path d="M0 0L814 0L814 74L0 74L0 0Z" />
+		</clipPath>
+		<clipPath id="clip21">
+			<path d="M0 0L814 0L814 74L0 74L0 0Z" />
+		</clipPath>
+		<filter
+			id="fx22"
+			x="-18.6"
+			y="-12.6"
+			width="457.21"
+			height="169.21"
+			filterUnits="userSpaceOnUse"
+			color-interpolation-filters="sRGB"
+		>
+			<feFlood flood-opacity="0" result="BackgroundImageFix" />
+			<feColorMatrix
+				in="SourceAlpha"
+				type="matrix"
+				values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
+				result="hardAlpha"
+			/>
+			<feOffset in="hardAlpha" dx="0" dy="6" result="fx22_offset1" />
+			<feGaussianBlur
+				in="fx22_offset1"
+				stdDeviation="9.3"
+				result="fx22_blur2"
+			/>
+			<feFlood
+				flood-color="#000000"
+				flood-opacity="0.16"
+				result="fx22_color4"
+			/>
+			<feComposite
+				in="fx22_color4"
+				in2="fx22_blur2"
+				operator="in"
+				result="fx22_dropShadow3"
+			/>
+			<feBlend
+				mode="normal"
+				in="fx22_dropShadow3"
+				in2="BackgroundImageFix"
+				result="fx22_dropShadowBlend5"
+			/>
+			<feBlend
+				mode="normal"
+				in="SourceGraphic"
+				in2="fx22_dropShadowBlend5"
+				result="fx22_shape6"
+			/>
+		</filter>
+		<clipPath id="clip23">
+			<path d="M0 0L420 0L420 132L0 132L0 0Z" />
+		</clipPath>
+		<clipPath id="clip24">
+			<path
+				d="M4 0L58 0A4 4 0 0 1 62 4L62 28A4 4 0 0 1 58 32L4 32A4 4 0 0 1 0 28L0 4A4 4 0 0 1 4 0Z"
+			/>
+		</clipPath>
+		<clipPath id="clip25">
+			<path
+				d="M4 0L66 0A4 4 0 0 1 70 4L70 28A4 4 0 0 1 66 32L4 32A4 4 0 0 1 0 28L0 4A4 4 0 0 1 4 0Z"
+			/>
+		</clipPath>
+	</defs>
+	<g>
+		<g transform="translate(24, 24)">
+			<rect width="1360" height="1000" fill="#F2F0EE" />
+			<path
+				d="M0 0L1360 0L1360 1000L0 1000L0 0Z"
+				fill="none"
+				stroke="#566E5C"
+				stroke-width="2"
+				clip-path="url(#clip0)"
+			/>
+			<g transform="translate(1, 1)">
+				<rect width="208" height="998" fill="#DCDDD9" />
+				<path
+					d="M0 0L208 0L208 998L0 998L0 0Z"
+					fill="none"
+					stroke="#9DAE9F"
+					stroke-width="2"
+					clip-path="url(#clip1)"
+				/>
+				<g transform="translate(16, 16)">
+					<g>
+						<text
+							font-family="IBM Plex Sans"
+							font-size="16"
+							font-weight="600"
+							fill="#040705"
+							letter-spacing="0.32"
+							xml:space="preserve"
+						>
+							<tspan x="0" y="18">xboct-log</tspan>
+						</text>
+					</g>
+				</g>
+				<g transform="translate(16, 52)">
+					<g>
+						<text
+							font-family="IBM Plex Mono"
+							font-size="10"
+							fill="#415546"
+							letter-spacing="0.8"
+							xml:space="preserve"
+						>
+							<tspan x="0" y="11.25">WORKSPACE</tspan>
+						</text>
+					</g>
+				</g>
+				<g transform="translate(16, 79)">
+					<g transform="translate(15, 8)">
+						<text
+							font-family="IBM Plex Sans"
+							font-size="12"
+							fill="#233227"
+							xml:space="preserve"
+						>
+							<tspan x="0" y="13.5">Tasks</tspan>
+						</text>
+					</g>
+				</g>
+				<g transform="translate(16, 125)">
+					<g transform="translate(15, 8)">
+						<text
+							font-family="IBM Plex Sans"
+							font-size="12"
+							fill="#233227"
+							xml:space="preserve"
+						>
+							<tspan x="0" y="13.5">Kanban</tspan>
+						</text>
+					</g>
+				</g>
+				<g transform="translate(16, 171)">
+					<g transform="translate(15, 8)">
+						<text
+							font-family="IBM Plex Sans"
+							font-size="12"
+							fill="#233227"
+							xml:space="preserve"
+						>
+							<tspan x="0" y="13.5">Documents</tspan>
+						</text>
+					</g>
+				</g>
+				<g transform="translate(16, 217)">
+					<rect width="175" height="34" fill="#CBD4CA" />
+					<path
+						d="M0 0L175 0L175 34L0 34L0 0Z"
+						fill="none"
+						stroke="#00834B"
+						stroke-width="6"
+						clip-path="url(#clip2)"
+					/>
+					<g transform="translate(12, 8)">
+						<text
+							font-family="IBM Plex Sans"
+							font-size="12"
+							font-weight="600"
+							fill="#040705"
+							xml:space="preserve"
+						>
+							<tspan x="0" y="13.5">Plans</tspan>
+						</text>
+					</g>
+				</g>
+				<g transform="translate(16, 263)">
+					<g transform="translate(24, 4)">
+						<text
+							font-family="IBM Plex Sans"
+							font-size="10"
+							fill="#415546"
+							xml:space="preserve"
+						>
+							<tspan x="0" y="11.25">PL-404 · Переработка экрана</tspan>
+							<tspan x="0" y="26.25">планов</tspan>
+						</text>
+					</g>
+				</g>
+				<g transform="translate(16, 313)">
+					<g transform="translate(24, 4)">
+						<text
+							font-family="IBM Plex Sans"
+							font-size="10"
+							fill="#415546"
+							xml:space="preserve"
+						>
+							<tspan x="0" y="11.25">PL-326 · Планы</tspan>
+						</text>
+					</g>
+				</g>
+				<g transform="translate(16, 348)">
+					<g transform="translate(24, 4)">
+						<text
+							font-family="IBM Plex Sans"
+							font-size="10"
+							fill="#415546"
+							xml:space="preserve"
+						>
+							<tspan x="0" y="11.25">PL-352 · Документы</tspan>
+						</text>
+					</g>
+				</g>
+			</g>
+			<g transform="translate(209, 1)">
+				<g>
+					<rect width="1150" height="61" fill="#FAF9F6" />
+					<path
+						d="M0 0L1150 0L1150 61L0 61L0 0Z"
+						fill="none"
+						stroke="#9DAE9F"
+						stroke-width="2"
+						clip-path="url(#clip3)"
+					/>
+					<g transform="translate(16, 12)">
+						<text
+							font-family="IBM Plex Sans"
+							font-size="24"
+							font-weight="700"
+							fill="#040705"
+							xml:space="preserve"
+						>
+							<tspan x="0" y="27">Plans</tspan>
+						</text>
+					</g>
+					<g transform="translate(91, 21)">
+						<text
+							font-family="IBM Plex Sans"
+							font-size="12"
+							fill="#415546"
+							xml:space="preserve"
+						>
+							<tspan x="0" y="13.5">3 plans</tspan>
+						</text>
+					</g>
+					<g transform="translate(142, 30)" />
+					<g transform="translate(674, 14)">
+						<rect width="176" height="32" rx="4" ry="4" fill="#FCFCF8" />
+						<path
+							d="M4 0L172 0A4 4 0 0 1 176 4L176 28A4 4 0 0 1 172 32L4 32A4 4 0 0 1 0 28L0 4A4 4 0 0 1 4 0Z"
+							fill="none"
+							stroke="#566E5C"
+							stroke-width="2"
+							clip-path="url(#clip4)"
+						/>
+						<g transform="translate(8, 4)">
+							<text
+								font-family="IBM Plex Sans"
+								font-size="12"
+								fill="#415546"
+								xml:space="preserve"
+							>
+								<tspan x="0" y="13.5">New plan</tspan>
+							</text>
+						</g>
+					</g>
+					<g transform="translate(862, 14)">
+						<rect width="61" height="32" rx="4" ry="4" fill="#00834B" />
+						<path
+							d="M4 0L57 0A4 4 0 0 1 61 4L61 28A4 4 0 0 1 57 32L4 32A4 4 0 0 1 0 28L0 4A4 4 0 0 1 4 0Z"
+							fill="none"
+							stroke="#00834B"
+							stroke-width="2"
+							clip-path="url(#clip5)"
+						/>
+						<g transform="translate(12.5, 7)">
+							<text
+								font-family="IBM Plex Sans"
+								font-size="12"
+								fill="#F2F0EE"
+								xml:space="preserve"
+							>
+								<tspan x="0" y="13.5">Create</tspan>
+							</text>
+						</g>
+					</g>
+					<g transform="translate(935, 14)">
+						<rect width="132" height="32" rx="4" ry="4" fill="#FCFCF8" />
+						<path
+							d="M4 0L128 0A4 4 0 0 1 132 4L132 28A4 4 0 0 1 128 32L4 32A4 4 0 0 1 0 28L0 4A4 4 0 0 1 4 0Z"
+							fill="none"
+							stroke="#566E5C"
+							stroke-width="2"
+							clip-path="url(#clip6)"
+						/>
+						<g transform="translate(8, 4)">
+							<text
+								font-family="IBM Plex Sans"
+								font-size="12"
+								fill="#415546"
+								xml:space="preserve"
+							>
+								<tspan x="0" y="13.5">PL-1</tspan>
+							</text>
+						</g>
+					</g>
+					<g transform="translate(1079, 14)">
+						<rect width="55" height="32" rx="4" ry="4" fill="#FAF9F6" />
+						<path
+							d="M4 0L51 0A4 4 0 0 1 55 4L55 28A4 4 0 0 1 51 32L4 32A4 4 0 0 1 0 28L0 4A4 4 0 0 1 4 0Z"
+							fill="none"
+							stroke="#566E5C"
+							stroke-width="2"
+							clip-path="url(#clip7)"
+						/>
+						<g transform="translate(13, 7)">
+							<text
+								font-family="IBM Plex Sans"
+								font-size="12"
+								fill="#233227"
+								xml:space="preserve"
+							>
+								<tspan x="0" y="13.5">Open</tspan>
+							</text>
+						</g>
+					</g>
+				</g>
+				<g transform="translate(0, 61)">
+					<g>
+						<path
+							d="M0 0L288 0L288 937L0 937L0 0Z"
+							fill="none"
+							stroke="#9DAE9F"
+							stroke-width="2"
+							clip-path="url(#clip9)"
+						/>
+						<g clip-path="url(#clip8)">
+							<g transform="translate(12, 12)">
+								<rect width="263" height="75" rx="4" ry="4" fill="#CBD4CA" />
+								<g transform="translate(8, 8)">
+									<g>
+										<text
+											font-family="IBM Plex Mono"
+											font-size="10"
+											fill="#415546"
+											xml:space="preserve"
+										>
+											<tspan x="0" y="11.25">PL-404</tspan>
+										</text>
+									</g>
+									<g transform="translate(0, 19)">
+										<text
+											font-family="IBM Plex Sans"
+											font-size="14"
+											font-weight="500"
+											fill="#040705"
+											xml:space="preserve"
+										>
+											<tspan x="0" y="15.75">Переработка экрана планов</tspan>
+										</text>
+									</g>
+									<g transform="translate(0, 44)">
+										<text
+											font-family="IBM Plex Sans"
+											font-size="10"
+											fill="#415546"
+											xml:space="preserve"
+										>
+											<tspan x="0" y="11.25">
+												in-progress · 5 tasks · 1 epic
+											</tspan>
+										</text>
+									</g>
+								</g>
+							</g>
+							<g transform="translate(12, 87)">
+								<g transform="translate(8, 8)">
+									<g>
+										<text
+											font-family="IBM Plex Mono"
+											font-size="10"
+											fill="#415546"
+											xml:space="preserve"
+										>
+											<tspan x="0" y="11.25">PL-326</tspan>
+										</text>
+									</g>
+									<g transform="translate(0, 19)">
+										<text
+											font-family="IBM Plex Sans"
+											font-size="14"
+											font-weight="500"
+											fill="#040705"
+											xml:space="preserve"
+										>
+											<tspan x="0" y="15.75">Планы</tspan>
+										</text>
+									</g>
+									<g transform="translate(0, 44)">
+										<text
+											font-family="IBM Plex Sans"
+											font-size="10"
+											fill="#415546"
+											xml:space="preserve"
+										>
+											<tspan x="0" y="11.25">done · 12 tasks · 0 epics</tspan>
+										</text>
+									</g>
+								</g>
+							</g>
+							<g transform="translate(12, 162)">
+								<g transform="translate(8, 8)">
+									<g>
+										<text
+											font-family="IBM Plex Mono"
+											font-size="10"
+											fill="#415546"
+											xml:space="preserve"
+										>
+											<tspan x="0" y="11.25">PL-352</tspan>
+										</text>
+									</g>
+									<g transform="translate(0, 19)">
+										<text
+											font-family="IBM Plex Sans"
+											font-size="14"
+											font-weight="500"
+											fill="#040705"
+											xml:space="preserve"
+										>
+											<tspan x="0" y="15.75">Документы</tspan>
+										</text>
+									</g>
+									<g transform="translate(0, 44)">
+										<text
+											font-family="IBM Plex Sans"
+											font-size="10"
+											fill="#415546"
+											xml:space="preserve"
+										>
+											<tspan x="0" y="11.25">done · 8 tasks · 0 epics</tspan>
+										</text>
+									</g>
+								</g>
+							</g>
+						</g>
+					</g>
+					<g transform="translate(288, 0)">
+						<g clip-path="url(#clip10)">
+							<g transform="translate(24, 16)">
+								<g>
+									<text
+										font-family="IBM Plex Sans"
+										font-size="24"
+										font-weight="700"
+										fill="#040705"
+										xml:space="preserve"
+									>
+										<tspan x="0" y="27">Переработка экрана планов</tspan>
+									</text>
+								</g>
+								<g transform="translate(345, 14)">
+									<rect width="67" height="20" rx="4" ry="4" fill="#D8E9DC" />
+									<g transform="translate(8, 2.5)">
+										<text
+											font-family="IBM Plex Sans"
+											font-size="10"
+											fill="#008350"
+											xml:space="preserve"
+										>
+											<tspan x="0" y="11.25">in-progress</tspan>
+										</text>
+									</g>
+								</g>
+								<g transform="translate(424, 16)">
+									<text
+										font-family="IBM Plex Mono"
+										font-size="10"
+										fill="#415546"
+										xml:space="preserve"
+									>
+										<tspan x="0" y="11.25">PL-404</tspan>
+									</text>
+								</g>
+								<g transform="translate(472, 12)">
+									<g transform="translate(8.5, 4.5)">
+										<text
+											font-family="IBM Plex Sans"
+											font-size="10"
+											fill="#415546"
+											xml:space="preserve"
+										>
+											<tspan x="0" y="11.25">Copy id</tspan>
+										</text>
+									</g>
+								</g>
+							</g>
+							<g transform="translate(24, 64)">
+								<g>
+									<rect width="99" height="20" rx="4" ry="4" fill="#D8E9DC" />
+									<g transform="translate(8, 2.5)">
+										<text
+											font-family="IBM Plex Sans"
+											font-size="10"
+											fill="#008350"
+											xml:space="preserve"
+										>
+											<tspan x="0" y="11.25">3 of 5 tasks closed</tspan>
+										</text>
+									</g>
+								</g>
+								<g transform="translate(111, 6)">
+									<rect width="320" height="8" fill="#D3D5D0" />
+									<rect width="192" height="8" fill="#00834B" />
+								</g>
+								<g transform="translate(443, 1)">
+									<text
+										font-family="IBM Plex Sans"
+										font-size="12"
+										fill="#415546"
+										xml:space="preserve"
+									>
+										<tspan x="0" y="13.5">60%</tspan>
+									</text>
+								</g>
+							</g>
+							<g transform="translate(24, 108)">
+								<g>
+									<text
+										font-family="IBM Plex Mono"
+										font-size="12"
+										fill="#415546"
+										letter-spacing="0.96"
+										xml:space="preserve"
+									>
+										<tspan x="0" y="13.5">ITEMS</tspan>
+									</text>
+								</g>
+								<g transform="translate(49, 9)" />
+								<g transform="translate(692, 0)">
+									<text
+										font-family="IBM Plex Mono"
+										font-size="12"
+										fill="#415546"
+										letter-spacing="0.96"
+										xml:space="preserve"
+									>
+										<tspan x="0" y="13.5">DRAG TO REORDER</tspan>
+									</text>
+								</g>
+							</g>
+							<g transform="translate(24, 134)">
+								<g>
+									<rect width="232" height="32" rx="4" ry="4" fill="#FCFCF8" />
+									<path
+										d="M4 0L228 0A4 4 0 0 1 232 4L232 28A4 4 0 0 1 228 32L4 32A4 4 0 0 1 0 28L0 4A4 4 0 0 1 4 0Z"
+										fill="none"
+										stroke="#566E5C"
+										stroke-width="2"
+										clip-path="url(#clip11)"
+									/>
+									<g transform="translate(8, 4)">
+										<text
+											font-family="IBM Plex Sans"
+											font-size="12"
+											fill="#415546"
+											xml:space="preserve"
+										>
+											<tspan x="0" y="13.5">Search tasks by id or title</tspan>
+										</text>
+									</g>
+								</g>
+								<g transform="translate(240, 0)">
+									<rect width="73" height="32" rx="4" ry="4" fill="#FAF9F6" />
+									<path
+										d="M4 0L69 0A4 4 0 0 1 73 4L73 28A4 4 0 0 1 69 32L4 32A4 4 0 0 1 0 28L0 4A4 4 0 0 1 4 0Z"
+										fill="none"
+										stroke="#566E5C"
+										stroke-width="2"
+										clip-path="url(#clip12)"
+									/>
+									<g transform="translate(12.5, 7)">
+										<text
+											font-family="IBM Plex Sans"
+											font-size="12"
+											fill="#233227"
+											xml:space="preserve"
+										>
+											<tspan x="0" y="13.5">Add task</tspan>
+										</text>
+									</g>
+								</g>
+							</g>
+							<g transform="translate(24, 178)">
+								<g>
+									<rect width="814" height="87" fill="#FAF9F6" />
+									<path
+										d="M0 0L814 0L814 87L0 87L0 0Z"
+										fill="none"
+										stroke="#9DAE9F"
+										stroke-width="6"
+										clip-path="url(#clip13)"
+									/>
+									<g transform="translate(12, 12)">
+										<text
+											font-family="IBM Plex Sans"
+											font-size="12"
+											fill="#415546"
+											xml:space="preserve"
+										>
+											<tspan x="0" y="13.5">≡</tspan>
+										</text>
+									</g>
+									<g transform="translate(33, 13)">
+										<g>
+											<g>
+												<text
+													font-family="IBM Plex Mono"
+													font-size="10"
+													fill="#415546"
+													xml:space="preserve"
+												>
+													<tspan x="0" y="11.25">LOG-405</tspan>
+												</text>
+											</g>
+											<g transform="translate(46, 0)">
+												<rect
+													width="59"
+													height="20"
+													rx="4"
+													ry="4"
+													fill="#DCDDD9"
+												/>
+												<g transform="translate(8, 2.5)">
+													<text
+														font-family="IBM Plex Sans"
+														font-size="10"
+														fill="#233227"
+														xml:space="preserve"
+													>
+														<tspan x="0" y="11.25">validation</tspan>
+													</text>
+												</g>
+											</g>
+										</g>
+										<g transform="translate(0, 24)">
+											<g>
+												<text
+													font-family="IBM Plex Sans"
+													font-size="12"
+													fill="#040705"
+													xml:space="preserve"
+												>
+													<tspan x="0" y="13.5">
+														PlansPage: состояние и вёрстка разбиты на один
+														монолит
+													</tspan>
+												</text>
+											</g>
+										</g>
+										<g transform="translate(0, 46)">
+											<g>
+												<text
+													font-family="IBM Plex Sans"
+													font-size="10"
+													fill="#415546"
+													xml:space="preserve"
+												>
+													<tspan x="0" y="11.25">•</tspan>
+												</text>
+											</g>
+											<g transform="translate(12, 0)">
+												<text
+													font-family="IBM Plex Sans"
+													font-size="10"
+													fill="#233227"
+													xml:space="preserve"
+												>
+													<tspan x="0" y="11.25">
+														Note: вынести store в src/lib/state/plans.svelte.ts
+													</tspan>
+												</text>
+											</g>
+										</g>
+									</g>
+									<g transform="translate(747, 13)">
+										<g transform="translate(8.5, 4.5)">
+											<text
+												font-family="IBM Plex Sans"
+												font-size="10"
+												fill="#415546"
+												xml:space="preserve"
+											>
+												<tspan x="0" y="11.25">Remove</tspan>
+											</text>
+										</g>
+									</g>
+								</g>
+								<g transform="translate(0, 95)">
+									<rect width="814" height="68" fill="#FAF9F6" />
+									<path
+										d="M0 0L814 0L814 68L0 68L0 0Z"
+										fill="none"
+										stroke="#9DAE9F"
+										stroke-width="6"
+										clip-path="url(#clip14)"
+									/>
+									<g transform="translate(12, 12)">
+										<text
+											font-family="IBM Plex Sans"
+											font-size="12"
+											fill="#415546"
+											xml:space="preserve"
+										>
+											<tspan x="0" y="13.5">≡</tspan>
+										</text>
+									</g>
+									<g transform="translate(33, 13)">
+										<g>
+											<g>
+												<text
+													font-family="IBM Plex Mono"
+													font-size="10"
+													fill="#415546"
+													xml:space="preserve"
+												>
+													<tspan x="0" y="11.25">LOG-407</tspan>
+												</text>
+											</g>
+											<g transform="translate(46, 0)">
+												<rect
+													width="51"
+													height="20"
+													rx="4"
+													ry="4"
+													fill="#EFE2C2"
+												/>
+												<g transform="translate(8, 2.5)">
+													<text
+														font-family="IBM Plex Sans"
+														font-size="10"
+														fill="#976A00"
+														xml:space="preserve"
+													>
+														<tspan x="0" y="11.25">blocked</tspan>
+													</text>
+												</g>
+											</g>
+											<g transform="translate(101, 0)">
+												<text
+													font-family="IBM Plex Sans"
+													font-size="12"
+													fill="#415546"
+													xml:space="preserve"
+												>
+													<tspan x="0" y="13.5">blocked by LOG-207</tspan>
+												</text>
+											</g>
+										</g>
+										<g transform="translate(0, 24)">
+											<g>
+												<text
+													font-family="IBM Plex Sans"
+													font-size="12"
+													fill="#040705"
+													xml:space="preserve"
+												>
+													<tspan x="0" y="13.5">
+														Карточки задач с маркерами блокировок
+													</tspan>
+												</text>
+											</g>
+										</g>
+									</g>
+									<g transform="translate(747, 13)">
+										<g transform="translate(8.5, 4.5)">
+											<text
+												font-family="IBM Plex Sans"
+												font-size="10"
+												fill="#415546"
+												xml:space="preserve"
+											>
+												<tspan x="0" y="11.25">Remove</tspan>
+											</text>
+										</g>
+									</g>
+								</g>
+								<g transform="translate(0, 171)">
+									<rect width="814" height="68" fill="#DCDDD9" />
+									<path
+										d="M0 0L814 0L814 68L0 68L0 0Z"
+										fill="none"
+										stroke="#9DAE9F"
+										stroke-width="6"
+										clip-path="url(#clip15)"
+									/>
+									<g transform="translate(12, 12)">
+										<text
+											font-family="IBM Plex Sans"
+											font-size="12"
+											fill="#415546"
+											xml:space="preserve"
+										>
+											<tspan x="0" y="13.5">≡</tspan>
+										</text>
+									</g>
+									<g transform="translate(33, 13)">
+										<g>
+											<g>
+												<text
+													font-family="IBM Plex Mono"
+													font-size="10"
+													fill="#415546"
+													xml:space="preserve"
+												>
+													<tspan x="0" y="11.25">LOG-406</tspan>
+												</text>
+											</g>
+											<g transform="translate(46, 0)">
+												<rect
+													width="38"
+													height="20"
+													rx="4"
+													ry="4"
+													fill="#D8E9DC"
+												/>
+												<g transform="translate(8, 2.5)">
+													<text
+														font-family="IBM Plex Sans"
+														font-size="10"
+														fill="#008350"
+														xml:space="preserve"
+													>
+														<tspan x="0" y="11.25">done</tspan>
+													</text>
+												</g>
+											</g>
+										</g>
+										<g transform="translate(0, 24)">
+											<g>
+												<text
+													font-family="IBM Plex Sans"
+													font-size="12"
+													fill="#415546"
+													text-decoration="line-through"
+													xml:space="preserve"
+												>
+													<tspan x="0" y="13.5">
+														Нарисовать макет переработанного экрана плана
+													</tspan>
+												</text>
+											</g>
+										</g>
+									</g>
+									<g transform="translate(747, 13)">
+										<g transform="translate(8.5, 4.5)">
+											<text
+												font-family="IBM Plex Sans"
+												font-size="10"
+												fill="#415546"
+												xml:space="preserve"
+											>
+												<tspan x="0" y="11.25">Remove</tspan>
+											</text>
+										</g>
+									</g>
+								</g>
+								<g transform="translate(0, 247)">
+									<rect width="814" height="68" fill="#DCDDD9" />
+									<path
+										d="M0 0L814 0L814 68L0 68L0 0Z"
+										fill="none"
+										stroke="#9DAE9F"
+										stroke-width="6"
+										clip-path="url(#clip16)"
+									/>
+									<g transform="translate(12, 12)">
+										<text
+											font-family="IBM Plex Sans"
+											font-size="12"
+											fill="#415546"
+											xml:space="preserve"
+										>
+											<tspan x="0" y="13.5">≡</tspan>
+										</text>
+									</g>
+									<g transform="translate(33, 13)">
+										<g>
+											<g>
+												<text
+													font-family="IBM Plex Mono"
+													font-size="10"
+													fill="#415546"
+													xml:space="preserve"
+												>
+													<tspan x="0" y="11.25">LOG-393</tspan>
+												</text>
+											</g>
+											<g transform="translate(46, 0)">
+												<rect
+													width="38"
+													height="20"
+													rx="4"
+													ry="4"
+													fill="#D8E9DC"
+												/>
+												<g transform="translate(8, 2.5)">
+													<text
+														font-family="IBM Plex Sans"
+														font-size="10"
+														fill="#008350"
+														xml:space="preserve"
+													>
+														<tspan x="0" y="11.25">done</tspan>
+													</text>
+												</g>
+											</g>
+										</g>
+										<g transform="translate(0, 24)">
+											<g>
+												<text
+													font-family="IBM Plex Sans"
+													font-size="12"
+													fill="#415546"
+													text-decoration="line-through"
+													xml:space="preserve"
+												>
+													<tspan x="0" y="13.5">
+														Отделить id документов от id задач
+													</tspan>
+												</text>
+											</g>
+										</g>
+									</g>
+									<g transform="translate(747, 13)">
+										<g transform="translate(8.5, 4.5)">
+											<text
+												font-family="IBM Plex Sans"
+												font-size="10"
+												fill="#415546"
+												xml:space="preserve"
+											>
+												<tspan x="0" y="11.25">Remove</tspan>
+											</text>
+										</g>
+									</g>
+								</g>
+								<g transform="translate(0, 323)">
+									<rect width="814" height="68" fill="#FAF9F6" />
+									<path
+										d="M0 0L814 0L814 68L0 68L0 0Z"
+										fill="none"
+										stroke="#9DAE9F"
+										stroke-width="6"
+										clip-path="url(#clip17)"
+									/>
+									<g transform="translate(12, 12)">
+										<text
+											font-family="IBM Plex Sans"
+											font-size="12"
+											fill="#415546"
+											xml:space="preserve"
+										>
+											<tspan x="0" y="13.5">≡</tspan>
+										</text>
+									</g>
+									<g transform="translate(33, 13)">
+										<g>
+											<g>
+												<text
+													font-family="IBM Plex Mono"
+													font-size="10"
+													fill="#415546"
+													xml:space="preserve"
+												>
+													<tspan x="0" y="11.25">LOG-390</tspan>
+												</text>
+											</g>
+											<g transform="translate(46, 0)">
+												<rect
+													width="38"
+													height="20"
+													rx="4"
+													ry="4"
+													fill="#DCDDD9"
+												/>
+												<g transform="translate(8, 2.5)">
+													<text
+														font-family="IBM Plex Sans"
+														font-size="10"
+														fill="#233227"
+														xml:space="preserve"
+													>
+														<tspan x="0" y="11.25">open</tspan>
+													</text>
+												</g>
+											</g>
+										</g>
+										<g transform="translate(0, 24)">
+											<g>
+												<text
+													font-family="IBM Plex Sans"
+													font-size="12"
+													fill="#040705"
+													xml:space="preserve"
+												>
+													<tspan x="0" y="13.5">
+														Быстрый переход к документам плана
+													</tspan>
+												</text>
+											</g>
+										</g>
+									</g>
+									<g transform="translate(747, 13)">
+										<g transform="translate(8.5, 4.5)">
+											<text
+												font-family="IBM Plex Sans"
+												font-size="10"
+												fill="#415546"
+												xml:space="preserve"
+											>
+												<tspan x="0" y="11.25">Remove</tspan>
+											</text>
+										</g>
+									</g>
+								</g>
+							</g>
+							<g transform="translate(24, 593)">
+								<g>
+									<text
+										font-family="IBM Plex Mono"
+										font-size="12"
+										fill="#415546"
+										letter-spacing="0.96"
+										xml:space="preserve"
+									>
+										<tspan x="0" y="13.5">DOCUMENTS</tspan>
+									</text>
+								</g>
+							</g>
+							<g transform="translate(24, 619)">
+								<g>
+									<rect width="176" height="32" rx="4" ry="4" fill="#FCFCF8" />
+									<path
+										d="M4 0L172 0A4 4 0 0 1 176 4L176 28A4 4 0 0 1 172 32L4 32A4 4 0 0 1 0 28L0 4A4 4 0 0 1 4 0Z"
+										fill="none"
+										stroke="#566E5C"
+										stroke-width="2"
+										clip-path="url(#clip18)"
+									/>
+									<g transform="translate(8, 4)">
+										<text
+											font-family="IBM Plex Sans"
+											font-size="12"
+											fill="#415546"
+											xml:space="preserve"
+										>
+											<tspan x="0" y="13.5">Document to link</tspan>
+										</text>
+									</g>
+								</g>
+								<g transform="translate(184, 0)">
+									<rect width="48" height="32" rx="4" ry="4" fill="#FAF9F6" />
+									<path
+										d="M4 0L44 0A4 4 0 0 1 48 4L48 28A4 4 0 0 1 44 32L4 32A4 4 0 0 1 0 28L0 4A4 4 0 0 1 4 0Z"
+										fill="none"
+										stroke="#566E5C"
+										stroke-width="2"
+										clip-path="url(#clip19)"
+									/>
+									<g transform="translate(12.5, 7)">
+										<text
+											font-family="IBM Plex Sans"
+											font-size="12"
+											fill="#233227"
+											xml:space="preserve"
+										>
+											<tspan x="0" y="13.5">Link</tspan>
+										</text>
+									</g>
+								</g>
+							</g>
+							<g transform="translate(24, 663)">
+								<g>
+									<rect width="814" height="74" fill="#FAF9F6" />
+									<path
+										d="M0 0L814 0L814 74L0 74L0 0Z"
+										fill="none"
+										stroke="#9DAE9F"
+										stroke-width="2"
+										clip-path="url(#clip20)"
+									/>
+									<g transform="translate(13, 13)">
+										<g>
+											<text
+												font-family="IBM Plex Mono"
+												font-size="10"
+												fill="#415546"
+												xml:space="preserve"
+											>
+												<tspan x="0" y="11.25">LOG-DOC-1</tspan>
+											</text>
+										</g>
+										<g transform="translate(0, 15)">
+											<g>
+												<text
+													font-family="IBM Plex Sans"
+													font-size="12"
+													font-weight="500"
+													fill="#040705"
+													xml:space="preserve"
+												>
+													<tspan x="0" y="13.5">Решения по экрану планов</tspan>
+												</text>
+											</g>
+										</g>
+										<g transform="translate(0, 33)">
+											<g>
+												<text
+													font-family="IBM Plex Sans"
+													font-size="10"
+													fill="#00834B"
+													xml:space="preserve"
+												>
+													<tspan x="0" y="11.25">Open document →</tspan>
+												</text>
+											</g>
+										</g>
+									</g>
+									<g transform="translate(712, 27)">
+										<rect width="30" height="20" rx="4" ry="4" fill="#DCDDD9" />
+										<g transform="translate(8, 2.5)">
+											<text
+												font-family="IBM Plex Sans"
+												font-size="10"
+												fill="#233227"
+												xml:space="preserve"
+											>
+												<tspan x="0" y="11.25">adr</tspan>
+											</text>
+										</g>
+									</g>
+									<g transform="translate(754, 25)">
+										<g transform="translate(9, 4.5)">
+											<text
+												font-family="IBM Plex Sans"
+												font-size="10"
+												fill="#415546"
+												xml:space="preserve"
+											>
+												<tspan x="0" y="11.25">Unlink</tspan>
+											</text>
+										</g>
+									</g>
+								</g>
+								<g transform="translate(0, 82)">
+									<rect width="814" height="74" fill="#FAF9F6" />
+									<path
+										d="M0 0L814 0L814 74L0 74L0 0Z"
+										fill="none"
+										stroke="#9DAE9F"
+										stroke-width="2"
+										clip-path="url(#clip21)"
+									/>
+									<g transform="translate(13, 13)">
+										<g>
+											<text
+												font-family="IBM Plex Mono"
+												font-size="10"
+												fill="#415546"
+												xml:space="preserve"
+											>
+												<tspan x="0" y="11.25">LOG-DOC-2</tspan>
+											</text>
+										</g>
+										<g transform="translate(0, 15)">
+											<g>
+												<text
+													font-family="IBM Plex Sans"
+													font-size="12"
+													font-weight="500"
+													fill="#040705"
+													xml:space="preserve"
+												>
+													<tspan x="0" y="13.5">
+														Дизайн-спецификация планов
+													</tspan>
+												</text>
+											</g>
+										</g>
+										<g transform="translate(0, 33)">
+											<g>
+												<text
+													font-family="IBM Plex Sans"
+													font-size="10"
+													fill="#00834B"
+													xml:space="preserve"
+												>
+													<tspan x="0" y="11.25">Open document →</tspan>
+												</text>
+											</g>
+										</g>
+									</g>
+									<g transform="translate(705, 27)">
+										<rect width="37" height="20" rx="4" ry="4" fill="#DCDDD9" />
+										<g transform="translate(8, 2.5)">
+											<text
+												font-family="IBM Plex Sans"
+												font-size="10"
+												fill="#233227"
+												xml:space="preserve"
+											>
+												<tspan x="0" y="11.25">spec</tspan>
+											</text>
+										</g>
+									</g>
+									<g transform="translate(754, 25)">
+										<g transform="translate(9, 4.5)">
+											<text
+												font-family="IBM Plex Sans"
+												font-size="10"
+												fill="#415546"
+												xml:space="preserve"
+											>
+												<tspan x="0" y="11.25">Unlink</tspan>
+											</text>
+										</g>
+									</g>
+								</g>
+							</g>
+						</g>
+					</g>
+				</g>
+			</g>
+		</g>
+		<g transform="translate(24, 1036)">
+			<g>
+				<text
+					font-family="IBM Plex Sans"
+					font-size="12"
+					fill="#415546"
+					xml:space="preserve"
+				>
+					<tspan x="0" y="13.5">
+						Plans screen — desktop, 1360 × 1000. Variables and spacing match the
+						ui-kit tool theme.
+					</tspan>
+				</text>
+			</g>
+		</g>
+		<g transform="translate(24, 1078)" filter="url(#fx22)">
+			<rect width="420" height="132" fill="#FAF9F6" />
+			<path
+				d="M0 0L420 0L420 132L0 132L0 0Z"
+				fill="none"
+				stroke="#566E5C"
+				stroke-width="2"
+				clip-path="url(#clip23)"
+			/>
+			<g transform="translate(17, 17)">
+				<g>
+					<text
+						font-family="IBM Plex Sans"
+						font-size="16"
+						font-weight="600"
+						fill="#040705"
+						xml:space="preserve"
+					>
+						<tspan x="0" y="18">Remove LOG-390 from the plan?</tspan>
+					</text>
+				</g>
+			</g>
+			<g transform="translate(17, 49)">
+				<g>
+					<text
+						font-family="IBM Plex Sans"
+						font-size="12"
+						fill="#233227"
+						xml:space="preserve"
+					>
+						<tspan x="0" y="13.5">
+							The task stays in the project. Only its place in this plan is
+							removed.
+						</tspan>
+					</text>
+				</g>
+			</g>
+			<g transform="translate(17, 83)">
+				<g transform="translate(246, 0)">
+					<rect width="62" height="32" rx="4" ry="4" fill="#FAF9F6" />
+					<path
+						d="M4 0L58 0A4 4 0 0 1 62 4L62 28A4 4 0 0 1 58 32L4 32A4 4 0 0 1 0 28L0 4A4 4 0 0 1 4 0Z"
+						fill="none"
+						stroke="#566E5C"
+						stroke-width="2"
+						clip-path="url(#clip24)"
+					/>
+					<g transform="translate(12.5, 7)">
+						<text
+							font-family="IBM Plex Sans"
+							font-size="12"
+							fill="#233227"
+							xml:space="preserve"
+						>
+							<tspan x="0" y="13.5">Cancel</tspan>
+						</text>
+					</g>
+				</g>
+				<g transform="translate(316, 0)">
+					<rect width="70" height="32" rx="4" ry="4" fill="#D23A1E" />
+					<path
+						d="M4 0L66 0A4 4 0 0 1 70 4L70 28A4 4 0 0 1 66 32L4 32A4 4 0 0 1 0 28L0 4A4 4 0 0 1 4 0Z"
+						fill="none"
+						stroke="#D23A1E"
+						stroke-width="2"
+						clip-path="url(#clip25)"
+					/>
+					<g transform="translate(12, 7)">
+						<text
+							font-family="IBM Plex Sans"
+							font-size="12"
+							fill="#F2F0EE"
+							xml:space="preserve"
+						>
+							<tspan x="0" y="13.5">Remove</tspan>
+						</text>
+					</g>
+				</g>
+			</g>
+		</g>
+		<g transform="translate(24, 1222)">
+			<g>
+				<text
+					font-family="IBM Plex Sans"
+					font-size="12"
+					fill="#415546"
+					xml:space="preserve"
+				>
+					<tspan x="0" y="13.5">
+						Confirmation state — shown before a plan item is removed.
+					</tspan>
+				</text>
+			</g>
+		</g>
+	</g>
+</svg>

@@ -1,0 +1,599 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Plans screen — design mockup</title>
+		<style>
+			:root {
+				--ui-bg: #f2f0ee;
+				--ui-bg-muted: #d3d5d0;
+				--ui-surface: #dcddd9;
+				--ui-panel: #faf9f6;
+				--ui-field: #fcfcf8;
+				--ui-hover: #dfe4dd;
+				--ui-selected: #cbd4ca;
+				--ui-fg: #040705;
+				--ui-fg-secondary: #233227;
+				--ui-fg-muted: #415546;
+				--ui-on-accent: #f2f0ee;
+				--ui-on-danger: #f2f0ee;
+				--ui-line: #9dae9f;
+				--ui-line-strong: #566e5c;
+				--ui-accent: #00834b;
+				--ui-accent-surface: #dcebe0;
+				--ui-success: #008350;
+				--ui-success-surface: #d8e9dc;
+				--ui-warning: #976a00;
+				--ui-warning-surface: #efe2c2;
+				--ui-danger: #d23a1e;
+				--ui-danger-surface: #f2dcd6;
+				--ui-info: #c430ad;
+				--ui-r-control: 4px;
+				--ui-r-panel: 0px;
+				--ui-space-1: 4px;
+				--ui-space-2: 8px;
+				--ui-space-3: 12px;
+				--ui-space-4: 16px;
+				--ui-space-5: 24px;
+				--ui-space-6: 32px;
+				--ui-font: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+				--ui-font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+				--ui-fs-xs: 10px;
+				--ui-fs-sm: 12px;
+				--ui-fs-md: 14px;
+				--ui-fs-lg: 16px;
+				--ui-fs-xl: 24px;
+				--ui-lh: 1.5;
+			}
+			* {
+				box-sizing: border-box;
+			}
+			body {
+				margin: 0;
+				background: var(--ui-bg-muted);
+				color: var(--ui-fg);
+				font-family: var(--ui-font);
+				font-size: var(--ui-fs-md);
+				line-height: var(--ui-lh);
+			}
+			.stage {
+				padding: var(--ui-space-5);
+			}
+			.caption {
+				margin: var(--ui-space-3) 0 var(--ui-space-5);
+				color: var(--ui-fg-muted);
+				font-size: var(--ui-fs-sm);
+			}
+			.frame {
+				display: flex;
+				width: 1360px;
+				height: 1000px;
+				border: 1px solid var(--ui-line-strong);
+				background: var(--ui-bg);
+			}
+			.sidebar {
+				width: 208px;
+				flex: 0 0 208px;
+				display: flex;
+				flex-direction: column;
+				gap: var(--ui-space-3);
+				padding: var(--ui-space-4);
+				border-right: 1px solid var(--ui-line);
+				background: var(--ui-surface);
+			}
+			.brand {
+				font-size: var(--ui-fs-lg);
+				font-weight: 600;
+				letter-spacing: 0.02em;
+			}
+			.nav-label {
+				color: var(--ui-fg-muted);
+				font-family: var(--ui-font-mono);
+				font-size: var(--ui-fs-xs);
+				letter-spacing: 0.08em;
+				text-transform: uppercase;
+			}
+			.nav-item {
+				padding: var(--ui-space-2) var(--ui-space-3);
+				border-left: 3px solid transparent;
+				color: var(--ui-fg-secondary);
+				font-size: var(--ui-fs-sm);
+			}
+			.nav-item.active {
+				border-left-color: var(--ui-accent);
+				background: var(--ui-selected);
+				color: var(--ui-fg);
+				font-weight: 600;
+			}
+			.nav-sub {
+				padding: var(--ui-space-1) var(--ui-space-3) var(--ui-space-1)
+					var(--ui-space-5);
+				color: var(--ui-fg-muted);
+				font-size: var(--ui-fs-xs);
+			}
+			.main {
+				flex: 1 1 auto;
+				min-width: 0;
+				display: flex;
+				flex-direction: column;
+			}
+			.appbar {
+				display: flex;
+				align-items: center;
+				gap: var(--ui-space-3);
+				padding: var(--ui-space-3) var(--ui-space-4);
+				border-bottom: 1px solid var(--ui-line);
+				background: var(--ui-panel);
+			}
+			.appbar h1 {
+				margin: 0;
+				font-size: var(--ui-fs-xl);
+			}
+			.muted {
+				color: var(--ui-fg-muted);
+				font-size: var(--ui-fs-sm);
+			}
+			.spacer {
+				flex: 1 1 auto;
+			}
+			.field {
+				height: 32px;
+				padding: var(--ui-space-1) var(--ui-space-2);
+				border: 1px solid var(--ui-line-strong);
+				border-radius: var(--ui-r-control);
+				background: var(--ui-field);
+				color: var(--ui-fg-muted);
+				font-size: var(--ui-fs-sm);
+			}
+			.field.search {
+				width: 232px;
+			}
+			.field.id {
+				width: 132px;
+			}
+			.field.create {
+				width: 176px;
+			}
+			.btn {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				height: 32px;
+				padding: 0 var(--ui-space-3);
+				border: 1px solid var(--ui-line-strong);
+				border-radius: var(--ui-r-control);
+				background: var(--ui-panel);
+				color: var(--ui-fg-secondary);
+				font-size: var(--ui-fs-sm);
+				font-family: var(--ui-font);
+			}
+			.btn.primary {
+				border-color: var(--ui-accent);
+				background: var(--ui-accent);
+				color: var(--ui-on-accent);
+			}
+			.btn.danger {
+				border-color: var(--ui-danger);
+				background: var(--ui-danger);
+				color: var(--ui-on-danger);
+			}
+			.btn.ghost {
+				border-color: transparent;
+				background: transparent;
+				color: var(--ui-fg-muted);
+			}
+			.btn.sm {
+				height: 24px;
+				padding: 0 var(--ui-space-2);
+				font-size: var(--ui-fs-xs);
+			}
+			.columns {
+				flex: 1 1 auto;
+				min-height: 0;
+				display: flex;
+			}
+			.plan-list {
+				width: 288px;
+				flex: 0 0 288px;
+				padding: var(--ui-space-3);
+				border-right: 1px solid var(--ui-line);
+				overflow: hidden;
+			}
+			.plan-row {
+				display: flex;
+				align-items: flex-start;
+				gap: var(--ui-space-2);
+				padding: var(--ui-space-2);
+				border-radius: var(--ui-r-control);
+			}
+			.plan-row.active {
+				background: var(--ui-selected);
+			}
+			.plan-row-main {
+				flex: 1 1 auto;
+				min-width: 0;
+				display: flex;
+				flex-direction: column;
+				gap: var(--ui-space-1);
+			}
+			.plan-key,
+			.mono {
+				font-family: var(--ui-font-mono);
+				font-size: var(--ui-fs-xs);
+				color: var(--ui-fg-muted);
+			}
+			.plan-name {
+				font-size: var(--ui-fs-md);
+				font-weight: 500;
+			}
+			.plan-meta {
+				color: var(--ui-fg-muted);
+				font-size: var(--ui-fs-xs);
+			}
+			.detail {
+				flex: 1 1 auto;
+				min-width: 0;
+				padding: var(--ui-space-4) var(--ui-space-5);
+				overflow: hidden;
+			}
+			.detail-head {
+				display: flex;
+				flex-wrap: wrap;
+				align-items: baseline;
+				gap: var(--ui-space-3);
+			}
+			.detail-head h2 {
+				margin: 0;
+				font-size: var(--ui-fs-xl);
+			}
+			.badge {
+				display: inline-flex;
+				align-items: center;
+				height: 20px;
+				padding: 0 var(--ui-space-2);
+				border-radius: var(--ui-r-control);
+				font-size: var(--ui-fs-xs);
+			}
+			.badge.success {
+				background: var(--ui-success-surface);
+				color: var(--ui-success);
+			}
+			.badge.warning {
+				background: var(--ui-warning-surface);
+				color: var(--ui-warning);
+			}
+			.badge.danger {
+				background: var(--ui-danger-surface);
+				color: var(--ui-danger);
+			}
+			.badge.neutral {
+				background: var(--ui-surface);
+				color: var(--ui-fg-secondary);
+			}
+			.progress-row {
+				display: flex;
+				align-items: center;
+				gap: var(--ui-space-3);
+				margin-top: var(--ui-space-3);
+			}
+			.progress-track {
+				width: 320px;
+				height: 8px;
+				background: var(--ui-bg-muted);
+			}
+			.progress-fill {
+				width: 60%;
+				height: 8px;
+				background: var(--ui-accent);
+			}
+			.section-head {
+				display: flex;
+				align-items: center;
+				gap: var(--ui-space-2);
+				margin: var(--ui-space-5) 0 var(--ui-space-2);
+				color: var(--ui-fg-muted);
+				font-family: var(--ui-font-mono);
+				font-size: var(--ui-fs-sm);
+				letter-spacing: 0.08em;
+				text-transform: uppercase;
+			}
+			.section-head .spacer {
+				flex: 1 1 auto;
+			}
+			.add-row {
+				display: flex;
+				gap: var(--ui-space-2);
+				margin-bottom: var(--ui-space-3);
+			}
+			.card-list {
+				display: flex;
+				flex-direction: column;
+				gap: var(--ui-space-2);
+			}
+			.task-card {
+				display: flex;
+				align-items: flex-start;
+				gap: var(--ui-space-3);
+				padding: var(--ui-space-3);
+				border: 1px solid var(--ui-line);
+				border-left: 3px solid var(--ui-line-strong);
+				background: var(--ui-panel);
+			}
+			.task-card.blocked {
+				border-left-color: var(--ui-warning);
+			}
+			.task-card.closed {
+				border-left-color: var(--ui-success);
+				background: var(--ui-surface);
+			}
+			.grip {
+				color: var(--ui-fg-muted);
+				font-size: var(--ui-fs-sm);
+			}
+			.task-main {
+				flex: 1 1 auto;
+				min-width: 0;
+				display: flex;
+				flex-direction: column;
+				gap: var(--ui-space-1);
+			}
+			.task-title {
+				font-size: var(--ui-fs-sm);
+			}
+			.task-title.closed {
+				color: var(--ui-fg-muted);
+				text-decoration: line-through;
+			}
+			.task-tags {
+				display: flex;
+				flex-wrap: wrap;
+				gap: var(--ui-space-1);
+			}
+			.note-row {
+				display: flex;
+				gap: var(--ui-space-2);
+				align-items: baseline;
+				color: var(--ui-fg-secondary);
+				font-size: var(--ui-fs-xs);
+			}
+			.note-row .dot {
+				color: var(--ui-fg-muted);
+			}
+			.doc-card {
+				display: flex;
+				align-items: center;
+				gap: var(--ui-space-3);
+				padding: var(--ui-space-3);
+				border: 1px solid var(--ui-line);
+				background: var(--ui-panel);
+			}
+			.doc-card .doc-main {
+				flex: 1 1 auto;
+			}
+			.doc-title {
+				font-size: var(--ui-fs-sm);
+				font-weight: 500;
+			}
+			.doc-link {
+				color: var(--ui-accent);
+				font-size: var(--ui-fs-xs);
+			}
+			.dialog-frame {
+				width: 420px;
+				padding: var(--ui-space-4);
+				border: 1px solid var(--ui-line-strong);
+				background: var(--ui-panel);
+				box-shadow: 0 6px 16px rgba(0, 0, 0, 0.16);
+			}
+			.dialog-title {
+				font-size: var(--ui-fs-lg);
+				font-weight: 600;
+			}
+			.dialog-body {
+				margin: var(--ui-space-2) 0 var(--ui-space-4);
+				color: var(--ui-fg-secondary);
+				font-size: var(--ui-fs-sm);
+			}
+			.dialog-actions {
+				display: flex;
+				justify-content: flex-end;
+				gap: var(--ui-space-2);
+			}
+		</style>
+	</head>
+	<body>
+		<div class="stage">
+			<div class="frame">
+				<div class="sidebar">
+					<div class="brand">xboct-log</div>
+					<div class="nav-label">Workspace</div>
+					<div class="nav-item">Tasks</div>
+					<div class="nav-item">Kanban</div>
+					<div class="nav-item">Documents</div>
+					<div class="nav-item active">Plans</div>
+					<div class="nav-sub">PL-404 · Переработка экрана планов</div>
+					<div class="nav-sub">PL-326 · Планы</div>
+					<div class="nav-sub">PL-352 · Документы</div>
+				</div>
+				<div class="main">
+					<div class="appbar">
+						<h1>Plans</h1>
+						<span class="muted">3 plans</span>
+						<div class="spacer"></div>
+						<div class="field create">New plan</div>
+						<div class="btn primary">Create</div>
+						<div class="field id">PL-1</div>
+						<div class="btn">Open</div>
+					</div>
+					<div class="columns">
+						<div class="plan-list">
+							<div class="plan-row active">
+								<div class="plan-row-main">
+									<span class="plan-key">PL-404</span>
+									<span class="plan-name">Переработка экрана планов</span>
+									<span class="plan-meta">in-progress · 5 tasks · 1 epic</span>
+								</div>
+							</div>
+							<div class="plan-row">
+								<div class="plan-row-main">
+									<span class="plan-key">PL-326</span>
+									<span class="plan-name">Планы</span>
+									<span class="plan-meta">done · 12 tasks · 0 epics</span>
+								</div>
+							</div>
+							<div class="plan-row">
+								<div class="plan-row-main">
+									<span class="plan-key">PL-352</span>
+									<span class="plan-name">Документы</span>
+									<span class="plan-meta">done · 8 tasks · 0 epics</span>
+								</div>
+							</div>
+						</div>
+						<div class="detail">
+							<div class="detail-head">
+								<h2>Переработка экрана планов</h2>
+								<span class="badge success">in-progress</span>
+								<span class="mono">PL-404</span>
+								<span class="btn ghost sm">Copy id</span>
+							</div>
+							<div class="progress-row">
+								<span class="badge success">3 of 5 tasks closed</span>
+								<div class="progress-track">
+									<div class="progress-fill"></div>
+								</div>
+								<span class="muted">60%</span>
+							</div>
+							<div class="section-head">
+								Items
+								<div class="spacer"></div>
+								<span class="muted">Drag to reorder</span>
+							</div>
+							<div class="add-row">
+								<div class="field search">Search tasks by id or title</div>
+								<div class="btn">Add task</div>
+							</div>
+							<div class="card-list">
+								<div class="task-card">
+									<span class="grip">≡</span>
+									<div class="task-main">
+										<div class="task-tags">
+											<span class="mono">LOG-405</span
+											><span class="badge neutral">validation</span>
+										</div>
+										<div class="task-title">
+											PlansPage: состояние и вёрстка разбиты на один монолит
+										</div>
+										<div class="note-row">
+											<span class="dot">•</span
+											><span
+												>Note: вынести store в
+												src/lib/state/plans.svelte.ts</span
+											>
+										</div>
+									</div>
+									<span class="btn ghost sm">Remove</span>
+								</div>
+								<div class="task-card blocked">
+									<span class="grip">≡</span>
+									<div class="task-main">
+										<div class="task-tags">
+											<span class="mono">LOG-407</span
+											><span class="badge warning">blocked</span
+											><span class="muted">blocked by LOG-207</span>
+										</div>
+										<div class="task-title">
+											Карточки задач с маркерами блокировок
+										</div>
+									</div>
+									<span class="btn ghost sm">Remove</span>
+								</div>
+								<div class="task-card closed">
+									<span class="grip">≡</span>
+									<div class="task-main">
+										<div class="task-tags">
+											<span class="mono">LOG-406</span
+											><span class="badge success">done</span>
+										</div>
+										<div class="task-title closed">
+											Нарисовать макет переработанного экрана плана
+										</div>
+									</div>
+									<span class="btn ghost sm">Remove</span>
+								</div>
+								<div class="task-card closed">
+									<span class="grip">≡</span>
+									<div class="task-main">
+										<div class="task-tags">
+											<span class="mono">LOG-393</span
+											><span class="badge success">done</span>
+										</div>
+										<div class="task-title closed">
+											Отделить id документов от id задач
+										</div>
+									</div>
+									<span class="btn ghost sm">Remove</span>
+								</div>
+								<div class="task-card">
+									<span class="grip">≡</span>
+									<div class="task-main">
+										<div class="task-tags">
+											<span class="mono">LOG-390</span
+											><span class="badge neutral">open</span>
+										</div>
+										<div class="task-title">
+											Быстрый переход к документам плана
+										</div>
+									</div>
+									<span class="btn ghost sm">Remove</span>
+								</div>
+							</div>
+							<div class="section-head">Documents</div>
+							<div class="add-row">
+								<div class="field create">Document to link</div>
+								<div class="btn">Link</div>
+							</div>
+							<div class="card-list">
+								<div class="doc-card">
+									<div class="doc-main">
+										<div class="mono">LOG-DOC-1</div>
+										<div class="doc-title">Решения по экрану планов</div>
+										<div class="doc-link">Open document →</div>
+									</div>
+									<span class="badge neutral">adr</span>
+									<span class="btn ghost sm">Unlink</span>
+								</div>
+								<div class="doc-card">
+									<div class="doc-main">
+										<div class="mono">LOG-DOC-2</div>
+										<div class="doc-title">Дизайн-спецификация планов</div>
+										<div class="doc-link">Open document →</div>
+									</div>
+									<span class="badge neutral">spec</span>
+									<span class="btn ghost sm">Unlink</span>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="caption">
+				Plans screen — desktop, 1360 × 1000. Variables and spacing match the
+				ui-kit tool theme.
+			</div>
+			<div class="dialog-frame">
+				<div class="dialog-title">Remove LOG-390 from the plan?</div>
+				<div class="dialog-body">
+					The task stays in the project. Only its place in this plan is removed.
+				</div>
+				<div class="dialog-actions">
+					<div class="btn">Cancel</div>
+					<div class="btn danger">Remove</div>
+				</div>
+			</div>
+			<div class="caption">
+				Confirmation state — shown before a plan item is removed.
+			</div>
+		</div>
+	</body>
+</html>
