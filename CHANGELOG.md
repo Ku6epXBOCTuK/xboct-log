@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.14.1](https://github.com/Ku6epXBOCTuK/xboct-log/compare/0b7bd038702199c4be3d5000747b1791c55e13a8..v0.14.1) - 2026-11-21
+#### Bug Fixes
+- (**activity**) derive operation labels for any entity - ([0b7bd03](https://github.com/Ku6epXBOCTuK/xboct-log/commit/0b7bd038702199c4be3d5000747b1791c55e13a8)) - Ku6epXBOCTuK
+
+- - -
+
 ## [v0.14.0](https://github.com/Ku6epXBOCTuK/xboct-log/compare/a7b4e8d57e8696dd3a9ea889e5f20e7dec9b5385..v0.14.0) - 2026-11-21
 #### Features
 - (**documents**) use disjoint PERFIX-DOC-N keys - ([d24016c](https://github.com/Ku6epXBOCTuK/xboct-log/commit/d24016cc8f6a3384929532008cdb3afebb5ef78b)) - Ku6epXBOCTuK
