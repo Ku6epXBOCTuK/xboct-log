@@ -1,9 +1,11 @@
 <script lang="ts">
 	import type { PlanStore } from "#lib/state/plans.svelte.ts";
+	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import PlanDocumentsSection from "./PlanDocumentsSection.svelte";
 	import PlanItemsSection from "./PlanItemsSection.svelte";
 	import PlanKeyEditor from "./PlanKeyEditor.svelte";
 	import PlanProgress from "./PlanProgress.svelte";
+	import PlanStatusSelect from "./PlanStatusSelect.svelte";
 
 	interface Props {
 		store: PlanStore;
@@ -16,9 +18,16 @@
 	{@const plan = store.detail}
 	<header class="detail-head">
 		<h2>{plan.name}</h2>
-		<span class="status">{plan.status}</span>
+		<PlanStatusSelect
+			value={plan.status}
+			saving={store.statusSaving}
+			onchange={(status) => void store.changeStatus(status)}
+		/>
 		<PlanKeyEditor {store} {plan} />
 	</header>
+	<ErrorNote
+		message={store.statusFailed ? "Could not change the plan status" : null}
+	/>
 	{#if plan.description !== ""}
 		<p class="description">{plan.description}</p>
 	{/if}
@@ -37,11 +46,6 @@
 
 	h2 {
 		margin: 0;
-	}
-
-	.status {
-		color: var(--ui-fg-muted);
-		font-size: var(--ui-fs-sm);
 	}
 
 	.description {

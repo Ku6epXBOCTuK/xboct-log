@@ -573,6 +573,84 @@ test("a plan id can be copied from the plans page", async ({
 	).toBeVisible();
 });
 
+test("the plan list filters by status", async ({ page, request }) => {
+	const names = {
+		active: `UI Active ${suffix}`,
+		backlog: `UI Backlog ${suffix}`,
+		done: `UI Done ${suffix}`,
+		cancelled: `UI Cancelled ${suffix}`,
+	};
+	for (const status of Object.keys(names)) {
+		await callTool(request, "plans_create", { name: names[status], status });
+	}
+	await page.goto("/plans");
+
+	const rows = page.locator(".plan-row");
+	const filter = page.getByRole("radiogroup", { name: "Status filter" });
+	await expect(rows.filter({ hasText: names.active })).toBeVisible();
+	await expect(rows.filter({ hasText: names.backlog })).toBeVisible();
+	await expect(rows.filter({ hasText: names.done })).toBeVisible();
+	await expect(rows.filter({ hasText: names.cancelled })).toBeVisible();
+
+	await filter.getByRole("radio", { name: "Active" }).click();
+	await expect(rows.filter({ hasText: names.active })).toBeVisible();
+	await expect(rows.filter({ hasText: names.backlog })).toBeVisible();
+	await expect(rows.filter({ hasText: names.done })).toHaveCount(0);
+	await expect(rows.filter({ hasText: names.cancelled })).toHaveCount(0);
+	const shown = await page.locator(".create-wrap .muted").innerText();
+	expect(Number(shown.split(" ")[0])).toBe(await rows.count());
+
+	await filter.getByRole("radio", { name: "Closed" }).click();
+	await expect(rows.filter({ hasText: names.done })).toBeVisible();
+	await expect(rows.filter({ hasText: names.cancelled })).toBeVisible();
+	await expect(rows.filter({ hasText: names.active })).toHaveCount(0);
+	await expect(rows.filter({ hasText: names.backlog })).toHaveCount(0);
+
+	await filter.getByRole("radio", { name: "All" }).click();
+	await expect(rows.filter({ hasText: names.active })).toBeVisible();
+	await expect(rows.filter({ hasText: names.backlog })).toBeVisible();
+	await expect(rows.filter({ hasText: names.done })).toBeVisible();
+	await expect(rows.filter({ hasText: names.cancelled })).toBeVisible();
+});
+
+test("the plan status changes from the detail head", async ({
+	page,
+	request,
+}) => {
+	const name = `UI Status ${suffix}`;
+	const plan = await callTool(request, "plans_create", {
+		name,
+		status: "backlog",
+	});
+	await page.goto("/plans");
+	await page
+		.locator(".plan-row")
+		.filter({ hasText: name })
+		.getByRole("button")
+		.first()
+		.click();
+
+	const status = page.getByRole("button", { name: "Plan status" });
+	await expect(status).toContainText("Backlog");
+	await status.click();
+	await page.getByRole("option", { name: "Done" }).click();
+	await expect(status).toContainText("Done");
+
+	const stored = await callTool(request, "plans_get", { plan_id: plan.id });
+	expect(stored.status).toBe("done");
+
+	await page.reload();
+	await page
+		.locator(".plan-row")
+		.filter({ hasText: name })
+		.getByRole("button")
+		.first()
+		.click();
+	await expect(page.getByRole("button", { name: "Plan status" })).toContainText(
+		"Done",
+	);
+});
+
 test("a document is created and edited on the documents page", async ({
 	page,
 }) => {

@@ -2,6 +2,7 @@
 	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
 	import type { PlanWithCounts } from "#lib/api/plans.ts";
 	import CopyButton from "#lib/components/ui/CopyButton.svelte";
+	import PlanStatusDot from "./PlanStatusDot.svelte";
 
 	interface Props {
 		plan: PlanWithCounts;
@@ -17,6 +18,7 @@
 		<span class="plan-key">{plan.key}</span>
 		<span class="plan-name">{plan.name}</span>
 		<span class="plan-meta">
+			<PlanStatusDot status={plan.status} />
 			{plan.status}
 			· {plan.closed_tasks_count}/{plan.tasks_count}
 			closed · {plan.epics_count} epics
@@ -73,6 +75,9 @@
 	}
 
 	.plan-meta {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--ui-space-1);
 		color: var(--ui-fg-muted);
 		font-size: var(--ui-fs-sm);
 	}

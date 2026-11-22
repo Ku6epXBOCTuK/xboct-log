@@ -33,6 +33,7 @@ export interface PlanItemInput {
 export interface PlanListInput {
 	include_deleted?: boolean;
 	deleted_only?: boolean;
+	status?: PlanStatus | PlanStatus[];
 }
 
 export async function getPlans(

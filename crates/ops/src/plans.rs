@@ -2,11 +2,11 @@ use schemars::JsonSchema;
 use serde::Deserialize;
 use serde_json::Value;
 use xboct_log_core::{
-    AppError, Entity, OpName, Plan, PlanItem, PlanNote, PlanPatch, PlanStatus, PlanWithCounts,
-    Result, TextRevision, add_plan_item, add_plan_note, create_plan, delete_plan, delete_plan_note,
-    edit_plan_note, list_deleted_plan_notes, list_deleted_plans, list_plan_note_revisions,
-    list_plan_notes, list_plans, plan_counts, remove_plan_item, reorder_plan_items, require_plan,
-    restore_plan, restore_plan_note, update_plan,
+    AppError, Entity, OneOrList, OpName, Plan, PlanItem, PlanNote, PlanPatch, PlanStatus,
+    PlanWithCounts, Result, TextRevision, add_plan_item, add_plan_note, create_plan, delete_plan,
+    delete_plan_note, edit_plan_note, list_deleted_plan_notes, list_deleted_plans,
+    list_plan_note_revisions, list_plan_notes, list_plans, plan_counts, remove_plan_item,
+    reorder_plan_items, require_plan, restore_plan, restore_plan_note, update_plan,
 };
 
 use crate::{Ctx, EmptyInput, Items, Kind, Op};
@@ -20,6 +20,10 @@ pub struct PlansListInput {
     pub include_deleted: Option<bool>,
     #[schemars(description = "Return only soft-deleted plans. Overrides include_deleted.")]
     pub deleted_only: Option<bool>,
+    #[schemars(
+        description = "Return only plans with these statuses. Accepts one status or a list."
+    )]
+    pub status: Option<OneOrList<PlanStatus>>,
 }
 
 pub struct PlansList;
@@ -46,6 +50,10 @@ impl Op for PlansList {
             }
             plans
         };
+        if let Some(status) = input.status {
+            let statuses = status.into_vec();
+            plans.retain(|plan| statuses.contains(&plan.status));
+        }
         plans.sort_by(|a, b| a.name.cmp(&b.name).then_with(|| a.id.cmp(&b.id)));
         let counts = xboct_log_core::count_plan_items(&ctx.db).await?;
         Ok(Items {

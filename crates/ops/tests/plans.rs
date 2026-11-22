@@ -44,6 +44,50 @@ async fn call(ctx: &Ctx, op: &str, input: serde_json::Value) -> serde_json::Valu
 }
 
 #[tokio::test]
+async fn plans_list_filters_by_status() {
+    let ctx = context().await;
+    for (name, status) in [
+        ("A backlog", "backlog"),
+        ("B active", "active"),
+        ("C done", "done"),
+        ("D cancelled", "cancelled"),
+    ] {
+        call(
+            &ctx,
+            "plans_create",
+            json!({"name": name, "status": status}),
+        )
+        .await;
+    }
+
+    fn names(value: &serde_json::Value) -> Vec<&str> {
+        value["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|item| item["name"].as_str().unwrap())
+            .collect()
+    }
+
+    assert_eq!(
+        names(&call(&ctx, "plans_list", json!({})).await),
+        ["A backlog", "B active", "C done", "D cancelled"]
+    );
+    assert_eq!(
+        names(&call(&ctx, "plans_list", json!({"status": "active"})).await),
+        ["B active"]
+    );
+    assert_eq!(
+        names(&call(&ctx, "plans_list", json!({"status": ["backlog", "active"]}),).await),
+        ["A backlog", "B active"]
+    );
+    assert_eq!(
+        names(&call(&ctx, "plans_list", json!({"status": ["done", "cancelled"]}),).await),
+        ["C done", "D cancelled"]
+    );
+}
+
+#[tokio::test]
 async fn plan_ops_keep_mixed_items_and_notes_across_moves() {
     let ctx = context().await;
     let plan = call(

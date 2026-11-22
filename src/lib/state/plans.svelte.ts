@@ -22,6 +22,7 @@ import {
 	removePlanItem,
 	reorderPlanItems,
 	restorePlanNote,
+	type PlanStatus,
 	type TextRevision,
 	updatePlan,
 } from "#lib/api/plans.ts";
@@ -31,8 +32,17 @@ import { planProgress } from "#lib/tasks/plan-progress.ts";
 import type { Task } from "#lib/types.ts";
 import { SvelteMap } from "svelte/reactivity";
 
+export type PlanStatusFilter = "all" | "active" | "closed";
+
+const FILTER_STATUSES: Record<PlanStatusFilter, PlanStatus[] | undefined> = {
+	all: undefined,
+	active: ["backlog", "active"],
+	closed: ["done", "cancelled"],
+};
+
 export function createPlanStore() {
 	let plans = $state<PlanWithCounts[]>([]);
+	let statusFilter = $state<PlanStatusFilter>("all");
 	let selectedId = $state<string | null>(null);
 	let detail = $state<PlanWithCounts | null>(null);
 	let items = $state<Task[]>([]);
@@ -57,6 +67,8 @@ export function createPlanStore() {
 	let createFailed = $state(false);
 	let openFailed = $state(false);
 	let keyFailed = $state(false);
+	let statusSaving = $state(false);
+	let statusFailed = $state(false);
 	let itemFailed = $state(false);
 	let reorderFailed = $state(false);
 	let documentFailed = $state(false);
@@ -92,14 +104,57 @@ export function createPlanStore() {
 		return task === undefined ? null : taskHref(task.project_id, id);
 	}
 
+	function keepSelectionVisible(): void {
+		if (selectedId !== null && plans.some((plan) => plan.id === selectedId)) {
+			return;
+		}
+		const next = plans[0]?.id ?? null;
+		if (next === selectedId) return;
+		selectedId = next;
+		if (next === null) clearDetail();
+	}
+
 	async function reloadPlans(): Promise<void> {
 		try {
-			plans = await fetchFresh(getPlans({}));
+			plans = await fetchFresh(
+				getPlans({ status: FILTER_STATUSES[statusFilter] }),
+			);
 			failed = false;
 		} catch {
 			failed = true;
 		}
 		loaded = true;
+		keepSelectionVisible();
+	}
+
+	async function setStatusFilter(filter: PlanStatusFilter): Promise<void> {
+		statusFilter = filter;
+		await reloadPlans();
+	}
+
+	async function changeStatus(status: PlanStatus): Promise<void> {
+		if (detail === null || statusSaving || detail.status === status) return;
+		const id = detail.id;
+		const previous = detail.status;
+		detail = { ...detail, status };
+		plans = plans.map((plan) => (plan.id === id ? { ...plan, status } : plan));
+		statusSaving = true;
+		statusFailed = false;
+		try {
+			await updatePlan({ plan_id: id, patch: { status } });
+			await reloadPlans();
+		} catch {
+			detail =
+				detail !== null && detail.id === id
+					? { ...detail, status: previous }
+					: detail;
+			plans = plans.map((plan) =>
+				plan.id === id ? { ...plan, status: previous } : plan,
+			);
+			statusFailed = true;
+		} finally {
+			statusSaving = false;
+		}
 	}
 
 	async function loadDetail(id: string): Promise<void> {
@@ -147,6 +202,7 @@ export function createPlanStore() {
 		try {
 			const plan = await createPlan({ name: trimmed });
 			createFailed = false;
+			statusFilter = "all";
 			selectedId = plan.id;
 			await reloadPlans();
 			return true;
@@ -164,6 +220,7 @@ export function createPlanStore() {
 		try {
 			const plan = await getPlan({ plan_id: trimmed });
 			openFailed = false;
+			statusFilter = "all";
 			selectedId = plan.id;
 			await reloadPlans();
 			return true;
@@ -279,6 +336,9 @@ export function createPlanStore() {
 		get plans() {
 			return plans;
 		},
+		get statusFilter() {
+			return statusFilter;
+		},
 		get activeId() {
 			return activeId;
 		},
@@ -354,6 +414,12 @@ export function createPlanStore() {
 		get keyFailed() {
 			return keyFailed;
 		},
+		get statusSaving() {
+			return statusSaving;
+		},
+		get statusFailed() {
+			return statusFailed;
+		},
 		get itemFailed() {
 			return itemFailed;
 		},
@@ -410,6 +476,8 @@ export function createPlanStore() {
 		deletedNotesFor,
 		linkFor,
 		reloadPlans,
+		setStatusFilter,
+		changeStatus,
 		loadDetail,
 		create,
 		open,
