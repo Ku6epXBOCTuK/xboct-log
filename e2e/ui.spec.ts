@@ -561,11 +561,12 @@ test("a plan note and a document link survive on the plans page", async ({
 		page.locator(".note").filter({ hasText: "checked after release" }),
 	).toBeVisible();
 
-	const picker = page.getByLabel("Document to link");
-	const option = picker.locator("option").filter({ hasText: "UI document" });
-	const value = await option.getAttribute("value");
-	await picker.selectOption(value ?? "");
-	await page.getByRole("button", { name: "Link", exact: true }).click();
+	await page.getByRole("button", { name: "Document to link" }).click();
+	await page
+		.getByRole("option")
+		.filter({ hasText: "UI document" })
+		.first()
+		.click();
 	await expect(
 		page.locator(".plan-documents li").filter({ hasText: "UI document" }),
 	).toBeVisible();
