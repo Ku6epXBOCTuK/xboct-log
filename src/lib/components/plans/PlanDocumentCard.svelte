@@ -35,7 +35,10 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: var(--ui-space-2);
+		gap: var(--ui-space-3);
+		padding: var(--ui-space-3);
+		border: 1px solid var(--ui-line);
+		background: var(--ui-panel);
 	}
 
 	.document-link {
@@ -55,6 +58,12 @@
 
 	.document-key {
 		font-family: var(--ui-font-mono);
+	}
+
+	.document-title {
+		font-size: var(--ui-fs-sm);
+		font-weight: 500;
+		overflow-wrap: anywhere;
 	}
 
 	.document-kind {

@@ -19,33 +19,40 @@
 	}
 </script>
 
-<div class="note" class:note-deleted={deleted}>
+<div class="note" class:note-deleted={deleted} class:editing>
 	{#if editing && !deleted}
 		<TextArea
 			aria-label="Edit note"
 			value={store.editDraft}
 			oninput={(event) => store.setEditDraft(event.currentTarget.value)}
 		/>
-		<Button type="button" onclick={save}>Save</Button>
-		<Button type="button" onclick={() => store.cancelEditNote()}>Cancel</Button>
+		<div class="note-actions">
+			<Button type="button" onclick={save}>Save</Button>
+			<Button type="button" onclick={() => store.cancelEditNote()}
+				>Cancel</Button
+			>
+		</div>
 	{:else}
+		<span class="note-dot" aria-hidden="true">•</span>
 		<span class="note-body">{note.body}</span>
-		{#if deleted}
-			<span class="item-deleted">deleted</span>
-			<Button type="button" onclick={() => void store.restoreNote(note.id)}>
-				Restore
+		<div class="note-actions">
+			{#if deleted}
+				<span class="item-deleted">deleted</span>
+				<Button type="button" onclick={() => void store.restoreNote(note.id)}>
+					Restore
+				</Button>
+			{:else}
+				<Button type="button" onclick={() => store.startEditNote(note)}>
+					Edit
+				</Button>
+				<Button type="button" onclick={() => void store.removeNote(note.id)}>
+					Delete
+				</Button>
+			{/if}
+			<Button type="button" onclick={() => void store.showRevisions(note.id)}>
+				History
 			</Button>
-		{:else}
-			<Button type="button" onclick={() => store.startEditNote(note)}>
-				Edit
-			</Button>
-			<Button type="button" onclick={() => void store.removeNote(note.id)}>
-				Delete
-			</Button>
-		{/if}
-		<Button type="button" onclick={() => void store.showRevisions(note.id)}>
-			History
-		</Button>
+		</div>
 	{/if}
 </div>
 
@@ -67,14 +74,45 @@
 <style>
 	.note {
 		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: var(--ui-space-1);
+		align-items: baseline;
+		gap: var(--ui-space-2);
+		min-width: 0;
+		color: var(--ui-fg-secondary);
+		font-size: var(--ui-fs-xs);
+	}
+
+	.note.editing {
+		align-items: flex-start;
+	}
+
+	.note.editing :global(.ui-textarea) {
+		flex: 1 1 auto;
+		min-width: 0;
+	}
+
+	.note-dot {
+		flex: 0 0 auto;
+		color: var(--ui-fg-muted);
 	}
 
 	.note-body {
 		flex: 1 1 auto;
 		min-width: 0;
+		overflow-wrap: anywhere;
+	}
+
+	.note-actions {
+		display: flex;
+		flex: 0 0 auto;
+		align-items: center;
+		gap: var(--ui-space-1);
+		opacity: 0;
+	}
+
+	.note:hover .note-actions,
+	.note:focus-within .note-actions,
+	.note.editing .note-actions {
+		opacity: 1;
 	}
 
 	.item-deleted {

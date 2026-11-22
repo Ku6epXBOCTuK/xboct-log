@@ -5,9 +5,20 @@
 	import { taskHref } from "#lib/navigation/href.ts";
 	import type { PlanStore } from "#lib/state/plans.svelte.ts";
 	import { blockedByIds } from "#lib/tasks/blocking.ts";
-	import type { Task } from "#lib/types.ts";
+	import { CLOSED_STATUSES, type Status, type Task } from "#lib/types.ts";
 	import PlanNoteForm from "./PlanNoteForm.svelte";
 	import PlanNoteItem from "./PlanNoteItem.svelte";
+
+	type Tone = "neutral" | "accent" | "success" | "warning" | "danger" | "info";
+
+	const STATUS_TONE: Record<Status, Tone> = {
+		backlog: "neutral",
+		open: "accent",
+		"in-progress": "info",
+		blocked: "warning",
+		done: "success",
+		cancelled: "neutral",
+	};
 
 	interface Props {
 		store: PlanStore;
@@ -20,13 +31,19 @@
 	const notes = $derived(store.notesFor(item.id));
 	const deletedNotes = $derived(store.deletedNotesFor(item.id));
 	const blockers = $derived(
-		blockedByIds(item).map((id) => ({ id, href: store.linkFor(id) })),
+		item.status === "blocked"
+			? blockedByIds(item).map((id) => ({ id, href: store.linkFor(id) }))
+			: [],
 	);
+	const closed = $derived(CLOSED_STATUSES.includes(item.status));
 	let confirmingRemove = $state(false);
 </script>
 
 <li
 	class="plan-item"
+	class:blocked={item.status === "blocked"}
+	class:closed={item.status === "done"}
+	class:cancelled={item.status === "cancelled"}
 	class:dragging={store.dragKey === item.id}
 	draggable="true"
 	ondragstart={(event) => {
@@ -40,61 +57,70 @@
 	}}
 	ondragend={() => store.setDragKey(null)}
 >
-	<div class="item-head">
-		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- href comes from taskHref(), which resolves the task route -->
-		<a href={taskHref(item.project_id, item.id)} draggable="false">
-			{item.id}
-		</a>
-		<span class="item-title" class:epic={item.is_epic}>{item.title}</span>
-		{#if item.deleted_at !== null}
-			<Badge tone="warning" variant="outline">deleted</Badge>
-		{/if}
-		<Button
-			class="item-remove"
-			variant="ghost"
-			size="sm"
-			type="button"
-			onclick={() => (confirmingRemove = true)}
-		>
-			Remove
-		</Button>
-	</div>
-	{#if item.status === "blocked"}
-		<div class="item-blockers">
-			<Badge tone="warning" variant="outline">blocked</Badge>
-			<span>blocked by</span>
-			{#each blockers as blocker (blocker.id)}
-				{#if blocker.href !== null}
-					<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- href comes from taskHref() through store.linkFor() -->
-					<a href={blocker.href} draggable="false">{blocker.id}</a>
-				{:else}
-					<span>{blocker.id}</span>
-				{/if}
-			{/each}
+	<span class="grip" aria-hidden="true">≡</span>
+	<div class="item-main">
+		<div class="item-tags">
+			<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- href comes from taskHref(), which resolves the task route -->
+			<a
+				class="item-id"
+				href={taskHref(item.project_id, item.id)}
+				draggable="false"
+			>
+				{item.id}
+			</a>
+			<Badge size="xs" tone={STATUS_TONE[item.status]}>{item.status}</Badge>
+			{#if item.deleted_at !== null}
+				<Badge size="xs" tone="warning" variant="outline">deleted</Badge>
+			{/if}
+			{#if blockers.length > 0}
+				<span class="item-blockers">
+					blocked by
+					{#each blockers as blocker (blocker.id)}
+						{#if blocker.href !== null}
+							<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- href comes from taskHref() through store.linkFor() -->
+							<a href={blocker.href} draggable="false">{blocker.id}</a>
+						{:else}
+							<span>{blocker.id}</span>
+						{/if}
+					{/each}
+				</span>
+			{/if}
 		</div>
-	{/if}
-	<div
-		class="item-notes"
-		draggable="false"
-		role="presentation"
-		ondragstart={(event) => event.stopPropagation()}
-	>
-		{#each notes as note (note.id)}
-			<PlanNoteItem
-				{store}
-				{note}
-				historyOpen={store.revisionNoteId === note.id}
-			/>
-		{/each}
-		{#each deletedNotes as note (note.id)}
-			<PlanNoteItem
-				{store}
-				{note}
-				historyOpen={store.revisionNoteId === note.id}
-			/>
-		{/each}
-		<PlanNoteForm {store} {planId} taskId={item.id} />
+		<span class="item-title" class:epic={item.is_epic} class:closed
+			>{item.title}</span
+		>
+		<div
+			class="item-notes"
+			draggable="false"
+			role="presentation"
+			ondragstart={(event) => event.stopPropagation()}
+		>
+			{#each notes as note (note.id)}
+				<PlanNoteItem
+					{store}
+					{note}
+					historyOpen={store.revisionNoteId === note.id}
+				/>
+			{/each}
+			{#each deletedNotes as note (note.id)}
+				<PlanNoteItem
+					{store}
+					{note}
+					historyOpen={store.revisionNoteId === note.id}
+				/>
+			{/each}
+			<PlanNoteForm {store} {planId} taskId={item.id} />
+		</div>
 	</div>
+	<Button
+		class="item-remove"
+		variant="ghost"
+		size="sm"
+		type="button"
+		onclick={() => (confirmingRemove = true)}
+	>
+		Remove
+	</Button>
 	<ConfirmDialog
 		open={confirmingRemove}
 		title={`Remove ${item.id} from the plan?`}
@@ -113,41 +139,82 @@
 <style>
 	.plan-item {
 		display: flex;
-		flex-direction: column;
-		gap: var(--ui-space-2);
+		align-items: flex-start;
+		gap: var(--ui-space-3);
 		padding: var(--ui-space-3);
-		border: var(--ui-line-w) solid var(--ui-line);
-		border-radius: var(--ui-r-control);
+		border: 1px solid var(--ui-line);
+		border-left: 3px solid var(--ui-line-strong);
 		background: var(--ui-panel);
 		cursor: grab;
+	}
+
+	.plan-item.blocked {
+		border-left-color: var(--ui-warning);
+	}
+
+	.plan-item.closed {
+		border-left-color: var(--ui-success);
+		background: var(--ui-surface);
+	}
+
+	.plan-item.cancelled {
+		border-left-color: var(--ui-fg-muted);
 	}
 
 	.plan-item.dragging {
 		opacity: 0.55;
 	}
 
-	.item-head {
+	.grip {
+		flex: 0 0 auto;
+		color: var(--ui-fg-muted);
+		font-size: var(--ui-fs-sm);
+		line-height: 1.5;
+		user-select: none;
+	}
+
+	.item-main {
+		flex: 1 1 auto;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: var(--ui-space-1);
+	}
+
+	.item-tags {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: var(--ui-space-2);
+		gap: var(--ui-space-1);
+		min-width: 0;
+	}
+
+	.item-id {
+		font-family: var(--ui-font-mono);
+		font-size: var(--ui-fs-sm);
+		color: inherit;
+	}
+
+	.item-id:hover {
+		text-decoration: underline;
 	}
 
 	.item-title {
-		flex: 1 1 auto;
-		min-width: 0;
+		font-size: var(--ui-fs-sm);
+		overflow-wrap: anywhere;
 	}
 
 	.item-title.epic {
 		font-weight: 600;
 	}
 
-	:global(.item-remove) {
-		margin-left: auto;
+	.item-title.closed {
+		color: var(--ui-fg-muted);
+		text-decoration: line-through;
 	}
 
 	.item-blockers {
-		display: flex;
+		display: inline-flex;
 		flex-wrap: wrap;
 		align-items: center;
 		gap: var(--ui-space-1);
@@ -160,5 +227,10 @@
 		flex-direction: column;
 		gap: var(--ui-space-1);
 		cursor: default;
+	}
+
+	:global(.item-remove) {
+		flex: 0 0 auto;
+		margin-left: auto;
 	}
 </style>

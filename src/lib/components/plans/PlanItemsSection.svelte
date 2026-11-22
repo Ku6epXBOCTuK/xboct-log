@@ -11,7 +11,10 @@
 	let { store, planId }: Props = $props();
 </script>
 
-<h3>Items</h3>
+<div class="section-head">
+	<h3>Items</h3>
+	<span class="drag-hint">Drag to reorder</span>
+</div>
 
 <TaskAddPicker
 	items={store.candidates}
@@ -50,9 +53,29 @@
 {/if}
 
 <style>
+	.section-head {
+		display: flex;
+		align-items: center;
+		gap: var(--ui-space-2);
+		margin: var(--ui-space-5) 0 var(--ui-space-2);
+		color: var(--ui-fg-muted);
+		font-family: var(--ui-font-mono);
+		font-size: var(--ui-fs-sm);
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+	}
+
 	h3 {
 		margin: 0;
-		font-size: var(--ui-fs-md);
+		font-family: inherit;
+		font-size: inherit;
+		font-weight: inherit;
+		letter-spacing: inherit;
+		text-transform: inherit;
+	}
+
+	.drag-hint {
+		margin-left: auto;
 	}
 
 	.error-text {

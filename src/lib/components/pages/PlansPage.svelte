@@ -117,6 +117,6 @@
 	.detail {
 		min-width: 0;
 		overflow: auto;
-		padding: var(--ui-space-4);
+		padding: var(--ui-space-4) var(--ui-space-5);
 	}
 </style>

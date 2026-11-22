@@ -11,7 +11,9 @@
 	let { store, planId }: Props = $props();
 </script>
 
-<h3>Documents</h3>
+<div class="section-head">
+	<h3>Documents</h3>
+</div>
 
 {#if store.documentFailed}
 	<p class="error-text">Could not change the plan documents</p>
@@ -32,9 +34,22 @@
 {/if}
 
 <style>
+	.section-head {
+		margin: var(--ui-space-5) 0 var(--ui-space-2);
+		color: var(--ui-fg-muted);
+		font-family: var(--ui-font-mono);
+		font-size: var(--ui-fs-sm);
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+	}
+
 	h3 {
 		margin: 0;
-		font-size: var(--ui-fs-md);
+		font-family: inherit;
+		font-size: inherit;
+		font-weight: inherit;
+		letter-spacing: inherit;
+		text-transform: inherit;
 	}
 
 	.error-text {

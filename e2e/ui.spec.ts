@@ -743,6 +743,7 @@ test("a plan note and a document link survive on the plans page", async ({
 	).toBeVisible();
 	await page.keyboard.press("Escape");
 
+	await page.getByRole("button", { name: "Add a note" }).click();
 	await page
 		.getByLabel(`Note for ${created.open}`)
 		.fill("check before release");

@@ -68,10 +68,15 @@
 
 	.plan-key {
 		color: var(--ui-fg-muted);
+		font-family: var(--ui-font-mono);
 	}
 
 	.plan-name {
+		max-width: 100%;
+		overflow: hidden;
 		font-weight: 600;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.plan-meta {
@@ -80,6 +85,7 @@
 		gap: var(--ui-space-1);
 		color: var(--ui-fg-muted);
 		font-size: var(--ui-fs-sm);
+		white-space: nowrap;
 	}
 
 	.plan-copy {

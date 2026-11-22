@@ -48,11 +48,10 @@
 	}
 
 	.progress-track {
-		flex: 1 1 calc(var(--ui-space-4) * 8);
+		flex: 0 1 calc(var(--ui-space-4) * 20);
 		min-width: calc(var(--ui-space-4) * 6);
-		height: var(--ui-space-1);
+		height: var(--ui-space-2);
 		overflow: hidden;
-		border-radius: var(--ui-r-pill);
 		background: var(--ui-bg-muted);
 	}
 

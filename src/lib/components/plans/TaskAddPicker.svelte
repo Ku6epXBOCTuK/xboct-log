@@ -90,6 +90,7 @@
 		display: flex;
 		align-items: center;
 		gap: var(--ui-space-2);
+		margin-bottom: var(--ui-space-3);
 	}
 
 	:global(.task-search) {
