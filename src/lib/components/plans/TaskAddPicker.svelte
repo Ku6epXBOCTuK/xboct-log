@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
 	import Select from "@ku6epxboctuk/ui-kit/components/Select.svelte";
+	import TextInput from "@ku6epxboctuk/ui-kit/components/TextInput.svelte";
 	import { createSelect } from "@ku6epxboctuk/ui-kit/headless/select.svelte.ts";
 	import {
 		isExactTerm,
@@ -8,7 +9,6 @@
 		parseSearchQuery,
 	} from "#lib/tasks/search.ts";
 	import type { Task } from "#lib/types.ts";
-	import Plus from "~icons/lucide/plus";
 
 	interface Props {
 		items: Task[];
@@ -45,19 +45,27 @@
 </script>
 
 {#snippet trigger()}
-	<Button
-		class="ui-select-trigger"
-		type="button"
-		aria-label="Add a task to the plan"
-		aria-controls={listId}
-		aria-expanded={select.open}
-		aria-haspopup="listbox"
-		onclick={() => select.toggle()}
-	>
-		{#snippet icon()}
-			<Plus />
-		{/snippet}
-	</Button>
+	<div class="add-row">
+		<TextInput
+			class="task-search"
+			placeholder="Search tasks by id or title"
+			aria-label="Search tasks by id or title"
+			value={select.query}
+			readonly
+			onclick={() => select.show()}
+		/>
+		<Button
+			class="ui-select-trigger"
+			type="button"
+			aria-label="Add a task to the plan"
+			aria-controls={listId}
+			aria-expanded={select.open}
+			aria-haspopup="listbox"
+			onclick={() => select.toggle()}
+		>
+			Add task
+		</Button>
+	</div>
 {/snippet}
 
 {#snippet option(task: Task)}
@@ -76,3 +84,17 @@
 	emptyLabel="No tasks left"
 	variant="field"
 />
+
+<style>
+	.add-row {
+		display: flex;
+		align-items: center;
+		gap: var(--ui-space-2);
+	}
+
+	:global(.task-search) {
+		flex: 1 1 auto;
+		min-width: 0;
+		cursor: text;
+	}
+</style>

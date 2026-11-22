@@ -31,7 +31,12 @@
 	{/if}
 	<ol class="items">
 		{#each store.items as item (item.id)}
-			<PlanItemCard {store} {planId} {item} />
+			<PlanItemCard
+				{store}
+				{planId}
+				{item}
+				onremove={() => void store.removeItem(planId, item.id)}
+			/>
 		{/each}
 	</ol>
 {/if}

@@ -96,6 +96,25 @@ test.beforeAll(async ({ request }) => {
 	});
 	await callTool(request, "tags_create", { name: tag });
 
+	created.blocker = (
+		await callTool(request, "tasks_create", {
+			project_id: project,
+			title: "Seeded blocker task",
+			status: "open",
+		})
+	).id;
+	created.blocked = (
+		await callTool(request, "tasks_create", {
+			project_id: project,
+			title: "Seeded blocked task",
+			status: "open",
+		})
+	).id;
+	await callTool(request, "tasks_add_blocker", {
+		task_id: created.blocked,
+		blocked_by: created.blocker,
+	});
+
 	created.open = (
 		await callTool(request, "tasks_create", {
 			project_id: project,
@@ -380,7 +399,9 @@ test("a plan is created and filled from the plans page", async ({ page }) => {
 	await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
 
 	await page.getByRole("button", { name: "Add a task to the plan" }).click();
-	await page.getByPlaceholder("Search tasks").fill(created.open);
+	await page
+		.getByPlaceholder("Search tasks", { exact: true })
+		.fill(created.open);
 	await page
 		.getByRole("option")
 		.filter({ hasText: created.open })
@@ -393,6 +414,48 @@ test("a plan is created and filled from the plans page", async ({ page }) => {
 	await page.goto(`/tasks/${created.open}`);
 	const panel = page.getByRole("complementary", { name: "Task details" });
 	await expect(panel.getByText(name, { exact: true })).toBeVisible();
+});
+
+test("a plan shows blockers and asks before removing an item", async ({
+	page,
+}) => {
+	const name = `UI Blockers ${suffix}`;
+	await page.goto("/plans");
+	await page.getByLabel("New plan name").fill(name);
+	await page.getByRole("button", { name: "Create", exact: true }).click();
+	await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
+
+	await page.getByRole("button", { name: "Add a task to the plan" }).click();
+	await page
+		.getByPlaceholder("Search tasks", { exact: true })
+		.fill(created.blocked);
+	await page
+		.getByRole("option")
+		.filter({ hasText: created.blocked })
+		.first()
+		.click();
+	await page.keyboard.press("Escape");
+
+	const card = page.locator("ol.items li").filter({ hasText: created.blocked });
+	await expect(card).toContainText("blocked");
+	await expect(card.locator(".item-blockers a")).toHaveAttribute(
+		"href",
+		new RegExp(created.blocker),
+	);
+
+	await card.getByRole("button", { name: "Remove" }).click();
+	const dialog = page.getByRole("dialog", {
+		name: `Remove ${created.blocked} from the plan?`,
+	});
+	await expect(dialog).toBeVisible();
+	await dialog.getByRole("button", { name: "Cancel" }).click();
+	await expect(card).toBeVisible();
+
+	await card.getByRole("button", { name: "Remove" }).click();
+	await dialog.getByRole("button", { name: "Remove", exact: true }).click();
+	await expect(
+		page.locator("ol.items li").filter({ hasText: created.blocked }),
+	).toHaveCount(0);
 });
 
 test("a plan id can be copied from the plans page", async ({
@@ -515,7 +578,9 @@ test("a plan note and a document link survive on the plans page", async ({
 	await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
 
 	await page.getByRole("button", { name: "Add a task to the plan" }).click();
-	await page.getByPlaceholder("Search tasks").fill(created.open);
+	await page
+		.getByPlaceholder("Search tasks", { exact: true })
+		.fill(created.open);
 	await page
 		.getByRole("option")
 		.filter({ hasText: created.open })

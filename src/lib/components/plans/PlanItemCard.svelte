@@ -1,7 +1,10 @@
 <script lang="ts">
 	import Badge from "@ku6epxboctuk/ui-kit/components/Badge.svelte";
+	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
+	import ConfirmDialog from "@ku6epxboctuk/ui-kit/components/ConfirmDialog.svelte";
 	import { taskHref } from "#lib/navigation/href.ts";
 	import type { PlanStore } from "#lib/state/plans.svelte.ts";
+	import { blockedByIds } from "#lib/tasks/blocking.ts";
 	import type { Task } from "#lib/types.ts";
 	import PlanNoteForm from "./PlanNoteForm.svelte";
 	import PlanNoteItem from "./PlanNoteItem.svelte";
@@ -10,11 +13,16 @@
 		store: PlanStore;
 		planId: string;
 		item: Task;
+		onremove: () => void;
 	}
 
-	let { store, planId, item }: Props = $props();
+	let { store, planId, item, onremove }: Props = $props();
 	const notes = $derived(store.notesFor(item.id));
 	const deletedNotes = $derived(store.deletedNotesFor(item.id));
+	const blockers = $derived(
+		blockedByIds(item).map((id) => ({ id, href: store.linkFor(id) })),
+	);
+	let confirmingRemove = $state(false);
 </script>
 
 <li
@@ -41,7 +49,30 @@
 		{#if item.deleted_at !== null}
 			<Badge tone="warning" variant="outline">deleted</Badge>
 		{/if}
+		<Button
+			class="item-remove"
+			variant="ghost"
+			size="sm"
+			type="button"
+			onclick={() => (confirmingRemove = true)}
+		>
+			Remove
+		</Button>
 	</div>
+	{#if item.status === "blocked"}
+		<div class="item-blockers">
+			<Badge tone="warning" variant="outline">blocked</Badge>
+			<span>blocked by</span>
+			{#each blockers as blocker (blocker.id)}
+				{#if blocker.href !== null}
+					<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- href comes from taskHref() through store.linkFor() -->
+					<a href={blocker.href} draggable="false">{blocker.id}</a>
+				{:else}
+					<span>{blocker.id}</span>
+				{/if}
+			{/each}
+		</div>
+	{/if}
 	<div
 		class="item-notes"
 		draggable="false"
@@ -64,6 +95,19 @@
 		{/each}
 		<PlanNoteForm {store} {planId} taskId={item.id} />
 	</div>
+	<ConfirmDialog
+		open={confirmingRemove}
+		title={`Remove ${item.id} from the plan?`}
+		body="The task stays in the project. Only its place in this plan is removed."
+		confirmLabel="Remove"
+		cancelLabel="Cancel"
+		danger
+		onconfirm={() => {
+			confirmingRemove = false;
+			onremove();
+		}}
+		oncancel={() => (confirmingRemove = false)}
+	/>
 </li>
 
 <style>
@@ -96,6 +140,19 @@
 
 	.item-title.epic {
 		font-weight: 600;
+	}
+
+	:global(.item-remove) {
+		margin-left: auto;
+	}
+
+	.item-blockers {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--ui-space-1);
+		color: var(--ui-fg-muted);
+		font-size: var(--ui-fs-sm);
 	}
 
 	.item-notes {
