@@ -45,6 +45,10 @@
 				--ui-fs-lg: 16px;
 				--ui-fs-xl: 24px;
 				--ui-lh: 1.5;
+				--status-backlog: #9aa4ae;
+				--status-active: #0b5cff;
+				--status-done: #17872b;
+				--status-cancelled: #7b4ddb;
 			}
 			* {
 				box-sizing: border-box;
@@ -155,6 +159,139 @@
 			.field.create {
 				width: 176px;
 			}
+			.plan-toolbar {
+				display: flex;
+				flex-direction: column;
+				gap: var(--ui-space-2);
+				margin-bottom: var(--ui-space-3);
+				padding-bottom: var(--ui-space-3);
+				border-bottom: 1px solid var(--ui-line);
+			}
+			.filter-label,
+			.state-title {
+				color: var(--ui-fg-muted);
+				font-family: var(--ui-font-mono);
+				font-size: var(--ui-fs-xs);
+				letter-spacing: 0.08em;
+				text-transform: uppercase;
+			}
+			.segmented {
+				display: inline-flex;
+				max-width: 100%;
+				overflow: hidden;
+				border: 1px solid var(--ui-line);
+				border-radius: var(--ui-r-control);
+				background: var(--ui-surface);
+			}
+			.segment {
+				padding: var(--ui-space-2) var(--ui-space-3);
+				border: 0;
+				border-right: 1px solid var(--ui-line);
+				background: transparent;
+				color: var(--ui-fg-secondary);
+				font-family: var(--ui-font);
+				font-size: var(--ui-fs-sm);
+				line-height: 1.5;
+			}
+			.segment:last-child {
+				border-right: 0;
+			}
+			.segment[aria-checked="true"] {
+				background: #bfd2c6;
+				box-shadow: inset 0 0 0 1px #479670;
+				color: var(--ui-fg);
+				font-weight: 600;
+			}
+			.status-dot {
+				width: 8px;
+				height: 8px;
+				border-radius: 50%;
+				flex: 0 0 auto;
+			}
+			.status-dot.backlog {
+				background: var(--status-backlog);
+			}
+			.status-dot.active {
+				background: var(--status-active);
+			}
+			.status-dot.done {
+				background: var(--status-done);
+			}
+			.status-dot.cancelled {
+				background: var(--status-cancelled);
+			}
+			.status-select {
+				display: inline-flex;
+				align-items: center;
+				gap: var(--ui-space-2);
+				height: 28px;
+				padding: 0 var(--ui-space-2);
+				border: 1px solid var(--ui-line-strong);
+				border-radius: var(--ui-r-control);
+				background: var(--ui-field);
+				color: var(--ui-fg);
+				font-size: var(--ui-fs-sm);
+			}
+			.status-select .chevron {
+				width: 0;
+				height: 0;
+				border-left: 4px solid transparent;
+				border-right: 4px solid transparent;
+				border-top: 5px solid var(--ui-fg-muted);
+			}
+			.select-popover {
+				width: 220px;
+				padding: var(--ui-space-1);
+				border: 1px solid var(--ui-line-strong);
+				background: var(--ui-panel);
+				box-shadow: 0 6px 16px rgba(0, 0, 0, 0.16);
+			}
+			.select-option {
+				display: flex;
+				align-items: center;
+				gap: var(--ui-space-2);
+				padding: var(--ui-space-2);
+				font-size: var(--ui-fs-sm);
+			}
+			.select-option.checked {
+				background: var(--ui-selected);
+			}
+			.select-option .check {
+				margin-left: auto;
+				color: var(--ui-accent);
+			}
+			.state-grid {
+				display: flex;
+				flex-wrap: wrap;
+				gap: var(--ui-space-5);
+				margin-top: var(--ui-space-5);
+			}
+			.state-card {
+				width: 288px;
+				padding: var(--ui-space-3);
+				border: 1px solid var(--ui-line-strong);
+				background: var(--ui-bg);
+			}
+			.state-title {
+				margin-bottom: var(--ui-space-3);
+			}
+			.state-row {
+				display: flex;
+				align-items: center;
+				gap: var(--ui-space-2);
+				padding: var(--ui-space-2) 0;
+				font-size: var(--ui-fs-sm);
+			}
+			.state-row + .state-row {
+				border-top: 1px solid var(--ui-line);
+			}
+			.empty-state {
+				padding: var(--ui-space-5) var(--ui-space-3);
+				border: 1px dashed var(--ui-line-strong);
+				text-align: center;
+				color: var(--ui-fg-muted);
+				font-size: var(--ui-fs-sm);
+			}
 			.btn {
 				display: inline-flex;
 				align-items: center;
@@ -228,6 +365,9 @@
 				font-weight: 500;
 			}
 			.plan-meta {
+				display: flex;
+				align-items: center;
+				gap: var(--ui-space-1);
 				color: var(--ui-fg-muted);
 				font-size: var(--ui-fs-xs);
 			}
@@ -428,32 +568,69 @@
 					</div>
 					<div class="columns">
 						<div class="plan-list">
+							<div class="plan-toolbar">
+								<span class="filter-label">Status</span>
+								<div
+									class="segmented"
+									role="radiogroup"
+									aria-label="Filter plans by status"
+								>
+									<button class="segment" role="radio" aria-checked="true">
+										All
+									</button><button
+										class="segment"
+										role="radio"
+										aria-checked="false"
+									>
+										Active
+									</button><button
+										class="segment"
+										role="radio"
+										aria-checked="false"
+									>
+										Closed
+									</button>
+								</div>
+							</div>
 							<div class="plan-row active">
 								<div class="plan-row-main">
 									<span class="plan-key">PL-404</span>
 									<span class="plan-name">Переработка экрана планов</span>
-									<span class="plan-meta">in-progress · 5 tasks · 1 epic</span>
+									<span class="plan-meta">
+										<span class="status-dot active"></span>
+										active · 5 tasks · 1 epic
+									</span>
 								</div>
 							</div>
 							<div class="plan-row">
 								<div class="plan-row-main">
 									<span class="plan-key">PL-326</span>
 									<span class="plan-name">Планы</span>
-									<span class="plan-meta">done · 12 tasks · 0 epics</span>
+									<span class="plan-meta">
+										<span class="status-dot done"></span>
+										done · 12 tasks · 0 epics
+									</span>
 								</div>
 							</div>
 							<div class="plan-row">
 								<div class="plan-row-main">
 									<span class="plan-key">PL-352</span>
 									<span class="plan-name">Документы</span>
-									<span class="plan-meta">done · 8 tasks · 0 epics</span>
+									<span class="plan-meta">
+										<span class="status-dot cancelled"></span>
+										cancelled · 8 tasks · 0 epics
+									</span>
 								</div>
 							</div>
 						</div>
 						<div class="detail">
 							<div class="detail-head">
 								<h2>Переработка экрана планов</h2>
-								<span class="badge success">in-progress</span>
+								<div class="status-select" aria-haspopup="listbox">
+									<span class="status-dot active"></span>
+									<span>active</span>
+									<span class="chevron"></span>
+								</div>
 								<span class="mono">PL-404</span>
 								<span class="btn ghost sm">Copy id</span>
 							</div>
@@ -593,6 +770,122 @@
 			</div>
 			<div class="caption">
 				Confirmation state — shown before a plan item is removed.
+			</div>
+			<div class="state-grid">
+				<div class="state-card">
+					<div class="state-title">Filter · Active</div>
+					<div class="plan-toolbar">
+						<div
+							class="segmented"
+							role="radiogroup"
+							aria-label="Filter plans by status"
+						>
+							<button class="segment" role="radio" aria-checked="false">
+								All
+							</button>
+							<button class="segment" role="radio" aria-checked="true">
+								Active
+							</button>
+							<button class="segment" role="radio" aria-checked="false">
+								Closed
+							</button>
+						</div>
+					</div>
+					<div class="state-row">
+						<span class="status-dot active"></span>
+						PL-404 · Переработка экрана планов
+					</div>
+					<div class="state-row">
+						<span class="status-dot backlog"></span>
+						PL-410 · Обзор фильтров
+					</div>
+				</div>
+				<div class="state-card">
+					<div class="state-title">Filter · Closed</div>
+					<div class="plan-toolbar">
+						<div
+							class="segmented"
+							role="radiogroup"
+							aria-label="Filter plans by status"
+						>
+							<button class="segment" role="radio" aria-checked="false">
+								All
+							</button>
+							<button class="segment" role="radio" aria-checked="false">
+								Active
+							</button>
+							<button class="segment" role="radio" aria-checked="true">
+								Closed
+							</button>
+						</div>
+					</div>
+					<div class="state-row">
+						<span class="status-dot done"></span>
+						PL-326 · Планы
+					</div>
+					<div class="state-row">
+						<span class="status-dot cancelled"></span>
+						PL-352 · Документы
+					</div>
+				</div>
+				<div class="state-card">
+					<div class="state-title">Filter · Empty</div>
+					<div class="plan-toolbar">
+						<div
+							class="segmented"
+							role="radiogroup"
+							aria-label="Filter plans by status"
+						>
+							<button class="segment" role="radio" aria-checked="false">
+								All
+							</button>
+							<button class="segment" role="radio" aria-checked="true">
+								Active
+							</button>
+							<button class="segment" role="radio" aria-checked="false">
+								Closed
+							</button>
+						</div>
+					</div>
+					<div class="empty-state">
+						No active plans<br />Change the filter to see other plans
+					</div>
+				</div>
+			</div>
+			<div class="caption">
+				Filter states — Active = backlog + active, Closed = done + cancelled.
+			</div>
+			<div class="state-grid">
+				<div>
+					<div class="status-select" aria-haspopup="listbox">
+						<span class="status-dot active"></span>
+						<span>active</span>
+						<span class="chevron"></span>
+					</div>
+					<div class="caption">Plan status — collapsed trigger</div>
+				</div>
+				<div class="select-popover" role="listbox" aria-label="Plan status">
+					<div class="select-option">
+						<span class="status-dot backlog"></span>
+						backlog
+					</div>
+					<div class="select-option checked">
+						<span class="status-dot active"></span>
+						active
+						<span class="check">✓</span>
+					</div>
+					<div class="select-option">
+						<span class="status-dot done"></span>
+						done
+					</div>
+					<div class="select-option">
+						<span class="status-dot cancelled"></span>
+						cancelled
+					</div>
+				</div>
+			</div>
+			<div class="caption">
+				Plan status — Select with four values; the current one is checked.
 			</div>
 		</div>
 	</body>

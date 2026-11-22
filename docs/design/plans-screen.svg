@@ -3,8 +3,8 @@
 	xmlns="http://www.w3.org/2000/svg"
 	xmlns:xlink="http://www.w3.org/1999/xlink"
 	width="1440"
-	height="1288"
-	viewBox="0 0 1440 1288"
+	height="1742"
+	viewBox="0 0 1440 1742"
 >
 	<defs>
 		<clipPath id="clip0">
@@ -46,51 +46,125 @@
 			<path d="M0 0L288 0L288 937L0 937L0 0Z" />
 		</clipPath>
 		<clipPath id="clip10">
-			<rect width="862" height="937" />
+			<path d="M0 0L263 0L263 72L0 72L0 0Z" />
 		</clipPath>
 		<clipPath id="clip11">
+			<rect width="263" height="36" rx="4" ry="4" />
+		</clipPath>
+		<clipPath id="clip12">
+			<path
+				d="M4 0L259 0A4 4 0 0 1 263 4L263 32A4 4 0 0 1 259 36L4 36A4 4 0 0 1 0 32L0 4A4 4 0 0 1 4 0Z"
+			/>
+		</clipPath>
+		<filter
+			id="fx13"
+			x="0"
+			y="0"
+			width="40"
+			height="34"
+			filterUnits="userSpaceOnUse"
+			color-interpolation-filters="sRGB"
+		>
+			<feFlood flood-opacity="0" result="BackgroundImageFix" />
+			<feColorMatrix
+				in="SourceAlpha"
+				type="matrix"
+				values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
+				result="hardAlpha"
+			/>
+			<feBlend
+				mode="normal"
+				in="SourceGraphic"
+				in2="BackgroundImageFix"
+				result="fx13_shape1"
+			/>
+			<feOffset in="hardAlpha" dx="0" dy="0" result="fx13_offset2" />
+			<feComposite
+				in="fx13_offset2"
+				in2="hardAlpha"
+				operator="arithmetic"
+				k2="-1"
+				k3="1"
+				result="fx13_rim3"
+			/>
+			<feFlood flood-color="#479670" flood-opacity="1" result="fx13_color5" />
+			<feComposite
+				in="fx13_color5"
+				in2="fx13_rim3"
+				operator="in"
+				result="fx13_innerShadow4"
+			/>
+			<feBlend
+				mode="normal"
+				in="fx13_innerShadow4"
+				in2="fx13_shape1"
+				result="fx13_innerShadowBlend6"
+			/>
+		</filter>
+		<clipPath id="clip14">
+			<path
+				d="M1 0L39 0A1 1 0 0 1 40 1L40 33A1 1 0 0 1 39 34L1 34A1 1 0 0 1 0 33L0 1A1 1 0 0 1 1 0Z"
+			/>
+		</clipPath>
+		<clipPath id="clip15">
+			<path
+				d="M1 0L57 0A1 1 0 0 1 58 1L58 33A1 1 0 0 1 57 34L1 34A1 1 0 0 1 0 33L0 1A1 1 0 0 1 1 0Z"
+			/>
+		</clipPath>
+		<clipPath id="clip16">
+			<rect width="862" height="937" />
+		</clipPath>
+		<clipPath id="clip17">
+			<path
+				d="M4 0L78 0A4 4 0 0 1 82 4L82 24A4 4 0 0 1 78 28L4 28A4 4 0 0 1 0 24L0 4A4 4 0 0 1 4 0Z"
+			/>
+		</clipPath>
+		<clipPath id="clip18">
+			<path d="M0 0L8 0L8 5L0 5L0 0Z" />
+		</clipPath>
+		<clipPath id="clip19">
 			<path
 				d="M4 0L228 0A4 4 0 0 1 232 4L232 28A4 4 0 0 1 228 32L4 32A4 4 0 0 1 0 28L0 4A4 4 0 0 1 4 0Z"
 			/>
 		</clipPath>
-		<clipPath id="clip12">
+		<clipPath id="clip20">
 			<path
 				d="M4 0L69 0A4 4 0 0 1 73 4L73 28A4 4 0 0 1 69 32L4 32A4 4 0 0 1 0 28L0 4A4 4 0 0 1 4 0Z"
 			/>
 		</clipPath>
-		<clipPath id="clip13">
+		<clipPath id="clip21">
 			<path d="M0 0L814 0L814 87L0 87L0 0Z" />
 		</clipPath>
-		<clipPath id="clip14">
+		<clipPath id="clip22">
 			<path d="M0 0L814 0L814 68L0 68L0 0Z" />
 		</clipPath>
-		<clipPath id="clip15">
+		<clipPath id="clip23">
 			<path d="M0 0L814 0L814 68L0 68L0 0Z" />
 		</clipPath>
-		<clipPath id="clip16">
+		<clipPath id="clip24">
 			<path d="M0 0L814 0L814 68L0 68L0 0Z" />
 		</clipPath>
-		<clipPath id="clip17">
+		<clipPath id="clip25">
 			<path d="M0 0L814 0L814 68L0 68L0 0Z" />
 		</clipPath>
-		<clipPath id="clip18">
+		<clipPath id="clip26">
 			<path
 				d="M4 0L172 0A4 4 0 0 1 176 4L176 28A4 4 0 0 1 172 32L4 32A4 4 0 0 1 0 28L0 4A4 4 0 0 1 4 0Z"
 			/>
 		</clipPath>
-		<clipPath id="clip19">
+		<clipPath id="clip27">
 			<path
 				d="M4 0L44 0A4 4 0 0 1 48 4L48 28A4 4 0 0 1 44 32L4 32A4 4 0 0 1 0 28L0 4A4 4 0 0 1 4 0Z"
 			/>
 		</clipPath>
-		<clipPath id="clip20">
+		<clipPath id="clip28">
 			<path d="M0 0L814 0L814 74L0 74L0 0Z" />
 		</clipPath>
-		<clipPath id="clip21">
+		<clipPath id="clip29">
 			<path d="M0 0L814 0L814 74L0 74L0 0Z" />
 		</clipPath>
 		<filter
-			id="fx22"
+			id="fx30"
 			x="-18.6"
 			y="-12.6"
 			width="457.21"
@@ -105,48 +179,321 @@
 				values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
 				result="hardAlpha"
 			/>
-			<feOffset in="hardAlpha" dx="0" dy="6" result="fx22_offset1" />
+			<feOffset in="hardAlpha" dx="0" dy="6" result="fx30_offset1" />
 			<feGaussianBlur
-				in="fx22_offset1"
+				in="fx30_offset1"
 				stdDeviation="9.3"
-				result="fx22_blur2"
+				result="fx30_blur2"
 			/>
 			<feFlood
 				flood-color="#000000"
 				flood-opacity="0.16"
-				result="fx22_color4"
+				result="fx30_color4"
 			/>
 			<feComposite
-				in="fx22_color4"
-				in2="fx22_blur2"
+				in="fx30_color4"
+				in2="fx30_blur2"
 				operator="in"
-				result="fx22_dropShadow3"
+				result="fx30_dropShadow3"
 			/>
 			<feBlend
 				mode="normal"
-				in="fx22_dropShadow3"
+				in="fx30_dropShadow3"
 				in2="BackgroundImageFix"
-				result="fx22_dropShadowBlend5"
+				result="fx30_dropShadowBlend5"
 			/>
 			<feBlend
 				mode="normal"
 				in="SourceGraphic"
-				in2="fx22_dropShadowBlend5"
-				result="fx22_shape6"
+				in2="fx30_dropShadowBlend5"
+				result="fx30_shape6"
 			/>
 		</filter>
-		<clipPath id="clip23">
+		<clipPath id="clip31">
 			<path d="M0 0L420 0L420 132L0 132L0 0Z" />
 		</clipPath>
-		<clipPath id="clip24">
+		<clipPath id="clip32">
 			<path
 				d="M4 0L58 0A4 4 0 0 1 62 4L62 28A4 4 0 0 1 58 32L4 32A4 4 0 0 1 0 28L0 4A4 4 0 0 1 4 0Z"
 			/>
 		</clipPath>
-		<clipPath id="clip25">
+		<clipPath id="clip33">
 			<path
 				d="M4 0L66 0A4 4 0 0 1 70 4L70 28A4 4 0 0 1 66 32L4 32A4 4 0 0 1 0 28L0 4A4 4 0 0 1 4 0Z"
 			/>
+		</clipPath>
+		<clipPath id="clip34">
+			<path d="M0 0L288 0L288 200L0 200L0 0Z" />
+		</clipPath>
+		<clipPath id="clip35">
+			<path d="M0 0L262 0L262 49L0 49L0 0Z" />
+		</clipPath>
+		<clipPath id="clip36">
+			<rect width="262" height="36" rx="4" ry="4" />
+		</clipPath>
+		<clipPath id="clip37">
+			<path
+				d="M4 0L258 0A4 4 0 0 1 262 4L262 32A4 4 0 0 1 258 36L4 36A4 4 0 0 1 0 32L0 4A4 4 0 0 1 4 0Z"
+			/>
+		</clipPath>
+		<clipPath id="clip38">
+			<path
+				d="M1 0L38 0A1 1 0 0 1 39 1L39 33A1 1 0 0 1 38 34L1 34A1 1 0 0 1 0 33L0 1A1 1 0 0 1 1 0Z"
+			/>
+		</clipPath>
+		<filter
+			id="fx39"
+			x="0"
+			y="0"
+			width="60"
+			height="34"
+			filterUnits="userSpaceOnUse"
+			color-interpolation-filters="sRGB"
+		>
+			<feFlood flood-opacity="0" result="BackgroundImageFix" />
+			<feColorMatrix
+				in="SourceAlpha"
+				type="matrix"
+				values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
+				result="hardAlpha"
+			/>
+			<feBlend
+				mode="normal"
+				in="SourceGraphic"
+				in2="BackgroundImageFix"
+				result="fx39_shape1"
+			/>
+			<feOffset in="hardAlpha" dx="0" dy="0" result="fx39_offset2" />
+			<feComposite
+				in="fx39_offset2"
+				in2="hardAlpha"
+				operator="arithmetic"
+				k2="-1"
+				k3="1"
+				result="fx39_rim3"
+			/>
+			<feFlood flood-color="#479670" flood-opacity="1" result="fx39_color5" />
+			<feComposite
+				in="fx39_color5"
+				in2="fx39_rim3"
+				operator="in"
+				result="fx39_innerShadow4"
+			/>
+			<feBlend
+				mode="normal"
+				in="fx39_innerShadow4"
+				in2="fx39_shape1"
+				result="fx39_innerShadowBlend6"
+			/>
+		</filter>
+		<clipPath id="clip40">
+			<path
+				d="M1 0L59 0A1 1 0 0 1 60 1L60 33A1 1 0 0 1 59 34L1 34A1 1 0 0 1 0 33L0 1A1 1 0 0 1 1 0Z"
+			/>
+		</clipPath>
+		<clipPath id="clip41">
+			<path d="M0 0L262 0L262 35L0 35L0 0Z" />
+		</clipPath>
+		<clipPath id="clip42">
+			<path d="M0 0L288 0L288 200L0 200L0 0Z" />
+		</clipPath>
+		<clipPath id="clip43">
+			<path d="M0 0L262 0L262 49L0 49L0 0Z" />
+		</clipPath>
+		<clipPath id="clip44">
+			<rect width="262" height="36" rx="4" ry="4" />
+		</clipPath>
+		<clipPath id="clip45">
+			<path
+				d="M4 0L258 0A4 4 0 0 1 262 4L262 32A4 4 0 0 1 258 36L4 36A4 4 0 0 1 0 32L0 4A4 4 0 0 1 4 0Z"
+			/>
+		</clipPath>
+		<clipPath id="clip46">
+			<path
+				d="M1 0L38 0A1 1 0 0 1 39 1L39 33A1 1 0 0 1 38 34L1 34A1 1 0 0 1 0 33L0 1A1 1 0 0 1 1 0Z"
+			/>
+		</clipPath>
+		<clipPath id="clip47">
+			<path
+				d="M1 0L57 0A1 1 0 0 1 58 1L58 33A1 1 0 0 1 57 34L1 34A1 1 0 0 1 0 33L0 1A1 1 0 0 1 1 0Z"
+			/>
+		</clipPath>
+		<filter
+			id="fx48"
+			x="0"
+			y="0"
+			width="62"
+			height="34"
+			filterUnits="userSpaceOnUse"
+			color-interpolation-filters="sRGB"
+		>
+			<feFlood flood-opacity="0" result="BackgroundImageFix" />
+			<feColorMatrix
+				in="SourceAlpha"
+				type="matrix"
+				values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
+				result="hardAlpha"
+			/>
+			<feBlend
+				mode="normal"
+				in="SourceGraphic"
+				in2="BackgroundImageFix"
+				result="fx48_shape1"
+			/>
+			<feOffset in="hardAlpha" dx="0" dy="0" result="fx48_offset2" />
+			<feComposite
+				in="fx48_offset2"
+				in2="hardAlpha"
+				operator="arithmetic"
+				k2="-1"
+				k3="1"
+				result="fx48_rim3"
+			/>
+			<feFlood flood-color="#479670" flood-opacity="1" result="fx48_color5" />
+			<feComposite
+				in="fx48_color5"
+				in2="fx48_rim3"
+				operator="in"
+				result="fx48_innerShadow4"
+			/>
+			<feBlend
+				mode="normal"
+				in="fx48_innerShadow4"
+				in2="fx48_shape1"
+				result="fx48_innerShadowBlend6"
+			/>
+		</filter>
+		<clipPath id="clip49">
+			<path d="M0 0L262 0L262 35L0 35L0 0Z" />
+		</clipPath>
+		<clipPath id="clip50">
+			<path d="M0 0L288 0L288 200L0 200L0 0Z" />
+		</clipPath>
+		<clipPath id="clip51">
+			<path d="M0 0L262 0L262 49L0 49L0 0Z" />
+		</clipPath>
+		<clipPath id="clip52">
+			<rect width="262" height="36" rx="4" ry="4" />
+		</clipPath>
+		<clipPath id="clip53">
+			<path
+				d="M4 0L258 0A4 4 0 0 1 262 4L262 32A4 4 0 0 1 258 36L4 36A4 4 0 0 1 0 32L0 4A4 4 0 0 1 4 0Z"
+			/>
+		</clipPath>
+		<clipPath id="clip54">
+			<path
+				d="M1 0L38 0A1 1 0 0 1 39 1L39 33A1 1 0 0 1 38 34L1 34A1 1 0 0 1 0 33L0 1A1 1 0 0 1 1 0Z"
+			/>
+		</clipPath>
+		<filter
+			id="fx55"
+			x="0"
+			y="0"
+			width="60"
+			height="34"
+			filterUnits="userSpaceOnUse"
+			color-interpolation-filters="sRGB"
+		>
+			<feFlood flood-opacity="0" result="BackgroundImageFix" />
+			<feColorMatrix
+				in="SourceAlpha"
+				type="matrix"
+				values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
+				result="hardAlpha"
+			/>
+			<feBlend
+				mode="normal"
+				in="SourceGraphic"
+				in2="BackgroundImageFix"
+				result="fx55_shape1"
+			/>
+			<feOffset in="hardAlpha" dx="0" dy="0" result="fx55_offset2" />
+			<feComposite
+				in="fx55_offset2"
+				in2="hardAlpha"
+				operator="arithmetic"
+				k2="-1"
+				k3="1"
+				result="fx55_rim3"
+			/>
+			<feFlood flood-color="#479670" flood-opacity="1" result="fx55_color5" />
+			<feComposite
+				in="fx55_color5"
+				in2="fx55_rim3"
+				operator="in"
+				result="fx55_innerShadow4"
+			/>
+			<feBlend
+				mode="normal"
+				in="fx55_innerShadow4"
+				in2="fx55_shape1"
+				result="fx55_innerShadowBlend6"
+			/>
+		</filter>
+		<clipPath id="clip56">
+			<path
+				d="M1 0L59 0A1 1 0 0 1 60 1L60 33A1 1 0 0 1 59 34L1 34A1 1 0 0 1 0 33L0 1A1 1 0 0 1 1 0Z"
+			/>
+		</clipPath>
+		<clipPath id="clip57">
+			<path d="M0 0L262 0L262 86L0 86L0 0Z" />
+		</clipPath>
+		<clipPath id="clip58">
+			<path
+				d="M4 0L78 0A4 4 0 0 1 82 4L82 24A4 4 0 0 1 78 28L4 28A4 4 0 0 1 0 24L0 4A4 4 0 0 1 4 0Z"
+			/>
+		</clipPath>
+		<clipPath id="clip59">
+			<path d="M0 0L8 0L8 5L0 5L0 0Z" />
+		</clipPath>
+		<filter
+			id="fx60"
+			x="-18.6"
+			y="-12.6"
+			width="257.21"
+			height="188.21"
+			filterUnits="userSpaceOnUse"
+			color-interpolation-filters="sRGB"
+		>
+			<feFlood flood-opacity="0" result="BackgroundImageFix" />
+			<feColorMatrix
+				in="SourceAlpha"
+				type="matrix"
+				values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
+				result="hardAlpha"
+			/>
+			<feOffset in="hardAlpha" dx="0" dy="6" result="fx60_offset1" />
+			<feGaussianBlur
+				in="fx60_offset1"
+				stdDeviation="9.3"
+				result="fx60_blur2"
+			/>
+			<feFlood
+				flood-color="#000000"
+				flood-opacity="0.16"
+				result="fx60_color4"
+			/>
+			<feComposite
+				in="fx60_color4"
+				in2="fx60_blur2"
+				operator="in"
+				result="fx60_dropShadow3"
+			/>
+			<feBlend
+				mode="normal"
+				in="fx60_dropShadow3"
+				in2="BackgroundImageFix"
+				result="fx60_dropShadowBlend5"
+			/>
+			<feBlend
+				mode="normal"
+				in="SourceGraphic"
+				in2="fx60_dropShadowBlend5"
+				result="fx60_shape6"
+			/>
+		</filter>
+		<clipPath id="clip61">
+			<path d="M0 0L220 0L220 146L0 146L0 0Z" />
 		</clipPath>
 	</defs>
 	<g>
@@ -414,6 +761,96 @@
 						/>
 						<g clip-path="url(#clip8)">
 							<g transform="translate(12, 12)">
+								<path
+									d="M0 0L263 0L263 72L0 72L0 0Z"
+									fill="none"
+									stroke="#9DAE9F"
+									stroke-width="2"
+									clip-path="url(#clip10)"
+								/>
+								<g>
+									<text
+										font-family="IBM Plex Mono"
+										font-size="10"
+										fill="#415546"
+										letter-spacing="0.8"
+										xml:space="preserve"
+									>
+										<tspan x="0" y="11.25">STATUS</tspan>
+									</text>
+								</g>
+								<g transform="translate(0, 23)">
+									<rect width="263" height="36" rx="4" ry="4" fill="#DCDDD9" />
+									<path
+										d="M4 0L259 0A4 4 0 0 1 263 4L263 32A4 4 0 0 1 259 36L4 36A4 4 0 0 1 0 32L0 4A4 4 0 0 1 4 0Z"
+										fill="none"
+										stroke="#9DAE9F"
+										stroke-width="2"
+										clip-path="url(#clip12)"
+									/>
+									<g clip-path="url(#clip11)">
+										<g transform="translate(1, 1)" filter="url(#fx13)">
+											<rect
+												width="40"
+												height="34"
+												rx="1"
+												ry="1"
+												fill="#BFD2C6"
+											/>
+											<path
+												d="M1 0L39 0A1 1 0 0 1 40 1L40 33A1 1 0 0 1 39 34L1 34A1 1 0 0 1 0 33L0 1A1 1 0 0 1 1 0Z"
+												fill="none"
+												stroke="#9DAE9F"
+												stroke-width="2"
+												clip-path="url(#clip14)"
+											/>
+											<g transform="translate(12, 8)">
+												<text
+													font-family="IBM Plex Sans"
+													font-size="12"
+													font-weight="600"
+													fill="#040705"
+													xml:space="preserve"
+												>
+													<tspan x="0.48" y="13.5">All</tspan>
+												</text>
+											</g>
+										</g>
+										<g transform="translate(41, 1)">
+											<path
+												d="M1 0L57 0A1 1 0 0 1 58 1L58 33A1 1 0 0 1 57 34L1 34A1 1 0 0 1 0 33L0 1A1 1 0 0 1 1 0Z"
+												fill="none"
+												stroke="#9DAE9F"
+												stroke-width="2"
+												clip-path="url(#clip15)"
+											/>
+											<g transform="translate(12, 8)">
+												<text
+													font-family="IBM Plex Sans"
+													font-size="12"
+													fill="#233227"
+													xml:space="preserve"
+												>
+													<tspan x="0.33" y="13.5">Active</tspan>
+												</text>
+											</g>
+										</g>
+										<g transform="translate(99, 1)">
+											<g transform="translate(12, 8)">
+												<text
+													font-family="IBM Plex Sans"
+													font-size="12"
+													fill="#233227"
+													xml:space="preserve"
+												>
+													<tspan x="0.09" y="13.5">Closed</tspan>
+												</text>
+											</g>
+										</g>
+									</g>
+								</g>
+							</g>
+							<g transform="translate(12, 96)">
 								<rect width="263" height="75" rx="4" ry="4" fill="#CBD4CA" />
 								<g transform="translate(8, 8)">
 									<g>
@@ -438,20 +875,24 @@
 										</text>
 									</g>
 									<g transform="translate(0, 44)">
-										<text
-											font-family="IBM Plex Sans"
-											font-size="10"
-											fill="#415546"
-											xml:space="preserve"
-										>
-											<tspan x="0" y="11.25">
-												in-progress · 5 tasks · 1 epic
-											</tspan>
-										</text>
+										<g transform="translate(0, 4)">
+											<rect width="8" height="8" rx="4" ry="4" fill="#0B5CFF" />
+										</g>
+										<g transform="translate(12, 0)">
+											<text
+												font-family="IBM Plex Sans"
+												font-size="10"
+												fill="#415546"
+												xml:space="preserve"
+											>
+												<tspan x="0" y="26.25">active · 5 tasks · 1 epic</tspan>
+												<tspan x="0" y="41.25"></tspan>
+											</text>
+										</g>
 									</g>
 								</g>
 							</g>
-							<g transform="translate(12, 87)">
+							<g transform="translate(12, 171)">
 								<g transform="translate(8, 8)">
 									<g>
 										<text
@@ -475,18 +916,24 @@
 										</text>
 									</g>
 									<g transform="translate(0, 44)">
-										<text
-											font-family="IBM Plex Sans"
-											font-size="10"
-											fill="#415546"
-											xml:space="preserve"
-										>
-											<tspan x="0" y="11.25">done · 12 tasks · 0 epics</tspan>
-										</text>
+										<g transform="translate(0, 4)">
+											<rect width="8" height="8" rx="4" ry="4" fill="#17872B" />
+										</g>
+										<g transform="translate(12, 0)">
+											<text
+												font-family="IBM Plex Sans"
+												font-size="10"
+												fill="#415546"
+												xml:space="preserve"
+											>
+												<tspan x="0" y="26.25">done · 12 tasks · 0 epics</tspan>
+												<tspan x="0" y="41.25"></tspan>
+											</text>
+										</g>
 									</g>
 								</g>
 							</g>
-							<g transform="translate(12, 162)">
+							<g transform="translate(12, 246)">
 								<g transform="translate(8, 8)">
 									<g>
 										<text
@@ -510,21 +957,29 @@
 										</text>
 									</g>
 									<g transform="translate(0, 44)">
-										<text
-											font-family="IBM Plex Sans"
-											font-size="10"
-											fill="#415546"
-											xml:space="preserve"
-										>
-											<tspan x="0" y="11.25">done · 8 tasks · 0 epics</tspan>
-										</text>
+										<g transform="translate(0, 4)">
+											<rect width="8" height="8" rx="4" ry="4" fill="#7B4DDB" />
+										</g>
+										<g transform="translate(12, 0)">
+											<text
+												font-family="IBM Plex Sans"
+												font-size="10"
+												fill="#415546"
+												xml:space="preserve"
+											>
+												<tspan x="0" y="26.25">
+													cancelled · 8 tasks · 0 epics
+												</tspan>
+												<tspan x="0" y="41.25"></tspan>
+											</text>
+										</g>
 									</g>
 								</g>
 							</g>
 						</g>
 					</g>
 					<g transform="translate(288, 0)">
-						<g clip-path="url(#clip10)">
+						<g clip-path="url(#clip16)">
 							<g transform="translate(24, 16)">
 								<g>
 									<text
@@ -537,20 +992,39 @@
 										<tspan x="0" y="27">Переработка экрана планов</tspan>
 									</text>
 								</g>
-								<g transform="translate(345, 14)">
-									<rect width="67" height="20" rx="4" ry="4" fill="#D8E9DC" />
-									<g transform="translate(8, 2.5)">
+								<g transform="translate(345, 9)">
+									<rect width="82" height="28" rx="4" ry="4" fill="#FCFCF8" />
+									<path
+										d="M4 0L78 0A4 4 0 0 1 82 4L82 24A4 4 0 0 1 78 28L4 28A4 4 0 0 1 0 24L0 4A4 4 0 0 1 4 0Z"
+										fill="none"
+										stroke="#566E5C"
+										stroke-width="2"
+										clip-path="url(#clip17)"
+									/>
+									<g transform="translate(9, 10)">
+										<rect width="8" height="8" rx="4" ry="4" fill="#0B5CFF" />
+									</g>
+									<g transform="translate(25, 5)">
 										<text
 											font-family="IBM Plex Sans"
-											font-size="10"
-											fill="#008350"
+											font-size="12"
+											fill="#040705"
 											xml:space="preserve"
 										>
-											<tspan x="0" y="11.25">in-progress</tspan>
+											<tspan x="0" y="13.5">active</tspan>
 										</text>
 									</g>
+									<g transform="translate(65, 12)">
+										<path
+											d="M0 0L8 0L8 5L0 5L0 0Z"
+											fill="none"
+											stroke="#415546"
+											stroke-width="10"
+											clip-path="url(#clip18)"
+										/>
+									</g>
 								</g>
-								<g transform="translate(424, 16)">
+								<g transform="translate(439, 16)">
 									<text
 										font-family="IBM Plex Mono"
 										font-size="10"
@@ -560,7 +1034,7 @@
 										<tspan x="0" y="11.25">PL-404</tspan>
 									</text>
 								</g>
-								<g transform="translate(472, 12)">
+								<g transform="translate(487, 12)">
 									<g transform="translate(8.5, 4.5)">
 										<text
 											font-family="IBM Plex Sans"
@@ -573,7 +1047,7 @@
 									</g>
 								</g>
 							</g>
-							<g transform="translate(24, 64)">
+							<g transform="translate(24, 65)">
 								<g>
 									<rect width="99" height="20" rx="4" ry="4" fill="#D8E9DC" />
 									<g transform="translate(8, 2.5)">
@@ -602,7 +1076,7 @@
 									</text>
 								</g>
 							</g>
-							<g transform="translate(24, 108)">
+							<g transform="translate(24, 109)">
 								<g>
 									<text
 										font-family="IBM Plex Mono"
@@ -611,7 +1085,8 @@
 										letter-spacing="0.96"
 										xml:space="preserve"
 									>
-										<tspan x="0" y="13.5">ITEMS</tspan>
+										<tspan x="0" y="31.5">ITEMS</tspan>
+										<tspan x="0" y="49.5"></tspan>
 									</text>
 								</g>
 								<g transform="translate(49, 9)" />
@@ -627,7 +1102,7 @@
 									</text>
 								</g>
 							</g>
-							<g transform="translate(24, 134)">
+							<g transform="translate(24, 135)">
 								<g>
 									<rect width="232" height="32" rx="4" ry="4" fill="#FCFCF8" />
 									<path
@@ -635,7 +1110,7 @@
 										fill="none"
 										stroke="#566E5C"
 										stroke-width="2"
-										clip-path="url(#clip11)"
+										clip-path="url(#clip19)"
 									/>
 									<g transform="translate(8, 4)">
 										<text
@@ -655,7 +1130,7 @@
 										fill="none"
 										stroke="#566E5C"
 										stroke-width="2"
-										clip-path="url(#clip12)"
+										clip-path="url(#clip20)"
 									/>
 									<g transform="translate(12.5, 7)">
 										<text
@@ -669,7 +1144,7 @@
 									</g>
 								</g>
 							</g>
-							<g transform="translate(24, 178)">
+							<g transform="translate(24, 179)">
 								<g>
 									<rect width="814" height="87" fill="#FAF9F6" />
 									<path
@@ -677,7 +1152,7 @@
 										fill="none"
 										stroke="#9DAE9F"
 										stroke-width="6"
-										clip-path="url(#clip13)"
+										clip-path="url(#clip21)"
 									/>
 									<g transform="translate(12, 12)">
 										<text
@@ -729,10 +1204,11 @@
 													fill="#040705"
 													xml:space="preserve"
 												>
-													<tspan x="0" y="13.5">
+													<tspan x="0" y="31.5">
 														PlansPage: состояние и вёрстка разбиты на один
 														монолит
 													</tspan>
+													<tspan x="0" y="49.5"></tspan>
 												</text>
 											</g>
 										</g>
@@ -754,8 +1230,9 @@
 													fill="#233227"
 													xml:space="preserve"
 												>
-													<tspan x="0" y="11.25">
-														Note: вынести store в src/lib/state/plans.svelte.ts
+													<tspan x="0" y="11.25">Note: вынести store в</tspan>
+													<tspan x="0" y="26.25">
+														src/lib/state/plans.svelte.ts
 													</tspan>
 												</text>
 											</g>
@@ -781,7 +1258,7 @@
 										fill="none"
 										stroke="#9DAE9F"
 										stroke-width="6"
-										clip-path="url(#clip14)"
+										clip-path="url(#clip22)"
 									/>
 									<g transform="translate(12, 12)">
 										<text
@@ -843,9 +1320,10 @@
 													fill="#040705"
 													xml:space="preserve"
 												>
-													<tspan x="0" y="13.5">
+													<tspan x="0" y="31.5">
 														Карточки задач с маркерами блокировок
 													</tspan>
+													<tspan x="0" y="49.5"></tspan>
 												</text>
 											</g>
 										</g>
@@ -870,7 +1348,7 @@
 										fill="none"
 										stroke="#9DAE9F"
 										stroke-width="6"
-										clip-path="url(#clip15)"
+										clip-path="url(#clip23)"
 									/>
 									<g transform="translate(12, 12)">
 										<text
@@ -923,9 +1401,10 @@
 													text-decoration="line-through"
 													xml:space="preserve"
 												>
-													<tspan x="0" y="13.5">
+													<tspan x="0" y="31.5">
 														Нарисовать макет переработанного экрана плана
 													</tspan>
+													<tspan x="0" y="49.5"></tspan>
 												</text>
 											</g>
 										</g>
@@ -950,7 +1429,7 @@
 										fill="none"
 										stroke="#9DAE9F"
 										stroke-width="6"
-										clip-path="url(#clip16)"
+										clip-path="url(#clip24)"
 									/>
 									<g transform="translate(12, 12)">
 										<text
@@ -1003,9 +1482,10 @@
 													text-decoration="line-through"
 													xml:space="preserve"
 												>
-													<tspan x="0" y="13.5">
+													<tspan x="0" y="31.5">
 														Отделить id документов от id задач
 													</tspan>
+													<tspan x="0" y="49.5"></tspan>
 												</text>
 											</g>
 										</g>
@@ -1030,7 +1510,7 @@
 										fill="none"
 										stroke="#9DAE9F"
 										stroke-width="6"
-										clip-path="url(#clip17)"
+										clip-path="url(#clip25)"
 									/>
 									<g transform="translate(12, 12)">
 										<text
@@ -1082,9 +1562,10 @@
 													fill="#040705"
 													xml:space="preserve"
 												>
-													<tspan x="0" y="13.5">
+													<tspan x="0" y="31.5">
 														Быстрый переход к документам плана
 													</tspan>
+													<tspan x="0" y="49.5"></tspan>
 												</text>
 											</g>
 										</g>
@@ -1103,7 +1584,7 @@
 									</g>
 								</g>
 							</g>
-							<g transform="translate(24, 593)">
+							<g transform="translate(24, 594)">
 								<g>
 									<text
 										font-family="IBM Plex Mono"
@@ -1116,7 +1597,7 @@
 									</text>
 								</g>
 							</g>
-							<g transform="translate(24, 619)">
+							<g transform="translate(24, 620)">
 								<g>
 									<rect width="176" height="32" rx="4" ry="4" fill="#FCFCF8" />
 									<path
@@ -1124,7 +1605,7 @@
 										fill="none"
 										stroke="#566E5C"
 										stroke-width="2"
-										clip-path="url(#clip18)"
+										clip-path="url(#clip26)"
 									/>
 									<g transform="translate(8, 4)">
 										<text
@@ -1144,7 +1625,7 @@
 										fill="none"
 										stroke="#566E5C"
 										stroke-width="2"
-										clip-path="url(#clip19)"
+										clip-path="url(#clip27)"
 									/>
 									<g transform="translate(12.5, 7)">
 										<text
@@ -1158,7 +1639,7 @@
 									</g>
 								</g>
 							</g>
-							<g transform="translate(24, 663)">
+							<g transform="translate(24, 664)">
 								<g>
 									<rect width="814" height="74" fill="#FAF9F6" />
 									<path
@@ -1166,7 +1647,7 @@
 										fill="none"
 										stroke="#9DAE9F"
 										stroke-width="2"
-										clip-path="url(#clip20)"
+										clip-path="url(#clip28)"
 									/>
 									<g transform="translate(13, 13)">
 										<g>
@@ -1238,7 +1719,7 @@
 										fill="none"
 										stroke="#9DAE9F"
 										stroke-width="2"
-										clip-path="url(#clip21)"
+										clip-path="url(#clip29)"
 									/>
 									<g transform="translate(13, 13)">
 										<g>
@@ -1319,21 +1800,22 @@
 					fill="#415546"
 					xml:space="preserve"
 				>
-					<tspan x="0" y="13.5">
+					<tspan x="0" y="31.5">
 						Plans screen — desktop, 1360 × 1000. Variables and spacing match the
-						ui-kit tool theme.
 					</tspan>
+					<tspan x="0" y="49.5">ui-kit tool theme.</tspan>
+					<tspan x="0" y="67.5"></tspan>
 				</text>
 			</g>
 		</g>
-		<g transform="translate(24, 1078)" filter="url(#fx22)">
+		<g transform="translate(24, 1078)" filter="url(#fx30)">
 			<rect width="420" height="132" fill="#FAF9F6" />
 			<path
 				d="M0 0L420 0L420 132L0 132L0 0Z"
 				fill="none"
 				stroke="#566E5C"
 				stroke-width="2"
-				clip-path="url(#clip23)"
+				clip-path="url(#clip31)"
 			/>
 			<g transform="translate(17, 17)">
 				<g>
@@ -1356,10 +1838,11 @@
 						fill="#233227"
 						xml:space="preserve"
 					>
-						<tspan x="0" y="13.5">
+						<tspan x="0" y="31.5">
 							The task stays in the project. Only its place in this plan is
 							removed.
 						</tspan>
+						<tspan x="0" y="49.5"></tspan>
 					</text>
 				</g>
 			</g>
@@ -1371,7 +1854,7 @@
 						fill="none"
 						stroke="#566E5C"
 						stroke-width="2"
-						clip-path="url(#clip24)"
+						clip-path="url(#clip32)"
 					/>
 					<g transform="translate(12.5, 7)">
 						<text
@@ -1391,7 +1874,7 @@
 						fill="none"
 						stroke="#D23A1E"
 						stroke-width="2"
-						clip-path="url(#clip25)"
+						clip-path="url(#clip33)"
 					/>
 					<g transform="translate(12, 7)">
 						<text
@@ -1414,9 +1897,565 @@
 					fill="#415546"
 					xml:space="preserve"
 				>
-					<tspan x="0" y="13.5">
+					<tspan x="0" y="31.5">
 						Confirmation state — shown before a plan item is removed.
 					</tspan>
+					<tspan x="0" y="49.5"></tspan>
+				</text>
+			</g>
+		</g>
+		<g transform="translate(24, 1264)">
+			<g>
+				<rect width="288" height="200" fill="#F2F0EE" />
+				<path
+					d="M0 0L288 0L288 200L0 200L0 0Z"
+					fill="none"
+					stroke="#566E5C"
+					stroke-width="2"
+					clip-path="url(#clip34)"
+				/>
+				<g transform="translate(13, 13)">
+					<g>
+						<text
+							font-family="IBM Plex Mono"
+							font-size="10"
+							fill="#415546"
+							letter-spacing="0.8"
+							xml:space="preserve"
+						>
+							<tspan x="0" y="11.25">FILTER · ACTIVE</tspan>
+						</text>
+					</g>
+				</g>
+				<g transform="translate(13, 40)">
+					<path
+						d="M0 0L262 0L262 49L0 49L0 0Z"
+						fill="none"
+						stroke="#9DAE9F"
+						stroke-width="2"
+						clip-path="url(#clip35)"
+					/>
+					<g>
+						<rect width="262" height="36" rx="4" ry="4" fill="#DCDDD9" />
+						<path
+							d="M4 0L258 0A4 4 0 0 1 262 4L262 32A4 4 0 0 1 258 36L4 36A4 4 0 0 1 0 32L0 4A4 4 0 0 1 4 0Z"
+							fill="none"
+							stroke="#9DAE9F"
+							stroke-width="2"
+							clip-path="url(#clip37)"
+						/>
+						<g clip-path="url(#clip36)">
+							<g transform="translate(1, 1)">
+								<path
+									d="M1 0L38 0A1 1 0 0 1 39 1L39 33A1 1 0 0 1 38 34L1 34A1 1 0 0 1 0 33L0 1A1 1 0 0 1 1 0Z"
+									fill="none"
+									stroke="#9DAE9F"
+									stroke-width="2"
+									clip-path="url(#clip38)"
+								/>
+								<g transform="translate(12, 8)">
+									<text
+										font-family="IBM Plex Sans"
+										font-size="12"
+										fill="#233227"
+										xml:space="preserve"
+									>
+										<tspan x="0.42" y="13.5">All</tspan>
+									</text>
+								</g>
+							</g>
+							<g transform="translate(40, 1)" filter="url(#fx39)">
+								<rect width="60" height="34" rx="1" ry="1" fill="#BFD2C6" />
+								<path
+									d="M1 0L59 0A1 1 0 0 1 60 1L60 33A1 1 0 0 1 59 34L1 34A1 1 0 0 1 0 33L0 1A1 1 0 0 1 1 0Z"
+									fill="none"
+									stroke="#9DAE9F"
+									stroke-width="2"
+									clip-path="url(#clip40)"
+								/>
+								<g transform="translate(13, 8)">
+									<text
+										font-family="IBM Plex Sans"
+										font-size="12"
+										font-weight="600"
+										fill="#040705"
+										xml:space="preserve"
+									>
+										<tspan x="0.05" y="13.5">Active</tspan>
+									</text>
+								</g>
+							</g>
+							<g transform="translate(100, 1)">
+								<g transform="translate(12, 8)">
+									<text
+										font-family="IBM Plex Sans"
+										font-size="12"
+										fill="#233227"
+										xml:space="preserve"
+									>
+										<tspan x="0.09" y="13.5">Closed</tspan>
+									</text>
+								</g>
+							</g>
+						</g>
+					</g>
+				</g>
+				<g transform="translate(13, 101)">
+					<g transform="translate(0, 13)">
+						<rect width="8" height="8" rx="4" ry="4" fill="#0B5CFF" />
+					</g>
+					<g transform="translate(16, 8)">
+						<text
+							font-family="IBM Plex Sans"
+							font-size="12"
+							fill="#040705"
+							xml:space="preserve"
+						>
+							<tspan x="0" y="13.5">PL-404 · Переработка экрана планов</tspan>
+							<tspan x="0" y="31.5"></tspan>
+						</text>
+					</g>
+				</g>
+				<g transform="translate(13, 135)">
+					<path
+						d="M0 0L262 0L262 35L0 35L0 0Z"
+						fill="none"
+						stroke="#9DAE9F"
+						stroke-width="2"
+						clip-path="url(#clip41)"
+					/>
+					<g transform="translate(0, 14)">
+						<rect width="8" height="8" rx="4" ry="4" fill="#9AA4AE" />
+					</g>
+					<g transform="translate(16, 9)">
+						<text
+							font-family="IBM Plex Sans"
+							font-size="12"
+							fill="#040705"
+							xml:space="preserve"
+						>
+							<tspan x="0" y="13.5">PL-410 · Обзор фильтров</tspan>
+							<tspan x="0" y="31.5"></tspan>
+						</text>
+					</g>
+				</g>
+			</g>
+			<g transform="translate(312, 0)">
+				<rect width="288" height="200" fill="#F2F0EE" />
+				<path
+					d="M0 0L288 0L288 200L0 200L0 0Z"
+					fill="none"
+					stroke="#566E5C"
+					stroke-width="2"
+					clip-path="url(#clip42)"
+				/>
+				<g transform="translate(13, 13)">
+					<g>
+						<text
+							font-family="IBM Plex Mono"
+							font-size="10"
+							fill="#415546"
+							letter-spacing="0.8"
+							xml:space="preserve"
+						>
+							<tspan x="0" y="11.25">FILTER · CLOSED</tspan>
+						</text>
+					</g>
+				</g>
+				<g transform="translate(13, 40)">
+					<path
+						d="M0 0L262 0L262 49L0 49L0 0Z"
+						fill="none"
+						stroke="#9DAE9F"
+						stroke-width="2"
+						clip-path="url(#clip43)"
+					/>
+					<g>
+						<rect width="262" height="36" rx="4" ry="4" fill="#DCDDD9" />
+						<path
+							d="M4 0L258 0A4 4 0 0 1 262 4L262 32A4 4 0 0 1 258 36L4 36A4 4 0 0 1 0 32L0 4A4 4 0 0 1 4 0Z"
+							fill="none"
+							stroke="#9DAE9F"
+							stroke-width="2"
+							clip-path="url(#clip45)"
+						/>
+						<g clip-path="url(#clip44)">
+							<g transform="translate(1, 1)">
+								<path
+									d="M1 0L38 0A1 1 0 0 1 39 1L39 33A1 1 0 0 1 38 34L1 34A1 1 0 0 1 0 33L0 1A1 1 0 0 1 1 0Z"
+									fill="none"
+									stroke="#9DAE9F"
+									stroke-width="2"
+									clip-path="url(#clip46)"
+								/>
+								<g transform="translate(12, 8)">
+									<text
+										font-family="IBM Plex Sans"
+										font-size="12"
+										fill="#233227"
+										xml:space="preserve"
+									>
+										<tspan x="0.42" y="13.5">All</tspan>
+									</text>
+								</g>
+							</g>
+							<g transform="translate(40, 1)">
+								<path
+									d="M1 0L57 0A1 1 0 0 1 58 1L58 33A1 1 0 0 1 57 34L1 34A1 1 0 0 1 0 33L0 1A1 1 0 0 1 1 0Z"
+									fill="none"
+									stroke="#9DAE9F"
+									stroke-width="2"
+									clip-path="url(#clip47)"
+								/>
+								<g transform="translate(12, 8)">
+									<text
+										font-family="IBM Plex Sans"
+										font-size="12"
+										fill="#233227"
+										xml:space="preserve"
+									>
+										<tspan x="0.33" y="13.5">Active</tspan>
+									</text>
+								</g>
+							</g>
+							<g transform="translate(98, 1)" filter="url(#fx48)">
+								<rect width="62" height="34" rx="1" ry="1" fill="#BFD2C6" />
+								<g transform="translate(12.5, 8)">
+									<text
+										font-family="IBM Plex Sans"
+										font-size="12"
+										font-weight="600"
+										fill="#040705"
+										xml:space="preserve"
+									>
+										<tspan x="0.06" y="13.5">Closed</tspan>
+									</text>
+								</g>
+							</g>
+						</g>
+					</g>
+				</g>
+				<g transform="translate(13, 101)">
+					<g transform="translate(0, 13)">
+						<rect width="8" height="8" rx="4" ry="4" fill="#17872B" />
+					</g>
+					<g transform="translate(16, 8)">
+						<text
+							font-family="IBM Plex Sans"
+							font-size="12"
+							fill="#040705"
+							xml:space="preserve"
+						>
+							<tspan x="0" y="13.5">PL-326 · Планы</tspan>
+							<tspan x="0" y="31.5"></tspan>
+						</text>
+					</g>
+				</g>
+				<g transform="translate(13, 135)">
+					<path
+						d="M0 0L262 0L262 35L0 35L0 0Z"
+						fill="none"
+						stroke="#9DAE9F"
+						stroke-width="2"
+						clip-path="url(#clip49)"
+					/>
+					<g transform="translate(0, 14)">
+						<rect width="8" height="8" rx="4" ry="4" fill="#7B4DDB" />
+					</g>
+					<g transform="translate(16, 9)">
+						<text
+							font-family="IBM Plex Sans"
+							font-size="12"
+							fill="#040705"
+							xml:space="preserve"
+						>
+							<tspan x="0" y="13.5">PL-352 · Документы</tspan>
+							<tspan x="0" y="31.5"></tspan>
+						</text>
+					</g>
+				</g>
+			</g>
+			<g transform="translate(624, 0)">
+				<rect width="288" height="200" fill="#F2F0EE" />
+				<path
+					d="M0 0L288 0L288 200L0 200L0 0Z"
+					fill="none"
+					stroke="#566E5C"
+					stroke-width="2"
+					clip-path="url(#clip50)"
+				/>
+				<g transform="translate(13, 13)">
+					<g>
+						<text
+							font-family="IBM Plex Mono"
+							font-size="10"
+							fill="#415546"
+							letter-spacing="0.8"
+							xml:space="preserve"
+						>
+							<tspan x="0" y="11.25">FILTER · EMPTY</tspan>
+						</text>
+					</g>
+				</g>
+				<g transform="translate(13, 40)">
+					<path
+						d="M0 0L262 0L262 49L0 49L0 0Z"
+						fill="none"
+						stroke="#9DAE9F"
+						stroke-width="2"
+						clip-path="url(#clip51)"
+					/>
+					<g>
+						<rect width="262" height="36" rx="4" ry="4" fill="#DCDDD9" />
+						<path
+							d="M4 0L258 0A4 4 0 0 1 262 4L262 32A4 4 0 0 1 258 36L4 36A4 4 0 0 1 0 32L0 4A4 4 0 0 1 4 0Z"
+							fill="none"
+							stroke="#9DAE9F"
+							stroke-width="2"
+							clip-path="url(#clip53)"
+						/>
+						<g clip-path="url(#clip52)">
+							<g transform="translate(1, 1)">
+								<path
+									d="M1 0L38 0A1 1 0 0 1 39 1L39 33A1 1 0 0 1 38 34L1 34A1 1 0 0 1 0 33L0 1A1 1 0 0 1 1 0Z"
+									fill="none"
+									stroke="#9DAE9F"
+									stroke-width="2"
+									clip-path="url(#clip54)"
+								/>
+								<g transform="translate(12, 8)">
+									<text
+										font-family="IBM Plex Sans"
+										font-size="12"
+										fill="#233227"
+										xml:space="preserve"
+									>
+										<tspan x="0.42" y="13.5">All</tspan>
+									</text>
+								</g>
+							</g>
+							<g transform="translate(40, 1)" filter="url(#fx55)">
+								<rect width="60" height="34" rx="1" ry="1" fill="#BFD2C6" />
+								<path
+									d="M1 0L59 0A1 1 0 0 1 60 1L60 33A1 1 0 0 1 59 34L1 34A1 1 0 0 1 0 33L0 1A1 1 0 0 1 1 0Z"
+									fill="none"
+									stroke="#9DAE9F"
+									stroke-width="2"
+									clip-path="url(#clip56)"
+								/>
+								<g transform="translate(13, 8)">
+									<text
+										font-family="IBM Plex Sans"
+										font-size="12"
+										font-weight="600"
+										fill="#040705"
+										xml:space="preserve"
+									>
+										<tspan x="0.05" y="13.5">Active</tspan>
+									</text>
+								</g>
+							</g>
+							<g transform="translate(100, 1)">
+								<g transform="translate(12, 8)">
+									<text
+										font-family="IBM Plex Sans"
+										font-size="12"
+										fill="#233227"
+										xml:space="preserve"
+									>
+										<tspan x="0.09" y="13.5">Closed</tspan>
+									</text>
+								</g>
+							</g>
+						</g>
+					</g>
+				</g>
+				<g transform="translate(13, 101)">
+					<path
+						d="M0 0L262 0L262 86L0 86L0 0Z"
+						fill="none"
+						stroke="#566E5C"
+						stroke-width="2"
+						stroke-dasharray="3 2"
+						clip-path="url(#clip57)"
+					/>
+					<g transform="translate(12, 24)">
+						<text
+							font-family="IBM Plex Sans"
+							font-size="12"
+							fill="#415546"
+							xml:space="preserve"
+						>
+							<tspan x="77.89" y="13.5">No active plans</tspan>
+							<tspan x="24.97" y="31.5">
+								Change the filter to see other plans
+							</tspan>
+						</text>
+					</g>
+				</g>
+			</g>
+		</g>
+		<g transform="translate(24, 1476)">
+			<g>
+				<text
+					font-family="IBM Plex Sans"
+					font-size="12"
+					fill="#415546"
+					xml:space="preserve"
+				>
+					<tspan x="0" y="31.5">
+						Filter states — Active = backlog + active, Closed = done +
+						cancelled.
+					</tspan>
+					<tspan x="0" y="49.5"></tspan>
+				</text>
+			</g>
+		</g>
+		<g transform="translate(24, 1518)">
+			<g>
+				<g>
+					<rect width="82" height="28" rx="4" ry="4" fill="#FCFCF8" />
+					<path
+						d="M4 0L78 0A4 4 0 0 1 82 4L82 24A4 4 0 0 1 78 28L4 28A4 4 0 0 1 0 24L0 4A4 4 0 0 1 4 0Z"
+						fill="none"
+						stroke="#566E5C"
+						stroke-width="2"
+						clip-path="url(#clip58)"
+					/>
+					<g transform="translate(9, 10)">
+						<rect width="8" height="8" rx="4" ry="4" fill="#0B5CFF" />
+					</g>
+					<g transform="translate(25, 5)">
+						<text
+							font-family="IBM Plex Sans"
+							font-size="12"
+							fill="#040705"
+							xml:space="preserve"
+						>
+							<tspan x="0" y="13.5">active</tspan>
+						</text>
+					</g>
+					<g transform="translate(65, 12)">
+						<path
+							d="M0 0L8 0L8 5L0 5L0 0Z"
+							fill="none"
+							stroke="#415546"
+							stroke-width="10"
+							clip-path="url(#clip59)"
+						/>
+					</g>
+				</g>
+				<g transform="translate(0, 40)">
+					<g>
+						<text
+							font-family="IBM Plex Sans"
+							font-size="12"
+							fill="#415546"
+							xml:space="preserve"
+						>
+							<tspan x="0" y="13.5">Plan status — collapsed trigger</tspan>
+						</text>
+					</g>
+				</g>
+			</g>
+			<g transform="translate(189, 0)" filter="url(#fx60)">
+				<rect width="220" height="146" fill="#FAF9F6" />
+				<path
+					d="M0 0L220 0L220 146L0 146L0 0Z"
+					fill="none"
+					stroke="#566E5C"
+					stroke-width="2"
+					clip-path="url(#clip61)"
+				/>
+				<g transform="translate(5, 5)">
+					<g transform="translate(8, 13)">
+						<rect width="8" height="8" rx="4" ry="4" fill="#9AA4AE" />
+					</g>
+					<g transform="translate(24, 8)">
+						<text
+							font-family="IBM Plex Sans"
+							font-size="12"
+							fill="#040705"
+							xml:space="preserve"
+						>
+							<tspan x="0" y="13.5">backlog</tspan>
+							<tspan x="0" y="31.5"></tspan>
+						</text>
+					</g>
+				</g>
+				<g transform="translate(5, 39)">
+					<rect width="210" height="34" fill="#CBD4CA" />
+					<g transform="translate(8, 13)">
+						<rect width="8" height="8" rx="4" ry="4" fill="#0B5CFF" />
+					</g>
+					<g transform="translate(24, 8)">
+						<text
+							font-family="IBM Plex Sans"
+							font-size="12"
+							fill="#040705"
+							xml:space="preserve"
+						>
+							<tspan x="0" y="13.5">active</tspan>
+							<tspan x="0" y="31.5"></tspan>
+						</text>
+					</g>
+					<g transform="translate(191, 8)">
+						<text
+							font-family="IBM Plex Sans"
+							font-size="12"
+							fill="#00834B"
+							xml:space="preserve"
+						>
+							<tspan x="0" y="13.5">✓</tspan>
+						</text>
+					</g>
+				</g>
+				<g transform="translate(5, 73)">
+					<g transform="translate(8, 13)">
+						<rect width="8" height="8" rx="4" ry="4" fill="#17872B" />
+					</g>
+					<g transform="translate(24, 8)">
+						<text
+							font-family="IBM Plex Sans"
+							font-size="12"
+							fill="#040705"
+							xml:space="preserve"
+						>
+							<tspan x="0" y="13.5">done</tspan>
+							<tspan x="0" y="31.5"></tspan>
+						</text>
+					</g>
+				</g>
+				<g transform="translate(5, 107)">
+					<g transform="translate(8, 13)">
+						<rect width="8" height="8" rx="4" ry="4" fill="#7B4DDB" />
+					</g>
+					<g transform="translate(24, 8)">
+						<text
+							font-family="IBM Plex Sans"
+							font-size="12"
+							fill="#040705"
+							xml:space="preserve"
+						>
+							<tspan x="0" y="13.5">cancelled</tspan>
+							<tspan x="0" y="31.5"></tspan>
+						</text>
+					</g>
+				</g>
+			</g>
+		</g>
+		<g transform="translate(24, 1676)">
+			<g>
+				<text
+					font-family="IBM Plex Sans"
+					font-size="12"
+					fill="#415546"
+					xml:space="preserve"
+				>
+					<tspan x="0" y="31.5">
+						Plan status — Select with four values; the current one is checked.
+					</tspan>
+					<tspan x="0" y="49.5"></tspan>
 				</text>
 			</g>
 		</g>

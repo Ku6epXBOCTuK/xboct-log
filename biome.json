@@ -15,6 +15,7 @@
 			"!**/*.yml",
 			"!target",
 			"!CHANGELOG.md",
+			"!docs/design",
 			"!vscode-extension/CHANGELOG.md"
 		]
 	},
