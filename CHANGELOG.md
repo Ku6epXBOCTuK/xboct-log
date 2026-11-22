@@ -2,6 +2,17 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.15.0](https://github.com/Ku6epXBOCTuK/xboct-log/compare/8bf4135adaad69c07b9c6d70c4a01e7eabd59181..v0.15.0) - 2026-11-22
+#### Features
+- (**plans**) add status filter and status control - ([04c926c](https://github.com/Ku6epXBOCTuK/xboct-log/commit/04c926c2cde8c49e2e380361e57f5a8636fdeff5)) - Ku6epXBOCTuK
+- (**plans**) show completion from closed tasks - ([5027885](https://github.com/Ku6epXBOCTuK/xboct-log/commit/5027885e4779a1fb19841eb9555d7679178a42c7)) - Ku6epXBOCTuK
+- (**plans**) add direct navigation to attached documents - ([b9d93f1](https://github.com/Ku6epXBOCTuK/xboct-log/commit/b9d93f127b26397053e239cb019214f619876512)) - Ku6epXBOCTuK
+- (**plans**) rework task adding and removal with blockers - ([8ff8700](https://github.com/Ku6epXBOCTuK/xboct-log/commit/8ff870090982b3e63e4410dab61747e1717e35e1)) - Ku6epXBOCTuK
+#### Refactoring
+- (**plans**) split page stat and markup into state and components - ([fc82dcc](https://github.com/Ku6epXBOCTuK/xboct-log/commit/fc82dccc7380783c145c38e4c891ce7f69ffe83e)) - Ku6epXBOCTuK
+
+- - -
+
 ## [v0.14.1](https://github.com/Ku6epXBOCTuK/xboct-log/compare/0b7bd038702199c4be3d5000747b1791c55e13a8..v0.14.1) - 2026-11-21
 #### Bug Fixes
 - (**activity**) derive operation labels for any entity - ([0b7bd03](https://github.com/Ku6epXBOCTuK/xboct-log/commit/0b7bd038702199c4be3d5000747b1791c55e13a8)) - Ku6epXBOCTuK
