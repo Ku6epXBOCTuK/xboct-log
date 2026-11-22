@@ -427,6 +427,25 @@ test("the tags page lists the tag", async ({ page }) => {
 	await expect(page.getByText(tag, { exact: true }).first()).toBeVisible();
 });
 
+test("the status filter stays on the plans page when no plans match", async ({
+	page,
+}) => {
+	await page.goto("/plans");
+	const filter = page.getByRole("radiogroup", { name: "Status filter" });
+
+	await filter.getByRole("radio", { name: "Active" }).click();
+	await expect(filter).toBeVisible();
+	await expect(page.getByText("No active plans")).toBeVisible();
+	await expect(
+		page.getByText("Change the filter to see other plans"),
+	).toBeVisible();
+	await expect(page.locator(".plan-row")).toHaveCount(0);
+
+	await filter.getByRole("radio", { name: "All" }).click();
+	await expect(filter).toBeVisible();
+	await expect(page.getByText("No plans yet")).toBeVisible();
+});
+
 test("a plan is created and filled from the plans page", async ({ page }) => {
 	const name = `UI Plan ${suffix}`;
 	await page.goto("/plans");

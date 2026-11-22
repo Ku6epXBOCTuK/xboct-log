@@ -62,14 +62,6 @@
 
 	{#if !store.loaded}
 		<p class="empty">Loading…</p>
-	{:else if store.plans.length === 0}
-		<p class="empty">
-			{store.statusFilter === "active"
-				? "No active plans"
-				: store.statusFilter === "closed"
-					? "No closed plans"
-					: "No plans yet"}
-		</p>
 	{:else}
 		<div class="columns">
 			<PlanList

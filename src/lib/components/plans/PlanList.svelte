@@ -31,15 +31,28 @@
 			onchange={(value) => onfilter(value as PlanStatusFilter)}
 		/>
 	</div>
-	<ul class="plan-list">
-		{#each plans as plan (plan.id)}
-			<PlanRow
-				{plan}
-				active={plan.id === activeId}
-				onselect={() => onselect(plan.id)}
-			/>
-		{/each}
-	</ul>
+	{#if plans.length === 0}
+		<div class="empty-state">
+			{filter === "active"
+				? "No active plans"
+				: filter === "closed"
+					? "No closed plans"
+					: "No plans yet"}
+			{#if filter !== "all"}
+				<br />Change the filter to see other plans
+			{/if}
+		</div>
+	{:else}
+		<ul class="plan-list">
+			{#each plans as plan (plan.id)}
+				<PlanRow
+					{plan}
+					active={plan.id === activeId}
+					onselect={() => onselect(plan.id)}
+				/>
+			{/each}
+		</ul>
+	{/if}
 </div>
 
 <style>
@@ -75,5 +88,13 @@
 		margin: 0;
 		padding: 0 0 var(--ui-space-6);
 		list-style: none;
+	}
+
+	.empty-state {
+		padding: var(--ui-space-5) var(--ui-space-3);
+		border: 1px dashed var(--ui-line-strong);
+		text-align: center;
+		color: var(--ui-fg-muted);
+		font-size: var(--ui-fs-sm);
 	}
 </style>
