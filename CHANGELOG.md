@@ -2,6 +2,14 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.15.1](https://github.com/Ku6epXBOCTuK/xboct-log/compare/650032f3849a50d647b91ecec008adb544f51913..v0.15.1) - 2026-11-22
+#### Bug Fixes
+- (**plans**) keep status filter visible when no plans match - ([960ed11](https://github.com/Ku6epXBOCTuK/xboct-log/commit/960ed112d68f33f659a237fac0691fc915048b14)) - Ku6epXBOCTuK
+- (**plans**) align plans list cards with design mockup - ([1445d78](https://github.com/Ku6epXBOCTuK/xboct-log/commit/1445d78501869dcd44b32777fee02e213bfc54b7)) - Ku6epXBOCTuK
+- (**plans**) align task cards and notes with the design mockup - ([650032f](https://github.com/Ku6epXBOCTuK/xboct-log/commit/650032f3849a50d647b91ecec008adb544f51913)) - Ku6epXBOCTuK
+
+- - -
+
 ## [v0.15.0](https://github.com/Ku6epXBOCTuK/xboct-log/compare/8bf4135adaad69c07b9c6d70c4a01e7eabd59181..v0.15.0) - 2026-11-22
 #### Features
 - (**plans**) add status filter and status control - ([04c926c](https://github.com/Ku6epXBOCTuK/xboct-log/commit/04c926c2cde8c49e2e380361e57f5a8636fdeff5)) - Ku6epXBOCTuK
