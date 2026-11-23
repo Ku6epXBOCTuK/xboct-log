@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.16.0](https://github.com/Ku6epXBOCTuK/xboct-log/compare/9a2828cd710c99db149dcf6f74862bcdde706436..v0.16.0) - 2026-11-23
+#### Features
+- (**ui**) persist pinned navigation pages - ([9a2828c](https://github.com/Ku6epXBOCTuK/xboct-log/commit/9a2828cd710c99db149dcf6f74862bcdde706436)) - Ku6epXBOCTuK
+
+- - -
+
 ## [v0.15.1](https://github.com/Ku6epXBOCTuK/xboct-log/compare/650032f3849a50d647b91ecec008adb544f51913..v0.15.1) - 2026-11-22
 #### Bug Fixes
 - (**plans**) keep status filter visible when no plans match - ([960ed11](https://github.com/Ku6epXBOCTuK/xboct-log/commit/960ed112d68f33f659a237fac0691fc915048b14)) - Ku6epXBOCTuK
