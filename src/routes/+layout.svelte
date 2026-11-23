@@ -1,14 +1,13 @@
 <script lang="ts">
-	import { goto } from "$app/navigation";
-	import { page } from "$app/state";
+	import { onMount, untrack } from "svelte";
 	import SideBar from "#lib/components/layout/SideBar.svelte";
 	import OfflineBanner from "#lib/components/ui/OfflineBanner.svelte";
 	import UpdateBanner from "#lib/components/ui/UpdateBanner.svelte";
-	import { matchesHotkey } from "#lib/hotkeys/hotkeys.ts";
 	import { listHref, taskHref } from "#lib/navigation/href.ts";
 	import { parsePath, taskPath } from "#lib/navigation/paths.ts";
 	import { createBoard, provideBoard } from "#lib/state/board.svelte.ts";
-	import { onMount, untrack } from "svelte";
+	import { goto } from "$app/navigation";
+	import { page } from "$app/state";
 	import "@fontsource/ibm-plex-sans/400.css";
 	import "@fontsource/ibm-plex-sans/500.css";
 	import "@fontsource/ibm-plex-sans/600.css";
@@ -102,19 +101,13 @@
 					"*",
 				);
 			}
-			if (matchesHotkey(event, "ctrl+b")) {
-				event.preventDefault();
-				board.ui.toggleSidebar();
-			}
 		}
 		window.addEventListener("keydown", handleKeydown);
 		return () => window.removeEventListener("keydown", handleKeydown);
 	});
 </script>
 
-<main
-	class={`app-shell ${board.theme.themeClass} ${board.ui.sidebarHidden ? "sidebar-collapsed" : ""}`}
->
+<main class={`app-shell ${board.theme.themeClass}`}>
 	<SideBar />
 
 	{@render children()}
@@ -126,13 +119,8 @@
 <style>
 	.app-shell {
 		display: flex;
-		height: 100vh;
 		height: 100dvh;
 		overflow: hidden;
 		background: var(--background);
-	}
-
-	.app-shell.sidebar-collapsed {
-		--sidebar-w: 4rem;
 	}
 </style>

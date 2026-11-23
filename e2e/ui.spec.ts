@@ -727,11 +727,8 @@ test("documents open from a global page without a project", async ({
 	page,
 }) => {
 	await page.goto("/plans");
-	await page.getByRole("button", { name: "Show all pages" }).click();
-	await page
-		.getByRole("navigation", { name: "Primary navigation" })
-		.getByRole("link", { name: "Documents" })
-		.click();
+	await page.getByTestId("nav-mode-toggle").click();
+	await page.getByTestId("nav-item-documents").click();
 	await expect(page).toHaveURL("/documents");
 	await expect(page.getByRole("heading", { name: "Documents" })).toBeVisible();
 	await expect(
@@ -851,4 +848,39 @@ test("the backend badge follows the reachability of the server", async ({
 
 	await expect(banner).toHaveCount(0);
 	await expect(badge).toBeVisible();
+});
+
+test("pinned pages stay visible when navigation is collapsed", async ({
+	page,
+}) => {
+	await page.goto("/tasks");
+	await expect(page.getByTestId("nav-item-tasks")).toBeVisible();
+	await expect(page.getByTestId("nav-item-plans")).toBeVisible();
+	await expect(page.getByTestId("nav-row-tags")).toBeHidden();
+
+	await page.getByTestId("nav-mode-toggle").click();
+	await page.getByTestId("nav-pin-tags").click();
+	await page.getByTestId("nav-mode-toggle").click();
+	await expect(page.getByTestId("nav-row-tags")).toBeVisible();
+
+	await page.reload();
+	await expect(page.getByTestId("nav-row-tags")).toBeVisible();
+	await expect(page.getByTestId("nav-pin-tags")).toHaveAttribute(
+		"aria-pressed",
+		"true",
+	);
+
+	await page.getByTestId("nav-pin-tags").click();
+	await expect(page.getByTestId("nav-row-tags")).toBeHidden();
+	await page.reload();
+	await expect(page.getByTestId("nav-row-tags")).toBeHidden();
+});
+
+test("navigation mode survives a reload", async ({ page }) => {
+	await page.goto("/tasks");
+	await expect(page.getByTestId("nav-row-tags")).toBeHidden();
+	await page.getByTestId("nav-mode-toggle").click();
+	await expect(page.getByTestId("nav-row-tags")).toBeVisible();
+	await page.reload();
+	await expect(page.getByTestId("nav-row-tags")).toBeVisible();
 });

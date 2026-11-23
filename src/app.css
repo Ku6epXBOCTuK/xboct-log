@@ -118,12 +118,6 @@
 	}
 }
 
-@media (max-width: 820px) {
-	:root {
-		--sidebar-w: 4rem;
-	}
-}
-
 * {
 	box-sizing: border-box;
 	border-color: var(--border);

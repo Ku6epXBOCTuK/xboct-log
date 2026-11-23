@@ -168,29 +168,4 @@
 			transform: rotate(360deg);
 		}
 	}
-
-	@container sidebar (max-width: 6rem) {
-		.backup-status {
-			display: none;
-		}
-
-		.backup-button {
-			justify-content: center;
-			gap: 0;
-			padding: 0;
-			min-height: 0;
-			aspect-ratio: 1;
-			border-color: transparent;
-			background: transparent;
-		}
-
-		.backup-label {
-			display: none;
-		}
-
-		.backup-button :global(svg) {
-			width: 1.125rem;
-			height: 1.125rem;
-		}
-	}
 </style>

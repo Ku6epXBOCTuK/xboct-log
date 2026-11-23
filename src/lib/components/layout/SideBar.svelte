@@ -1,76 +1,43 @@
 <script lang="ts">
-	import { page } from "$app/state";
-	import ProjectSection from "#lib/components/projects/ProjectSection.svelte";
 	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton.svelte";
+	import ProjectSection from "#lib/components/projects/ProjectSection.svelte";
 	import { useBoard } from "#lib/state/board.svelte.ts";
+	import { page } from "$app/state";
 	import ChevronDown from "~icons/lucide/chevron-down";
 	import ChevronUp from "~icons/lucide/chevron-up";
-	import PanelLeftClose from "~icons/lucide/panel-left-close";
-	import PanelLeftOpen from "~icons/lucide/panel-left-open";
 	import BackupControl from "./BackupControl.svelte";
 	import BrandMark from "./BrandMark.svelte";
 	import PrimaryNav from "./PrimaryNav.svelte";
 
 	const { stats, ui } = useBoard();
 
-	let navOpen = $state(false);
-
-	const collapsed = $derived(ui.sidebarHidden);
-
 	const standalonePage = $derived(
 		page.url.pathname === "/backups" || page.url.pathname === "/tags",
 	);
-
-	function hide() {
-		ui.setSidebarHidden(true);
-	}
-
-	function expand() {
-		ui.setSidebarHidden(false);
-	}
 </script>
 
-<aside class="sidebar" class:rail={collapsed}>
+<aside class="sidebar">
 	<div class="sidebar-head">
 		<BrandMark compact />
 		<div class="sidebar-actions">
 			<IconButton
-				label={navOpen ? "Show only the current page" : "Show all pages"}
-				expanded={navOpen}
-				onclick={() => (navOpen = !navOpen)}
+				label={ui.navCollapsed ? "Show all pages" : "Show pinned pages"}
+				expanded={!ui.navCollapsed}
+				data-testid="nav-mode-toggle"
+				onclick={() => ui.setNavCollapsed(!ui.navCollapsed)}
 			>
-				{#if navOpen}
-					<ChevronUp />
-				{:else}
+				{#if ui.navCollapsed}
 					<ChevronDown />
+				{:else}
+					<ChevronUp />
 				{/if}
 			</IconButton>
-			{#if !collapsed}
-				<IconButton
-					label="Hide navigation"
-					title="Hide navigation"
-					onclick={hide}
-				>
-					<PanelLeftClose />
-				</IconButton>
-			{/if}
 		</div>
 	</div>
-	{#if collapsed}
-		<div class="sidebar-expand">
-			<IconButton
-				label="Show navigation"
-				title="Show navigation"
-				onclick={expand}
-			>
-				<PanelLeftOpen />
-			</IconButton>
-		</div>
-	{/if}
 	<PrimaryNav
 		taskCount={stats.activeTasks}
 		inProgressCount={stats.inProgress}
-		onlyActive={!navOpen}
+		collapsed={ui.navCollapsed}
 	/>
 	{#if !standalonePage}
 		<div class="sidebar-scroll">
@@ -90,8 +57,6 @@
 		border-right: 1px solid var(--border);
 		background: var(--surface);
 		overflow: hidden;
-		container-type: inline-size;
-		container-name: sidebar;
 	}
 
 	.sidebar-scroll {
@@ -114,49 +79,9 @@
 		gap: var(--space-1);
 	}
 
-	.sidebar-expand {
-		display: flex;
-		justify-content: center;
-	}
-
 	@media (max-width: 820px) {
 		.sidebar {
 			padding-inline: var(--space-2);
-		}
-
-		.sidebar-expand {
-			display: none;
-		}
-	}
-
-	.sidebar.rail {
-		padding-inline: var(--space-2);
-	}
-
-	@container sidebar (max-width: 6rem) {
-		.sidebar-head {
-			justify-content: center;
-			margin-bottom: var(--space-1);
-		}
-
-		.sidebar-actions {
-			display: none;
-		}
-
-		.sidebar-expand {
-			margin-bottom: var(--space-1);
-		}
-
-		.sidebar-expand > :global(.ui-icon-button) {
-			width: 100%;
-			height: auto;
-			aspect-ratio: 1;
-			border-radius: var(--radius);
-		}
-
-		.sidebar-expand :global(svg) {
-			width: 1.125rem;
-			height: 1.125rem;
 		}
 	}
 </style>

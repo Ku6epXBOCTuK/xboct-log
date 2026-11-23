@@ -1,97 +1,65 @@
 <script lang="ts">
-	import { listHref } from "#lib/navigation/href.ts";
+	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton.svelte";
+	import { NAV_ITEMS } from "#lib/navigation/items.ts";
 	import { parsePath } from "#lib/navigation/paths.ts";
-	import { resolve } from "$app/paths";
+	import { useBoard } from "#lib/state/board.svelte.ts";
 	import { page } from "$app/state";
-	import Activity from "~icons/lucide/activity";
-	import ArchiveRestore from "~icons/lucide/archive-restore";
-	import BarChart3 from "~icons/lucide/bar-chart-3";
-	import ClipBoardList from "~icons/lucide/clipboard-list";
-	import DatabaseBackup from "~icons/lucide/database-backup";
-	import FileText from "~icons/lucide/file-text";
-	import FolderKanban from "~icons/lucide/folder-kanban";
-	import ListOrdered from "~icons/lucide/list-ordered";
-	import Tag from "~icons/lucide/tag";
+	import Pin from "~icons/lucide/pin";
+	import PinOff from "~icons/lucide/pin-off";
 
 	interface Props {
 		taskCount: number;
 		inProgressCount: number;
-		onlyActive?: boolean;
+		collapsed?: boolean;
 	}
 
-	let { taskCount, inProgressCount, onlyActive = false }: Props = $props();
+	let { taskCount, inProgressCount, collapsed = false }: Props = $props();
 
-	const location = $derived(parsePath(page.url.pathname));
+	const { ui } = useBoard();
 
-	const project = $derived(location.project);
-
-	const onTasks = $derived(location.category === "tasks");
-	const onKanban = $derived(location.category === "kanban");
-	const onActivity = $derived(location.category === "activity");
-	const onDeleted = $derived(location.category === "deleted");
-	const onDocuments = $derived(location.category === "documents");
-	const onBackups = $derived(page.url.pathname === "/backups");
-	const onTags = $derived(page.url.pathname === "/tags");
-	const onPlans = $derived(page.url.pathname === "/plans");
+	const project = $derived(parsePath(page.url.pathname).project);
 </script>
 
-<nav
-	class="primary-nav"
-	class:only-active={onlyActive}
-	aria-label="Primary navigation"
->
-	<a class="nav-item" class:active={onTasks} href={listHref("tasks", project)}>
-		<ClipBoardList />
-		Tasks
-		<span class="nav-count">{taskCount}</span>
-	</a>
-	<a
-		class="nav-item"
-		class:active={onKanban}
-		href={listHref("kanban", project)}
-	>
-		<FolderKanban />
-		Kanban
-		<span class="nav-count">{inProgressCount}</span>
-	</a>
-	<a
-		class="nav-item"
-		class:active={onActivity}
-		href={listHref("activity", project)}
-	>
-		<Activity />
-		Activity
-	</a>
-	<a
-		class="nav-item"
-		class:active={onDeleted}
-		href={listHref("deleted", project)}
-	>
-		<ArchiveRestore />
-		Deleted
-	</a>
-	<a class="nav-item" class:active={onPlans} href={resolve("/plans")}>
-		<ListOrdered />
-		Plans
-	</a>
-	<a
-		class="nav-item"
-		class:active={onDocuments}
-		href={listHref("documents", project)}
-	>
-		<FileText />
-		Documents
-	</a>
-	<a class="nav-item" class:active={onTags} href={resolve("/tags")}>
-		<Tag />
-		Tags
-	</a>
-
-	<a class="nav-item" class:active={onBackups} href={resolve("/backups")}>
-		<DatabaseBackup />
-		Backups
-	</a>
-	<button class="nav-item"><BarChart3 /> Statistics</button>
+<nav class="primary-nav" class:collapsed aria-label="Primary navigation">
+	{#each NAV_ITEMS as item (item.id)}
+		{@const active = item.active(page.url.pathname)}
+		{@const pinned = ui.isPinned(item.id)}
+		<div
+			class="nav-row"
+			class:pinned
+			class:active
+			class:no-count={!item.badge}
+			data-testid={`nav-row-${item.id}`}
+		>
+			<a
+				class="nav-item"
+				class:active
+				href={item.href(project)}
+				data-testid={`nav-item-${item.id}`}
+			>
+				<item.icon />
+				<span class="nav-label">{item.label}</span>
+				{#if item.badge === "tasks"}
+					<span class="nav-count">{taskCount}</span>
+				{:else if item.badge === "kanban"}
+					<span class="nav-count">{inProgressCount}</span>
+				{/if}
+			</a>
+			<IconButton
+				class="pin-toggle"
+				label={`${pinned ? "Unpin" : "Pin"} ${item.label}`}
+				active={pinned}
+				data-testid={`nav-pin-${item.id}`}
+				onclick={() => ui.togglePin(item.id)}
+			>
+				{#if pinned}
+					<PinOff />
+				{:else}
+					<Pin />
+				{/if}
+			</IconButton>
+		</div>
+	{/each}
 </nav>
 
 <style>
@@ -101,7 +69,22 @@
 		gap: var(--space-1);
 	}
 
+	.nav-row {
+		--nav-count-w: 1.75rem;
+		--nav-pin-w: 2.25rem;
+		position: relative;
+		display: flex;
+		align-items: center;
+		min-width: 0;
+	}
+
+	.nav-row.no-count {
+		--nav-count-w: 0rem;
+	}
+
 	.nav-item {
+		flex: 1 1 auto;
+		min-width: 0;
 		border: 0;
 		background: transparent;
 		color: var(--text-secondary);
@@ -113,7 +96,6 @@
 		border-radius: var(--radius);
 		font-size: var(--text-md);
 		font-weight: 500;
-		width: 100%;
 		text-decoration: none;
 	}
 
@@ -133,42 +115,55 @@
 		background: var(--selected);
 	}
 
-	.only-active .nav-item:not(.active) {
+	.primary-nav.collapsed .nav-row:not(.pinned):not(.active) {
 		display: none;
+	}
+
+	.nav-row :global(.pin-toggle) {
+		position: absolute;
+		top: 50%;
+		right: calc(var(--nav-count-w) + var(--space-3));
+		transform: translateY(-50%);
+		opacity: 0;
+		transition: opacity 0.12s ease-out;
+	}
+
+	.nav-row:hover :global(.pin-toggle),
+	.nav-row:focus-within :global(.pin-toggle) {
+		opacity: 1;
+	}
+
+	.nav-row :global(.pin-toggle[data-active]) {
+		border-color: transparent;
+		background: transparent;
+	}
+
+	.nav-row:hover :global(.pin-toggle[data-active]),
+	.nav-row:focus-within :global(.pin-toggle[data-active]) {
+		background: var(--hover);
+	}
+
+	@media (hover: none) {
+		.nav-row :global(.pin-toggle) {
+			opacity: 1;
+		}
+	}
+
+	.nav-label {
+		padding-right: calc(var(--nav-pin-w) + var(--space-2));
 	}
 
 	.nav-count {
 		margin-left: auto;
+		min-width: var(--nav-count-w);
 		color: var(--text-muted);
 		font-size: var(--text-xs);
 		font-variant-numeric: tabular-nums;
+		text-align: right;
 	}
 
 	.nav-item:hover .nav-count,
 	.nav-item.active .nav-count {
 		color: var(--foreground);
-	}
-
-	@container sidebar (max-width: 6rem) {
-		.nav-item {
-			justify-content: center;
-			gap: 0;
-			font-size: 0;
-			padding: 0;
-			aspect-ratio: 1;
-		}
-
-		.only-active .nav-item:not(.active) {
-			display: flex;
-		}
-
-		.nav-item :global(svg) {
-			width: 1.125rem;
-			height: 1.125rem;
-		}
-
-		.nav-count {
-			display: none;
-		}
 	}
 </style>

@@ -196,11 +196,4 @@
 	.project-archived-toggle:hover {
 		color: var(--foreground);
 	}
-
-	@container sidebar (max-width: 6rem) {
-		.projects-heading,
-		.project-list {
-			display: none;
-		}
-	}
 </style>
