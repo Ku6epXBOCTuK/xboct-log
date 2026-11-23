@@ -18,6 +18,7 @@ import {
 	listPlanNoteRevisions,
 	listPlanNotes,
 	type PlanNote,
+	type PlanPatchInput,
 	type PlanWithCounts,
 	removePlanItem,
 	reorderPlanItems,
@@ -33,6 +34,8 @@ import type { Task } from "#lib/types.ts";
 import { SvelteMap } from "svelte/reactivity";
 
 export type PlanStatusFilter = "all" | "active" | "closed";
+
+export type PlanField = "key" | "name" | "description";
 
 const FILTER_STATUSES: Record<PlanStatusFilter, PlanStatus[] | undefined> = {
 	all: undefined,
@@ -57,8 +60,11 @@ export function createPlanStore() {
 	let editingNote = $state<string | null>(null);
 	let editingVersion = $state<string | null>(null);
 	let editDraft = $state("");
-	let editingKey = $state(false);
-	let keyDraft = $state("");
+	let editedField = $state<PlanField | null>(null);
+	let editPlanId = $state<string | null>(null);
+	let fieldDraft = $state("");
+	let fieldSaving = $state(false);
+	let fieldFailed = $state(false);
 	let selectedDocument = $state("");
 	let dragKey = $state<string | null>(null);
 	let loaded = $state(false);
@@ -66,7 +72,6 @@ export function createPlanStore() {
 	let creating = $state(false);
 	let createFailed = $state(false);
 	let openFailed = $state(false);
-	let keyFailed = $state(false);
 	let statusSaving = $state(false);
 	let statusFailed = $state(false);
 	let itemFailed = $state(false);
@@ -177,8 +182,7 @@ export function createPlanStore() {
 					fetchFresh(listDeletedPlanNotes({ plan_id: id })),
 				]);
 			detail = plan;
-			keyDraft = plan.key;
-			editingKey = false;
+			if (editPlanId !== id) resetEdit();
 			items = page.items;
 			candidates = all.items;
 			planDocuments = linked;
@@ -193,6 +197,28 @@ export function createPlanStore() {
 	function clearDetail(): void {
 		detail = null;
 		items = [];
+		resetEdit();
+	}
+
+	function resetEdit(): void {
+		editedField = null;
+		editPlanId = null;
+		fieldDraft = "";
+		fieldFailed = false;
+	}
+
+	function patchFor(
+		field: PlanField,
+		value: string,
+	): NonNullable<PlanPatchInput["patch"]> {
+		switch (field) {
+			case "key":
+				return { key: value };
+			case "name":
+				return { name: value };
+			case "description":
+				return { description: value };
+		}
 	}
 
 	async function create(name: string): Promise<boolean> {
@@ -230,21 +256,43 @@ export function createPlanStore() {
 		}
 	}
 
-	async function saveKey(): Promise<void> {
-		if (detail === null) return;
+	function startEdit(field: PlanField): void {
+		if (detail === null || detail.id !== activeId || fieldSaving) return;
+		editedField = field;
+		editPlanId = detail.id;
+		fieldDraft = detail[field];
+		fieldFailed = false;
+	}
+
+	function cancelEdit(): void {
+		if (fieldSaving) return;
+		resetEdit();
+	}
+
+	async function saveEdit(): Promise<void> {
+		if (detail === null || editedField === null || fieldSaving) return;
 		const id = detail.id;
-		const key = keyDraft.trim();
-		if (key === "") {
-			keyFailed = true;
+		const field = editedField;
+		const value = fieldDraft.trim();
+		if (field !== "description" && value === "") {
+			fieldFailed = true;
 			return;
 		}
+		if (value === detail[field]) {
+			resetEdit();
+			return;
+		}
+		fieldSaving = true;
+		fieldFailed = false;
 		try {
-			await updatePlan({ plan_id: id, patch: { key } });
-			keyFailed = false;
+			await updatePlan({ plan_id: id, patch: patchFor(field, value) });
+			resetEdit();
 			await reloadPlans();
 			await loadDetail(id);
 		} catch {
-			keyFailed = true;
+			fieldFailed = true;
+		} finally {
+			fieldSaving = false;
 		}
 	}
 
@@ -384,11 +432,11 @@ export function createPlanStore() {
 		get editDraft() {
 			return editDraft;
 		},
-		get editingKey() {
-			return editingKey;
+		get editedField() {
+			return editedField;
 		},
-		get keyDraft() {
-			return keyDraft;
+		get fieldDraft() {
+			return fieldDraft;
 		},
 		get selectedDocument() {
 			return selectedDocument;
@@ -411,8 +459,11 @@ export function createPlanStore() {
 		get openFailed() {
 			return openFailed;
 		},
-		get keyFailed() {
-			return keyFailed;
+		get fieldSaving() {
+			return fieldSaving;
+		},
+		get fieldFailed() {
+			return fieldFailed;
 		},
 		get statusSaving() {
 			return statusSaving;
@@ -452,8 +503,8 @@ export function createPlanStore() {
 		setEditDraft(body: string) {
 			editDraft = body;
 		},
-		setKeyDraft(value: string) {
-			keyDraft = value;
+		setFieldDraft(value: string) {
+			fieldDraft = value;
 		},
 		startEditNote(note: PlanNote) {
 			editingNote = note.id;
@@ -464,14 +515,9 @@ export function createPlanStore() {
 			editingNote = null;
 			editingVersion = null;
 		},
-		startEditKey() {
-			editingKey = true;
-		},
-		cancelEditKey() {
-			editingKey = false;
-			keyDraft = detail?.key ?? "";
-			keyFailed = false;
-		},
+		startEdit,
+		cancelEdit,
+		saveEdit,
 		notesFor,
 		deletedNotesFor,
 		linkFor,
@@ -481,7 +527,6 @@ export function createPlanStore() {
 		loadDetail,
 		create,
 		open,
-		saveKey,
 		addItem(planId: string, id: string) {
 			return changeItems(() => addPlanItem({ plan_id: planId, task_id: id }));
 		},
