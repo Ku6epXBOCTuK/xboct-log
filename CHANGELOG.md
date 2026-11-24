@@ -2,6 +2,20 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.17.0](https://github.com/Ku6epXBOCTuK/xboct-log/compare/edbc251504c013d1c9cffa7fee2245d6689a4af6..v0.17.0) - 2026-11-24
+#### Features
+- (**plans**) add editable plan name, description and key fields - ([edbc251](https://github.com/Ku6epXBOCTuK/xboct-log/commit/edbc251504c013d1c9cffa7fee2245d6689a4af6)) - Ku6epXBOCTuK
+- (**tasks**) add XL estimate and generate enum constants from contract - ([53ffd88](https://github.com/Ku6epXBOCTuK/xboct-log/commit/53ffd88ffd65a3b531e4d3cd226a83b31f6d91d1)) - Ku6epXBOCTuK
+#### Bug Fixes
+- (**ops**) give export its own limit policy - ([8c6010e](https://github.com/Ku6epXBOCTuK/xboct-log/commit/8c6010e94b9216c44c396bec1257d8e37063e145)) - Ku6epXBOCTuK
+- (**plans**) point plans_notes_add caller to plans_items_add - ([f16f790](https://github.com/Ku6epXBOCTuK/xboct-log/commit/f16f79020108bc33fa2a41663327dc6d035b1906)) - Ku6epXBOCTuK
+- (**server**) reduce MCP session reconnects and clarify retry message - ([4bae38f](https://github.com/Ku6epXBOCTuK/xboct-log/commit/4bae38f7c20a4d869280f43b7aabfe45d954a94b)) - Ku6epXBOCTuK
+- (**tags**) show active dictionary before task writes and guide tag creation - ([3d89fed](https://github.com/Ku6epXBOCTuK/xboct-log/commit/3d89fed73ba16f3d6664b3f1b4a7d1cd76e8cda3)) - Ku6epXBOCTuK
+- (**tasks**) report the new id when a stale task id was moved - ([c44f4b4](https://github.com/Ku6epXBOCTuK/xboct-log/commit/c44f4b4f365ce144f539b990c7db6e04ca33e978)) - Ku6epXBOCTuK
+- (**ui**) type nav item hrefs as ResolvedPathname - ([36e5098](https://github.com/Ku6epXBOCTuK/xboct-log/commit/36e50981c8b3a99c9ab31cd0980f433727bd5cc8)) - Ku6epXBOCTuK
+
+- - -
+
 ## [v0.16.0](https://github.com/Ku6epXBOCTuK/xboct-log/compare/9a2828cd710c99db149dcf6f74862bcdde706436..v0.16.0) - 2026-11-23
 #### Features
 - (**ui**) persist pinned navigation pages - ([9a2828c](https://github.com/Ku6epXBOCTuK/xboct-log/commit/9a2828cd710c99db149dcf6f74862bcdde706436)) - Ku6epXBOCTuK
