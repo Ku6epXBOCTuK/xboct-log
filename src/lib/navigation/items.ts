@@ -1,6 +1,10 @@
-import { resolve } from "$app/paths";
 import type { Component } from "svelte";
 import type { SvelteHTMLElements } from "svelte/elements";
+import { listHref } from "#lib/navigation/href.ts";
+import type { NavId } from "#lib/navigation/ids.ts";
+import { parsePath } from "#lib/navigation/paths.ts";
+import { resolve } from "$app/paths";
+import type { ResolvedPathname } from "$app/types";
 import Activity from "~icons/lucide/activity";
 import ArchiveRestore from "~icons/lucide/archive-restore";
 import ClipBoardList from "~icons/lucide/clipboard-list";
@@ -9,9 +13,6 @@ import FileText from "~icons/lucide/file-text";
 import FolderKanban from "~icons/lucide/folder-kanban";
 import ListOrdered from "~icons/lucide/list-ordered";
 import Tag from "~icons/lucide/tag";
-import { listHref } from "#lib/navigation/href.ts";
-import { parsePath } from "#lib/navigation/paths.ts";
-import type { NavId } from "#lib/navigation/ids.ts";
 
 type Icon = Component<SvelteHTMLElements["svg"]>;
 
@@ -19,7 +20,7 @@ export interface NavItem {
 	id: NavId;
 	label: string;
 	icon: Icon;
-	href: (project: string | null) => string;
+	href: (project: string | null) => ResolvedPathname;
 	active: (pathname: string) => boolean;
 	badge?: "tasks" | "kanban";
 }
