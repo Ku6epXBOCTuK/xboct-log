@@ -411,10 +411,21 @@ test("a project is created from the sidebar", async ({ page }) => {
 	await page.getByRole("button", { name: "New project" }).click();
 	await page.getByLabel("Project name").fill(newProjectName);
 	await page.getByLabel("Project prefix").fill(newProjectPrefix);
-	await page.getByRole("button", { name: "Create", exact: true }).click();
 
-	await expect(page.getByText(newProjectName, { exact: true })).toBeVisible();
-	await page.getByText(newProjectName, { exact: true }).click();
+	const createResponse = page.waitForResponse(
+		(response) =>
+			response.url().includes("/api/projects_create") &&
+			response.request().method() === "POST" &&
+			response.ok(),
+	);
+	await page.getByRole("button", { name: "Create", exact: true }).click();
+	await createResponse;
+
+	const projectRow = page
+		.locator(".project-row")
+		.filter({ hasText: newProjectName });
+	await expect(projectRow).toBeVisible();
+	await projectRow.getByRole("button").first().click();
 	await expect(page).toHaveURL(/\/tasks\/project\/ui-created-/);
 	await expect(
 		page.getByRole("heading", { name: newProjectName }),
@@ -825,14 +836,19 @@ test("the activity page shows the recorded changes", async ({ page }) => {
 test("the backend badge follows the reachability of the server", async ({
 	page,
 }) => {
+	await page.clock.install();
 	await page.goto("/tasks");
 	const badge = page.getByRole("button", { name: /^Backend: Connected/ });
 	await expect(badge).toBeVisible();
+	await page.clock.pauseAt(new Date());
 
 	await badge.hover();
 	await expect(page.getByText("Click the dot to check again")).toBeVisible();
 
-	await page.route("**/api/health", (route) => route.abort());
+	let healthAvailable = false;
+	await page.route("**/api/health", (route) =>
+		healthAvailable ? route.continue() : route.abort(),
+	);
 	await badge.click();
 
 	await expect(
@@ -843,7 +859,7 @@ test("the backend badge follows the reachability of the server", async ({
 		.filter({ hasText: "Backend unreachable" });
 	await expect(banner).toBeVisible();
 
-	await page.unroute("**/api/health");
+	healthAvailable = true;
 	await banner.getByRole("button", { name: "Retry now" }).click();
 
 	await expect(banner).toHaveCount(0);
