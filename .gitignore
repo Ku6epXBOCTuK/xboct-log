@@ -2,6 +2,7 @@ node_modules
 
 # Generated API types
 /src/lib/api/schema.d.ts
+/src/lib/api/enums.ts
 
 # Rust
 /target

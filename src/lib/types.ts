@@ -1,11 +1,16 @@
-export const STATUSES = [
-	"backlog",
-	"open",
-	"in-progress",
-	"blocked",
-	"done",
-	"cancelled",
-] as const;
+import {
+	CLOSED_REASONS,
+	ESTIMATES,
+	PRIORITIES,
+	STATUSES,
+} from "./api/enums.ts";
+
+export {
+	CLOSED_REASONS,
+	ESTIMATES,
+	PRIORITIES,
+	STATUSES,
+} from "./api/enums.ts";
 
 export type Status = (typeof STATUSES)[number];
 
@@ -31,14 +36,6 @@ export const DEFAULT_STATUSES: readonly Status[] = [
 	...ACTIVE_STATUSES,
 ];
 
-export const CLOSED_REASONS = [
-	"fixed",
-	"wontfix",
-	"obsolete",
-	"duplicate",
-	"not-reproduced",
-] as const;
-
 export type ClosedReason = (typeof CLOSED_REASONS)[number];
 
 export const STATUS_BY_REASON: Record<ClosedReason, Status> = {
@@ -49,8 +46,6 @@ export const STATUS_BY_REASON: Record<ClosedReason, Status> = {
 	"not-reproduced": "cancelled",
 };
 
-export const PRIORITIES = ["low", "medium", "high", "critical"] as const;
-
 export type Priority = (typeof PRIORITIES)[number];
 
 export const PRIORITY_RANK: Record<Priority, number> = {
@@ -59,8 +54,6 @@ export const PRIORITY_RANK: Record<Priority, number> = {
 	medium: 2,
 	low: 3,
 };
-
-export const ESTIMATES = ["S", "M", "L"] as const;
 
 export type Estimate = (typeof ESTIMATES)[number];
 

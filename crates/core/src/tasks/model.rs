@@ -94,6 +94,8 @@ pub enum Estimate {
     Medium,
     #[serde(rename = "L")]
     Large,
+    #[serde(rename = "XL")]
+    ExtraLarge,
 }
 
 impl Estimate {
@@ -102,6 +104,7 @@ impl Estimate {
             Self::Small => "S",
             Self::Medium => "M",
             Self::Large => "L",
+            Self::ExtraLarge => "XL",
         }
     }
 
@@ -110,6 +113,7 @@ impl Estimate {
             "S" => Some(Self::Small),
             "M" => Some(Self::Medium),
             "L" => Some(Self::Large),
+            "XL" => Some(Self::ExtraLarge),
             _ => None,
         }
     }

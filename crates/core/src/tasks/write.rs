@@ -57,7 +57,7 @@ pub struct NewTask {
     #[serde(default)]
     pub tags: Option<Vec<TagName>>,
     #[schemars(
-        description = "Size of the task: 'S', 'M' or 'L'. null leaves the task without an estimate."
+        description = "Size of the task. Allowed values are in the tool schema. null leaves the task without an estimate."
     )]
     #[serde(default)]
     pub estimate: Option<Option<Estimate>>,
@@ -116,7 +116,9 @@ pub struct TaskPatch {
     )]
     #[serde(default)]
     pub tags: Option<Vec<TagName>>,
-    #[schemars(description = "Size of the task: 'S', 'M' or 'L'. null clears the estimate.")]
+    #[schemars(
+        description = "Size of the task. Allowed values are in the tool schema. null clears the estimate."
+    )]
     #[serde(default)]
     pub estimate: Option<Option<Estimate>>,
     #[schemars(
