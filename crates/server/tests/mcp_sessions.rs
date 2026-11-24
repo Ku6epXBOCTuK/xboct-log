@@ -98,6 +98,7 @@ async fn router(dir: &Path) -> Router {
         db,
         config,
         events: Arc::new(Events::new()),
+        tags_hint: String::new(),
     })
 }
 

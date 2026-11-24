@@ -27,7 +27,7 @@ use xboct_log_core::{
     Config, Db, Events, ensure_inbox, fingerprint_path, prune_activity, prune_request_log,
     start_scheduler,
 };
-use xboct_log_server::{AppState, app};
+use xboct_log_server::{AppState, active_tags_hint, app};
 
 use crate::args::{APP_NAME, Invocation, Options};
 
@@ -177,6 +177,9 @@ async fn run(options: Options) -> Result<(), String> {
         .await
         .map_err(|error| error.to_string())?;
     ensure_inbox(&db).await.map_err(|error| error.to_string())?;
+    let tags_hint = active_tags_hint(&db)
+        .await
+        .map_err(|error| error.to_string())?;
 
     let db = Arc::new(db);
     start_scheduler(db.clone(), config.backup_dir.clone(), config.backup.clone());
@@ -185,6 +188,7 @@ async fn run(options: Options) -> Result<(), String> {
         db: db.clone(),
         config: Arc::new(config),
         events: Arc::new(Events::new()),
+        tags_hint,
     };
 
     let display_host = if options.host == "0.0.0.0" {

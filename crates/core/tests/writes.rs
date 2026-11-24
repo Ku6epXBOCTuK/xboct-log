@@ -78,7 +78,13 @@ async fn rejects_the_same_inputs_as_node() {
     )
     .await
     .expect_err("tag");
-    assert!(unknown_tag.message().starts_with("unknown tag(s): nope."));
+    let message = unknown_tag.message();
+    assert!(message.starts_with("unknown tag(s): nope."), "{message}");
+    assert!(message.contains("bug (0), docs (0) (2 total)"), "{message}");
+    assert!(
+        message.contains("tags_create {name: \"nope\"}"),
+        "{message}"
+    );
 
     let bad_due = create_task(
         &db,
@@ -97,6 +103,31 @@ async fn rejects_the_same_inputs_as_node() {
     assert_eq!(
         blocked.message(),
         "blocked_reason is only allowed on a blocked task"
+    );
+}
+
+#[tokio::test]
+async fn suggests_an_existing_tag_for_a_near_miss() {
+    let db = open().await;
+    sqlx::query("INSERT INTO tags (name, archived, created_at) VALUES ('tests', 0, '2026-01-01T00:00:00.000Z')")
+        .execute(db.pool())
+        .await
+        .expect("tag");
+
+    let error = create_task(
+        &db,
+        new_task(json!({"project_id": "log", "title": "x", "tags": ["test"]})),
+    )
+    .await
+    .expect_err("tag");
+    let message = error.message();
+    assert!(
+        message.contains("Did you mean 'tests' for 'test'?"),
+        "{message}"
+    );
+    assert!(
+        message.contains("tags_create {name: \"test\"}"),
+        "{message}"
     );
 }
 

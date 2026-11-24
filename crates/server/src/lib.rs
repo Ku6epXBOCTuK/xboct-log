@@ -30,6 +30,7 @@ use xboct_log_ops::{Ctx, dispatch, metadata};
 pub mod mcp;
 mod mcp_sessions;
 mod mcp_text;
+pub use mcp_text::active_tags_hint;
 pub mod openapi;
 pub mod static_files;
 
@@ -42,6 +43,7 @@ pub struct AppState {
     pub db: Arc<Db>,
     pub config: Arc<Config>,
     pub events: Arc<Events>,
+    pub tags_hint: String,
 }
 
 pub fn app(state: AppState) -> Router {
@@ -132,7 +134,12 @@ fn client_label(value: &str) -> Option<String> {
 type McpService = StreamableHttpService<mcp::Backlog, LocalSessionManager>;
 
 fn mcp_service(state: &AppState) -> McpService {
-    let backlog = mcp::Backlog::new(state.db.clone(), state.config.clone(), state.events.clone());
+    let backlog = mcp::Backlog::new(
+        state.db.clone(),
+        state.config.clone(),
+        state.events.clone(),
+        state.tags_hint.clone(),
+    );
     let store: Arc<dyn SessionStore> = Arc::new(mcp_sessions::FileSessionStore::open(
         state.config.sessions_path(),
     ));
@@ -480,6 +487,7 @@ mod tests {
             db: Arc::new(db),
             config: Arc::new(config),
             events: Arc::new(Events::new()),
+            tags_hint: String::new(),
         };
         let router = app(state.clone());
 

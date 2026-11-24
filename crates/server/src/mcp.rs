@@ -80,15 +80,17 @@ pub struct Backlog {
     pub db: Arc<Db>,
     pub config: Arc<Config>,
     pub events: Arc<Events>,
+    tags_hint: Arc<String>,
     auto_backup: Arc<AutoBackup>,
 }
 
 impl Backlog {
-    pub fn new(db: Arc<Db>, config: Arc<Config>, events: Arc<Events>) -> Self {
+    pub fn new(db: Arc<Db>, config: Arc<Config>, events: Arc<Events>, tags_hint: String) -> Self {
         Self {
             db,
             config,
             events,
+            tags_hint: Arc::new(tags_hint),
             auto_backup: Arc::new(AutoBackup::new()),
         }
     }
@@ -135,6 +137,7 @@ impl ServerHandler for Backlog {
             .with_instructions(mcp_text::build_instructions(
                 &tool_names(),
                 &everyday_arguments(),
+                &self.tags_hint,
             ))
             .with_server_info(rmcp::model::Implementation::new(
                 crate::APP_NAME,
@@ -147,7 +150,7 @@ impl ServerHandler for Backlog {
         _request: Option<PaginatedRequestParams>,
         _context: RequestContext<RoleServer>,
     ) -> Result<ListToolsResult, McpError> {
-        Ok(ListToolsResult::with_all_items(tools()?))
+        Ok(ListToolsResult::with_all_items(tools(&self.db).await?))
     }
 
     async fn call_tool(
@@ -166,10 +169,15 @@ impl ServerHandler for Backlog {
             Some((kind, message)) => (RequestStatus::Error, Some(kind), Some(message)),
             None => (RequestStatus::Ok, None, None),
         };
+        let tags_changed = matches!(name.as_str(), "tags_create" | "tags_update" | "tags_rename")
+            && tool_result.is_error != Some(true);
         let result: CallToolResponse = tool_result.into();
 
         if name.starts_with("attachments_") || name.starts_with("documents_") {
             let _ = context.peer.notify_resource_list_changed().await;
+        }
+        if tags_changed {
+            let _ = context.peer.notify_tool_list_changed().await;
         }
 
         let entry = RequestLogEntry {
@@ -348,7 +356,7 @@ impl Backlog {
         }
         if name == "xboct_log_tool_description" {
             let result = match serde_json::from_value::<ToolDescriptionInput>(arguments.clone()) {
-                Ok(input) => self.call_tool_description(&input.query),
+                Ok(input) => self.call_tool_description(&input.query).await,
                 Err(error) => {
                     let message =
                         format!("Input validation error for xboct_log_tool_description: {error}");
@@ -382,13 +390,16 @@ impl Backlog {
         (name.to_string(), arguments, result)
     }
 
-    fn call_tool_description(&self, query: &str) -> CallToolResult {
+    async fn call_tool_description(&self, query: &str) -> CallToolResult {
         let needle = query.trim().to_lowercase();
+        let hint = mcp_text::active_tags_hint(&self.db)
+            .await
+            .unwrap_or_default();
         let catalog = tool_catalog();
         if let Some(entry) = catalog
             .iter()
             .find(|info| info.name == needle)
-            .and_then(catalog_entry)
+            .and_then(|info| catalog_entry(info, &hint))
         {
             return success(json!(ToolDescriptionOutput { items: vec![entry] }));
         }
@@ -418,7 +429,7 @@ impl Backlog {
                         return None;
                     }
                 }
-                catalog_entry(&info).map(|entry| (score, entry))
+                catalog_entry(&info, &hint).map(|entry| (score, entry))
             })
             .collect();
         found.sort_by(|left, right| {
@@ -531,13 +542,22 @@ fn attachment_mime(file_name: &str) -> String {
         .unwrap_or_else(|| "application/octet-stream".to_string())
 }
 
-fn tools() -> Result<Vec<Tool>, McpError> {
+async fn tools(db: &Db) -> Result<Vec<Tool>, McpError> {
+    let hint = mcp_text::active_tags_hint(db)
+        .await
+        .map_err(|error| McpError::internal_error(error.message().to_string(), None))?;
     let mut tools = Vec::new();
     for info in metadata().iter().filter(|info| info.mcp) {
         if info.lazy {
+            let brief = brief_description(info.name, info.description);
+            let description = if needs_tags_hint(info.name) {
+                format!("{brief}\n\n{hint}")
+            } else {
+                brief
+            };
             tools.push(Tool::new_with_raw(
                 info.name,
-                Some(Cow::Owned(brief_description(info.name, info.description))),
+                Some(Cow::Owned(description)),
                 parse_schema(json!({"type": "object"})),
             ));
             continue;
@@ -545,13 +565,21 @@ fn tools() -> Result<Vec<Tool>, McpError> {
         let (input, output) = tool_schema(info.name).ok_or_else(|| {
             McpError::internal_error(format!("no schema for the tool {}", info.name), None)
         })?;
+        let description = if needs_tags_hint(info.name) {
+            Cow::Owned(format!("{}\n\n{}", info.description, hint))
+        } else {
+            Cow::Borrowed(info.description)
+        };
+        let input = if needs_tags_hint(info.name) {
+            let mut input = input;
+            add_tags_hint(&mut input, &hint);
+            input
+        } else {
+            input
+        };
         tools.push(
-            Tool::new_with_raw(
-                info.name,
-                Some(Cow::Borrowed(info.description)),
-                parse_schema(input),
-            )
-            .with_raw_output_schema(parse_schema(output)),
+            Tool::new_with_raw(info.name, Some(description), parse_schema(input))
+                .with_raw_output_schema(parse_schema(output)),
         );
     }
     tools.push(Tool::new_with_raw(
@@ -698,19 +726,56 @@ fn summary(description: &str) -> String {
     clip(sentence.trim().trim_end_matches(['.', ',', ' ']), 140)
 }
 
-fn catalog_entry(info: &OpInfo) -> Option<CatalogEntry> {
-    let (input, _) = match tool_schema(info.name) {
+fn catalog_entry(info: &OpInfo, tags_hint: &str) -> Option<CatalogEntry> {
+    let (mut input, _) = match tool_schema(info.name) {
         Some(schema) => schema,
         None if info.name == "attachments_read" => {
             (schema_of::<ReadAttachmentInput>(), Value::Null)
         }
         None => return None,
     };
+    let description = if needs_tags_hint(info.name) && !tags_hint.is_empty() {
+        add_tags_hint(&mut input, tags_hint);
+        format!("{}\n\n{}", info.description, tags_hint)
+    } else {
+        info.description.to_string()
+    };
     Some(CatalogEntry {
         name: info.name.to_string(),
-        description: info.description.to_string(),
+        description,
         params: catalog_params(&input),
     })
+}
+
+fn needs_tags_hint(name: &str) -> bool {
+    matches!(
+        name,
+        "tasks_create" | "tasks_update" | "tasks_create_many" | "tasks_update_many"
+    )
+}
+
+fn add_tags_hint(schema: &mut Value, hint: &str) {
+    match schema {
+        Value::Object(map) => {
+            if let Some(properties) = map.get_mut("properties").and_then(Value::as_object_mut) {
+                if let Some(tags) = properties.get_mut("tags").and_then(Value::as_object_mut) {
+                    if let Some(description) = tags.get("description").and_then(Value::as_str) {
+                        let augmented = format!("{description}\n\n{hint}");
+                        tags.insert("description".to_string(), Value::String(augmented));
+                    }
+                }
+            }
+            for value in map.values_mut() {
+                add_tags_hint(value, hint);
+            }
+        }
+        Value::Array(items) => {
+            for item in items {
+                add_tags_hint(item, hint);
+            }
+        }
+        _ => {}
+    }
 }
 
 fn catalog_params(schema: &Value) -> Vec<CatalogParam> {
@@ -978,15 +1043,22 @@ mod tests {
     async fn backlog() -> Backlog {
         let db = Db::open(":memory:").await.unwrap();
         db.migrate().await.unwrap();
+        let hint = mcp_text::active_tags_hint(&db).await.unwrap();
         let config =
             Config::from_lookup(|name| (name == "XBOCT_LOG_DB").then(|| ":memory:".to_string()))
                 .unwrap();
-        Backlog::new(Arc::new(db), Arc::new(config), Arc::new(Events::new()))
+        Backlog::new(
+            Arc::new(db),
+            Arc::new(config),
+            Arc::new(Events::new()),
+            hint,
+        )
     }
 
-    #[test]
-    fn lists_every_tool_with_brief_descriptions_for_rare_ones() {
-        let listed = tools().unwrap();
+    #[tokio::test]
+    async fn lists_every_tool_with_brief_descriptions_for_rare_ones() {
+        let backlog = backlog().await;
+        let listed = tools(&backlog.db).await.unwrap();
         let names: Vec<String> = listed.iter().map(|tool| tool.name.to_string()).collect();
         assert_eq!(
             names.len(),
@@ -1020,6 +1092,17 @@ mod tests {
         assert!(common.output_schema.is_some());
         assert!(common.input_schema.contains_key("properties"));
 
+        let create = find("tasks_create");
+        let create_description = create.description.as_deref().unwrap_or_default();
+        assert!(
+            create_description.contains("Active tags (0)"),
+            "{create_description}"
+        );
+        let tags = create.input_schema["properties"]["tags"]["description"]
+            .as_str()
+            .unwrap_or_default();
+        assert!(tags.contains("Active tags (0)"), "{tags}");
+
         let rare = find("tasks_delete");
         let brief = rare.description.as_deref().unwrap();
         assert!(brief.contains("Get the argument schema"), "{brief}");
@@ -1042,7 +1125,12 @@ mod tests {
 
     #[test]
     fn instructions_cover_every_tool_and_everyday_arguments() {
-        let text = mcp_text::build_instructions(&tool_names(), &everyday_arguments());
+        let text = mcp_text::build_instructions(
+            &tool_names(),
+            &everyday_arguments(),
+            "Active tags (1): demo. Create a genuinely new one with tags_create {name: \"...\"} first, then retry the call.",
+        );
+        assert!(text.contains("Active tags (1): demo"), "{text}");
         for info in metadata().into_iter().filter(|info| info.mcp) {
             assert!(
                 text.contains(&format!("- {}: ", info.name)),
@@ -1076,6 +1164,46 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[tokio::test]
+    async fn tag_dictionary_reaches_tool_descriptions_and_instructions() {
+        let backlog = backlog().await;
+        sqlx::query("INSERT INTO tags (name, archived, created_at) VALUES ('refactor', 0, '2026-01-01T00:00:00.000Z')")
+            .execute(backlog.db.pool())
+            .await
+            .unwrap();
+
+        let listed = tools(&backlog.db).await.unwrap();
+        let create = listed
+            .iter()
+            .find(|tool| tool.name == "tasks_create")
+            .unwrap();
+        let description = create.description.as_deref().unwrap_or_default();
+        assert!(
+            description.contains("Active tags (1): refactor"),
+            "{description}"
+        );
+
+        let (_, _, result) = backlog
+            .call_named(
+                "xboct_log_tool_description",
+                json!({"query": "tasks_create"}),
+                None,
+            )
+            .await;
+        let description = result.structured_content.unwrap()["items"][0]["description"]
+            .as_str()
+            .unwrap_or_default()
+            .to_string();
+        assert!(
+            description.contains("Active tags (1): refactor"),
+            "{description}"
+        );
+
+        let hint = mcp_text::active_tags_hint(&backlog.db).await.unwrap();
+        let text = mcp_text::build_instructions(&tool_names(), &everyday_arguments(), &hint);
+        assert!(text.contains("Active tags (1): refactor"), "{text}");
     }
 
     #[tokio::test]
@@ -1131,6 +1259,19 @@ mod tests {
             .description;
         assert_eq!(item["name"], "tasks_delete");
         assert_eq!(item["description"], full);
+
+        let (_, _, result) = backlog
+            .call_named(
+                "xboct_log_tool_description",
+                json!({"query": "tasks_create"}),
+                None,
+            )
+            .await;
+        let payload = result.structured_content.unwrap();
+        let description = payload["items"][0]["description"]
+            .as_str()
+            .unwrap_or_default();
+        assert!(description.contains("Active tags (0)"), "{description}");
 
         let (_, _, result) = backlog
             .call_named(
@@ -1303,9 +1444,10 @@ mod tests {
         }
     }
 
-    #[test]
-    fn every_tool_schema_resolves_its_definitions() {
-        for tool in tools().expect("tool definitions") {
+    #[tokio::test]
+    async fn every_tool_schema_resolves_its_definitions() {
+        let backlog = backlog().await;
+        for tool in tools(&backlog.db).await.expect("tool definitions") {
             assert_refs_resolve(&tool.input_schema, &tool.name);
             if let Some(output) = &tool.output_schema {
                 assert_refs_resolve(output, &tool.name);

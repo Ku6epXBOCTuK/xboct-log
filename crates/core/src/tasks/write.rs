@@ -52,7 +52,7 @@ pub struct NewTask {
     #[serde(default)]
     pub source_file: Option<Option<String>>,
     #[schemars(
-        description = "Tags of the task, optional. They are a closed list: see tags_list and create a missing one with tags_create {name}. Names are lowercased."
+        description = "Tags of the task, optional. Closed dictionary: the Active tags list in the tool description and tags_dictionary show every assignable name; create a genuinely new one with tags_create {name} first, then retry. Names are lowercased."
     )]
     #[serde(default)]
     pub tags: Option<Vec<TagName>>,
@@ -112,7 +112,7 @@ pub struct TaskPatch {
     #[serde(default)]
     pub source_file: Option<Option<String>>,
     #[schemars(
-        description = "Tags of the task, optional; an empty array clears them. They are a closed list: see tags_list and create a missing one with tags_create {name}. Names are lowercased."
+        description = "Tags of the task, optional; an empty array clears them. Closed dictionary: the Active tags list in the tool description and tags_dictionary show every assignable name; create a genuinely new one with tags_create {name} first, then retry. Names are lowercased."
     )]
     #[serde(default)]
     pub tags: Option<Vec<TagName>>,

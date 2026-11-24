@@ -296,7 +296,17 @@ pub async fn validate_tags(db: &Db, tags: &[TagName]) -> Result<()> {
     let options = active
         .iter()
         .map(|name| format!("{name} ({})", usage.get(name).copied().unwrap_or(0)))
-        .take(12)
+        .collect::<Vec<_>>()
+        .join(", ");
+    let hints = unknown
+        .iter()
+        .filter_map(|name| {
+            close_tag(name, &active).map(|match_| format!(" Did you mean '{match_}' for '{name}'?"))
+        })
+        .collect::<String>();
+    let next_steps = unknown
+        .iter()
+        .map(|name| format!("tags_create {{name: \"{name}\"}}"))
         .collect::<Vec<_>>()
         .join(", ");
     let archived_part = if archived.is_empty() {
@@ -309,9 +319,37 @@ pub async fn validate_tags(db: &Db, tags: &[TagName]) -> Result<()> {
     };
 
     Err(AppError::validation(format!(
-        "unknown tag(s): {}. Existing tags: {options}. See tags_list for the full list; create a genuinely new tag with tags_create {{name}}.{archived_part}",
-        unknown.join(", ")
+        "unknown tag(s): {}.{hints} Existing tags: {options} ({} total). Add a genuinely new tag with {next_steps}, then retry the call.{archived_part}",
+        unknown.join(", "),
+        active.len()
     )))
+}
+
+fn close_tag<'a>(name: &str, active: &'a [&str]) -> Option<&'a str> {
+    active
+        .iter()
+        .copied()
+        .filter(|candidate| {
+            let distance = edit_distance(name, candidate);
+            distance > 0 && distance <= 2 && distance < name.len().max(candidate.len())
+        })
+        .min_by_key(|candidate| edit_distance(name, candidate))
+}
+
+fn edit_distance(left: &str, right: &str) -> usize {
+    let mut row: Vec<usize> = (0..=right.len()).collect();
+    for (i, a) in left.bytes().enumerate() {
+        let mut previous = row[0];
+        row[0] = i + 1;
+        for (j, b) in right.bytes().enumerate() {
+            let current = row[j + 1];
+            row[j + 1] = (row[j + 1] + 1)
+                .min(row[j] + 1)
+                .min(previous + usize::from(a != b));
+            previous = current;
+        }
+    }
+    row[right.len()]
 }
 
 #[cfg(test)]
@@ -337,6 +375,15 @@ mod tests {
         );
         assert!(tag_name_error("b ug").is_some());
         assert!(tag_name_error("büg").is_some());
+    }
+
+    #[test]
+    fn suggests_the_closest_tag_for_a_typo() {
+        let active = ["bug", "docs", "tests", "tech-debt"];
+        assert_eq!(close_tag("test", &active), Some("tests"));
+        assert_eq!(close_tag("tech-debts", &active), Some("tech-debt"));
+        assert_eq!(close_tag("refactor", &active), None);
+        assert_eq!(close_tag("bug", &active), None);
     }
 
     #[test]
