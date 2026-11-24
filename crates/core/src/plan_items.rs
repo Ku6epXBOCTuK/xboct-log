@@ -197,7 +197,7 @@ async fn require_plan_item(db: &Db, plan_id: &str, task_id: &str) -> Result<Stri
             .await?;
     if member.is_none() {
         return Err(AppError::validation(format!(
-            "task {key} is not an item of plan {plan_id}"
+            "task {key} is not an item of plan {plan_id}; add it to the plan with plans_items_add, then retry plans_notes_add"
         )));
     }
     Ok(uuid)
@@ -631,6 +631,20 @@ mod tests {
             list_plan_notes(&db, &plan.id).await.expect("notes").len(),
             1
         );
+    }
+
+    #[tokio::test]
+    async fn note_for_a_task_outside_the_plan_names_the_next_step() {
+        let db = open().await;
+        let plan = create_plan(&db, "Roadmap", "", PlanStatus::Active)
+            .await
+            .expect("plan");
+        let err = add_plan_note(&db, &plan.id, "LOG-1", "note")
+            .await
+            .expect_err("note must fail");
+        let message = err.to_string();
+        assert!(message.contains("plans_items_add"), "{message}");
+        assert!(message.contains("retry plans_notes_add"), "{message}");
     }
 
     #[tokio::test]
