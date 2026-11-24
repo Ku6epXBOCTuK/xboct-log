@@ -39,7 +39,34 @@ async fn near_task_keys(db: &Db, project_id: &str, number: i64) -> Result<Vec<St
     Ok(rows.into_iter().map(|(key,)| key).collect())
 }
 
+async fn moved_task_hint(db: &Db, id: &str) -> Result<Option<String>> {
+    let row: Option<(String, String, i64)> = sqlx::query_as(
+        "SELECT tasks.key, tasks.project_id, tasks.deleted_at IS NOT NULL
+         FROM task_move_history history
+         JOIN tasks ON tasks.id = history.task_id
+         WHERE (history.old_key = ? OR history.old_key = ?) LIMIT 1",
+    )
+    .bind(id)
+    .bind(normalize_task_id_input(id))
+    .fetch_optional(db.pool())
+    .await?;
+    let Some((key, project_id, deleted)) = row else {
+        return Ok(None);
+    };
+    let suffix = if deleted == 1 {
+        " (task is deleted)"
+    } else {
+        ""
+    };
+    Ok(Some(format!(
+        "moved to {key} in project {project_id}{suffix}"
+    )))
+}
+
 async fn hint_for_full_id(db: &Db, id: &str) -> Result<Option<String>> {
+    if let Some(hint) = moved_task_hint(db, id).await? {
+        return Ok(Some(hint));
+    }
     let Some((prefix, number)) = id.rsplit_once('-') else {
         return Ok(None);
     };

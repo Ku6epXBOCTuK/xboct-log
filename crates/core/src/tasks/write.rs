@@ -1215,6 +1215,16 @@ pub async fn move_task(db: &Db, id: &str, project_id: &str) -> Result<Task> {
     let mut tx = db.begin().await?;
     let mut moved_key = String::new();
     for key in subtree {
+        sqlx::query(
+            "INSERT INTO task_move_history (old_key, task_id, created_at)
+             SELECT ?, id, ? FROM tasks WHERE key = ?
+             ON CONFLICT (old_key) DO NOTHING",
+        )
+        .bind(&key)
+        .bind(&now)
+        .bind(&key)
+        .execute(&mut *tx)
+        .await?;
         let number = allocate_number_tx(&mut tx, &target_id).await?;
         let new_key = format!("{target_prefix}-{number}");
         if key == source_key.as_str() {

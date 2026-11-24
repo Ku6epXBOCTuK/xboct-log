@@ -443,15 +443,25 @@ try {
 		);
 	});
 	await check("tasks_move", async () => {
+		const oldId = idOf(batchA);
 		const result = ok(
 			await client.callTool("tasks_move", {
-				task_id: idOf(batchA),
+				task_id: oldId,
 				project_id: "aux",
 			}),
 			"tasks_move",
 		);
 		const task = result.item ?? result;
 		assert.equal(task.project_id, "aux");
+
+		const error = failed(
+			await client.callTool("tasks_get", { task_id: oldId }),
+			"old id after tasks_move",
+		);
+		assert.ok(
+			error.message.includes(`moved to ${task.id} in project aux`),
+			`unexpected hint: ${error.message}`,
+		);
 		batchA = task;
 	});
 
