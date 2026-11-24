@@ -643,6 +643,48 @@ test("the plan list filters by status", async ({ page, request }) => {
 	await expect(rows.filter({ hasText: names.cancelled })).toBeVisible();
 });
 
+test("the plan list searches by name and key", async ({ page, request }) => {
+	const alpha = `UI Search Alpha ${suffix}`;
+	const beta = `UI Search Beta ${suffix}`;
+	const betaPlan = await callTool(request, "plans_create", { name: beta });
+	const betaKey = `PL-${parseInt(suffix, 36) + 7000}`;
+	await callTool(request, "plans_update", {
+		plan_id: betaPlan.id,
+		patch: { key: betaKey },
+	});
+	await callTool(request, "plans_create", { name: alpha });
+
+	await page.goto("/plans");
+	const search = page.getByRole("textbox", { name: "Search plans" });
+	const rows = page.locator(".plan-row");
+	const counter = page.locator(".create-wrap .muted");
+	await expect(rows.filter({ hasText: alpha })).toBeVisible();
+	await expect(rows.filter({ hasText: beta })).toBeVisible();
+
+	await search.fill("Search Alpha");
+	await expect(rows.filter({ hasText: alpha })).toBeVisible();
+	await expect(rows.filter({ hasText: beta })).toHaveCount(0);
+	expect(Number((await counter.innerText()).split(" ")[0])).toBe(
+		await rows.count(),
+	);
+
+	await search.fill(betaKey.toLowerCase());
+	await expect(rows.filter({ hasText: beta })).toBeVisible();
+	await expect(rows.filter({ hasText: alpha })).toHaveCount(0);
+	expect(Number((await counter.innerText()).split(" ")[0])).toBe(
+		await rows.count(),
+	);
+
+	await search.fill("no such plan");
+	await expect(page.getByText("No matching plans")).toBeVisible();
+	await expect(page.getByText("Clear search to see other plans")).toBeVisible();
+	await expect(rows).toHaveCount(0);
+
+	await page.getByRole("button", { name: "Clear search" }).click();
+	await expect(rows.filter({ hasText: alpha })).toBeVisible();
+	await expect(rows.filter({ hasText: beta })).toBeVisible();
+});
+
 test("the plan status changes from the detail head", async ({
 	page,
 	request,

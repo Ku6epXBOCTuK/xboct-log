@@ -34,6 +34,7 @@ export interface PlanListInput {
 	include_deleted?: boolean;
 	deleted_only?: boolean;
 	status?: PlanStatus | PlanStatus[];
+	q?: string;
 }
 
 export async function getPlans(

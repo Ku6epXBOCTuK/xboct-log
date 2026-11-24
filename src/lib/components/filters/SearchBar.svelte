@@ -9,9 +9,17 @@
 		value: string;
 		oninput: (value: string) => void;
 		onclear?: () => void;
+		label?: string;
+		placeholder?: string;
 	}
 
-	let { value, oninput, onclear }: Props = $props();
+	let {
+		value,
+		oninput,
+		onclear,
+		label = "Search tasks",
+		placeholder = "Search: text, ID, =29, =LOG-29",
+	}: Props = $props();
 
 	let input = $state<HTMLInputElement | undefined>();
 	const search = createDebouncedValue("");
@@ -59,8 +67,8 @@
 		bind:element={input}
 		value={search.value}
 		oninput={(event) => search.set(event.currentTarget.value)}
-		placeholder="Search: text, ID, =29, =LOG-29"
-		aria-label="Search tasks"
+		{placeholder}
+		aria-label={label}
 	/>
 	{#if search.value !== "" && onclear}
 		<button class="clear-button" onclick={clear} aria-label="Clear search">

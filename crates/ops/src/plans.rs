@@ -24,6 +24,10 @@ pub struct PlansListInput {
         description = "Return only plans with these statuses. Accepts one status or a list."
     )]
     pub status: Option<OneOrList<PlanStatus>>,
+    #[schemars(
+        description = "Keep only plans whose name or short key contains this text, case-insensitively (e.g. q='roadmap', q='PL-1')."
+    )]
+    pub q: Option<String>,
 }
 
 pub struct PlansList;
@@ -53,6 +57,15 @@ impl Op for PlansList {
         if let Some(status) = input.status {
             let statuses = status.into_vec();
             plans.retain(|plan| statuses.contains(&plan.status));
+        }
+        if let Some(q) = input.q {
+            let needle = q.trim().to_lowercase();
+            if !needle.is_empty() {
+                plans.retain(|plan| {
+                    plan.name.to_lowercase().contains(&needle)
+                        || plan.key.to_lowercase().contains(&needle)
+                });
+            }
         }
         plans.sort_by(|a, b| a.name.cmp(&b.name).then_with(|| a.id.cmp(&b.id)));
         let counts = xboct_log_core::count_plan_items(&ctx.db).await?;

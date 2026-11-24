@@ -68,8 +68,10 @@
 				plans={store.plans}
 				activeId={store.activeId}
 				filter={store.statusFilter}
+				query={store.query}
 				onselect={(id) => store.select(id)}
 				onfilter={(filter) => void store.setStatusFilter(filter)}
+				onquery={(query) => void store.setQuery(query)}
 			/>
 			<div class="detail">
 				<PlanDetail {store} />

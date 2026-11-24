@@ -46,6 +46,7 @@ const FILTER_STATUSES: Record<PlanStatusFilter, PlanStatus[] | undefined> = {
 export function createPlanStore() {
 	let plans = $state<PlanWithCounts[]>([]);
 	let statusFilter = $state<PlanStatusFilter>("all");
+	let query = $state("");
 	let selectedId = $state<string | null>(null);
 	let detail = $state<PlanWithCounts | null>(null);
 	let items = $state<Task[]>([]);
@@ -122,7 +123,10 @@ export function createPlanStore() {
 	async function reloadPlans(): Promise<void> {
 		try {
 			plans = await fetchFresh(
-				getPlans({ status: FILTER_STATUSES[statusFilter] }),
+				getPlans({
+					status: FILTER_STATUSES[statusFilter],
+					q: query.trim() === "" ? undefined : query.trim(),
+				}),
 			);
 			failed = false;
 		} catch {
@@ -134,6 +138,11 @@ export function createPlanStore() {
 
 	async function setStatusFilter(filter: PlanStatusFilter): Promise<void> {
 		statusFilter = filter;
+		await reloadPlans();
+	}
+
+	async function setQuery(value: string): Promise<void> {
+		query = value;
 		await reloadPlans();
 	}
 
@@ -229,6 +238,7 @@ export function createPlanStore() {
 			const plan = await createPlan({ name: trimmed });
 			createFailed = false;
 			statusFilter = "all";
+			query = "";
 			selectedId = plan.id;
 			await reloadPlans();
 			return true;
@@ -247,6 +257,7 @@ export function createPlanStore() {
 			const plan = await getPlan({ plan_id: trimmed });
 			openFailed = false;
 			statusFilter = "all";
+			query = "";
 			selectedId = plan.id;
 			await reloadPlans();
 			return true;
@@ -387,6 +398,9 @@ export function createPlanStore() {
 		get statusFilter() {
 			return statusFilter;
 		},
+		get query() {
+			return query;
+		},
 		get activeId() {
 			return activeId;
 		},
@@ -523,6 +537,7 @@ export function createPlanStore() {
 		linkFor,
 		reloadPlans,
 		setStatusFilter,
+		setQuery,
 		changeStatus,
 		loadDetail,
 		create,

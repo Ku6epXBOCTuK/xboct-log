@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PlanWithCounts } from "#lib/api/plans.ts";
+	import SearchBar from "#lib/components/filters/SearchBar.svelte";
 	import type { PlanStatusFilter } from "#lib/state/plans.svelte.ts";
 	import Segmented from "@ku6epxboctuk/ui-kit/components/Segmented.svelte";
 	import PlanRow from "./PlanRow.svelte";
@@ -8,11 +9,14 @@
 		plans: PlanWithCounts[];
 		activeId: string | null;
 		filter: PlanStatusFilter;
+		query: string;
 		onselect: (id: string) => void;
 		onfilter: (filter: PlanStatusFilter) => void;
+		onquery: (query: string) => void;
 	}
 
-	let { plans, activeId, filter, onselect, onfilter }: Props = $props();
+	let { plans, activeId, filter, query, onselect, onfilter, onquery }: Props =
+		$props();
 
 	const options = [
 		{ value: "all", label: "All" },
@@ -23,6 +27,13 @@
 
 <div class="plan-column">
 	<div class="plan-toolbar">
+		<SearchBar
+			value={query}
+			label="Search plans"
+			placeholder="Search plans"
+			oninput={onquery}
+			onclear={() => onquery("")}
+		/>
 		<span class="filter-label">Status</span>
 		<Segmented
 			{options}
@@ -33,13 +44,18 @@
 	</div>
 	{#if plans.length === 0}
 		<div class="empty-state">
-			{filter === "active"
-				? "No active plans"
-				: filter === "closed"
-					? "No closed plans"
-					: "No plans yet"}
-			{#if filter !== "all"}
-				<br />Change the filter to see other plans
+			{#if query.trim() !== ""}
+				No matching plans
+				<br />Clear search to see other plans
+			{:else}
+				{filter === "active"
+					? "No active plans"
+					: filter === "closed"
+						? "No closed plans"
+						: "No plans yet"}
+				{#if filter !== "all"}
+					<br />Change the filter to see other plans
+				{/if}
 			{/if}
 		</div>
 	{:else}

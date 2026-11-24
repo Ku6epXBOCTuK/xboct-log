@@ -88,6 +88,61 @@ async fn plans_list_filters_by_status() {
 }
 
 #[tokio::test]
+async fn plans_list_filters_by_query() {
+    let ctx = context().await;
+    for (name, status) in [
+        ("Alpha One", "backlog"),
+        ("Beta Two", "active"),
+        ("Gamma Three", "done"),
+    ] {
+        call(
+            &ctx,
+            "plans_create",
+            json!({"name": name, "status": status}),
+        )
+        .await;
+    }
+
+    fn names(value: &serde_json::Value) -> Vec<&str> {
+        value["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|item| item["name"].as_str().unwrap())
+            .collect()
+    }
+
+    assert_eq!(
+        names(&call(&ctx, "plans_list", json!({"q": "alpha"})).await),
+        ["Alpha One"]
+    );
+    assert_eq!(
+        names(&call(&ctx, "plans_list", json!({"q": "BETA"})).await),
+        ["Beta Two"]
+    );
+    assert_eq!(
+        names(&call(&ctx, "plans_list", json!({"q": "two"})).await),
+        ["Beta Two"]
+    );
+    assert_eq!(
+        names(&call(&ctx, "plans_list", json!({"q": "  "})).await),
+        ["Alpha One", "Beta Two", "Gamma Three"]
+    );
+    assert_eq!(
+        names(&call(&ctx, "plans_list", json!({"q": "PL-1"})).await),
+        ["Alpha One"]
+    );
+    assert_eq!(
+        names(&call(&ctx, "plans_list", json!({"q": "pl-2"})).await),
+        ["Beta Two"]
+    );
+    assert_eq!(
+        names(&call(&ctx, "plans_list", json!({"q": "a", "status": ["active"]})).await),
+        ["Beta Two"]
+    );
+}
+
+#[tokio::test]
 async fn plan_ops_keep_mixed_items_and_notes_across_moves() {
     let ctx = context().await;
     let plan = call(
