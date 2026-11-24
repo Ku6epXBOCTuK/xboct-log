@@ -5,11 +5,10 @@ use serde_json::{Map, Value};
 use sha2::{Digest, Sha256};
 use sqlx::{QueryBuilder, Sqlite};
 
-use crate::{AppError, DEFAULT_LIMIT, Db, MAX_LIMIT, Result, validate_limit, validate_offset};
+use crate::{AppError, Db, Limit, Offset, Result};
 
 const REDACTED_VALUE: &str = "<omitted>";
 const REDACTED_FIELDS: [&str; 3] = ["description", "body", "content_base64"];
-const EXPORT_LIMIT: i64 = 10000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
@@ -46,33 +45,14 @@ pub struct RequestLogEntry {
     pub duration_ms: i64,
 }
 
-#[derive(Debug, Default, Deserialize, JsonSchema)]
-#[serde(deny_unknown_fields)]
-pub struct RequestLogSearch {
-    #[schemars(description = "Tool name, for example tasks_list.")]
-    #[serde(default)]
+#[derive(Debug, Default)]
+pub struct RequestLogFilter {
     pub op: Option<String>,
-    #[schemars(description = "Only successful or only failed calls.")]
-    #[serde(default)]
     pub status: Option<RequestStatus>,
-    #[schemars(description = "MCP client label.")]
-    #[serde(default)]
     pub client: Option<String>,
-    #[schemars(description = "Fingerprint of the tool name and parameters, for repeated calls.")]
-    #[serde(default)]
     pub params_hash: Option<String>,
-    #[schemars(description = "Start of the period as an ISO date-time.")]
-    #[serde(default)]
     pub from: Option<String>,
-    #[schemars(description = "End of the period as an ISO date-time.")]
-    #[serde(default)]
     pub to: Option<String>,
-    #[schemars(description = "Maximum number of calls to return (default 50, max 200).")]
-    #[serde(default)]
-    pub limit: Option<i64>,
-    #[schemars(description = "Number of calls to skip, for pagination.")]
-    #[serde(default)]
-    pub offset: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, JsonSchema)]
@@ -141,12 +121,6 @@ pub fn params_hash(op: &str, params: &Value) -> String {
     digest.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
-pub fn validate_request_log_search(search: &RequestLogSearch) -> Result<()> {
-    validate_limit(search.limit, DEFAULT_LIMIT, MAX_LIMIT)?;
-    validate_offset(search.offset)?;
-    Ok(())
-}
-
 pub async fn record_request(db: &Db, entry: &RequestLogEntry, now: DateTime<Local>) -> Result<u64> {
     if !db.table_exists("request_log").await? {
         return Ok(0);
@@ -176,23 +150,23 @@ pub async fn record_request(db: &Db, entry: &RequestLogEntry, now: DateTime<Loca
     Ok(result.rows_affected())
 }
 
-fn push_filters(query: &mut QueryBuilder<Sqlite>, search: &RequestLogSearch) {
-    if let Some(op) = &search.op {
+fn push_filters(query: &mut QueryBuilder<Sqlite>, filter: &RequestLogFilter) {
+    if let Some(op) = &filter.op {
         query.push(" AND op = ").push_bind(op.as_str());
     }
-    if let Some(status) = &search.status {
+    if let Some(status) = &filter.status {
         query.push(" AND status = ").push_bind(status.as_str());
     }
-    if let Some(client) = &search.client {
+    if let Some(client) = &filter.client {
         query.push(" AND client = ").push_bind(client.as_str());
     }
-    if let Some(hash) = &search.params_hash {
+    if let Some(hash) = &filter.params_hash {
         query.push(" AND params_hash = ").push_bind(hash.as_str());
     }
-    if let Some(from) = &search.from {
+    if let Some(from) = &filter.from {
         query.push(" AND created_at >= ").push_bind(from.as_str());
     }
-    if let Some(to) = &search.to {
+    if let Some(to) = &filter.to {
         query.push(" AND created_at <= ").push_bind(to.as_str());
     }
 }
@@ -227,24 +201,27 @@ fn to_item(row: Row) -> RequestLogItem {
     }
 }
 
-pub async fn search_request_log(db: &Db, search: &RequestLogSearch) -> Result<RequestLogPage> {
+pub async fn search_request_log(
+    db: &Db,
+    filter: &RequestLogFilter,
+    limit: Limit,
+    offset: Offset,
+) -> Result<RequestLogPage> {
     if !db.table_exists("request_log").await? {
         return Ok(RequestLogPage {
             items: Vec::new(),
             total: 0,
         });
     }
-    let limit = validate_limit(search.limit, DEFAULT_LIMIT, MAX_LIMIT)?;
-    let offset = validate_offset(search.offset)?;
 
     let mut count = QueryBuilder::<Sqlite>::new("SELECT COUNT(*) FROM request_log WHERE 1 = 1");
-    push_filters(&mut count, search);
+    push_filters(&mut count, filter);
     let total: i64 = count.build_query_scalar().fetch_one(db.pool()).await?;
 
     let mut query = QueryBuilder::<Sqlite>::new(
         "SELECT created_at, client, op, params_hash, params, status, error_kind, error_message, duration_ms FROM request_log WHERE 1 = 1",
     );
-    push_filters(&mut query, search);
+    push_filters(&mut query, filter);
     query
         .push(" ORDER BY id DESC LIMIT ")
         .push_bind(limit.get())
@@ -257,19 +234,22 @@ pub async fn search_request_log(db: &Db, search: &RequestLogSearch) -> Result<Re
     })
 }
 
-pub async fn export_request_log(db: &Db, search: &RequestLogSearch) -> Result<RequestLogExport> {
+pub async fn export_request_log(
+    db: &Db,
+    filter: &RequestLogFilter,
+    limit: Limit,
+    offset: Offset,
+) -> Result<RequestLogExport> {
     if !db.table_exists("request_log").await? {
         return Ok(RequestLogExport {
             content: String::new(),
             count: 0,
         });
     }
-    let limit = validate_limit(search.limit, EXPORT_LIMIT, EXPORT_LIMIT)?;
-    let offset = validate_offset(search.offset)?;
     let mut query = QueryBuilder::<Sqlite>::new(
         "SELECT created_at, client, op, params_hash, params, status, error_kind, error_message, duration_ms FROM request_log WHERE 1 = 1",
     );
-    push_filters(&mut query, search);
+    push_filters(&mut query, filter);
     query
         .push(" ORDER BY id ASC LIMIT ")
         .push_bind(limit.get())
@@ -307,9 +287,18 @@ pub async fn prune_request_log(db: &Db, keep_days: i64, now: DateTime<Local>) ->
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_support::scratch_dir;
+    use crate::{
+        DEFAULT_LIMIT, MAX_LIMIT, test_support::scratch_dir, validate_limit, validate_offset,
+    };
     use chrono::TimeZone;
     use serde_json::json;
+
+    fn parts(default: i64, max: i64) -> (Limit, Offset) {
+        (
+            validate_limit(None, default, max).unwrap(),
+            validate_offset(None).unwrap(),
+        )
+    }
 
     fn at(day: u32, hour: u32) -> DateTime<Local> {
         Local
@@ -381,20 +370,20 @@ mod tests {
         failed.error_message = Some("unknown status".to_string());
         record_request(&db, &failed, at(4, 2)).await.unwrap();
 
-        let page = search_request_log(
-            &db,
-            &RequestLogSearch {
-                status: Some(RequestStatus::Error),
-                ..RequestLogSearch::default()
-            },
-        )
-        .await
-        .unwrap();
+        let filter = RequestLogFilter {
+            status: Some(RequestStatus::Error),
+            ..RequestLogFilter::default()
+        };
+        let (limit, offset) = parts(DEFAULT_LIMIT, MAX_LIMIT);
+        let page = search_request_log(&db, &filter, limit, offset)
+            .await
+            .unwrap();
         assert_eq!(page.total, 1);
         assert_eq!(page.items[0].op, "tasks_update");
         assert_eq!(page.items[0].error_kind.as_deref(), Some("validation"));
 
-        let export = export_request_log(&db, &RequestLogSearch::default())
+        let (limit, offset) = parts(10_000, 10_000);
+        let export = export_request_log(&db, &RequestLogFilter::default(), limit, offset)
             .await
             .unwrap();
         assert_eq!(export.count, 2);
@@ -405,6 +394,13 @@ mod tests {
                 .lines()
                 .all(|line| serde_json::from_str::<Value>(line).is_ok())
         );
+
+        let (limit, offset) = parts(1, MAX_LIMIT);
+        let page = search_request_log(&db, &RequestLogFilter::default(), limit, offset)
+            .await
+            .unwrap();
+        assert_eq!(page.total, 2);
+        assert_eq!(page.items.len(), 1);
     }
 
     #[tokio::test]
@@ -418,7 +414,8 @@ mod tests {
             .unwrap();
 
         assert_eq!(prune_request_log(&db, 5, at(20, 1)).await.unwrap(), 1);
-        let page = search_request_log(&db, &RequestLogSearch::default())
+        let (limit, offset) = parts(DEFAULT_LIMIT, MAX_LIMIT);
+        let page = search_request_log(&db, &RequestLogFilter::default(), limit, offset)
             .await
             .unwrap();
         assert_eq!(page.total, 1);

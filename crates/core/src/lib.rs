@@ -89,9 +89,9 @@ pub use projects::{
     update_project,
 };
 pub use request_log::{
-    RequestLogEntry, RequestLogExport, RequestLogItem, RequestLogPage, RequestLogSearch,
+    RequestLogEntry, RequestLogExport, RequestLogFilter, RequestLogItem, RequestLogPage,
     RequestStatus, export_request_log, params_hash, prune_request_log, record_request,
-    redact_params, search_request_log, validate_request_log_search,
+    redact_params, search_request_log,
 };
 pub use restore::{
     RestoreOutcome, SnapshotInfo, inspect_snapshot, resolve_backup, restore_backup,

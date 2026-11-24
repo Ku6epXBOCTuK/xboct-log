@@ -632,3 +632,50 @@ async fn records_attachment_activity_and_clears_it_on_restore() {
     );
     let _ = std::fs::remove_dir_all(&media);
 }
+
+#[tokio::test]
+async fn request_log_limits_follow_the_operation() {
+    let ctx = context().await;
+
+    dispatch(&ctx, "request_log_export", json!({"limit": 10000}))
+        .await
+        .expect("export accepts its maximum");
+    dispatch(&ctx, "request_log_list", json!({"limit": 200}))
+        .await
+        .expect("list accepts its maximum");
+
+    let export = dispatch(&ctx, "request_log_export", json!({"limit": 10001}))
+        .await
+        .unwrap_err();
+    assert_eq!(export.kind(), AppErrorKind::Validation);
+    assert_eq!(export.message(), "limit must be between 1 and 10000");
+
+    let list = dispatch(&ctx, "request_log_list", json!({"limit": 201}))
+        .await
+        .unwrap_err();
+    assert_eq!(list.kind(), AppErrorKind::Validation);
+    assert_eq!(list.message(), "limit must be between 1 and 200");
+}
+
+fn limit_maximum(schema: &serde_json::Value) -> serde_json::Value {
+    let limit = &schema["properties"]["limit"];
+    limit
+        .get("maximum")
+        .cloned()
+        .or_else(|| {
+            limit["anyOf"].as_array().and_then(|variants| {
+                variants
+                    .iter()
+                    .find_map(|variant| variant.get("maximum").cloned())
+            })
+        })
+        .unwrap_or(serde_json::Value::Null)
+}
+
+#[test]
+fn request_log_limit_schemas_match_the_validation_bounds() {
+    let (_, list, _) = xboct_log_ops::operation_schema("request_log_list").unwrap();
+    assert_eq!(limit_maximum(&list), json!(200));
+    let (_, export, _) = xboct_log_ops::operation_schema("request_log_export").unwrap();
+    assert_eq!(limit_maximum(&export), json!(10000));
+}
