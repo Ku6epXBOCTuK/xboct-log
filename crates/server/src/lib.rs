@@ -138,11 +138,9 @@ fn mcp_service(state: &AppState) -> McpService {
     ));
     let mut config = StreamableHttpServerConfig::default();
     config.session_store = Some(store);
-    StreamableHttpService::new(
-        move || Ok(backlog.clone()),
-        Arc::new(LocalSessionManager::default()),
-        config,
-    )
+    let mut manager = LocalSessionManager::default();
+    manager.session_config.keep_alive = Some(Duration::from_secs(60 * 60));
+    StreamableHttpService::new(move || Ok(backlog.clone()), Arc::new(manager), config)
 }
 
 async fn mcp_entry(Extension(service): Extension<McpService>, request: Request<Body>) -> Response {
@@ -164,7 +162,8 @@ async fn mcp_entry(Extension(service): Extension<McpService>, request: Request<B
 const METHOD_NOT_ALLOWED_BODY: &str =
     r#"{"jsonrpc":"2.0","error":{"code":-32000,"message":"Method not allowed."},"id":null}"#;
 
-const SESSION_EXPIRED_BODY: &str = "Not Found: Session expired. Reconnect to the MCP server.";
+const SESSION_EXPIRED_BODY: &str =
+    "Not Found: Session expired. Reconnect is automatic. Repeat the request.";
 const MAX_ERROR_BODY: usize = 64 * 1024;
 const SESSION_ERROR_CONTEXTS: [&str; 4] = [
     "check session",
