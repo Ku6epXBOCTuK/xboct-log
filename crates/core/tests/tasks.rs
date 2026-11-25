@@ -340,6 +340,43 @@ async fn applies_filters_like_the_node_registry() {
     }
 }
 
+#[tokio::test]
+async fn hides_closed_plan_items_by_default_only_for_plans() {
+    let db = database().await;
+    seed_plans(&db).await;
+
+    let all = list_tasks(&db, &filters(json!({}))).await.unwrap();
+    assert_eq!(all.total, 6);
+
+    let explicit = list_tasks(&db, &filters(json!({"unfinished": true})))
+        .await
+        .unwrap();
+    assert_eq!(explicit.total, 5);
+
+    let plan = list_tasks(&db, &filters(json!({"plan_id": "p1"})))
+        .await
+        .unwrap();
+    assert_eq!(plan.total, 2);
+
+    let plan_all = list_tasks(&db, &filters(json!({"plan_id": "p1", "unfinished": false})))
+        .await
+        .unwrap();
+    assert_eq!(plan_all.total, 3);
+
+    let plan_status = list_tasks(&db, &filters(json!({"plan_id": "p1", "status": "done"})))
+        .await
+        .unwrap();
+    assert_eq!(plan_status.total, 1);
+
+    let plan_both = list_tasks(
+        &db,
+        &filters(json!({"plan_id": "p1", "status": "done", "unfinished": true})),
+    )
+    .await
+    .unwrap();
+    assert_eq!(plan_both.total, 0);
+}
+
 #[test]
 fn tells_a_missing_link_filter_from_an_explicit_null() {
     let absent = filters(json!({}));
@@ -619,6 +656,7 @@ async fn seed_plans(db: &Db) {
     for (plan, task, position) in [
         ("p1", "t1", 2048),
         ("p1", "t6", 1024),
+        ("p1", "t3", 512),
         ("p2", "t1", 1024),
         ("p3", "t1", 512),
     ] {
@@ -654,6 +692,13 @@ async fn task_reads_expose_plan_membership_only() {
         2
     );
     assert_eq!(
+        list_tasks(&db, &filters(json!({"plan_id": "p1", "unfinished": false})))
+            .await
+            .unwrap()
+            .total,
+        3
+    );
+    assert_eq!(
         list_tasks(&db, &filters(json!({"plan_id": "p3"})))
             .await
             .unwrap()
@@ -665,14 +710,14 @@ async fn task_reads_expose_plan_membership_only() {
             .await
             .unwrap()
             .total,
-        2
+        3
     );
     assert_eq!(
         list_tasks(&db, &filters(json!({"has_plan": false})))
             .await
             .unwrap()
             .total,
-        4
+        3
     );
 
     let ordered = list_tasks(

@@ -67,6 +67,10 @@ pub struct TaskFilters {
     )]
     pub exclude_project_id: Option<OneOrList<ProjectId>>,
     pub status: Option<OneOrList<Status>>,
+    #[schemars(
+        description = "Drop tasks with status done or cancelled. Explicit true drops them in any query. When plan_id is given and neither status nor unfinished is given, closed items are dropped by default, so plan_id with sort=plan_position returns the next unfinished item in one call; unfinished: false includes closed items. Queries without plan_id keep every status by default."
+    )]
+    pub unfinished: Option<bool>,
     pub priority: Option<OneOrList<Priority>>,
     #[schemars(
         description = "Filter by estimate: one value or a list of them. Tasks without an estimate are not matched."
@@ -204,6 +208,11 @@ fn default_limit() -> u32 {
 }
 
 impl TaskFilters {
+    pub(crate) fn hide_closed(&self) -> bool {
+        self.unfinished == Some(true)
+            || (self.plan_id.is_some() && self.unfinished.is_none() && self.status.is_none())
+    }
+
     pub fn validate(&self) -> Result<()> {
         if self.q_any.as_ref().is_some_and(Vec::is_empty) {
             return Err(AppError::validation("q_any needs at least one term"));

@@ -56,6 +56,7 @@ export interface TaskQuery {
 	project_id?: string | string[];
 	exclude_project_id?: string | string[];
 	status?: Status[];
+	unfinished?: boolean;
 	priority?: Priority[];
 	estimate?: Estimate[];
 	assignee?: string[];

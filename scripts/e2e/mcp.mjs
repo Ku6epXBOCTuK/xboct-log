@@ -1323,6 +1323,56 @@ try {
 			"tasks_close_many",
 		);
 	});
+	await check("tasks_list hides closed items only in plans", async () => {
+		const closed = idOf(blocked);
+		const open = idOf(root);
+		const filterPlan = ok(
+			await client.callTool("plans_create", { name: "E2E closed filter" }),
+			"plans_create closed filter",
+		);
+		ok(
+			await client.callTool("plans_items_add", {
+				plan_id: filterPlan.id,
+				task_id: closed,
+			}),
+			"add closed plan item",
+		);
+		ok(
+			await client.callTool("plans_items_add", {
+				plan_id: filterPlan.id,
+				task_id: open,
+			}),
+			"add open plan item",
+		);
+		const planned = ok(
+			await client.callTool("tasks_list", {
+				plan_id: filterPlan.id,
+				sort: "plan_position",
+			}),
+			"tasks_list plan default",
+		);
+		assert.deepEqual(
+			planned.items.map((item) => item.id),
+			[open],
+		);
+		const plannedAll = ok(
+			await client.callTool("tasks_list", {
+				plan_id: filterPlan.id,
+				sort: "plan_position",
+				unfinished: false,
+			}),
+			"tasks_list plan all",
+		);
+		assert.deepEqual(
+			plannedAll.items.map((item) => item.id),
+			[closed, open],
+		);
+		const other = ok(
+			await client.callTool("tasks_list", { project_id: "e2e" }),
+			"tasks_list other queries",
+		);
+		assert.ok(other.items.some((item) => item.id === closed));
+	});
 	await check("tasks_delete", async () => {
 		ok(
 			await client.callTool("tasks_delete", { task_id: idOf(batchA) }),

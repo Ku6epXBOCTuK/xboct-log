@@ -1,3 +1,4 @@
+import { SvelteMap } from "svelte/reactivity";
 import {
 	type Document,
 	getDocuments,
@@ -22,12 +23,12 @@ import {
 	type Plan,
 	type PlanNote,
 	type PlanPatchInput,
+	type PlanStatus,
 	type PlanWithCounts,
 	removePlanItem,
 	reorderPlanItems,
 	restorePlan,
 	restorePlanNote,
-	type PlanStatus,
 	type TextRevision,
 	updatePlan,
 } from "#lib/api/plans.ts";
@@ -35,7 +36,6 @@ import { getTasks } from "#lib/api/tasks.ts";
 import { taskHref } from "#lib/navigation/href.ts";
 import { planProgress } from "#lib/tasks/plan-progress.ts";
 import type { Task } from "#lib/types.ts";
-import { SvelteMap } from "svelte/reactivity";
 
 export type PlanStatusFilter = "all" | "active" | "closed";
 
@@ -275,6 +275,7 @@ export function createPlanStore(onMutate?: () => void) {
 							plan_id: id,
 							sort: "plan_position",
 							limit: 1000,
+							unfinished: false,
 							include_deleted: true,
 						}),
 					),

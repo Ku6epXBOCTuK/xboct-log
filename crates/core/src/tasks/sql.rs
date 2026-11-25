@@ -151,6 +151,10 @@ fn push_where(qb: &mut QueryBuilder<Sqlite>, filters: &TaskFilters) {
             .collect();
         push_in_text(qb, "tasks.status", &values);
     }
+    if filters.hide_closed() {
+        push_and(qb, &mut first);
+        qb.push("tasks.status NOT IN ('done', 'cancelled')");
+    }
     if let Some(values) = &filters.priority {
         push_and(qb, &mut first);
         let values: Vec<String> = values
