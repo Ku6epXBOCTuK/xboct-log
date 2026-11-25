@@ -28,25 +28,25 @@ Two ways, pick one:
 - **Windows installer** — `xboct-log-<version>-win-x64-setup.exe` from
   [releases](https://github.com/Ku6epXBOCTuK/xboct-log/releases). Installs for
   the current user, no admin rights, adds a Start Menu shortcut. The shortcut
-  starts the server with `--port 45881` and the data folder `%LOCALAPPDATA%\Xboct Log`.
+  starts the server with `--port 45881` and the data folder
+  `%LOCALAPPDATA%\Xboct Log`.
 - **Windows portable zip** — unpack anywhere, double-click
   `xboct-log-portable.cmd`; the data stays in the `data` folder next to the
   launcher.
 
 The binary opens the board in the browser and keeps the database, media, and
 backups in one data folder. The port and the folder have no defaults: an
-instance is the pair, and the server refuses to start without both.
-`--port 0` picks any free port, `--portable` keeps the data next to the
-executable, and `XBOCT_LOG_PORT` / `XBOCT_LOG_DATA` work as well. A port that
-answers with another data folder counts as taken, and the error names both
-folders. Flags: `--data <dir>`, `--port <port>`, `--host <host>`, `--no-open`,
-`--portable`.
+instance is the pair, and the server refuses to start without both. `--port 0`
+picks any free port, `--portable` keeps the data next to the executable, and
+`XBOCT_LOG_PORT` / `XBOCT_LOG_DATA` work as well. A port that answers with
+another data folder counts as taken, and the error names both folders. Flags:
+`--data <dir>`, `--port <port>`, `--host <host>`, `--no-open`, `--portable`.
 
 ## Requirements
 
 - To run a release build: nothing but the download.
-- To run from source: Node.js 26 or newer with pnpm for the SvelteKit build,
-  and the Rust toolchain for the server.
+- To run from source: Node.js 26 or newer with pnpm for the SvelteKit build, and
+  the Rust toolchain for the server.
 
 ## Getting started
 
@@ -55,10 +55,10 @@ pnpm install
 pnpm dev
 ```
 
-`pnpm dev` starts the Rust server on `127.0.0.1:45883` with `./.dev` as the
-data folder (database `./.dev/xboct-log.db`, media and backups next to it),
-turns the scheduled backups off, and proxies `/api`, `/media` and `/mcp` from
-Vite on `127.0.0.1:5173`. The `.dev` directory is gitignored.
+`pnpm dev` starts the Rust server on `127.0.0.1:45883` with `./.dev` as the data
+folder (database `./.dev/xboct-log.db`, media and backups next to it), turns the
+scheduled backups off, and proxies `/api`, `/media` and `/mcp` from Vite on
+`127.0.0.1:5173`. The `.dev` directory is gitignored.
 
 `XBOCT_LOG_DEV_PORT` moves the server to another port. `XBOCT_LOG_DEV_DATA`
 points it at another folder, but the folder must stay inside the repository: a
@@ -73,8 +73,9 @@ pnpm dev:seed
 
 The script copies the newest `*.db` file from `./.dev/seed/` into
 `./.dev/xboct-log.db`. Drop a snapshot into that folder yourself — nothing in
-the repository fetches it from the production host. `pnpm seed:prod --source
-<path>` turns a database into such a snapshot, and the source is always explicit.
+the repository fetches it from the production host.
+`pnpm seed:prod --source <path>` turns a database into such a snapshot, and the
+source is always explicit.
 
 ## Configuration
 
@@ -96,9 +97,9 @@ uses `data` next to the executable. One data folder holds everything:
 | logs     | `<data>/logs/xboct-log.log` |
 | instance | `<data>/instance.json`      |
 
-Each running instance reports a fingerprint of its data folder in
-`/api/health`; a server that finds a different fingerprint on its port stops
-with an error instead of attaching to someone else's data.
+Each running instance reports a fingerprint of its data folder in `/api/health`;
+a server that finds a different fingerprint on its port stops with an error
+instead of attaching to someone else's data.
 
 Database migrations are built into the binary and run on startup.
 
@@ -158,15 +159,16 @@ cannot restore anything: it only reports which snapshots exist.
 
 ## Deployment
 
-The service runs `xboct-log.exe` directly. `pnpm deploy:rust <name>` reads the rest from a per-instance file kept outside
-this repository; `scripts/instance.example` shows the only key, `SERVICE`. Set
+The service runs `xboct-log.exe` directly. `pnpm deploy:rust <name>` reads the
+rest from a per-instance file kept outside this repository;
+`scripts/instance.example` shows the only key, `SERVICE`. Set
 `XBOCT_LOG_INSTANCE_DIR` once to the folder that holds the `<name>.env` files.
 Nothing in the repository names a production port, path or service: the app
 folder, the data folder and the port are read from the service itself.
 
-Replacing the binary means stopping the service, which a regular user may not do,
-so the deploy builds and backs up as usual and then runs one elevated step through
-UAC: stop, replace, start, health check. `-DryRun` needs no elevation.
+Replacing the binary means stopping the service, which a regular user may not
+do, so the deploy builds and backs up as usual and then runs one elevated step
+through UAC: stop, replace, start, health check. `-DryRun` needs no elevation.
 
 ## Scripts
 

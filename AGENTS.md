@@ -1,9 +1,9 @@
 # Agents
 
-This repository is developed next to live instances of the app. Live data is
-not part of the checkout, and this file is the only place in the repository that
-describes the policy around them. Local copies provided by the owner are part
-of the checkout and are governed by "Local copies" below.
+This repository is developed next to live instances of the app. Live data is not
+part of the checkout, and this file is the only place in the repository that
+describes the policy around them. Local copies provided by the owner are part of
+the checkout and are governed by "Local copies" below.
 
 ## Instances
 
@@ -19,12 +19,12 @@ Production instances exist outside this repository. Do not look for them.
 ## Never
 
 - Do not read, copy, query, back up, restore or delete data of a live production
-  instance: its database, media folder, logs, backups or `instance.json`.
-  Local copies are covered below.
+  instance: its database, media folder, logs, backups or `instance.json`. Local
+  copies are covered below.
 - Do not start, stop, restart or deploy a production service.
 - Do not search the machine for production data folders, production settings or
-  a document that describes them. Such a document is kept outside the
-  repository on purpose.
+  a document that describes them. Such a document is kept outside the repository
+  on purpose.
 - Do not put a production port, path or service name into the repository, a test
   fixture or a default value.
 - The deploy scripts read a per-instance `.env` from `XBOCT_LOG_INSTANCE_DIR`.

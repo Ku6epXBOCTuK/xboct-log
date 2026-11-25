@@ -45,7 +45,7 @@
 	},
 	"markdown": {
 		"formatter": {
-			"proseWrap": "preserve",
+			"proseWrap": "always",
 			"indentStyle": "space",
 			"indentWidth": 2
 		}

@@ -22,6 +22,7 @@
 		"check:watch": "pnpm contract:generate && svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"lint": "biome format . && eslint .",
 		"format": "biome format --write .",
+		"format:check": "biome format .",
 		"test:unit": "vitest",
 		"test": "npm run test:unit -- --run",
 		"contract:generate": "node scripts/contract/generate.mjs",
@@ -29,10 +30,11 @@
 		"e2e:ui": "playwright test",
 		"e2e": "pnpm e2e:mcp && pnpm e2e:ui",
 		"deploy:rust": "powershell -ExecutionPolicy Bypass -File scripts/deploy-rust.ps1",
-		"rust:check": "node scripts/rust/check.mjs"
+		"rust:check": "node scripts/rust/check.mjs",
+		"post-check": "goh comments && pnpm run format:check && pnpm run lint && pnpm run check && pnpm run test"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "2.6.4",
+		"@biomejs/biome": "^2.6.8",
 		"@eslint/js": "^10.0.1",
 		"@iconify-json/lucide": "^1.2.143",
 		"@ku6epxboctuk/ui-kit": "link:C:/+XBOCTuK/+life_projects/ui-kit",

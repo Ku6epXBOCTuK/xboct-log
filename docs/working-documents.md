@@ -10,22 +10,21 @@ markdown is a one-time migration per project, not an ongoing import.
 - PRD, architecture, ADR, research, specs and other working notes.
 
 A plan becomes a global `plan`: it has no `project_id`, and its name need not be
-unique. Its items are tasks or epics from any project: the item keeps the
-task's internal id, so a task move changes only the displayed `PREFIX-NNN` key.
-Item order is explicit; use `plans_reorder` with the full key list after all
-items exist. Notes on items are kept in the tracker with their own history.
+unique. Its items are tasks or epics from any project: the item keeps the task's
+internal id, so a task move changes only the displayed `PREFIX-NNN` key. Item
+order is explicit; use `plans_reorder` with the full key list after all items
+exist. Notes on items are kept in the tracker with their own history.
 
 A document stays project-owned and gets its own `PREFIX-DOC-NNN` key (e.g.
-`BRUL-DOC-1`). The `DOC` marker keeps document keys disjoint from task keys:
-a task stays `PREFIX-NNN`, so a bare key from prose can only address one kind
-of entity. Set `source_file` to the original path for provenance only: it is
-not an import identity, several documents may share it, and there is no
-re-import or upsert. Plans may link documents from any project with
-`plans_documents_link`.
+`BRUL-DOC-1`). The `DOC` marker keeps document keys disjoint from task keys: a
+task stays `PREFIX-NNN`, so a bare key from prose can only address one kind of
+entity. Set `source_file` to the original path for provenance only: it is not an
+import identity, several documents may share it, and there is no re-import or
+upsert. Plans may link documents from any project with `plans_documents_link`.
 
-Migrations rewrite existing keys to this format. A database backup taken
-before that migration still holds the old keys; restoring it brings them back
-until the migration runs again.
+Migrations rewrite existing keys to this format. A database backup taken before
+that migration still holds the old keys; restoring it brings them back until the
+migration runs again.
 
 ## What stays in the repository
 
@@ -41,9 +40,10 @@ documents for them.
 Use the existing tools one item at a time; 80 single calls are acceptable. No
 batch, importer or upsert operation is needed.
 
-1. Create documents with `documents_create {project_id, kind, title, body,
-   source_file}`. Pick `kind` from `adr`, `prd`, `architecture`, `research`,
-   `workflow`, `guide`, `spec`; the initial status is `draft`.
+1. Create documents with
+   `documents_create {project_id, kind, title, body,    source_file}`. Pick
+   `kind` from `adr`, `prd`, `architecture`, `research`, `workflow`, `guide`,
+   `spec`; the initial status is `draft`.
 2. Create plans with `plans_create {name, description, status}`. Status is
    manual and is never derived from the statuses of the tasks in the plan.
 3. Add items with `plans_items_add {plan_id, task_id}`, where `task_id` is the
