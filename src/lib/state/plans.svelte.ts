@@ -47,6 +47,35 @@ const FILTER_STATUSES: Record<PlanStatusFilter, PlanStatus[] | undefined> = {
 	closed: ["done", "cancelled"],
 };
 
+function withCounts(
+	plan: Plan,
+	counts: Pick<
+		PlanWithCounts,
+		"tasks_count" | "epics_count" | "closed_tasks_count"
+	>,
+): PlanWithCounts {
+	return { ...plan, ...counts };
+}
+
+function mergePlan(current: PlanWithCounts, updated: Plan): PlanWithCounts {
+	return {
+		...updated,
+		tasks_count: current.tasks_count,
+		epics_count: current.epics_count,
+		closed_tasks_count: current.closed_tasks_count,
+	};
+}
+
+function upsertPlan(
+	list: PlanWithCounts[],
+	plan: PlanWithCounts,
+): PlanWithCounts[] {
+	const next = list.some((item) => item.id === plan.id)
+		? list.map((item) => (item.id === plan.id ? plan : item))
+		: [...list, plan];
+	return next.sort((left, right) => left.name.localeCompare(right.name));
+}
+
 export function createPlanStore(onMutate?: () => void) {
 	let plans = $state<PlanWithCounts[]>([]);
 	let deletedPlans = $state<Plan[]>([]);
@@ -215,8 +244,13 @@ export function createPlanStore(onMutate?: () => void) {
 		statusSaving = true;
 		statusFailed = false;
 		try {
-			await updatePlan({ plan_id: id, patch: { status } });
-			await reloadPlans();
+			const updated = await updatePlan({ plan_id: id, patch: { status } });
+			plans = plans.map((plan) =>
+				plan.id === id ? mergePlan(plan, updated) : plan,
+			);
+			if (detail !== null && detail.id === id)
+				detail = mergePlan(detail, updated);
+			onMutate?.();
 		} catch {
 			detail =
 				detail !== null && detail.id === id
@@ -300,7 +334,15 @@ export function createPlanStore(onMutate?: () => void) {
 			statusFilter = "all";
 			query = "";
 			selectedId = plan.id;
-			await reloadPlans();
+			plans = upsertPlan(
+				plans,
+				withCounts(plan, {
+					tasks_count: 0,
+					epics_count: 0,
+					closed_tasks_count: 0,
+				}),
+			);
+			onMutate?.();
 			return true;
 		} catch {
 			createFailed = true;
@@ -319,7 +361,8 @@ export function createPlanStore(onMutate?: () => void) {
 			statusFilter = "all";
 			query = "";
 			selectedId = plan.id;
-			await reloadPlans();
+			plans = upsertPlan(plans, plan);
+			onMutate?.();
 			return true;
 		} catch {
 			openFailed = true;
@@ -356,10 +399,17 @@ export function createPlanStore(onMutate?: () => void) {
 		fieldSaving = true;
 		fieldFailed = false;
 		try {
-			await updatePlan({ plan_id: id, patch: patchFor(field, value) });
+			const updated = await updatePlan({
+				plan_id: id,
+				patch: patchFor(field, value),
+			});
 			resetEdit();
-			await reloadPlans();
-			await loadDetail(id);
+			plans = plans.map((plan) =>
+				plan.id === id ? mergePlan(plan, updated) : plan,
+			);
+			if (detail !== null && detail.id === id)
+				detail = mergePlan(detail, updated);
+			onMutate?.();
 		} catch {
 			fieldFailed = true;
 		} finally {
@@ -373,7 +423,7 @@ export function createPlanStore(onMutate?: () => void) {
 		itemFailed = false;
 		try {
 			await action();
-			await reloadPlans();
+			onMutate?.();
 		} catch {
 			itemFailed = true;
 		}
@@ -381,32 +431,35 @@ export function createPlanStore(onMutate?: () => void) {
 	}
 
 	async function changeDocuments(
-		action: () => Promise<unknown>,
+		action: () => Promise<Document>,
+		apply: (document: Document) => void,
 	): Promise<void> {
 		if (detail === null) return;
-		const id = detail.id;
 		documentFailed = false;
 		try {
-			await action();
-			await reloadPlans();
+			const document = await action();
+			apply(document);
+			onMutate?.();
 		} catch {
 			documentFailed = true;
 		}
-		await loadDetail(id);
 	}
 
-	async function changeNotes(action: () => Promise<unknown>): Promise<void> {
+	async function changeNotes(
+		action: () => Promise<PlanNote>,
+		apply: (note: PlanNote) => void,
+	): Promise<void> {
 		if (detail === null) return;
-		const id = detail.id;
 		notesFailed = false;
 		revisionNoteId = null;
 		revisions = [];
 		try {
-			await action();
+			const note = await action();
+			apply(note);
+			onMutate?.();
 		} catch {
 			notesFailed = true;
 		}
-		await loadDetail(id);
 	}
 
 	async function showRevisions(noteId: string): Promise<void> {
@@ -445,6 +498,7 @@ export function createPlanStore(onMutate?: () => void) {
 				plan_id: detail.id,
 				task_ids: next.map((item) => item.id),
 			});
+			onMutate?.();
 		} catch {
 			reorderFailed = true;
 			await loadDetail(detail.id);
@@ -639,21 +693,32 @@ export function createPlanStore(onMutate?: () => void) {
 			);
 		},
 		linkDocument(planId: string, id: string) {
-			return changeDocuments(() =>
-				linkDocumentToPlan({ plan_id: planId, document_id: id }),
+			return changeDocuments(
+				() => linkDocumentToPlan({ plan_id: planId, document_id: id }),
+				(document) => {
+					planDocuments = [...planDocuments, document];
+				},
 			);
 		},
 		unlinkDocument(planId: string, id: string) {
-			return changeDocuments(() =>
-				unlinkDocumentFromPlan({ plan_id: planId, document_id: id }),
+			return changeDocuments(
+				() => unlinkDocumentFromPlan({ plan_id: planId, document_id: id }),
+				(document) => {
+					planDocuments = planDocuments.filter(
+						(item) => item.id !== document.id,
+					);
+				},
 			);
 		},
 		async addNote(planId: string, taskId: string, body: string) {
 			const trimmed = body.trim();
 			if (trimmed === "") return;
 			noteDrafts[taskId] = "";
-			await changeNotes(() =>
-				addPlanNote({ plan_id: planId, task_id: taskId, body: trimmed }),
+			await changeNotes(
+				() => addPlanNote({ plan_id: planId, task_id: taskId, body: trimmed }),
+				(note) => {
+					notes = [...notes, note];
+				},
 			);
 		},
 		async editNote(noteId: string, body: string, version: string | null) {
@@ -663,19 +728,35 @@ export function createPlanStore(onMutate?: () => void) {
 			editingNote = null;
 			editingVersion = null;
 			if (editing !== noteId) return;
-			await changeNotes(() =>
-				editPlanNote({
-					note_id: noteId,
-					body: trimmed,
-					expected_edited_at: version,
-				}),
+			await changeNotes(
+				() =>
+					editPlanNote({
+						note_id: noteId,
+						body: trimmed,
+						expected_edited_at: version,
+					}),
+				(note) => {
+					notes = notes.map((item) => (item.id === note.id ? note : item));
+				},
 			);
 		},
 		removeNote(noteId: string) {
-			return changeNotes(() => deletePlanNote({ note_id: noteId }));
+			return changeNotes(
+				() => deletePlanNote({ note_id: noteId }),
+				(note) => {
+					notes = notes.filter((item) => item.id !== note.id);
+					deletedNotes = [...deletedNotes, note];
+				},
+			);
 		},
 		restoreNote(noteId: string) {
-			return changeNotes(() => restorePlanNote({ note_id: noteId }));
+			return changeNotes(
+				() => restorePlanNote({ note_id: noteId }),
+				(note) => {
+					deletedNotes = deletedNotes.filter((item) => item.id !== note.id);
+					notes = [...notes, note];
+				},
+			);
 		},
 		showRevisions,
 		moveItem,
