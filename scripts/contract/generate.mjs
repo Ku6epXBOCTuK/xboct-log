@@ -8,6 +8,7 @@ const root = fileURLToPath(new URL("../..", import.meta.url)).replace(
 	"",
 );
 const scratch = join(root, ".tmp", "contract");
+const target = join(scratch, "target");
 const openapi = join(scratch, "openapi.json");
 const types = join(root, "src", "lib", "api", "schema.d.ts");
 const enums = join(root, "src", "lib", "api", "enums.ts");
@@ -17,6 +18,8 @@ execFileSync(
 	"cargo",
 	[
 		"run",
+		"--target-dir",
+		target,
 		"--quiet",
 		"--locked",
 		"-p",
