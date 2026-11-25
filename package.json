@@ -31,7 +31,7 @@
 		"e2e": "pnpm e2e:mcp && pnpm e2e:ui",
 		"deploy:rust": "powershell -ExecutionPolicy Bypass -File scripts/deploy-rust.ps1",
 		"rust:check": "node scripts/rust/check.mjs",
-		"post-check": "goh comments && pnpm run format:check && pnpm run lint && pnpm run check && pnpm run test"
+		"post-check": "goh comments && pnpm run format:check && just check && pnpm run lint && pnpm run check && pnpm run test"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.6.8",

@@ -757,13 +757,12 @@ fn needs_tags_hint(name: &str) -> bool {
 fn add_tags_hint(schema: &mut Value, hint: &str) {
     match schema {
         Value::Object(map) => {
-            if let Some(properties) = map.get_mut("properties").and_then(Value::as_object_mut) {
-                if let Some(tags) = properties.get_mut("tags").and_then(Value::as_object_mut) {
-                    if let Some(description) = tags.get("description").and_then(Value::as_str) {
-                        let augmented = format!("{description}\n\n{hint}");
-                        tags.insert("description".to_string(), Value::String(augmented));
-                    }
-                }
+            if let Some(properties) = map.get_mut("properties").and_then(Value::as_object_mut)
+                && let Some(tags) = properties.get_mut("tags").and_then(Value::as_object_mut)
+                && let Some(description) = tags.get("description").and_then(Value::as_str)
+            {
+                let augmented = format!("{description}\n\n{hint}");
+                tags.insert("description".to_string(), Value::String(augmented));
             }
             for value in map.values_mut() {
                 add_tags_hint(value, hint);
