@@ -1091,3 +1091,46 @@ test("a failed plan field save keeps the draft and shows the error", async ({
 		page.getByRole("heading", { name: newName, exact: true }),
 	).toBeVisible();
 });
+
+test("a plan is deleted and restored from the plans page", async ({
+	page,
+	request,
+}) => {
+	const name = `UI Delete Restore ${suffix}`;
+	const plan = await callTool(request, "plans_create", { name });
+	await page.goto("/plans");
+
+	const activeRow = page.locator(".plan-row").filter({ hasText: name });
+	await expect(activeRow).toBeVisible();
+	await activeRow.locator(".plan-link").click();
+	await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
+	await page.getByRole("button", { name: "Delete plan" }).click();
+
+	const dialog = page.getByRole("dialog", { name: `Delete ${plan.key}?` });
+	await expect(dialog).toBeVisible();
+	await dialog.getByRole("button", { name: "Cancel" }).click();
+	await expect(dialog).toBeHidden();
+	await expect(activeRow).toBeVisible();
+
+	await page.getByRole("button", { name: "Delete plan" }).click();
+	await dialog.getByRole("button", { name: "Delete", exact: true }).click();
+	await expect(activeRow).toHaveCount(0);
+	const deleted = await callTool(request, "plans_get", { plan_id: plan.id });
+	expect(deleted.deleted_at).not.toBeNull();
+
+	const showDeleted = page.getByRole("checkbox", { name: "Show deleted" });
+	await showDeleted.check();
+	const deletedRow = page
+		.locator(".deleted-plan-row")
+		.filter({ hasText: name });
+	await expect(deletedRow).toBeVisible();
+	await deletedRow.getByRole("button", { name: "Restore" }).click();
+	await expect(deletedRow).toHaveCount(0);
+
+	await showDeleted.uncheck();
+	await expect(
+		page.locator(".plan-row").filter({ hasText: name }),
+	).toBeVisible();
+	const restored = await callTool(request, "plans_get", { plan_id: plan.id });
+	expect(restored.deleted_at).toBeNull();
+});

@@ -9,14 +9,19 @@
 	import { createPlanStore } from "#lib/state/plans.svelte.ts";
 
 	const { fresh } = useBoard();
-	const store = createPlanStore();
+	const store = createPlanStore(() => {
+		void fresh.invalidate(["plans"]);
+	});
 
 	$effect(() => {
 		void store.reloadPlans();
 	});
 
 	$effect(() => {
-		const offPlans = fresh.register("plans", () => void store.reloadPlans());
+		const offPlans = fresh.register("plans", () => {
+			void store.reloadPlans();
+			if (store.showDeleted) void store.reloadDeletedPlans();
+		});
 		const reloadDetail = () => {
 			const id = store.activeId;
 			if (id !== null) return store.loadDetail(id);
@@ -63,19 +68,13 @@
 	{#if !store.loaded}
 		<p class="empty">Loading…</p>
 	{:else}
-		<div class="columns">
-			<PlanList
-				plans={store.plans}
-				activeId={store.activeId}
-				filter={store.statusFilter}
-				query={store.query}
-				onselect={(id) => store.select(id)}
-				onfilter={(filter) => void store.setStatusFilter(filter)}
-				onquery={(query) => void store.setQuery(query)}
-			/>
-			<div class="detail">
-				<PlanDetail {store} />
-			</div>
+		<div class="columns" class:deleted-mode={store.showDeleted}>
+			<PlanList {store} />
+			{#if !store.showDeleted}
+				<div class="detail">
+					<PlanDetail {store} />
+				</div>
+			{/if}
 		</div>
 	{/if}
 </section>
@@ -106,6 +105,10 @@
 		min-height: 0;
 		display: grid;
 		grid-template-columns: calc(var(--ui-space-4) * 20) minmax(0, 1fr);
+	}
+
+	.columns.deleted-mode {
+		grid-template-columns: minmax(0, 1fr);
 	}
 
 	.detail {

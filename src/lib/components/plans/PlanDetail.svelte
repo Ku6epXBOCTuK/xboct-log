@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
+	import ConfirmDialog from "@ku6epxboctuk/ui-kit/components/ConfirmDialog.svelte";
 	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton.svelte";
 	import Pencil from "~icons/lucide/pencil";
 	import type { PlanStore } from "#lib/state/plans.svelte.ts";
@@ -16,6 +17,7 @@
 	}
 
 	let { store }: Props = $props();
+	let confirmingDelete = $state(false);
 </script>
 
 {#if store.detail !== null}
@@ -48,9 +50,35 @@
 			onchange={(status) => void store.changeStatus(status)}
 		/>
 		<PlanKeyEditor {store} {plan} />
+		<Button
+			class="plan-delete"
+			variant="ghost"
+			size="sm"
+			type="button"
+			onclick={() => (confirmingDelete = true)}
+		>
+			Delete plan
+		</Button>
 	</header>
 	<ErrorNote
 		message={store.statusFailed ? "Could not change the plan status" : null}
+	/>
+	<ErrorNote
+		message={store.deleteFailed ? "Could not delete the plan" : null}
+	/>
+	<ConfirmDialog
+		open={confirmingDelete}
+		title={`Delete ${plan.key}?`}
+		body="The plan is hidden, not erased. Its items, notes and document links can be restored."
+		confirmLabel="Delete"
+		cancelLabel="Cancel"
+		disabled={store.deleting}
+		danger
+		onconfirm={() => {
+			confirmingDelete = false;
+			void store.deleteActive();
+		}}
+		oncancel={() => (confirmingDelete = false)}
 	/>
 	{#if store.editedField === "description"}
 		<PlanFieldEditor
@@ -98,6 +126,10 @@
 
 	h2 {
 		margin: 0;
+	}
+
+	:global(.plan-delete) {
+		margin-left: auto;
 	}
 
 	.description-row {

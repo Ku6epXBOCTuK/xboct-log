@@ -10,18 +10,22 @@ import {
 	addPlanItem,
 	addPlanNote,
 	createPlan,
+	deletePlan,
 	deletePlanNote,
 	editPlanNote,
+	getDeletedPlans,
 	getPlan,
 	getPlans,
 	listDeletedPlanNotes,
 	listPlanNoteRevisions,
 	listPlanNotes,
+	type Plan,
 	type PlanNote,
 	type PlanPatchInput,
 	type PlanWithCounts,
 	removePlanItem,
 	reorderPlanItems,
+	restorePlan,
 	restorePlanNote,
 	type PlanStatus,
 	type TextRevision,
@@ -43,8 +47,11 @@ const FILTER_STATUSES: Record<PlanStatusFilter, PlanStatus[] | undefined> = {
 	closed: ["done", "cancelled"],
 };
 
-export function createPlanStore() {
+export function createPlanStore(onMutate?: () => void) {
 	let plans = $state<PlanWithCounts[]>([]);
+	let deletedPlans = $state<Plan[]>([]);
+	let showDeleted = $state(false);
+	let deletedLoaded = $state(false);
 	let statusFilter = $state<PlanStatusFilter>("all");
 	let query = $state("");
 	let selectedId = $state<string | null>(null);
@@ -80,6 +87,11 @@ export function createPlanStore() {
 	let documentFailed = $state(false);
 	let notesFailed = $state(false);
 	let revisionsFailed = $state(false);
+	let deletedFailed = $state(false);
+	let deleting = $state(false);
+	let deleteFailed = $state(false);
+	let restoringId = $state<string | null>(null);
+	let restoreFailed = $state(false);
 
 	const activeId = $derived(selectedId ?? plans[0]?.id ?? null);
 
@@ -134,6 +146,54 @@ export function createPlanStore() {
 		}
 		loaded = true;
 		keepSelectionVisible();
+	}
+
+	async function reloadDeletedPlans(): Promise<void> {
+		try {
+			deletedPlans = await fetchFresh(getDeletedPlans({}));
+			deletedFailed = false;
+		} catch {
+			deletedFailed = true;
+		}
+		deletedLoaded = true;
+	}
+
+	async function setShowDeleted(value: boolean): Promise<void> {
+		showDeleted = value;
+		if (value) await reloadDeletedPlans();
+	}
+
+	async function deleteActive(): Promise<void> {
+		const id = activeId;
+		if (id === null || deleting) return;
+		deleting = true;
+		deleteFailed = false;
+		try {
+			const deleted = await deletePlan({ plan_id: id });
+			plans = plans.filter((plan) => plan.id !== deleted.id);
+			if (selectedId === deleted.id) selectedId = null;
+			if (detail?.id === deleted.id) clearDetail();
+			onMutate?.();
+		} catch {
+			deleteFailed = true;
+		} finally {
+			deleting = false;
+		}
+	}
+
+	async function restore(id: string): Promise<void> {
+		if (restoringId !== null) return;
+		restoringId = id;
+		restoreFailed = false;
+		try {
+			const restored = await restorePlan({ plan_id: id });
+			deletedPlans = deletedPlans.filter((plan) => plan.id !== restored.id);
+			onMutate?.();
+		} catch {
+			restoreFailed = true;
+		} finally {
+			restoringId = null;
+		}
 	}
 
 	async function setStatusFilter(filter: PlanStatusFilter): Promise<void> {
@@ -395,6 +455,18 @@ export function createPlanStore() {
 		get plans() {
 			return plans;
 		},
+		get deletedPlans() {
+			return deletedPlans;
+		},
+		get showDeleted() {
+			return showDeleted;
+		},
+		get deletedLoaded() {
+			return deletedLoaded;
+		},
+		get deletedFailed() {
+			return deletedFailed;
+		},
 		get statusFilter() {
 			return statusFilter;
 		},
@@ -463,6 +535,18 @@ export function createPlanStore() {
 		},
 		get failed() {
 			return failed;
+		},
+		get deleting() {
+			return deleting;
+		},
+		get deleteFailed() {
+			return deleteFailed;
+		},
+		get restoringId() {
+			return restoringId;
+		},
+		get restoreFailed() {
+			return restoreFailed;
 		},
 		get creating() {
 			return creating;
@@ -536,6 +620,10 @@ export function createPlanStore() {
 		deletedNotesFor,
 		linkFor,
 		reloadPlans,
+		reloadDeletedPlans,
+		setShowDeleted,
+		deleteActive,
+		restore,
 		setStatusFilter,
 		setQuery,
 		changeStatus,
