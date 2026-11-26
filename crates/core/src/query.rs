@@ -32,8 +32,20 @@ pub enum Order {
     Desc,
 }
 
-pub(crate) fn like_pattern(term: &str) -> String {
-    format!("%{}%", term.to_lowercase())
+pub(crate) fn push_like(qb: &mut QueryBuilder<Sqlite>, lhs: &str, term: &str) {
+    qb.push(lhs)
+        .push(" LIKE ")
+        .push_bind(like_pattern(term))
+        .push(" ESCAPE '\\'");
+}
+
+fn like_pattern(term: &str) -> String {
+    let escaped = term
+        .to_lowercase()
+        .replace('\\', "\\\\")
+        .replace('%', "\\%")
+        .replace('_', "\\_");
+    format!("%{escaped}%")
 }
 
 pub(crate) fn push_in_text<T: AsRef<str>>(
@@ -51,7 +63,7 @@ pub(crate) fn push_in_text<T: AsRef<str>>(
 
 #[cfg(test)]
 mod tests {
-    use super::{like_pattern, push_in_text};
+    use super::{like_pattern, push_in_text, push_like};
     use sqlx::{QueryBuilder, Sqlite};
 
     #[test]
@@ -60,6 +72,21 @@ mod tests {
         assert_eq!(like_pattern(""), "%%");
         assert_eq!(like_pattern("ПРИВЕТ"), "%привет%");
         assert_eq!(like_pattern("ΟΣ"), "%ος%");
+    }
+
+    #[test]
+    fn escapes_like_metacharacters_in_the_term() {
+        assert_eq!(like_pattern("100%"), "%100\\%%");
+        assert_eq!(like_pattern("a_b"), "%a\\_b%");
+        assert_eq!(like_pattern("a\\b"), "%a\\\\b%");
+        assert_eq!(like_pattern("100%_\\"), "%100\\%\\_\\\\%");
+    }
+
+    #[test]
+    fn pushes_like_with_an_escape_clause() {
+        let mut qb = QueryBuilder::<Sqlite>::new("SELECT 1 WHERE ");
+        push_like(&mut qb, "ULOWER(title)", "a_b");
+        assert_eq!(qb.sql(), "SELECT 1 WHERE ULOWER(title) LIKE ? ESCAPE '\\'");
     }
 
     #[test]

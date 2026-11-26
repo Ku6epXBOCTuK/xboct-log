@@ -11,14 +11,13 @@ use super::model::{
     BlockingInfo, Estimate, Priority, Status, Task, TaskList, TaskListEntry, TaskRow, TaskView,
 };
 use super::resolve::{normalize_task_id_input, resolve_task_id};
-use crate::query::{FieldSelection, like_pattern, push_in_text};
+use crate::query::{FieldSelection, push_in_text, push_like};
 
-const SEARCH_COLUMNS: [&str; 5] = [
-    "ULOWER(tasks.title) LIKE ",
-    "ULOWER(tasks.description) LIKE ",
-    "ULOWER(tasks.key) LIKE ",
-    "ULOWER((SELECT key FROM tasks epic WHERE epic.id = tasks.epic_id)) LIKE ",
-    "EXISTS (SELECT 1 FROM task_tags tt WHERE tt.task_id = tasks.id AND ULOWER(tt.tag) LIKE ",
+const SEARCH_COLUMNS: [&str; 4] = [
+    "ULOWER(tasks.title)",
+    "ULOWER(tasks.description)",
+    "ULOWER(tasks.key)",
+    "ULOWER((SELECT key FROM tasks epic WHERE epic.id = tasks.epic_id))",
 ];
 
 fn push_and(qb: &mut QueryBuilder<Sqlite>, first: &mut bool) {
@@ -40,18 +39,16 @@ fn push_in_int(qb: &mut QueryBuilder<Sqlite>, column: &str, values: &[i64]) {
 }
 
 fn push_search(qb: &mut QueryBuilder<Sqlite>, term: &str) {
-    let pattern = like_pattern(term);
     qb.push("(");
     for (index, column) in SEARCH_COLUMNS.iter().enumerate() {
         if index > 0 {
             qb.push(" OR ");
         }
-        qb.push(*column).push_bind(pattern.clone());
-        if index == SEARCH_COLUMNS.len() - 1 {
-            qb.push(")");
-        }
+        push_like(qb, column, term);
     }
-    qb.push(")");
+    qb.push(" OR EXISTS (SELECT 1 FROM task_tags tt WHERE tt.task_id = tasks.id AND ");
+    push_like(qb, "ULOWER(tt.tag)", term);
+    qb.push("))");
 }
 
 fn exact_values(filters: &TaskFilters) -> (Vec<i64>, Vec<String>) {
@@ -336,8 +333,7 @@ fn push_where(qb: &mut QueryBuilder<Sqlite>, filters: &TaskFilters) {
     }
     if let Some(title) = &filters.title {
         push_and(qb, &mut first);
-        qb.push("ULOWER(tasks.title) LIKE ")
-            .push_bind(like_pattern(title));
+        push_like(qb, "ULOWER(tasks.title)", title);
     }
     if let Some(title) = &filters.title_exact {
         push_and(qb, &mut first);
@@ -347,8 +343,7 @@ fn push_where(qb: &mut QueryBuilder<Sqlite>, filters: &TaskFilters) {
     }
     if let Some(source_file) = &filters.source_file {
         push_and(qb, &mut first);
-        qb.push("ULOWER(tasks.source_file) LIKE ")
-            .push_bind(like_pattern(source_file));
+        push_like(qb, "ULOWER(tasks.source_file)", source_file);
     }
     if let Some(project_archived) = filters.project_archived {
         push_and(qb, &mut first);
@@ -1037,5 +1032,96 @@ mod tests {
         assert_eq!(full, unknown);
         assert_eq!(full["status"], json!("open"));
         assert_eq!(full["description"], json!("Body"));
+    }
+
+    #[tokio::test]
+    async fn task_search_treats_like_metacharacters_literally() {
+        let db = Db::open(":memory:").await.expect("open");
+        db.migrate().await.expect("migrate");
+        sqlx::query(
+            "INSERT INTO projects (id, prefix, name, created_at) VALUES ('log', 'LOG', 'Log', '2026-01-01T00:00:00.000Z')",
+        )
+        .execute(db.pool())
+        .await
+        .expect("project");
+        sqlx::query(
+            "INSERT INTO tags (name, created_at) VALUES ('under_score', '2026-01-01T00:00:00.000Z')",
+        )
+            .execute(db.pool())
+            .await
+            .expect("tag");
+        fn filters(value: serde_json::Value) -> TaskFilters {
+            serde_json::from_value(value).expect("filters")
+        }
+
+        for (number, title, source_file, tagged) in [
+            (1, "100% done", Some("docs/100%.md"), false),
+            (2, "a_b done", Some("docs/a_b.md"), true),
+            (3, "100x done", None, false),
+        ] {
+            let key = format!("LOG-{number}");
+            sqlx::query(
+                "INSERT INTO tasks (id, project_id, number, title, description, status, priority, is_epic, source_file, created_at, updated_at, key)
+                 VALUES (?, 'log', ?, ?, 'body', 'open', 'medium', 0, ?, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z', ?)",
+            )
+            .bind(&key)
+            .bind(number)
+            .bind(title)
+            .bind(source_file)
+            .bind(&key)
+            .execute(db.pool())
+            .await
+            .expect("task");
+            if tagged {
+                sqlx::query("INSERT INTO task_tags (task_id, tag) VALUES (?, 'under_score')")
+                    .bind(&key)
+                    .execute(db.pool())
+                    .await
+                    .expect("task tag");
+            }
+        }
+
+        for (term, expected) in [
+            ("100%", "LOG-1"),
+            ("a_b", "LOG-2"),
+            ("under_score", "LOG-2"),
+        ] {
+            let found = list_tasks(&db, &filters(json!({ "q": term })))
+                .await
+                .expect("q search");
+            assert_eq!(found.total, 1, "term {term}");
+            assert_eq!(
+                serde_json::to_value(&found.items[0]).unwrap()["id"],
+                json!(expected)
+            );
+        }
+
+        let titled = list_tasks(&db, &filters(json!({ "title": "100%" })))
+            .await
+            .expect("title search");
+        assert_eq!(titled.total, 1);
+        assert_eq!(
+            serde_json::to_value(&titled.items[0]).unwrap()["id"],
+            json!("LOG-1")
+        );
+
+        let sources = list_tasks(&db, &filters(json!({ "source_file": "a_b" })))
+            .await
+            .expect("source search");
+        assert_eq!(sources.total, 1);
+        assert_eq!(
+            serde_json::to_value(&sources.items[0]).unwrap()["id"],
+            json!("LOG-2")
+        );
+
+        let any = list_tasks(&db, &filters(json!({ "q_any": ["100%", "a_b"] })))
+            .await
+            .expect("q_any search");
+        assert_eq!(any.total, 2);
+
+        let plain = list_tasks(&db, &filters(json!({ "q": "done" })))
+            .await
+            .expect("plain search");
+        assert_eq!(plain.total, 3);
     }
 }

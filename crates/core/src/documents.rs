@@ -5,7 +5,7 @@ use sqlx::{FromRow, QueryBuilder, Row, sqlite::SqliteRow};
 use crate::{
     AppError, Db, DocumentId, DocumentKey, Limit, Offset, ProjectId, Result, Tx,
     fetch::{fetch_by_id, unexpected},
-    query::{FieldSelection, OneOrList, Order, like_pattern, push_in_text},
+    query::{FieldSelection, OneOrList, Order, push_in_text, push_like},
     resolve_plan_id, validate_limit, validate_offset,
 };
 
@@ -505,26 +505,25 @@ fn push_document_where(
         push_in_text(qb, "d.status", &values);
     }
     if let Some(term) = &query.q {
-        let pattern = like_pattern(term);
-        qb.push(" AND (ULOWER(d.title) LIKE ")
-            .push_bind(pattern.clone())
-            .push(" OR ULOWER(d.key) LIKE ")
-            .push_bind(pattern.clone())
-            .push(" OR ULOWER(COALESCE(d.source_file, '')) LIKE ")
-            .push_bind(pattern)
-            .push(")");
+        qb.push(" AND (");
+        push_like(qb, "ULOWER(d.title)", term);
+        qb.push(" OR ");
+        push_like(qb, "ULOWER(d.key)", term);
+        qb.push(" OR ");
+        push_like(qb, "ULOWER(COALESCE(d.source_file, ''))", term);
+        qb.push(")");
     }
     if let Some(title) = &query.title {
-        qb.push(" AND ULOWER(d.title) LIKE ")
-            .push_bind(like_pattern(title));
+        qb.push(" AND ");
+        push_like(qb, "ULOWER(d.title)", title);
     }
     if let Some(title) = &query.title_exact {
         qb.push(" AND ULOWER(d.title) = ")
             .push_bind(title.to_lowercase());
     }
     if let Some(source) = &query.source_file {
-        qb.push(" AND ULOWER(COALESCE(d.source_file, '')) LIKE ")
-            .push_bind(like_pattern(source));
+        qb.push(" AND ");
+        push_like(qb, "ULOWER(COALESCE(d.source_file, ''))", source);
     }
     if query.deleted_only == Some(true) {
         qb.push(" AND d.deleted_at IS NOT NULL");
@@ -1514,5 +1513,98 @@ mod tests {
             serde_json::to_value(&only_deleted.items[0]).unwrap()["id"],
             beta.id
         );
+    }
+
+    #[tokio::test]
+    async fn document_search_treats_like_metacharacters_literally() {
+        let db = open().await;
+        let percent = create_document(
+            &db,
+            "log",
+            DocumentKind::Adr,
+            "100% done",
+            "body",
+            Some("docs/100%.md"),
+        )
+        .await
+        .expect("percent document");
+        let underscore = create_document(
+            &db,
+            "log",
+            DocumentKind::Adr,
+            "a_b done",
+            "body",
+            Some("docs/a_b.md"),
+        )
+        .await
+        .expect("underscore document");
+        create_document(&db, "log", DocumentKind::Adr, "100x done", "body", None)
+            .await
+            .expect("plain document");
+
+        for (term, expected) in [
+            ("100%", percent.id.as_str()),
+            ("a_b", underscore.id.as_str()),
+        ] {
+            let found = query_documents(
+                &db,
+                None,
+                &DocumentQuery {
+                    q: Some(term.into()),
+                    ..DocumentQuery::default()
+                },
+            )
+            .await
+            .expect("q search");
+            assert_eq!(found.total, 1, "term {term}");
+            assert_eq!(
+                serde_json::to_value(&found.items[0]).unwrap()["id"],
+                expected
+            );
+        }
+
+        let titled = query_documents(
+            &db,
+            None,
+            &DocumentQuery {
+                title: Some("100%".into()),
+                ..DocumentQuery::default()
+            },
+        )
+        .await
+        .expect("title search");
+        assert_eq!(titled.total, 1);
+        assert_eq!(
+            serde_json::to_value(&titled.items[0]).unwrap()["id"],
+            percent.id
+        );
+
+        let sources = query_documents(
+            &db,
+            None,
+            &DocumentQuery {
+                source_file: Some("a_b".into()),
+                ..DocumentQuery::default()
+            },
+        )
+        .await
+        .expect("source search");
+        assert_eq!(sources.total, 1);
+        assert_eq!(
+            serde_json::to_value(&sources.items[0]).unwrap()["id"],
+            underscore.id
+        );
+
+        let plain = query_documents(
+            &db,
+            None,
+            &DocumentQuery {
+                q: Some("done".into()),
+                ..DocumentQuery::default()
+            },
+        )
+        .await
+        .expect("plain search");
+        assert_eq!(plain.total, 3);
     }
 }
