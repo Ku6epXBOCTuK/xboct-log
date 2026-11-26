@@ -173,24 +173,33 @@ async fn name_conflict(
     Ok(row.is_some())
 }
 
+async fn canonical_project_id(db: &Db, id: &ProjectId) -> Result<Option<ProjectId>> {
+    let row: Option<String> =
+        sqlx::query_scalar("SELECT id FROM projects WHERE id = ? COLLATE NOCASE")
+            .bind(id.as_str())
+            .fetch_optional(db.pool())
+            .await?;
+    Ok(row.map(ProjectId::new))
+}
+
 pub async fn create_scope(db: &Db, project_id: &ProjectId, name: &str) -> Result<Scope> {
     let name = name.trim().to_string();
     if name.is_empty() {
         return Err(AppError::validation("scope name is required"));
     }
-    let Some(project) = crate::projects::get_project(db, project_id.as_str()).await? else {
+    let Some(project_id) = canonical_project_id(db, project_id).await? else {
         return Err(AppError::not_found(format!(
             "project {project_id} not found"
         )));
     };
-    if name_conflict(db, &project.id, &name, None).await? {
+    if name_conflict(db, &project_id, &name, None).await? {
         return Err(AppError::conflict(format!(
             "scope \"{name}\" already exists"
         )));
     }
 
     let result = sqlx::query("INSERT INTO scopes (project_id, name, created_at) VALUES (?, ?, ?)")
-        .bind(project.id.as_str())
+        .bind(project_id.as_str())
         .bind(&name)
         .bind(crate::tasks::now_iso())
         .execute(db.pool())

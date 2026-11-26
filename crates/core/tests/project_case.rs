@@ -2,7 +2,7 @@ use serde_json::{Value, json};
 use xboct_log_core::{
     ActivitySearch, Db, DocumentKind, DocumentQuery, NewTask, ProjectId, TagQuery, TaskFilters,
     create_document, create_scope, create_task, ensure_tag, get_project, list_scopes, list_tags,
-    list_tasks, query_documents, search_activity,
+    list_tasks, project_details, query_documents, search_activity,
 };
 
 async fn database() -> Db {
@@ -163,6 +163,44 @@ async fn project_scoped_reads_ignore_case() {
         .expect("documents");
     assert_eq!(lower_documents.total, 1);
     assert_eq!(upper_documents.total, lower_documents.total);
+}
+
+#[tokio::test]
+async fn project_details_reports_scope_counts() {
+    let db = database().await;
+    let area = create_scope(&db, &ProjectId::new("LOG"), "Area")
+        .await
+        .expect("area");
+    let empty = create_scope(&db, &ProjectId::new("log"), "Empty")
+        .await
+        .expect("empty");
+    create_task(
+        &db,
+        task(json!({"project_id": "log", "title": "One", "scope_id": area.id.get()})),
+    )
+    .await
+    .expect("task");
+    create_task(
+        &db,
+        task(json!({"project_id": "log", "title": "Epic", "is_epic": true, "scope_id": area.id.get()})),
+    )
+    .await
+    .expect("epic");
+
+    let project = get_project(&db, "LOG")
+        .await
+        .expect("get")
+        .expect("project");
+    let details = project_details(&db, project).await.expect("details");
+    assert_eq!(details.scope_counts.len(), 2);
+    assert_eq!(details.scope_counts[0].scope_id, area.id);
+    assert_eq!(details.scope_counts[0].name, "Area");
+    assert_eq!(details.scope_counts[0].tasks, 1);
+    assert_eq!(details.scope_counts[0].epics, 1);
+    assert_eq!(details.scope_counts[1].scope_id, empty.id);
+    assert_eq!(details.scope_counts[1].name, "Empty");
+    assert_eq!(details.scope_counts[1].tasks, 0);
+    assert_eq!(details.scope_counts[1].epics, 0);
 }
 
 #[tokio::test]

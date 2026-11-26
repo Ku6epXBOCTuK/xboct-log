@@ -409,23 +409,35 @@ pub async fn project_with_counts(db: &Db, project: Project) -> Result<ProjectWit
     })
 }
 
+async fn scope_counts(db: &Db, project_id: &ProjectId) -> Result<Vec<ScopeCount>> {
+    let rows = sqlx::query_as::<_, (i64, String, i64, i64)>(
+        "SELECT s.id, s.name,
+                COUNT(CASE WHEN t.is_epic = 0 THEN 1 END) AS tasks,
+                COUNT(CASE WHEN t.is_epic = 1 THEN 1 END) AS epics
+         FROM scopes s
+         LEFT JOIN tasks t ON t.scope_id = s.id AND t.deleted_at IS NULL
+         WHERE s.project_id = ? COLLATE NOCASE
+         GROUP BY s.id, s.name
+         ORDER BY s.name",
+    )
+    .bind(project_id.as_str())
+    .fetch_all(db.pool())
+    .await?;
+    Ok(rows
+        .into_iter()
+        .map(|(scope_id, name, tasks, epics)| ScopeCount {
+            scope_id: ScopeId::new(scope_id),
+            name,
+            tasks,
+            epics,
+        })
+        .collect())
+}
+
 pub async fn project_details(db: &Db, project: Project) -> Result<ProjectDetails> {
     let task_counts = count_by_status(db, Some(project.id.as_str()), false).await?;
     let epic_counts = count_by_status(db, Some(project.id.as_str()), true).await?;
-    let counts = crate::scopes::count_tasks_by_scope(db, Some(&project.id)).await?;
-    let scopes = crate::scopes::list_scopes(db, Some(&project.id)).await?;
-    let scope_counts = scopes
-        .into_iter()
-        .map(|scope| {
-            let count = counts.get(&scope.id.get()).copied().unwrap_or_default();
-            ScopeCount {
-                scope_id: scope.id,
-                name: scope.name,
-                tasks: count.tasks,
-                epics: count.epics,
-            }
-        })
-        .collect();
+    let scope_counts = scope_counts(db, &project.id).await?;
     Ok(ProjectDetails {
         project,
         task_counts,
