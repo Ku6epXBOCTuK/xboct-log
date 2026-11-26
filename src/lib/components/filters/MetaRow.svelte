@@ -11,11 +11,11 @@
 		totalCount,
 	} from "#lib/tasks/counts.ts";
 	import type { TagCount } from "#lib/tasks/filter.ts";
-	import type { Scope, Task } from "#lib/types.ts";
+	import type { EpicSummary, Scope } from "#lib/types.ts";
 
 	interface Props {
 		filters: Filters;
-		epics: Task[];
+		epics: EpicSummary[];
 		scopes: Scope[];
 		tags: TagCount[];
 		visibleCount: number;

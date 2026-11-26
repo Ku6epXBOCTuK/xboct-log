@@ -1,9 +1,9 @@
 import {
 	ACTIVE_STATUSES,
 	STATUSES,
+	type EpicSummary,
 	type Project,
 	type Scope,
-	type Task,
 } from "#lib/types.ts";
 
 export type StatusCounts = Record<string, number>;
@@ -46,7 +46,7 @@ export function projectCounts(project: Project): CountGroups {
 
 export function summarize(
 	counts: StatusCounts | undefined,
-	epics: Task[],
+	epics: EpicSummary[],
 ): CountGroups {
 	const fromEpics: StatusCounts = {};
 
@@ -72,7 +72,7 @@ export function totalCount(counts: StatusCounts | undefined): number {
 	return STATUSES.reduce((sum, status) => sum + (counts[status] ?? 0), 0);
 }
 
-export function epicActive(epics: Task[]): number {
+export function epicActive(epics: EpicSummary[]): number {
 	return epics.filter((epic) => ACTIVE_STATUSES.includes(epic.status)).length;
 }
 

@@ -1,6 +1,7 @@
 import { hasLinks, type TaskLinkDraft } from "#lib/tasks/links.ts";
 import {
 	CLOSED_STATUSES,
+	type EpicSummary,
 	type Project,
 	type ProjectFilter,
 	type Scope,
@@ -76,7 +77,7 @@ export function draftHasContent(
 export function fitDraftToProjects(
 	values: TaskFieldValues,
 	projects: Project[],
-	epics: Task[],
+	epics: EpicSummary[],
 	scopes: Scope[],
 	fallbackProject: string,
 ): TaskFieldValues {
@@ -121,10 +122,10 @@ export function advancedFilledCount(values: TaskFieldValues): number {
 }
 
 export function epicsForProject(
-	epics: Task[],
+	epics: EpicSummary[],
 	projectId: ProjectFilter,
 	keepId: string | null = null,
-): Task[] {
+): EpicSummary[] {
 	return epics.filter((epic) => {
 		if (projectId !== null && epic.project_id !== projectId) return false;
 		if (epic.id === keepId) return true;
@@ -133,7 +134,10 @@ export function epicsForProject(
 	});
 }
 
-export function siblingEpics(epics: Task[], selected: Task | null): Task[] {
+export function siblingEpics(
+	epics: EpicSummary[],
+	selected: Task | null,
+): EpicSummary[] {
 	if (selected === null) return [];
 
 	return epicsForProject(epics, selected.project_id, selected.epic_id).filter(

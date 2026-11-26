@@ -4,13 +4,13 @@ use serde::Serialize;
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
 
-use crate::ids::TaskKey;
+use crate::ids::{ProjectId, TaskKey};
 use crate::{AppError, Db, Result, validate_limit, validate_offset};
 
 use super::filters::TaskFilters;
-use super::model::{Status, Task, TaskListEntry, TaskStats};
+use super::model::{EpicSummary, Status, Task, TaskStats};
 use super::resolve::resolve_task_id;
-use super::sql::{list_tasks, list_tasks_unchecked, task_by_key};
+use super::sql::{list_tasks_unchecked, task_by_key};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SearchTerm {
@@ -140,28 +140,31 @@ pub async fn count_children_by_epic(db: &Db) -> Result<BTreeMap<String, BTreeMap
     Ok(counts)
 }
 
+async fn list_epics_for_stats(db: &Db) -> Result<Vec<EpicSummary>> {
+    let rows: Vec<(String, String, String, String)> = sqlx::query_as(
+        "SELECT key, project_id, title, status FROM tasks WHERE is_epic = 1 AND deleted_at IS NULL ORDER BY number ASC",
+    )
+    .fetch_all(db.pool())
+    .await?;
+    Ok(rows
+        .into_iter()
+        .map(|(key, project_id, title, status)| EpicSummary {
+            id: TaskKey::from(key),
+            project_id: ProjectId::from(project_id),
+            title,
+            status: Status::from_db(&status).unwrap_or(Status::Backlog),
+            children_counts: None,
+        })
+        .collect())
+}
+
 pub async fn task_stats(db: &Db) -> Result<TaskStats> {
     let tasks = count_tasks_by_status(db).await?;
     let children = count_children_by_epic(db).await?;
-    let filters: TaskFilters = serde_json::from_value(json!({
-        "is_epic": true,
-        "sort": "number",
-        "order": "asc"
-    }))?;
-    let epics = list_tasks(db, &filters)
-        .await?
-        .items
-        .into_iter()
-        .filter_map(|entry| {
-            let TaskListEntry::Full(mut task) = entry else {
-                return None;
-            };
-            if let Some(counts) = children.get(task.id.as_str()) {
-                task.children_counts = Some(counts.clone());
-            }
-            Some(task)
-        })
-        .collect();
+    let mut epics = list_epics_for_stats(db).await?;
+    for epic in &mut epics {
+        epic.children_counts = children.get(epic.id.as_str()).cloned();
+    }
     Ok(TaskStats { tasks, epics })
 }
 

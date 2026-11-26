@@ -2,14 +2,14 @@ import { getContext, setContext } from "svelte";
 import type { TagPicker } from "#lib/state/tags.svelte.ts";
 import type { TaskFieldValues, TaskPatch } from "#lib/tasks/fields.ts";
 import type { LinkField, TaskLinkDraft } from "#lib/tasks/links.ts";
-import type { Project, Scope, Status, Task } from "#lib/types.ts";
+import type { EpicSummary, Project, Scope, Status, Task } from "#lib/types.ts";
 
 export interface TaskEditor {
 	readonly value: TaskFieldValues;
 	readonly editing: boolean;
 	readonly taskId?: string;
 	readonly repo: string | null;
-	readonly epics: Task[];
+	readonly epics: EpicSummary[];
 	readonly projects: Project[];
 	readonly scopes: Scope[];
 	readonly tagPicker: TagPicker;

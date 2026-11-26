@@ -3,7 +3,7 @@
 	import { openBlocked, openBlockers } from "#lib/tasks/blocking.ts";
 	import { collectEpicProgress } from "#lib/tasks/filter.ts";
 	import type { SortOrder, TaskSortKey } from "#lib/tasks/sort.ts";
-	import type { Project, Task } from "#lib/types.ts";
+	import type { EpicSummary, Project, Task } from "#lib/types.ts";
 	import type { Snippet } from "svelte";
 	import ArrowDown from "~icons/lucide/arrow-down";
 	import ArrowUp from "~icons/lucide/arrow-up";
@@ -14,7 +14,7 @@
 	interface Props {
 		tasks: Task[];
 		allTasks: Task[];
-		epics?: Task[];
+		epics?: EpicSummary[];
 		scopes: ScopeStore;
 		projects: Project[];
 		showProject: boolean;

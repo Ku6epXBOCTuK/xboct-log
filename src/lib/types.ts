@@ -152,6 +152,14 @@ export interface ChangedTaskWithWarnings extends TaskWithChanges {
 
 export type Task = z.infer<typeof taskSchema>;
 
+export interface EpicSummary {
+	id: string;
+	project_id: string;
+	title: string;
+	status: Status;
+	children_counts?: Record<string, number>;
+}
+
 export type TaskAttachment = z.infer<typeof attachmentSchema>;
 
 export type DeletedAttachment = TaskAttachment & {

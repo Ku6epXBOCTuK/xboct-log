@@ -1,4 +1,4 @@
-import { CLOSED_STATUSES, type Task } from "#lib/types.ts";
+import { CLOSED_STATUSES, type EpicSummary } from "#lib/types.ts";
 
 export interface EpicProgress {
 	closed: number;
@@ -21,7 +21,7 @@ export function epicProgress(
 	};
 }
 
-export function openChildren(epic: Task): number {
+export function openChildren(epic: EpicSummary): number {
 	const progress = epicProgress(epic.children_counts);
 	if (progress === null) return 0;
 	return progress.total - progress.closed;

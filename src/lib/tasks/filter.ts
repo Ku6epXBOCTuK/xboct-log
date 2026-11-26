@@ -1,4 +1,4 @@
-import { CLOSED_STATUSES, type Task } from "#lib/types.ts";
+import { CLOSED_STATUSES, type EpicSummary, type Task } from "#lib/types.ts";
 import { type EpicProgress, epicProgress } from "./epic-progress.ts";
 
 export interface TagCount {
@@ -9,7 +9,7 @@ export interface TagCount {
 
 export function collectEpicProgress(
 	tasks: Task[],
-	epics: Task[] = [],
+	epics: EpicSummary[] = [],
 ): Map<string, EpicProgress> {
 	const progress = new Map<string, EpicProgress>();
 

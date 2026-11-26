@@ -16,8 +16,8 @@ pub use links::{
     LinkType, add_blocker, add_link, link_changes, link_task, remove_blocker, remove_link,
 };
 pub use model::{
-    BlockingInfo, Change, Closed, ClosedReason, Created, Deleted, Estimate, Linked, Priority,
-    ReleasedLink, Status, Task, TaskList, TaskListEntry, TaskStats, TaskView, Updated,
+    BlockingInfo, Change, Closed, ClosedReason, Created, Deleted, EpicSummary, Estimate, Linked,
+    Priority, ReleasedLink, Status, Task, TaskList, TaskListEntry, TaskStats, TaskView, Updated,
 };
 pub use resolve::{normalize_task_id_input, resolve_task_id, resolve_task_id_any};
 pub use sql::{count_epic_children_by_status, get_task, list_tasks};

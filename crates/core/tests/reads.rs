@@ -132,6 +132,29 @@ async fn answers_options_and_stats() {
 }
 
 #[tokio::test]
+async fn task_stats_returns_every_epic_past_the_page_budget() {
+    let db = database().await;
+    let description = "x".repeat(1024);
+    for number in 1..=40 {
+        create_task(
+            &db,
+            new_task(json!({
+                "project_id": "log",
+                "title": format!("Epic {number}"),
+                "description": description,
+                "is_epic": true
+            })),
+        )
+        .await
+        .expect("epic");
+    }
+
+    let stats = task_stats(&db).await.expect("stats");
+    assert_eq!(stats.epics.len(), 40);
+    assert_eq!(stats.epics.last().expect("last").id.as_str(), "LOG-40");
+}
+
+#[tokio::test]
 async fn reads_revisions_many_and_deleted() {
     let db = database().await;
     create_task(

@@ -7,14 +7,14 @@ import {
 	type StatusCounts,
 	summarize,
 } from "#lib/tasks/counts.ts";
-import type { Task } from "#lib/types.ts";
+import type { EpicSummary } from "#lib/types.ts";
 
 export function createStatsStore(initial?: {
 	counts?: StatusCounts;
-	epics?: Task[];
+	epics?: EpicSummary[];
 }) {
 	let counts = $state<StatusCounts>(initial?.counts ?? emptyCounts());
-	let epics = $state<Task[]>(initial?.epics ?? []);
+	let epics = $state<EpicSummary[]>(initial?.epics ?? []);
 	let request = 0;
 
 	async function load() {

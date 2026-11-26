@@ -393,9 +393,19 @@ pub struct Linked {
 }
 
 #[derive(Debug, Serialize, JsonSchema)]
+pub struct EpicSummary {
+    pub id: TaskKey,
+    pub project_id: ProjectId,
+    pub title: String,
+    pub status: Status,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub children_counts: Option<BTreeMap<String, i64>>,
+}
+
+#[derive(Debug, Serialize, JsonSchema)]
 pub struct TaskStats {
     pub tasks: BTreeMap<Status, i64>,
-    pub epics: Vec<Task>,
+    pub epics: Vec<EpicSummary>,
 }
 
 #[derive(Debug, Clone, Default)]

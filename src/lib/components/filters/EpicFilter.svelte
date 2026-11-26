@@ -1,11 +1,11 @@
 <script lang="ts">
 	import SingleSelect from "#lib/components/ui/select/SingleSelect.svelte";
-	import type { Task } from "#lib/types.ts";
+	import type { EpicSummary } from "#lib/types.ts";
 	import FolderKanban from "~icons/lucide/folder-kanban";
 
 	interface Props {
 		value: string;
-		epics: Task[];
+		epics: EpicSummary[];
 		countEpic: (epicId: string) => number;
 		countActiveEpic: (epicId: string) => number;
 		onselect: (value: string) => void;
