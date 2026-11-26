@@ -617,6 +617,7 @@ test("the plan list filters by status", async ({ page, request }) => {
 
 	const rows = page.locator(".plan-row");
 	const filter = page.getByRole("radiogroup", { name: "Status filter" });
+	await filter.getByRole("radio", { name: "All" }).click();
 	await expect(rows.filter({ hasText: names.active })).toBeVisible();
 	await expect(rows.filter({ hasText: names.backlog })).toBeVisible();
 	await expect(rows.filter({ hasText: names.done })).toBeVisible();
@@ -712,6 +713,10 @@ test("the plan status changes from the detail head", async ({
 	expect(stored.status).toBe("done");
 
 	await page.reload();
+	await page
+		.getByRole("radiogroup", { name: "Status filter" })
+		.getByRole("radio", { name: "All" })
+		.click();
 	await page
 		.locator(".plan-row")
 		.filter({ hasText: name })

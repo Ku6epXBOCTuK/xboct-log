@@ -1,11 +1,11 @@
 <script lang="ts">
+	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
+	import Checkbox from "@ku6epxboctuk/ui-kit/components/Checkbox.svelte";
+	import Segmented from "@ku6epxboctuk/ui-kit/components/Segmented.svelte";
 	import SearchBar from "#lib/components/filters/SearchBar.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import type { PlanStatusFilter, PlanStore } from "#lib/state/plans.svelte.ts";
 	import { formatDateTime } from "#lib/tasks/display.ts";
-	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
-	import Checkbox from "@ku6epxboctuk/ui-kit/components/Checkbox.svelte";
-	import Segmented from "@ku6epxboctuk/ui-kit/components/Segmented.svelte";
 	import PlanRow from "./PlanRow.svelte";
 
 	interface Props {
@@ -15,8 +15,8 @@
 	let { store }: Props = $props();
 
 	const options = [
-		{ value: "all", label: "All" },
 		{ value: "active", label: "Active" },
+		{ value: "all", label: "All" },
 		{ value: "closed", label: "Closed" },
 	];
 
