@@ -79,6 +79,9 @@ fn scratch_dir() -> PathBuf {
         std::process::id(),
         NEXT.fetch_add(1, Ordering::Relaxed)
     ));
+    if dir.exists() {
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
     std::fs::create_dir_all(&dir).unwrap();
     dir
 }

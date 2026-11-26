@@ -444,6 +444,9 @@ mod tests {
             std::process::id(),
             NEXT_DIR.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
         ));
+        if dir.exists() {
+            std::fs::remove_dir_all(&dir).unwrap();
+        }
         std::fs::create_dir_all(&dir).unwrap();
 
         let db = Db::open(":memory:").await.unwrap();

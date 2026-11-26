@@ -81,6 +81,9 @@ mod tests {
             std::process::id(),
             NEXT_DIR.fetch_add(1, Ordering::Relaxed)
         ));
+        if dir.exists() {
+            std::fs::remove_dir_all(&dir).unwrap();
+        }
         std::fs::create_dir_all(dir.join("_app/immutable")).unwrap();
         std::fs::write(dir.join("index.html"), "<html>spa</html>").unwrap();
         std::fs::write(dir.join("_app/immutable/app.js"), "console.log(1)").unwrap();
