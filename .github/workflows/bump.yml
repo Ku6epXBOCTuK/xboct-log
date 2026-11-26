@@ -27,6 +27,12 @@ jobs:
       - name: Setup Cocogitto
         uses: ./.github/actions/setup-cocogitto
 
+      - name: Setup Rust
+        run: rustup show
+
+      - name: Fetch dependencies
+        run: cargo fetch --locked
+
       - name: Check if bump is needed
         id: check-bump
         run: |
