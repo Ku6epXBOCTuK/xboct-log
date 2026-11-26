@@ -84,6 +84,23 @@ test("markdown fields default to preview for existing content and edit for new c
 	).toBeVisible();
 });
 
+test("the description follows the selected task", async ({ page }) => {
+	await page.goto(`/tasks/project/${project}`);
+	const rowId = (id: string) =>
+		page.locator(`[data-task-id="${id}"] .task-id-text`);
+	await rowId(created.open).click();
+	const panel = page.getByRole("complementary", { name: "Task details" });
+
+	const description = "A task seeded through the rest api";
+	await expect(panel.getByText(description)).toBeVisible();
+
+	await rowId(created.closeable).click();
+	await expect(panel.getByText(description)).toHaveCount(0);
+	await expect(
+		panel.getByRole("textbox", { name: "Description" }),
+	).toBeVisible();
+});
+
 test("task filters narrow the list by status and priority", async ({
 	page,
 }) => {

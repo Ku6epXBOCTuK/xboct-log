@@ -404,15 +404,17 @@
 		/>
 	{/snippet}
 	<div class="panel-body">
-		<TaskEditorFields
-			{editor}
-			title={task.title}
-			titleId={`task-title-${task.id}`}
-			{titleTrailing}
-			ontitlecommit={saveTitle}
-			ontitlefocus={cancelDraft}
-			attachments={attachmentSection}
-		/>
+		{#key task.id}
+			<TaskEditorFields
+				{editor}
+				title={task.title}
+				titleId={`task-title-${task.id}`}
+				{titleTrailing}
+				ontitlecommit={saveTitle}
+				ontitlefocus={cancelDraft}
+				attachments={attachmentSection}
+			/>
+		{/key}
 		{#if task.plan_names && task.plan_names.length > 0}
 			<div class="plan-refs">
 				<span class="plan-refs-label">Plans</span>
