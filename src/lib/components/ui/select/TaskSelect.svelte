@@ -3,7 +3,7 @@
 		isExactTerm,
 		matchesSearch,
 		parseSearchQuery,
-	} from "#lib/tasks/search.ts";
+	} from "#lib/tasks/query/search.ts";
 	import type { Task } from "#lib/types.ts";
 	import Chip from "@ku6epxboctuk/ui-kit/components/Chip.svelte";
 	import Select from "@ku6epxboctuk/ui-kit/components/Select.svelte";

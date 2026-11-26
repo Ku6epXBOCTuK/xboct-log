@@ -3,14 +3,14 @@
 	import FilterBlock from "#lib/components/filters/FilterBlock.svelte";
 	import ScopeFilter from "#lib/components/filters/ScopeFilter.svelte";
 	import TagFilterSelect from "#lib/components/ui/select/TagFilterSelect.svelte";
-	import type { Filters } from "#lib/state/filters.svelte.ts";
+	import type { Filters } from "#lib/state/ui/filters.svelte.ts";
 	import {
 		activeCount,
 		scopeActive,
 		scopeTotal,
 		totalCount,
-	} from "#lib/tasks/counts.ts";
-	import type { TagCount } from "#lib/tasks/filter.ts";
+	} from "#lib/tasks/presentation/counts.ts";
+	import type { TagCount } from "#lib/tasks/progress/filter.ts";
 	import type { EpicSummary, Scope } from "#lib/types.ts";
 
 	interface Props {

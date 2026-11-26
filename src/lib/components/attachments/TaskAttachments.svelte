@@ -2,8 +2,8 @@
 	import AttachmentBody from "#lib/components/attachments/AttachmentBody.svelte";
 	import AttachmentSection from "#lib/components/attachments/AttachmentSection.svelte";
 	import MoveAttachmentDialog from "#lib/components/attachments/MoveAttachmentDialog.svelte";
-	import type { SavedAttachmentsStore } from "#lib/state/attachments.svelte.ts";
-	import { ATTACHMENT_ACCEPT } from "#lib/tasks/attachment-kinds.ts";
+	import type { SavedAttachmentsStore } from "#lib/state/attachments/attachments.svelte.ts";
+	import { ATTACHMENT_ACCEPT } from "#lib/tasks/attachments/attachment-kinds.ts";
 	import type { TaskAttachment } from "#lib/types.ts";
 
 	interface Props {

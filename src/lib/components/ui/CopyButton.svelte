@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { copyText } from "#lib/tasks/clipboard.ts";
+	import { copyText } from "#lib/tasks/presentation/clipboard.ts";
 	import CircleCheck from "~icons/lucide/circle-check";
 	import CircleX from "~icons/lucide/circle-x";
 	import Copy from "~icons/lucide/copy";

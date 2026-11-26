@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { createBackup } from "#lib/api/backups.ts";
-	import { messageOf } from "#lib/tasks/display.ts";
+	import { createBackup } from "#lib/api/workspace/backups.ts";
+	import { messageOf } from "#lib/tasks/presentation/display.ts";
 	import CircleCheck from "~icons/lucide/circle-check";
 	import CircleX from "~icons/lucide/circle-x";
 	import DatabaseBackup from "~icons/lucide/database-backup";

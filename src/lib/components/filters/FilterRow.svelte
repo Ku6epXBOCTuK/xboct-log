@@ -3,7 +3,7 @@
 	import FilterBlock from "#lib/components/filters/FilterBlock.svelte";
 	import PriorityFilter from "#lib/components/filters/PriorityFilter.svelte";
 	import StatusFilter from "#lib/components/filters/StatusFilter.svelte";
-	import type { Filters } from "#lib/state/filters.svelte.ts";
+	import type { Filters } from "#lib/state/ui/filters.svelte.ts";
 	import X from "~icons/lucide/x";
 
 	interface Props {

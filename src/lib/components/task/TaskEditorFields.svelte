@@ -9,8 +9,8 @@
 	import {
 		provideTaskEditor,
 		type TaskEditor,
-	} from "#lib/state/task-editor.ts";
-	import { advancedFilledCount } from "#lib/tasks/fields.ts";
+	} from "#lib/state/tasks/task-editor.ts";
+	import { advancedFilledCount } from "#lib/tasks/fields/fields.ts";
 
 	interface Props {
 		editor: TaskEditor;

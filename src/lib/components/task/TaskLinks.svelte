@@ -1,7 +1,7 @@
 <script lang="ts">
 	import SectionDivider from "#lib/components/ui/SectionDivider.svelte";
 	import TaskSelect from "#lib/components/ui/select/TaskSelect.svelte";
-	import { useTaskEditorSlot } from "#lib/state/task-editor.ts";
+	import { useTaskEditorSlot } from "#lib/state/tasks/task-editor.ts";
 	import Chip from "@ku6epxboctuk/ui-kit/components/Chip.svelte";
 
 	const slot = useTaskEditorSlot();

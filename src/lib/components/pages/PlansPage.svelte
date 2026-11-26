@@ -1,12 +1,12 @@
 <script lang="ts">
 	import AppBar from "#lib/components/layout/AppBar.svelte";
-	import PlanCreateForm from "#lib/components/plans/PlanCreateForm.svelte";
-	import PlanDetail from "#lib/components/plans/PlanDetail.svelte";
-	import PlanList from "#lib/components/plans/PlanList.svelte";
-	import PlanOpenForm from "#lib/components/plans/PlanOpenForm.svelte";
+	import PlanCreateForm from "#lib/components/plans/list/PlanCreateForm.svelte";
+	import PlanDetail from "#lib/components/plans/detail/PlanDetail.svelte";
+	import PlanList from "#lib/components/plans/list/PlanList.svelte";
+	import PlanOpenForm from "#lib/components/plans/list/PlanOpenForm.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import { useBoard } from "#lib/state/board.svelte.ts";
-	import { createPlanStore } from "#lib/state/plans.svelte.ts";
+	import { createPlanStore } from "#lib/state/plans/plans.svelte.ts";
 
 	const { fresh } = useBoard();
 	const store = createPlanStore(() => {

@@ -1,5 +1,8 @@
 <script lang="ts">
-	import { projectCounts, type CountGroups } from "#lib/tasks/counts.ts";
+	import {
+		projectCounts,
+		type CountGroups,
+	} from "#lib/tasks/presentation/counts.ts";
 	import type { Project, ProjectFilter } from "#lib/types.ts";
 	import ProjectItem from "./ProjectItem.svelte";
 	import ProjectRow from "./ProjectRow.svelte";

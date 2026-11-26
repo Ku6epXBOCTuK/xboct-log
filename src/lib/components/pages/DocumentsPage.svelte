@@ -8,13 +8,13 @@
 		type DocumentKind,
 		type DocumentStatus,
 		type TextRevision,
-	} from "#lib/api/documents.ts";
+	} from "#lib/api/plans/documents.ts";
 	import { fetchFresh } from "#lib/api/fresh.ts";
 	import AppBar from "#lib/components/layout/AppBar.svelte";
 	import MarkdownEditor from "#lib/components/markdown/MarkdownEditor.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import { useBoard } from "#lib/state/board.svelte.ts";
-	import { createDocumentStore } from "#lib/state/documents.svelte.ts";
+	import { createDocumentStore } from "#lib/state/workspace/documents.svelte.ts";
 	import { page } from "$app/state";
 	import Plus from "~icons/lucide/plus";
 

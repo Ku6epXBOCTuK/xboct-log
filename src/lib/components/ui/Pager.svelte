@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { pageCount, pageItems } from "#lib/tasks/paging.ts";
+	import { pageCount, pageItems } from "#lib/tasks/query/paging.ts";
 	import ChevronLeft from "~icons/lucide/chevron-left";
 	import ChevronRight from "~icons/lucide/chevron-right";
 

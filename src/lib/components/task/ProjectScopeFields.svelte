@@ -1,12 +1,12 @@
 <script lang="ts">
 	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton.svelte";
 	import SingleSelect from "#lib/components/ui/select/SingleSelect.svelte";
-	import { useTaskEditorSlot } from "#lib/state/task-editor.ts";
+	import { useTaskEditorSlot } from "#lib/state/tasks/task-editor.ts";
 	import {
 		scopeChoices as buildScopeChoices,
 		scopeIdOf,
 		type ScopeChoice,
-	} from "#lib/tasks/scopes.ts";
+	} from "#lib/tasks/fields/scopes.ts";
 	import Plus from "~icons/lucide/plus";
 	import ScopeCreateDialog from "./ScopeCreateDialog.svelte";
 

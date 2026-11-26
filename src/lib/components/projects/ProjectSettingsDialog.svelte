@@ -5,11 +5,11 @@
 	import TextInput from "@ku6epxboctuk/ui-kit/components/TextInput.svelte";
 	import ScopeCreateDialog from "#lib/components/task/ScopeCreateDialog.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
-	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
-	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
-	import type { TaskStore } from "#lib/state/tasks.svelte.ts";
-	import { scopeTotal } from "#lib/tasks/counts.ts";
-	import { messageOf } from "#lib/tasks/display.ts";
+	import type { ProjectStore } from "#lib/state/workspace/projects.svelte.ts";
+	import type { ScopeStore } from "#lib/state/workspace/scopes.svelte.ts";
+	import type { TaskStore } from "#lib/state/tasks/tasks.svelte.ts";
+	import { scopeTotal } from "#lib/tasks/presentation/counts.ts";
+	import { messageOf } from "#lib/tasks/presentation/display.ts";
 	import { INBOX_PROJECT_ID, type Project } from "#lib/types.ts";
 	import Plus from "~icons/lucide/plus";
 	import Trash2 from "~icons/lucide/trash-2";

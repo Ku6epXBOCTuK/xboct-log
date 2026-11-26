@@ -1,6 +1,6 @@
 import { getContext, setContext } from "svelte";
 import { fetchFresh } from "#lib/api/fresh.ts";
-import { getScopedProjectIds, getScopes } from "#lib/api/projects.ts";
+import { getScopedProjectIds, getScopes } from "#lib/api/workspace/projects.ts";
 import { listHref } from "#lib/navigation/href.ts";
 import { parsePath } from "#lib/navigation/paths.ts";
 import {
@@ -8,23 +8,23 @@ import {
 	parseListSearch,
 	withoutListSearch,
 } from "#lib/navigation/search.ts";
-import { createCommentsStore } from "#lib/state/comments.svelte.ts";
-import { createDraftStore } from "#lib/state/draft.svelte.ts";
-import { createEpicProgress } from "#lib/state/epic-progress.svelte.ts";
-import { createFilters } from "#lib/state/filters.svelte.ts";
-import { createHealth } from "#lib/state/health.svelte.ts";
-import { createFreshness } from "#lib/state/live.ts";
-import { createProjectData } from "#lib/state/project-data.svelte.ts";
-import { createProjectStore } from "#lib/state/projects.svelte.ts";
-import { createScopeStore } from "#lib/state/scopes.svelte.ts";
-import { createSelection } from "#lib/state/selection.svelte.ts";
-import { createStatsStore } from "#lib/state/stats.svelte.ts";
-import { createTagStore, type TagEntry } from "#lib/state/tags.svelte.ts";
-import { createTaskStore } from "#lib/state/tasks.svelte.ts";
-import { createTheme, type ThemeName } from "#lib/state/theme.svelte.ts";
-import { createUiStore } from "#lib/state/ui.svelte.ts";
-import { TASK_PAGE_SIZE } from "#lib/tasks/paging.ts";
-import { buildTaskQuery } from "#lib/tasks/query.ts";
+import { createCommentsStore } from "#lib/state/tasks/comments.svelte.ts";
+import { createDraftStore } from "#lib/state/drafts/draft.svelte.ts";
+import { createEpicProgress } from "#lib/state/workspace/epic-progress.svelte.ts";
+import { createFilters } from "#lib/state/ui/filters.svelte.ts";
+import { createHealth } from "#lib/state/connection/health.svelte.ts";
+import { createFreshness } from "#lib/state/connection/live.ts";
+import { createProjectData } from "#lib/state/workspace/project-data.svelte.ts";
+import { createProjectStore } from "#lib/state/workspace/projects.svelte.ts";
+import { createScopeStore } from "#lib/state/workspace/scopes.svelte.ts";
+import { createSelection } from "#lib/state/tasks/selection.svelte.ts";
+import { createStatsStore } from "#lib/state/workspace/stats.svelte.ts";
+import { createTagStore, type TagEntry } from "#lib/state/tags/tags.svelte.ts";
+import { createTaskStore } from "#lib/state/tasks/tasks.svelte.ts";
+import { createTheme, type ThemeName } from "#lib/state/ui/theme.svelte.ts";
+import { createUiStore } from "#lib/state/ui/ui.svelte.ts";
+import { TASK_PAGE_SIZE } from "#lib/tasks/query/paging.ts";
+import { buildTaskQuery } from "#lib/tasks/query/query.ts";
 import {
 	ENTITIES,
 	type Project,

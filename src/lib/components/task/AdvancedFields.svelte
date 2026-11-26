@@ -1,10 +1,10 @@
 <script lang="ts">
 	import TextInput from "@ku6epxboctuk/ui-kit/components/TextInput.svelte";
 	import SingleSelect from "#lib/components/ui/select/SingleSelect.svelte";
-	import { useTaskEditorSlot } from "#lib/state/task-editor.ts";
-	import { toSourceFile, validateTaskDraft } from "#lib/tasks/fields.ts";
+	import { useTaskEditorSlot } from "#lib/state/tasks/task-editor.ts";
+	import { toSourceFile, validateTaskDraft } from "#lib/tasks/fields/fields.ts";
 	import { ESTIMATES, type Estimate } from "#lib/types.ts";
-	import { normalizeDueDate } from "#lib/tasks/display.ts";
+	import { normalizeDueDate } from "#lib/tasks/presentation/display.ts";
 
 	const slot = useTaskEditorSlot();
 	const editor = $derived(slot.current);

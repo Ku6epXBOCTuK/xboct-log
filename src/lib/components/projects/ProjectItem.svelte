@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from "svelte";
 	import InfoPopover from "@ku6epxboctuk/ui-kit/components/InfoPopover.svelte";
-	import type { CountGroups } from "#lib/tasks/counts.ts";
+	import type { CountGroups } from "#lib/tasks/presentation/counts.ts";
 
 	interface Props {
 		active: boolean;

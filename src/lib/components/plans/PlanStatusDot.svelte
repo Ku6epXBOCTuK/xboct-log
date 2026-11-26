@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { PlanStatus } from "#lib/api/plans.ts";
+	import type { PlanStatus } from "#lib/api/plans/plans.ts";
 
 	interface Props {
 		status: PlanStatus;

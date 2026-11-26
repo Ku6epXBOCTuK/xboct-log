@@ -6,7 +6,7 @@
 		moveTaskAttachment,
 		purgeTaskAttachment,
 		restoreTaskAttachment,
-	} from "#lib/api/attachments.ts";
+	} from "#lib/api/tasks/attachments.ts";
 	import { fetchFresh } from "#lib/api/fresh.ts";
 	import MoveAttachmentDialog from "#lib/components/attachments/MoveAttachmentDialog.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
@@ -14,8 +14,8 @@
 	import { openExternal } from "#lib/host/embed.ts";
 	import { deletedMediaHref } from "#lib/navigation/href.ts";
 	import { useBoard } from "#lib/state/board.svelte.ts";
-	import { formatSize, isImage } from "#lib/tasks/attachments.ts";
-	import { formatDate, messageOf } from "#lib/tasks/display.ts";
+	import { formatSize, isImage } from "#lib/tasks/attachments/attachments.ts";
+	import { formatDate, messageOf } from "#lib/tasks/presentation/display.ts";
 	import type { DeletedAttachment } from "#lib/types.ts";
 	import ArchiveRestore from "~icons/lucide/archive-restore";
 	import ArrowRightLeft from "~icons/lucide/arrow-right-left";

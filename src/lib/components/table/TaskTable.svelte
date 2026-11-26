@@ -1,8 +1,8 @@
 <script lang="ts">
-	import type { ScopeStore } from "#lib/state/scopes.svelte.ts";
-	import { openBlocked, openBlockers } from "#lib/tasks/blocking.ts";
-	import { collectEpicProgress } from "#lib/tasks/filter.ts";
-	import type { SortOrder, TaskSortKey } from "#lib/tasks/sort.ts";
+	import type { ScopeStore } from "#lib/state/workspace/scopes.svelte.ts";
+	import { openBlocked, openBlockers } from "#lib/tasks/relations/blocking.ts";
+	import { collectEpicProgress } from "#lib/tasks/progress/filter.ts";
+	import type { SortOrder, TaskSortKey } from "#lib/tasks/query/sort.ts";
 	import type { EpicSummary, Project, Task } from "#lib/types.ts";
 	import type { Snippet } from "svelte";
 	import ArrowDown from "~icons/lucide/arrow-down";

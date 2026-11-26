@@ -2,7 +2,7 @@
 	import AttachmentItem from "#lib/components/attachments/AttachmentItem.svelte";
 	import AttachmentList from "#lib/components/attachments/AttachmentList.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
-	import type { AttachmentEntry } from "#lib/tasks/attachments.ts";
+	import type { AttachmentEntry } from "#lib/tasks/attachments/attachments.ts";
 
 	interface Props {
 		items: AttachmentEntry[];

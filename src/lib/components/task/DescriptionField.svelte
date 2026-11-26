@@ -1,7 +1,7 @@
 <script lang="ts">
 	import MarkdownEditor from "#lib/components/markdown/MarkdownEditor.svelte";
 	import CopyButton from "#lib/components/ui/CopyButton.svelte";
-	import { useTaskEditorSlot } from "#lib/state/task-editor.ts";
+	import { useTaskEditorSlot } from "#lib/state/tasks/task-editor.ts";
 	import { untrack } from "svelte";
 
 	const slot = useTaskEditorSlot();

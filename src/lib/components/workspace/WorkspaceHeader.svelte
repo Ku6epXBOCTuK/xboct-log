@@ -3,7 +3,7 @@
 	import MetaRow from "#lib/components/filters/MetaRow.svelte";
 	import SearchBar from "#lib/components/filters/SearchBar.svelte";
 	import { useBoard } from "#lib/state/board.svelte.ts";
-	import { epicsForProject } from "#lib/tasks/fields.ts";
+	import { epicsForProject } from "#lib/tasks/fields/fields.ts";
 
 	const { tasks, filters, scopes, stats, tags: tagStore } = useBoard();
 

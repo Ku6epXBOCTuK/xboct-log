@@ -1,6 +1,9 @@
 <script lang="ts">
-	import { applyBackup, inspectBackup } from "#lib/api/backups.ts";
-	import { formatDateTime, messageOf } from "#lib/tasks/display.ts";
+	import { applyBackup, inspectBackup } from "#lib/api/workspace/backups.ts";
+	import {
+		formatDateTime,
+		messageOf,
+	} from "#lib/tasks/presentation/display.ts";
 	import type { BackupItem, RestoreOutcome, SnapshotInfo } from "#lib/types.ts";
 	import TriangleAlert from "~icons/lucide/triangle-alert";
 

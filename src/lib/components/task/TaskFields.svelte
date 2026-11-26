@@ -5,8 +5,8 @@
 	import DescriptionField from "#lib/components/task/DescriptionField.svelte";
 	import InfoPopover from "@ku6epxboctuk/ui-kit/components/InfoPopover.svelte";
 	import SingleSelect from "#lib/components/ui/select/SingleSelect.svelte";
-	import { useTaskEditorSlot } from "#lib/state/task-editor.ts";
-	import { STATUS_LABELS } from "#lib/tasks/display.ts";
+	import { useTaskEditorSlot } from "#lib/state/tasks/task-editor.ts";
+	import { STATUS_LABELS } from "#lib/tasks/presentation/display.ts";
 	import {
 		BLOCKED_REASON_MAX_LENGTH,
 		PRIORITIES,

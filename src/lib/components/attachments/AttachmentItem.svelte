@@ -9,7 +9,7 @@
 		formatSize,
 		isImage,
 		type AttachmentEntry,
-	} from "#lib/tasks/attachments.ts";
+	} from "#lib/tasks/attachments/attachments.ts";
 	import ArrowRightLeft from "~icons/lucide/arrow-right-left";
 	import Paperclip from "~icons/lucide/paperclip";
 	import Trash2 from "~icons/lucide/trash-2";

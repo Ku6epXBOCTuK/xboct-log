@@ -5,7 +5,10 @@
 	import TagList from "#lib/components/tags/TagList.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import { useBoard } from "#lib/state/board.svelte.ts";
-	import { createTagPage, provideTagPage } from "#lib/state/tag-page.svelte.ts";
+	import {
+		createTagPage,
+		provideTagPage,
+	} from "#lib/state/tags/tag-page.svelte.ts";
 
 	const { tags } = useBoard();
 

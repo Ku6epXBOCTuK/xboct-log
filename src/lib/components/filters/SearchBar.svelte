@@ -1,7 +1,7 @@
 <script lang="ts">
 	import TextInput from "@ku6epxboctuk/ui-kit/components/TextInput.svelte";
 	import { isTypingTarget, matchesHotkey } from "#lib/hotkeys/hotkeys.ts";
-	import { createDebouncedValue } from "#lib/state/debounce.svelte.ts";
+	import { createDebouncedValue } from "#lib/state/ui/debounce.svelte.ts";
 	import Search from "~icons/lucide/search";
 	import X from "~icons/lucide/x";
 

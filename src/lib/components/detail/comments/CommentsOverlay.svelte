@@ -1,0 +1,76 @@
+<script lang="ts">
+	import PanelOverlay from "#lib/components/detail/panel/PanelOverlay.svelte";
+	import TaskComments from "#lib/components/detail/comments/TaskComments.svelte";
+	import MarkdownView from "#lib/components/markdown/MarkdownView.svelte";
+	import StatusDot from "#lib/components/ui/StatusDot.svelte";
+	import { useBoard } from "#lib/state/board.svelte.ts";
+	import { useTaskPanel } from "#lib/state/tasks/task-panel.ts";
+	import { STATUS_LABELS } from "#lib/tasks/presentation/display.ts";
+	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton.svelte";
+	import RefreshCw from "~icons/lucide/refresh-cw";
+
+	const { comments } = useBoard();
+	const panel = useTaskPanel();
+	const task = $derived(panel.task);
+</script>
+
+<PanelOverlay
+	title="Comments"
+	label="Task comments"
+	onback={panel.closeComments}
+	onclose={panel.close}
+>
+	{#snippet actions()}
+		<IconButton
+			label="Reload comments"
+			title="Reload comments"
+			onclick={() => {
+				void comments.load(task.id).catch(() => {});
+			}}
+		>
+			<RefreshCw />
+		</IconButton>
+	{/snippet}
+	<div class="task-summary">
+		<div class="summary-title">{task.title}</div>
+		<div class="summary-meta">
+			<span class="epic-badge">{task.id}</span>
+			<StatusDot status={task.status} />
+			<span>{STATUS_LABELS[task.status]}</span>
+		</div>
+		{#if task.description.trim() !== ""}
+			<div class="summary-description">
+				<MarkdownView text={task.description} repo={panel.repo} />
+			</div>
+		{/if}
+	</div>
+	<TaskComments taskId={task.id} {comments} repo={panel.repo} />
+</PanelOverlay>
+
+<style>
+	.task-summary {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+		padding-bottom: var(--space-4);
+		border-bottom: 1px solid var(--border);
+	}
+
+	.summary-title {
+		font-size: var(--text-lg);
+		font-weight: 600;
+		line-height: 1.3;
+	}
+
+	.summary-meta {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		color: var(--text-muted);
+		font-size: var(--text-sm);
+	}
+
+	.summary-description {
+		margin: 0;
+	}
+</style>

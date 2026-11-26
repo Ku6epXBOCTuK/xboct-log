@@ -8,8 +8,12 @@
 	import EpicBadge from "#lib/components/table/EpicBadge.svelte";
 	import CopyButton from "#lib/components/ui/CopyButton.svelte";
 	import StatusDot from "#lib/components/ui/StatusDot.svelte";
-	import { formatDate, localToday, STATUS_LABELS } from "#lib/tasks/display.ts";
-	import type { EpicProgress } from "#lib/tasks/epic-progress.ts";
+	import {
+		formatDate,
+		localToday,
+		STATUS_LABELS,
+	} from "#lib/tasks/presentation/display.ts";
+	import type { EpicProgress } from "#lib/tasks/progress/epic-progress.ts";
 	import { CLOSED_STATUSES, type Scope, type Task } from "#lib/types.ts";
 	import Paperclip from "~icons/lucide/paperclip";
 

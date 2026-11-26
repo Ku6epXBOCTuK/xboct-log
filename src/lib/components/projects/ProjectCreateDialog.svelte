@@ -10,8 +10,8 @@
 		slugifyProjectId,
 		uniqueProjectId,
 	} from "#lib/projects/create.ts";
-	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
-	import { messageOf } from "#lib/tasks/display.ts";
+	import type { ProjectStore } from "#lib/state/workspace/projects.svelte.ts";
+	import { messageOf } from "#lib/tasks/presentation/display.ts";
 
 	interface Props {
 		open: boolean;

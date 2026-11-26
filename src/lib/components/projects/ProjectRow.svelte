@@ -1,6 +1,6 @@
 <script lang="ts">
 	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton.svelte";
-	import type { CountGroups } from "#lib/tasks/counts.ts";
+	import type { CountGroups } from "#lib/tasks/presentation/counts.ts";
 	import { INBOX_PROJECT_ID, type Project } from "#lib/types.ts";
 	import Settings from "~icons/lucide/settings";
 	import Trash from "~icons/lucide/trash";

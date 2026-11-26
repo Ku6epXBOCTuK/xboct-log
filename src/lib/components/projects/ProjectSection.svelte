@@ -2,7 +2,7 @@
 	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import { useBoard } from "#lib/state/board.svelte.ts";
-	import { messageOf } from "#lib/tasks/display.ts";
+	import { messageOf } from "#lib/tasks/presentation/display.ts";
 	import type { Project } from "#lib/types.ts";
 	import ChevronDown from "~icons/lucide/chevron-down";
 	import Plus from "~icons/lucide/plus";

@@ -2,8 +2,8 @@ import {
 	getProjects,
 	getScopedProjectIds,
 	getScopes,
-} from "#lib/api/projects.ts";
-import { getTagDictionary, getTags } from "#lib/api/tags.ts";
+} from "#lib/api/workspace/projects.ts";
+import { getTagDictionary, getTags } from "#lib/api/workspace/tags.ts";
 import type { LayoutLoad } from "./$types";
 
 export const ssr = false;

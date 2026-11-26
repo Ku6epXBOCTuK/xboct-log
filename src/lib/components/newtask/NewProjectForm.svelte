@@ -2,8 +2,8 @@
 	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
 	import TextInput from "@ku6epxboctuk/ui-kit/components/TextInput.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
-	import type { ProjectStore } from "#lib/state/projects.svelte.ts";
-	import { messageOf } from "#lib/tasks/display.ts";
+	import type { ProjectStore } from "#lib/state/workspace/projects.svelte.ts";
+	import { messageOf } from "#lib/tasks/presentation/display.ts";
 	import type { Project } from "#lib/types.ts";
 
 	interface Props {

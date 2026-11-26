@@ -3,8 +3,8 @@
 	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
 	import Modal from "@ku6epxboctuk/ui-kit/components/Modal.svelte";
 	import TextInput from "@ku6epxboctuk/ui-kit/components/TextInput.svelte";
-	import { messageOf } from "#lib/tasks/display.ts";
-	import { scopeNameError } from "#lib/tasks/scopes.ts";
+	import { messageOf } from "#lib/tasks/presentation/display.ts";
+	import { scopeNameError } from "#lib/tasks/fields/scopes.ts";
 
 	interface Props {
 		open: boolean;

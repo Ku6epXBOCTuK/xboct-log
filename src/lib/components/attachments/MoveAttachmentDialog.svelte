@@ -1,7 +1,7 @@
 <script lang="ts">
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
-	import { createTaskFinder } from "#lib/state/task-finder.svelte.ts";
-	import { messageOf } from "#lib/tasks/display.ts";
+	import { createTaskFinder } from "#lib/state/tasks/task-finder.svelte.ts";
+	import { messageOf } from "#lib/tasks/presentation/display.ts";
 	import type { Task } from "#lib/types.ts";
 	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
 	import Checkbox from "@ku6epxboctuk/ui-kit/components/Checkbox.svelte";

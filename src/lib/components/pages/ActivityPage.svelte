@@ -1,13 +1,13 @@
 <script lang="ts">
-	import type { ActivityOp } from "#lib/api/activity.ts";
-	import { listActivityLog } from "#lib/api/activity.ts";
+	import type { ActivityOp } from "#lib/api/tasks/activity.ts";
+	import { listActivityLog } from "#lib/api/tasks/activity.ts";
 	import { fetchFresh } from "#lib/api/fresh.ts";
 	import ActivityFilters from "#lib/components/activity/ActivityFilters.svelte";
 	import ActivityTable from "#lib/components/activity/ActivityTable.svelte";
 	import AppBar from "#lib/components/layout/AppBar.svelte";
 	import Pager from "#lib/components/ui/Pager.svelte";
 	import { useBoard } from "#lib/state/board.svelte.ts";
-	import { createPagedQuery } from "#lib/state/paged.svelte.ts";
+	import { createPagedQuery } from "#lib/state/ui/paged.svelte.ts";
 	import type {
 		ActivityEntity,
 		ActivityLogItem,

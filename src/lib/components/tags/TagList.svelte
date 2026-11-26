@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { TagInventoryEntry } from "#lib/state/tags.svelte.ts";
+	import type { TagInventoryEntry } from "#lib/state/tags/tags.svelte.ts";
 	import TagRow from "#lib/components/tags/TagRow.svelte";
 
 	interface Props {

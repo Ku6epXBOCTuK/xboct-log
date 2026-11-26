@@ -1,7 +1,7 @@
 <script lang="ts">
 	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton.svelte";
 	import { fetchFresh } from "#lib/api/fresh.ts";
-	import { listDeletedTasks, restoreTask } from "#lib/api/tasks.ts";
+	import { listDeletedTasks, restoreTask } from "#lib/api/tasks/tasks.ts";
 	import DeletedAttachments from "#lib/components/attachments/DeletedAttachments.svelte";
 	import SearchBar from "#lib/components/filters/SearchBar.svelte";
 	import AppBar from "#lib/components/layout/AppBar.svelte";
@@ -9,15 +9,18 @@
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import Pager from "#lib/components/ui/Pager.svelte";
 	import { useBoard } from "#lib/state/board.svelte.ts";
-	import { createDebouncedValue } from "#lib/state/debounce.svelte.ts";
-	import { createPagedQuery } from "#lib/state/paged.svelte.ts";
-	import { formatDateTime, messageOf } from "#lib/tasks/display.ts";
+	import { createDebouncedValue } from "#lib/state/ui/debounce.svelte.ts";
+	import { createPagedQuery } from "#lib/state/ui/paged.svelte.ts";
+	import {
+		formatDateTime,
+		messageOf,
+	} from "#lib/tasks/presentation/display.ts";
 	import {
 		defaultOrderFor,
 		type SortOrder,
 		sortTasks,
 		type TaskSortKey,
-	} from "#lib/tasks/sort.ts";
+	} from "#lib/tasks/query/sort.ts";
 	import type { Task } from "#lib/types.ts";
 	import ArchiveRestore from "~icons/lucide/archive-restore";
 

@@ -4,8 +4,8 @@
 	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton.svelte";
 	import TagEditField from "#lib/components/tags/TagEditField.svelte";
 	import { tagHref } from "#lib/navigation/href.ts";
-	import { useTagPage } from "#lib/state/tag-page.svelte.ts";
-	import type { TagInventoryEntry } from "#lib/state/tags.svelte.ts";
+	import { useTagPage } from "#lib/state/tags/tag-page.svelte.ts";
+	import type { TagInventoryEntry } from "#lib/state/tags/tags.svelte.ts";
 	import Archive from "~icons/lucide/archive";
 	import ArchiveRestore from "~icons/lucide/archive-restore";
 	import Pencil from "~icons/lucide/pencil";

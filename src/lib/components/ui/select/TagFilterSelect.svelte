@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Select from "@ku6epxboctuk/ui-kit/components/Select.svelte";
 	import { createSelect } from "@ku6epxboctuk/ui-kit/headless/select.svelte.ts";
-	import type { TagCount } from "#lib/tasks/filter.ts";
+	import type { TagCount } from "#lib/tasks/progress/filter.ts";
 	import Check from "~icons/lucide/check";
 	import ChevronDown from "~icons/lucide/chevron-down";
 	import Tag from "~icons/lucide/tag";

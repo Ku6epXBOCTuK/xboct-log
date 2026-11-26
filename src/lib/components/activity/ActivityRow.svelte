@@ -3,7 +3,7 @@
 	import ActivitySource from "#lib/components/activity/ActivitySource.svelte";
 	import { activityOpLabel } from "#lib/activity/labels.ts";
 	import type { ActivityRowItem } from "#lib/activity/rows.ts";
-	import { formatDateTime } from "#lib/tasks/display.ts";
+	import { formatDateTime } from "#lib/tasks/presentation/display.ts";
 
 	interface Props {
 		item: ActivityRowItem;

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from "svelte";
-	import { formatSize } from "#lib/tasks/attachments.ts";
-	import { formatDateTime } from "#lib/tasks/display.ts";
+	import { formatSize } from "#lib/tasks/attachments/attachments.ts";
+	import { formatDateTime } from "#lib/tasks/presentation/display.ts";
 	import type { BackupItem } from "#lib/types.ts";
 	import DatabaseBackup from "~icons/lucide/database-backup";
 	import RotateCcw from "~icons/lucide/rotate-ccw";
