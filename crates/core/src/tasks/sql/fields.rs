@@ -135,7 +135,7 @@ pub(crate) async fn list_tasks_unchecked(
     let filters = match &filters.plan_id {
         Some(raw) => {
             resolved_filters = TaskFilters {
-                plan_id: Some(crate::resolve_plan_id(db, raw).await?),
+                plan_id: Some(crate::common::resolve_plan_id(db.pool(), raw).await?),
                 ..(*filters).clone()
             };
             &resolved_filters

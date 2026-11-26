@@ -206,9 +206,7 @@ pub fn normalize_due_date(value: Option<&str>) -> Option<String> {
     )
 }
 
-pub fn now_iso() -> String {
-    chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
-}
+pub use crate::common::now_iso;
 
 fn change(field: &str, from: Value, to: Value) -> Change {
     Change {

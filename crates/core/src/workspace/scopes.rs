@@ -5,9 +5,9 @@ use std::collections::BTreeMap;
 use serde::Serialize;
 use sqlx::{FromRow, Row, sqlite::SqliteRow};
 
+use crate::common::{Status, now_iso};
 use crate::fetch::fetch_by_id;
 use crate::ids::{ProjectId, ScopeId, TaskKey};
-use crate::tasks::Status;
 use crate::{AppError, Db, Result};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
@@ -201,7 +201,7 @@ pub async fn create_scope(db: &Db, project_id: &ProjectId, name: &str) -> Result
     let result = sqlx::query("INSERT INTO scopes (project_id, name, created_at) VALUES (?, ?, ?)")
         .bind(project_id.as_str())
         .bind(&name)
-        .bind(crate::tasks::now_iso())
+        .bind(now_iso())
         .execute(db.pool())
         .await?;
 

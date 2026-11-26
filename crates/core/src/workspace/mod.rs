@@ -1,10 +1,8 @@
-pub mod comments;
 pub mod projects;
-pub mod scheduler;
 pub mod scopes;
 pub mod tags;
-pub use comments::*;
+pub use crate::backups::scheduler;
+pub use crate::tasks::comments;
 pub use projects::*;
-pub use scheduler::*;
 pub use scopes::*;
 pub use tags::*;

@@ -4,12 +4,8 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Row, sqlite::SqliteRow};
 
-use crate::{
-    AppError, Db, Result, TaskKey,
-    fetch::fetch_by_id,
-    ids::CommentId,
-    tasks::{now_iso, record_revision, resolve_task_id},
-};
+use super::{now_iso, record_revision, resolve_task_id};
+use crate::{AppError, Db, Result, TaskKey, fetch::fetch_by_id, ids::CommentId};
 
 pub const MAX_COMMENT_BODY_LENGTH: usize = 20_000;
 

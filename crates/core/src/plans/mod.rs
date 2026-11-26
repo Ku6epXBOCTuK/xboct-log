@@ -58,11 +58,7 @@ pub struct PlanCounts {
     pub closed_tasks: i64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
-pub struct PlanRef {
-    pub id: String,
-    pub name: String,
-}
+pub use crate::common::PlanRef;
 
 #[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct PlanWithCounts {
@@ -141,24 +137,7 @@ pub async fn get_plan_by_key(db: &Db, key: &str) -> Result<Option<Plan>> {
 }
 
 pub async fn resolve_plan_id(db: &Db, id: &str) -> Result<String> {
-    let raw = id.trim();
-    if let Ok(id) = PlanId::parse(raw) {
-        return Ok(id.into_string());
-    }
-    let key = match PlanKey::parse(raw) {
-        Ok(key) => key,
-        Err(error) => {
-            let existing: Option<String> = sqlx::query_scalar("SELECT id FROM plans WHERE id = ?")
-                .bind(raw)
-                .fetch_optional(db.pool())
-                .await?;
-            return existing.ok_or(error);
-        }
-    };
-    let plan = get_plan_by_key(db, key.as_str())
-        .await?
-        .ok_or_else(|| AppError::not_found(format!("plan {key} not found")))?;
-    Ok(plan.id)
+    crate::common::resolve_plan_id(db.pool(), id).await
 }
 
 pub async fn get_plan(db: &Db, id: &str) -> Result<Option<Plan>> {
@@ -276,7 +255,7 @@ pub async fn create_plan(
         return Err(AppError::validation("plan name is required"));
     }
     let id = PlanId::new();
-    let now = crate::tasks::now_iso();
+    let now = crate::common::now_iso();
     let closed_at = if status == PlanStatus::Done {
         Some(now.clone())
     } else {
@@ -342,7 +321,7 @@ pub async fn update_plan(
         None => current.description.clone(),
     };
     let status = patch.status.unwrap_or(current.status);
-    let now = crate::tasks::now_iso();
+    let now = crate::common::now_iso();
     let closed_at = match status {
         PlanStatus::Done => Some(current.closed_at.unwrap_or_else(|| now.clone())),
         _ => None,
@@ -401,7 +380,7 @@ pub async fn delete_plan(db: &Db, id: &str) -> Result<Plan> {
     if current.deleted_at.is_some() {
         return Ok(current);
     }
-    let now = crate::tasks::now_iso();
+    let now = crate::common::now_iso();
     sqlx::query("UPDATE plans SET deleted_at = ?, updated_at = ? WHERE id = ?")
         .bind(&now)
         .bind(&now)
@@ -417,7 +396,7 @@ pub async fn restore_plan(db: &Db, id: &str) -> Result<Plan> {
     if current.deleted_at.is_none() {
         return Ok(current);
     }
-    let now = crate::tasks::now_iso();
+    let now = crate::common::now_iso();
     sqlx::query("UPDATE plans SET deleted_at = NULL, updated_at = ? WHERE id = ?")
         .bind(&now)
         .bind(&id)

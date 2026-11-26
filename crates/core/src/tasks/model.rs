@@ -4,58 +4,8 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::{
-    ids::{ProjectId, ScopeId, Seq, TagName, TaskKey},
-    plans::PlanRef,
-};
-
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema,
-)]
-#[serde(rename_all = "kebab-case")]
-pub enum Status {
-    Backlog,
-    Open,
-    InProgress,
-    Blocked,
-    Done,
-    Cancelled,
-}
-
-impl Status {
-    pub const ALL: [Self; 6] = [
-        Self::Backlog,
-        Self::Open,
-        Self::InProgress,
-        Self::Blocked,
-        Self::Done,
-        Self::Cancelled,
-    ];
-
-    pub const ACTIVE: [Self; 3] = [Self::Open, Self::InProgress, Self::Blocked];
-
-    pub fn as_str(self) -> &'static str {
-        match self {
-            Self::Backlog => "backlog",
-            Self::Open => "open",
-            Self::InProgress => "in-progress",
-            Self::Blocked => "blocked",
-            Self::Done => "done",
-            Self::Cancelled => "cancelled",
-        }
-    }
-
-    pub fn rank(self) -> i64 {
-        match self {
-            Self::Backlog => 0,
-            Self::Open => 1,
-            Self::InProgress => 2,
-            Self::Blocked => 3,
-            Self::Done => 4,
-            Self::Cancelled => 5,
-        }
-    }
-}
+pub use crate::common::{PlanRef, Status};
+use crate::ids::{ProjectId, ScopeId, Seq, TagName, TaskKey};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "kebab-case")]
@@ -116,14 +66,6 @@ impl Estimate {
             "XL" => Some(Self::ExtraLarge),
             _ => None,
         }
-    }
-}
-
-impl Status {
-    pub fn from_db(value: &str) -> Option<Self> {
-        Self::ALL
-            .into_iter()
-            .find(|status| status.as_str() == value)
     }
 }
 

@@ -7,9 +7,9 @@ use regex::Regex;
 use serde::Serialize;
 use sqlx::{FromRow, Row, SqliteConnection, sqlite::SqliteRow};
 
+use crate::common::{Status, count_by_status, now_iso};
 use crate::fetch::fetch_by_id;
 use crate::ids::{Prefix, ProjectId, ScopeId};
-use crate::tasks::{Status, count_by_status};
 use crate::{AppError, Db, Result};
 
 pub const INBOX_PROJECT_ID: &str = "inbox";
@@ -267,7 +267,7 @@ pub async fn ensure_inbox(db: &Db) -> Result<Project> {
     sqlx::query("INSERT INTO projects (id, name, prefix, created_at) VALUES (?, 'Inbox', ?, ?)")
         .bind(INBOX_PROJECT_ID)
         .bind(INBOX_PROJECT_PREFIX)
-        .bind(crate::tasks::now_iso())
+        .bind(now_iso())
         .execute(db.pool())
         .await?;
 
@@ -340,7 +340,7 @@ pub async fn create_project(db: &Db, input: NewProject) -> Result<Project> {
         .bind(&name)
         .bind(&prefix)
         .bind(&repo)
-        .bind(crate::tasks::now_iso())
+        .bind(now_iso())
         .execute(&mut *connection)
         .await?;
 
@@ -380,7 +380,7 @@ pub async fn update_project(db: &Db, id: &str, patch: ProjectPatch) -> Result<Pr
     }
     if let Some(archived) = patch.archived {
         sets.push("archived_at = ?");
-        values.push(archived.then(crate::tasks::now_iso));
+        values.push(archived.then(now_iso));
     }
 
     if sets.is_empty() {
@@ -400,8 +400,8 @@ pub async fn update_project(db: &Db, id: &str, patch: ProjectPatch) -> Result<Pr
 }
 
 pub async fn project_with_counts(db: &Db, project: Project) -> Result<ProjectWithCounts> {
-    let task_counts = count_by_status(db, Some(project.id.as_str()), false).await?;
-    let epic_counts = count_by_status(db, Some(project.id.as_str()), true).await?;
+    let task_counts = count_by_status(db.pool(), Some(project.id.as_str()), false).await?;
+    let epic_counts = count_by_status(db.pool(), Some(project.id.as_str()), true).await?;
     Ok(ProjectWithCounts {
         project,
         task_counts,
@@ -435,8 +435,8 @@ async fn scope_counts(db: &Db, project_id: &ProjectId) -> Result<Vec<ScopeCount>
 }
 
 pub async fn project_details(db: &Db, project: Project) -> Result<ProjectDetails> {
-    let task_counts = count_by_status(db, Some(project.id.as_str()), false).await?;
-    let epic_counts = count_by_status(db, Some(project.id.as_str()), true).await?;
+    let task_counts = count_by_status(db.pool(), Some(project.id.as_str()), false).await?;
+    let epic_counts = count_by_status(db.pool(), Some(project.id.as_str()), true).await?;
     let scope_counts = scope_counts(db, &project.id).await?;
     Ok(ProjectDetails {
         project,

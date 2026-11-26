@@ -1,3 +1,4 @@
+pub mod comments;
 mod extra;
 mod filters;
 mod links;

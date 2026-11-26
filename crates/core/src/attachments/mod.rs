@@ -5,10 +5,10 @@ use std::path::Path;
 use serde::Serialize;
 use sqlx::FromRow;
 
+use crate::common::now_iso;
 use crate::fetch::fetch_by_id;
 use crate::ids::{AttachmentId, TaskKey};
 use crate::media::{attachment_format, extension_of, stored_path};
-use crate::tasks::now_iso;
 use crate::{AppError, Db, Result};
 
 pub const MAX_ATTACHMENT_SIZE: u64 = 20 * 1024 * 1024;

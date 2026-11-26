@@ -4,9 +4,10 @@ use sqlx::{FromRow, QueryBuilder, Row, sqlite::SqliteRow};
 
 use crate::{
     AppError, Db, DocumentId, DocumentKey, Limit, Offset, ProjectId, Result, Tx,
+    common::resolve_plan_id,
     fetch::{fetch_by_id, unexpected},
     query::{FieldSelection, OneOrList, Order, push_in_text, push_like},
-    resolve_plan_id, validate_limit, validate_offset,
+    validate_limit, validate_offset,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]

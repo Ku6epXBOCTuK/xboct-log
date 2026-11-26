@@ -5,9 +5,9 @@ use std::collections::BTreeMap;
 use serde::Serialize;
 use sqlx::{FromRow, Row, sqlite::SqliteRow};
 
+use crate::common::{Status, now_iso};
 use crate::fetch::fetch_by_id;
 use crate::ids::{ProjectId, TagName};
-use crate::tasks::Status;
 use crate::{AppError, Db, Result};
 
 pub const TAG_NAME_MAX_LENGTH: usize = 20;
@@ -197,7 +197,7 @@ pub async fn ensure_tag(db: &Db, raw: &str) -> Result<TagRecord> {
             ..existing
         });
     }
-    let created_at = crate::tasks::now_iso();
+    let created_at = now_iso();
     sqlx::query("INSERT INTO tags (name, archived, created_at) VALUES (?, 0, ?)")
         .bind(&name)
         .bind(&created_at)

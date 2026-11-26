@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use sqlx::{QueryBuilder, Sqlite};
 
+use crate::common::PlanRef;
 use crate::ids::{ProjectId, ScopeId, Seq, TagName, TaskKey};
-use crate::plans::PlanRef;
 use crate::{AppError, Db, Limit, Offset, Result, fetch::fetch_by_id};
 
 use super::filters::{LinkFilter, Sort, TaskFilters};

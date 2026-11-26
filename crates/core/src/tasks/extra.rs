@@ -1,7 +1,7 @@
 use schemars::JsonSchema;
 
 use serde::Serialize;
-use serde_json::{Value, json};
+use serde_json::json;
 use std::collections::BTreeMap;
 
 use crate::ids::{ProjectId, TaskKey};
@@ -88,26 +88,7 @@ pub async fn count_by_status(
     project_id: Option<&str>,
     is_epic: bool,
 ) -> Result<BTreeMap<Status, i64>> {
-    let mut sql =
-        String::from("SELECT status, COUNT(*) FROM tasks WHERE deleted_at IS NULL AND is_epic = ?");
-    if project_id.is_some() {
-        sql.push_str(" AND project_id = ?");
-    }
-    sql.push_str(" GROUP BY status");
-
-    let mut query = sqlx::query_as(sqlx::AssertSqlSafe(sql)).bind(i64::from(is_epic));
-    if let Some(project_id) = project_id {
-        query = query.bind(project_id);
-    }
-    let rows: Vec<(String, i64)> = query.fetch_all(db.pool()).await?;
-
-    let mut counts: BTreeMap<Status, i64> = Status::ALL.iter().map(|status| (*status, 0)).collect();
-    for (status, count) in rows {
-        if let Ok(status) = serde_json::from_value::<Status>(Value::String(status)) {
-            counts.insert(status, count);
-        }
-    }
-    Ok(counts)
+    crate::common::count_by_status(db.pool(), project_id, is_epic).await
 }
 
 pub async fn count_tasks_by_status(db: &Db) -> Result<BTreeMap<Status, i64>> {

@@ -178,7 +178,7 @@ pub async fn query_documents(
     query: &DocumentQuery,
 ) -> Result<DocumentList> {
     let resolved_plan = match plan_id {
-        Some(raw) => Some(resolve_plan_id(db, raw).await?),
+        Some(raw) => Some(resolve_plan_id(db.pool(), raw).await?),
         None => None,
     };
     let plan_id = resolved_plan.as_deref();
@@ -264,7 +264,7 @@ pub async fn create_document(
         return Err(AppError::validation("document title is required"));
     }
     let id = DocumentId::new();
-    let now = crate::tasks::now_iso();
+    let now = crate::common::now_iso();
     let mut tx = db.begin().await?;
     let number = allocate_number_tx(&mut tx, project.id.as_str()).await?;
     let key = format!(
@@ -341,7 +341,7 @@ pub async fn update_document(
         Some(value) => value.clone(),
         None => current.source_file.clone(),
     };
-    let now = crate::tasks::now_iso();
+    let now = crate::common::now_iso();
     let closed_at = match status {
         DocumentStatus::Draft => None,
         _ => Some(current.closed_at.unwrap_or_else(|| now.clone())),
@@ -383,7 +383,7 @@ pub async fn delete_document(db: &Db, id: &str) -> Result<Document> {
         return Ok(current);
     }
     let id = current.id;
-    let now = crate::tasks::now_iso();
+    let now = crate::common::now_iso();
     sqlx::query("UPDATE documents SET deleted_at = ?, updated_at = ? WHERE id = ?")
         .bind(&now)
         .bind(&now)
@@ -430,7 +430,7 @@ pub async fn list_document_revisions(db: &Db, id: &str) -> Result<Vec<TextRevisi
 }
 
 pub async fn link_document_to_plan(db: &Db, plan_id: &str, document_id: &str) -> Result<()> {
-    let plan_id = resolve_plan_id(db, plan_id).await?;
+    let plan_id = resolve_plan_id(db.pool(), plan_id).await?;
     crate::require_plan(db, &plan_id).await?;
     let document = require_document(db, document_id).await?;
     sqlx::query("INSERT OR IGNORE INTO plan_documents (plan_id, document_id) VALUES (?, ?)")
@@ -442,7 +442,7 @@ pub async fn link_document_to_plan(db: &Db, plan_id: &str, document_id: &str) ->
 }
 
 pub async fn unlink_document_from_plan(db: &Db, plan_id: &str, document_id: &str) -> Result<()> {
-    let plan_id = resolve_plan_id(db, plan_id).await?;
+    let plan_id = resolve_plan_id(db.pool(), plan_id).await?;
     let document = require_document(db, document_id).await?;
     sqlx::query("DELETE FROM plan_documents WHERE plan_id = ? AND document_id = ?")
         .bind(&plan_id)
@@ -453,7 +453,7 @@ pub async fn unlink_document_from_plan(db: &Db, plan_id: &str, document_id: &str
 }
 
 pub async fn documents_for_plan(db: &Db, plan_id: &str) -> Result<Vec<Document>> {
-    let plan_id = resolve_plan_id(db, plan_id).await?;
+    let plan_id = resolve_plan_id(db.pool(), plan_id).await?;
     let rows = sqlx::query_as::<_, Document>(
         "SELECT d.* FROM plan_documents pd
          JOIN documents d ON d.id = pd.document_id

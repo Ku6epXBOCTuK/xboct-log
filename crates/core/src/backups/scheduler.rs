@@ -5,7 +5,7 @@ use std::time::Duration;
 use chrono::{DateTime, Datelike, Local, TimeZone};
 use tracing::{info, warn};
 
-use crate::backup::{file_name, run_backup};
+use super::backup::{file_name, run_backup};
 use crate::{BackupConfig, BackupKind, Db, Result};
 
 pub fn scheduled_for(config: &BackupConfig, now: DateTime<Local>) -> DateTime<Local> {
