@@ -27,3 +27,4 @@ async-trait.workspace = true
 tower = { workspace = true, features = ["util"] }
 sqlx.workspace = true
 futures-util.workspace = true
+xboct-log-test-support.workspace = true

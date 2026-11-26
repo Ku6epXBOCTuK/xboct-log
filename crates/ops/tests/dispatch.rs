@@ -567,8 +567,7 @@ async fn runs_a_batch_and_reports_each_item() {
 }
 #[tokio::test]
 async fn records_attachment_activity_and_clears_it_on_restore() {
-    let media = std::env::temp_dir().join("xboct-log-dispatch-attachments");
-    let _ = std::fs::remove_dir_all(&media);
+    let media = xboct_log_test_support::scratch_dir("dispatch-attachments");
     let ctx = media_context(&media).await;
     let mut receiver = ctx.events.subscribe();
     sqlx::query("INSERT INTO projects (id, prefix, name, created_at) VALUES ('log', 'LOG', 'Log', '2026-01-01T00:00:00.000Z')")

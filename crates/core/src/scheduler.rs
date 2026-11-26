@@ -134,7 +134,7 @@ mod tests {
     }
 
     fn scratch_dir() -> PathBuf {
-        crate::test_support::scratch_dir("scheduler")
+        xboct_log_test_support::scratch_dir("scheduler")
     }
 
     #[test]

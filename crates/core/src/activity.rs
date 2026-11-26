@@ -129,7 +129,7 @@ mod tests {
     }
 
     fn scratch_dir() -> std::path::PathBuf {
-        crate::test_support::scratch_dir("activity")
+        xboct_log_test_support::scratch_dir("activity")
     }
 
     #[tokio::test]

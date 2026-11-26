@@ -287,11 +287,10 @@ pub async fn prune_request_log(db: &Db, keep_days: i64, now: DateTime<Local>) ->
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        DEFAULT_LIMIT, MAX_LIMIT, test_support::scratch_dir, validate_limit, validate_offset,
-    };
+    use crate::{DEFAULT_LIMIT, MAX_LIMIT, validate_limit, validate_offset};
     use chrono::TimeZone;
     use serde_json::json;
+    use xboct_log_test_support::scratch_dir;
 
     fn parts(default: i64, max: i64) -> (Limit, Offset) {
         (

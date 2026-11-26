@@ -20,3 +20,6 @@ serde_json.workspace = true
 chrono.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
+
+[dev-dependencies]
+xboct-log-test-support.workspace = true

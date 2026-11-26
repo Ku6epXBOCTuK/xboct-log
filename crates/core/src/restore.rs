@@ -418,7 +418,7 @@ mod tests {
 
     #[tokio::test]
     async fn replaces_the_database_with_the_snapshot() {
-        let dir = crate::test_support::scratch_dir("restore-offline");
+        let dir = xboct_log_test_support::scratch_dir("restore-offline");
         std::fs::create_dir_all(&dir).unwrap();
         let source = dir.join("snapshot.db");
         migrated(&source).await;
@@ -447,7 +447,7 @@ mod tests {
 
     #[tokio::test]
     async fn restores_without_a_previous_database() {
-        let dir = crate::test_support::scratch_dir("restore-offline-fresh");
+        let dir = xboct_log_test_support::scratch_dir("restore-offline-fresh");
         std::fs::create_dir_all(&dir).unwrap();
         let source = dir.join("snapshot.db");
         migrated(&source).await;
@@ -465,7 +465,7 @@ mod tests {
 
     #[tokio::test]
     async fn refuses_a_file_that_is_not_a_snapshot() {
-        let dir = crate::test_support::scratch_dir("restore-offline-bad");
+        let dir = xboct_log_test_support::scratch_dir("restore-offline-bad");
         std::fs::create_dir_all(&dir).unwrap();
         let source = dir.join("notes.db");
         std::fs::write(&source, b"not a database").unwrap();

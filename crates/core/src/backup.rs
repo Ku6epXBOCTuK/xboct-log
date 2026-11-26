@@ -213,7 +213,7 @@ mod tests {
     }
 
     fn scratch_dir() -> PathBuf {
-        crate::test_support::scratch_dir("backup")
+        xboct_log_test_support::scratch_dir("backup")
     }
 
     #[tokio::test]

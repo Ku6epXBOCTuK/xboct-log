@@ -28,9 +28,6 @@ pub mod scheduler;
 pub mod scopes;
 pub mod tags;
 pub mod tasks;
-#[cfg(test)]
-mod test_support;
-
 pub use activity::{ActivityEntry, prune_activity, record_activity};
 pub use activity_read::{
     ActivityEntity, ActivityItem, ActivityPage, ActivitySearch, HistoryItem, HistoryPage,

@@ -20,3 +20,6 @@ regex.workspace = true
 uuid.workspace = true
 tokio.workspace = true
 tracing.workspace = true
+
+[dev-dependencies]
+xboct-log-test-support.workspace = true

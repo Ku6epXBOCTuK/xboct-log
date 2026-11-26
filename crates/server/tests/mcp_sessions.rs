@@ -1,6 +1,5 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicU64, Ordering};
 
 use axum::Router;
 use axum::body::{Body, to_bytes};
@@ -12,11 +11,9 @@ use xboct_log_server::{AppState, app};
 
 const LEGACY_VERSION: &str = "2025-06-18";
 
-static NEXT: AtomicU64 = AtomicU64::new(0);
-
 #[tokio::test]
 async fn an_old_session_id_works_after_a_restart() {
-    let dir = scratch_dir();
+    let dir = xboct_log_test_support::scratch_dir("mcp-sessions");
     let first = router(&dir).await;
     let (status, session) = rpc(
         &first,
@@ -40,7 +37,7 @@ async fn an_old_session_id_works_after_a_restart() {
 
 #[tokio::test]
 async fn a_deleted_session_stays_gone_after_a_restart() {
-    let dir = scratch_dir();
+    let dir = xboct_log_test_support::scratch_dir("mcp-sessions");
     let first = router(&dir).await;
     let (_, session) = rpc(
         &first,
@@ -71,19 +68,6 @@ async fn a_deleted_session_stays_gone_after_a_restart() {
     let second = router(&dir).await;
     let (status, _) = rpc(&second, "tools/list", json!({}), Some(&session)).await;
     assert_eq!(status, StatusCode::NOT_FOUND);
-}
-
-fn scratch_dir() -> PathBuf {
-    let dir = std::env::temp_dir().join(format!(
-        "xboct-log-mcp-sessions-{}-{}",
-        std::process::id(),
-        NEXT.fetch_add(1, Ordering::Relaxed)
-    ));
-    if dir.exists() {
-        std::fs::remove_dir_all(&dir).unwrap();
-    }
-    std::fs::create_dir_all(&dir).unwrap();
-    dir
 }
 
 async fn router(dir: &Path) -> Router {

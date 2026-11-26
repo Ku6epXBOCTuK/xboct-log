@@ -133,7 +133,7 @@ mod tests {
     }
 
     fn scratch_dir() -> std::path::PathBuf {
-        crate::test_support::scratch_dir("db")
+        xboct_log_test_support::scratch_dir("db")
     }
 
     async fn remove_scratch_dir(dir: std::path::PathBuf) {

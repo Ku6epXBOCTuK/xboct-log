@@ -32,7 +32,7 @@ mod tests {
 
     #[test]
     fn round_trips_through_the_file() {
-        let dir = std::env::temp_dir().join(format!("xboct-log-instance-{}", std::process::id()));
+        let dir = xboct_log_test_support::scratch_dir("instance");
         std::fs::create_dir_all(&dir).unwrap();
         let path = dir.join("instance.json");
         let instance = Instance {

@@ -426,8 +426,6 @@ mod tests {
 
     use super::*;
 
-    static NEXT_DIR: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-
     struct TestApp {
         dir: PathBuf,
         state: AppState,
@@ -439,15 +437,7 @@ mod tests {
     }
 
     async fn test_app_with_events(events: Events) -> TestApp {
-        let dir = std::env::temp_dir().join(format!(
-            "xboct-log-server-{}-{}",
-            std::process::id(),
-            NEXT_DIR.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
-        ));
-        if dir.exists() {
-            std::fs::remove_dir_all(&dir).unwrap();
-        }
-        std::fs::create_dir_all(&dir).unwrap();
+        let dir = xboct_log_test_support::scratch_dir("server");
 
         let db = Db::open(":memory:").await.unwrap();
         sqlx::query("CREATE TABLE tasks (id TEXT PRIMARY KEY, key TEXT NOT NULL)")

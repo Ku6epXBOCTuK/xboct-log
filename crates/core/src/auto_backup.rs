@@ -114,7 +114,7 @@ mod tests {
     }
 
     fn scratch_dir() -> PathBuf {
-        crate::test_support::scratch_dir("auto")
+        xboct_log_test_support::scratch_dir("auto")
     }
 
     #[tokio::test]

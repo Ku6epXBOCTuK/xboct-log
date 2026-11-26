@@ -2280,6 +2280,7 @@ dependencies = [
  "tracing-subscriber",
  "xboct-log-core",
  "xboct-log-server",
+ "xboct-log-test-support",
 ]
 
 [[package]]
@@ -2300,6 +2301,7 @@ dependencies = [
  "tokio",
  "tracing",
  "uuid",
+ "xboct-log-test-support",
 ]
 
 [[package]]
@@ -2313,6 +2315,7 @@ dependencies = [
  "sqlx",
  "tokio",
  "xboct-log-core",
+ "xboct-log-test-support",
 ]
 
 [[package]]
@@ -2337,7 +2340,12 @@ dependencies = [
  "tracing",
  "xboct-log-core",
  "xboct-log-ops",
+ "xboct-log-test-support",
 ]
+
+[[package]]
+name = "xboct-log-test-support"
+version = "0.17.0"
 
 [[package]]
 name = "yoke"

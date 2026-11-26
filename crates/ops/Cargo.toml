@@ -16,3 +16,4 @@ tokio.workspace = true
 [dev-dependencies]
 tokio.workspace = true
 sqlx.workspace = true
+xboct-log-test-support.workspace = true
