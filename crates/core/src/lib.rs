@@ -9,6 +9,7 @@ pub mod documents;
 pub mod media;
 mod migrations;
 pub mod plans;
+mod sql;
 pub mod tasks;
 pub mod workspace;
 pub use activity::activity_read;

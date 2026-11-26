@@ -1,9 +1,6 @@
-use sqlx::migrate::Migrator;
+use sqlx::{SqlitePool, migrate::Migrator};
 
-use crate::{
-    db::Db,
-    error::{AppError, Result},
-};
+use crate::error::{AppError, Result};
 
 static MIGRATOR: Migrator = sqlx::migrate!("./migrations");
 
@@ -49,24 +46,24 @@ const CREATE_SQLX_MIGRATIONS: &str = "CREATE TABLE IF NOT EXISTS _sqlx_migration
     execution_time BIGINT NOT NULL
 )";
 
-pub(crate) async fn migrate(db: &Db) -> Result<()> {
-    let node_history = db.table_exists("schema_migrations").await?;
+pub(crate) async fn migrate(pool: &SqlitePool) -> Result<()> {
+    let node_history = crate::sql::table_exists(pool, "schema_migrations").await?;
     if node_history {
-        align_rust_history(db).await?;
+        align_rust_history(pool).await?;
     }
 
     MIGRATOR
-        .run(db.pool())
+        .run(pool)
         .await
         .map_err(|error| AppError::unexpected(error.to_string()))?;
 
     Ok(())
 }
 
-async fn align_rust_history(db: &Db) -> Result<()> {
+async fn align_rust_history(pool: &SqlitePool) -> Result<()> {
     let applied: Vec<String> =
         sqlx::query_scalar("select name from schema_migrations order by name")
-            .fetch_all(db.pool())
+            .fetch_all(pool)
             .await?;
     if !applied
         .iter()
@@ -84,23 +81,21 @@ async fn align_rust_history(db: &Db) -> Result<()> {
         .next()
         .ok_or_else(|| AppError::unexpected("the embedded migration set is empty"))?;
 
-    if db.table_exists("_sqlx_migrations").await? {
+    if crate::sql::table_exists(pool, "_sqlx_migrations").await? {
         let checksum: Option<Vec<u8>> =
             sqlx::query_scalar("select checksum from _sqlx_migrations where version = ?")
                 .bind(migration.version)
-                .fetch_optional(db.pool())
+                .fetch_optional(pool)
                 .await?;
         if checksum.as_deref() == Some(migration.checksum.as_ref()) {
             return Ok(());
         }
         sqlx::query("drop table _sqlx_migrations")
-            .execute(db.pool())
+            .execute(pool)
             .await?;
     }
 
-    sqlx::query(CREATE_SQLX_MIGRATIONS)
-        .execute(db.pool())
-        .await?;
+    sqlx::query(CREATE_SQLX_MIGRATIONS).execute(pool).await?;
     sqlx::query(
         "insert into _sqlx_migrations (version, description, installed_on, success, checksum, execution_time)
          values (?, ?, CURRENT_TIMESTAMP, TRUE, ?, 0)",
@@ -108,7 +103,7 @@ async fn align_rust_history(db: &Db) -> Result<()> {
     .bind(migration.version)
     .bind(migration.description.as_ref())
     .bind(migration.checksum.as_ref())
-    .execute(db.pool())
+    .execute(pool)
     .await?;
 
     Ok(())
@@ -119,6 +114,7 @@ mod tests {
     use sqlx::SqliteConnection;
 
     use super::*;
+    use crate::Db;
 
     async fn applied_versions(connection: &mut SqliteConnection) -> Result<Vec<i64>> {
         let versions = sqlx::query_scalar("select version from _sqlx_migrations order by version")

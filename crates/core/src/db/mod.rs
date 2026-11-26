@@ -56,12 +56,7 @@ impl Db {
     }
 
     pub async fn table_exists(&self, name: &str) -> Result<bool> {
-        let exists: Option<String> =
-            sqlx::query_scalar("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?")
-                .bind(name)
-                .fetch_optional(self.pool())
-                .await?;
-        Ok(exists.is_some())
+        crate::sql::table_exists(self.pool(), name).await
     }
 
     pub fn path(&self) -> &Path {
@@ -74,7 +69,7 @@ impl Db {
     }
 
     pub async fn migrate(&self) -> Result<()> {
-        crate::migrations::migrate(self).await
+        crate::migrations::migrate(self.pool()).await
     }
 
     pub async fn close(self) {
