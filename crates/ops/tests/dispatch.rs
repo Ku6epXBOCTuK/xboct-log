@@ -1,9 +1,7 @@
 use std::sync::Arc;
 
 use serde_json::json;
-use xboct_log_core::{
-    ActivitySource, AppErrorKind, Config, Db, Entity, Events, OpName, ServerEvent,
-};
+use xboct_log_core::{ActivitySource, AppErrorKind, Config, Db, Entity, Events, OpName};
 use xboct_log_ops::{Ctx, Kind, dispatch, metadata};
 
 async fn context() -> Ctx {
@@ -437,13 +435,13 @@ async fn records_activity_and_publishes_a_change_for_commands() {
 
     assert_eq!(
         receiver.try_recv(),
-        Ok(ServerEvent::Change(xboct_log_core::ChangeEvent {
+        Ok(xboct_log_core::ChangeEvent {
             seq: 1,
             entity: Entity::Tasks,
             op: "tasks_create".into(),
             source: ActivitySource::Ui,
             client: None,
-        }))
+        })
     );
 
     let row: (String, String, String, String, String, String) = sqlx::query_as(
@@ -509,10 +507,8 @@ async fn keeps_the_client_of_the_call_on_the_change() {
     .await
     .unwrap();
 
-    match receiver.try_recv().unwrap() {
-        ServerEvent::Change(event) => assert_eq!(event.client.as_deref(), Some("tab-7")),
-        ServerEvent::Reset => panic!("expected a change"),
-    }
+    let event = receiver.try_recv().unwrap();
+    assert_eq!(event.client.as_deref(), Some("tab-7"));
     let client: Option<String> = sqlx::query_scalar("SELECT client FROM activity")
         .fetch_one(ctx.db.pool())
         .await

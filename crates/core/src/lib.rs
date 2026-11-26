@@ -60,7 +60,7 @@ pub use documents::{
     require_document, restore_document, unlink_document_from_plan, update_document,
 };
 pub use error::{AppError, AppErrorKind, ErrorStatus, Result};
-pub use events::{ActivitySource, ChangeEvent, Entity, Events, ServerEvent, entity_of};
+pub use events::{ActivitySource, ChangeEvent, Entity, Events, entity_of};
 pub use ids::{
     AttachmentId, DocumentKey, PlanKey, Prefix, ProjectId, ScopeId, Seq, TagName, TaskKey,
 };

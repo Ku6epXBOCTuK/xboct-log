@@ -3,7 +3,7 @@ use schemars::JsonSchema;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use serde::{Deserialize, Serialize};
-use tokio::sync::broadcast;
+use tokio::sync::{broadcast, watch};
 
 const CHANNEL_CAPACITY: usize = 1024;
 
@@ -60,16 +60,11 @@ pub struct ChangeEvent {
     pub client: Option<String>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum ServerEvent {
-    Change(ChangeEvent),
-    Reset,
-}
-
 #[derive(Debug)]
 pub struct Events {
     seq: AtomicU64,
-    sender: broadcast::Sender<ServerEvent>,
+    changes: broadcast::Sender<ChangeEvent>,
+    resets: watch::Sender<u64>,
 }
 
 impl Events {
@@ -78,10 +73,12 @@ impl Events {
     }
 
     pub fn with_capacity(capacity: usize) -> Self {
-        let (sender, _) = broadcast::channel(capacity);
+        let (changes, _) = broadcast::channel(capacity);
+        let (resets, _) = watch::channel(0);
         Self {
             seq: AtomicU64::new(0),
-            sender,
+            changes,
+            resets,
         }
     }
 
@@ -89,12 +86,16 @@ impl Events {
         self.seq.load(Ordering::SeqCst)
     }
 
-    pub fn subscribe(&self) -> broadcast::Receiver<ServerEvent> {
-        self.sender.subscribe()
+    pub fn subscribe(&self) -> broadcast::Receiver<ChangeEvent> {
+        self.changes.subscribe()
+    }
+
+    pub fn subscribe_reset(&self) -> watch::Receiver<u64> {
+        self.resets.subscribe()
     }
 
     pub fn subscriber_count(&self) -> usize {
-        self.sender.receiver_count()
+        self.changes.receiver_count()
     }
 
     pub fn publish_change(
@@ -105,19 +106,19 @@ impl Events {
         client: Option<String>,
     ) -> u64 {
         let seq = self.seq.fetch_add(1, Ordering::SeqCst) + 1;
-        let event = ServerEvent::Change(ChangeEvent {
+        let event = ChangeEvent {
             seq,
             entity,
             op: op.into(),
             source,
             client,
-        });
-        let _ = self.sender.send(event);
+        };
+        let _ = self.changes.send(event);
         seq
     }
 
     pub fn publish_reset(&self) {
-        let _ = self.sender.send(ServerEvent::Reset);
+        self.resets.send_modify(|epoch| *epoch += 1);
     }
 }
 
@@ -161,28 +162,37 @@ mod tests {
     }
 
     #[test]
-    fn numbers_changes_and_resets_the_same_way() {
+    fn numbers_changes_and_publishes_resets_separately() {
         let events = Events::new();
         assert_eq!(events.current_seq(), 0);
         let mut receiver = events.subscribe();
         assert_eq!(events.subscriber_count(), 1);
+        let mut resets = events.subscribe_reset();
+        assert!(!resets.has_changed().unwrap());
 
         let seq = events.publish_change(Entity::Tasks, "tasks_create", ActivitySource::Ui, None);
         assert_eq!(seq, 1);
         assert_eq!(events.current_seq(), 1);
         assert_eq!(
             receiver.try_recv(),
-            Ok(ServerEvent::Change(ChangeEvent {
+            Ok(ChangeEvent {
                 seq: 1,
                 entity: Entity::Tasks,
                 op: "tasks_create".into(),
                 source: ActivitySource::Ui,
                 client: None,
-            }))
+            })
         );
+        assert!(!resets.has_changed().unwrap());
 
         events.publish_reset();
-        assert_eq!(receiver.try_recv(), Ok(ServerEvent::Reset));
+        assert!(resets.has_changed().unwrap());
+        assert_eq!(*resets.borrow_and_update(), 1);
+        assert!(!resets.has_changed().unwrap());
+
+        let late = events.subscribe_reset();
+        assert!(!late.has_changed().unwrap());
+        assert_eq!(*late.borrow(), 1);
 
         drop(receiver);
         assert_eq!(events.subscriber_count(), 0);
@@ -195,6 +205,33 @@ mod tests {
             ),
             2
         );
+    }
+
+    #[test]
+    fn reports_lag_without_turning_it_into_a_reset() {
+        let events = Events::with_capacity(2);
+        let mut changes = events.subscribe();
+        let mut resets = events.subscribe_reset();
+
+        for _ in 0..3 {
+            events.publish_change(Entity::Tasks, "tasks_create", ActivitySource::Ui, None);
+        }
+
+        assert_eq!(
+            changes.try_recv(),
+            Err(tokio::sync::broadcast::error::TryRecvError::Lagged(1))
+        );
+        assert_eq!(changes.try_recv().unwrap().seq, 2);
+        assert_eq!(changes.try_recv().unwrap().seq, 3);
+        assert_eq!(
+            changes.try_recv(),
+            Err(tokio::sync::broadcast::error::TryRecvError::Empty)
+        );
+        assert!(!resets.has_changed().unwrap());
+
+        events.publish_reset();
+        assert!(resets.has_changed().unwrap());
+        assert_eq!(*resets.borrow_and_update(), 1);
     }
 
     #[test]

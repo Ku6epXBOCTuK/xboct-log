@@ -22,7 +22,7 @@ use rmcp::transport::streamable_http_server::{
 use tokio::sync::broadcast::error::RecvError;
 use tower::ServiceExt;
 use xboct_log_core::{
-    AppError, BackupKind, Config, Db, Events, ServerEvent, attachment_format, data_fingerprint,
+    AppError, BackupKind, Config, Db, Events, attachment_format, data_fingerprint,
     media::AttachmentKind as Kind, read_attachment_file, read_deleted_attachment_file, run_backup,
 };
 use xboct_log_ops::{Ctx, dispatch, metadata};
@@ -232,17 +232,26 @@ async fn health(State(state): State<AppState>) -> Response {
 
 async fn events(State(state): State<AppState>) -> Response {
     let events = state.events.clone();
-    let mut receiver = events.subscribe();
+    let mut changes = events.subscribe();
+    let mut resets = events.subscribe_reset();
     let stream = async_stream::stream! {
         let seq = events.current_seq();
         yield Ok::<Event, std::convert::Infallible>(sse_event("sync", &serde_json::json!({ "seq": seq })));
         loop {
-            match receiver.recv().await {
-                Ok(ServerEvent::Change(change)) => yield Ok(sse_event("change", &change)),
-                Ok(ServerEvent::Reset) | Err(RecvError::Lagged(_)) => {
+            tokio::select! {
+                change = changes.recv() => match change {
+                    Ok(change) => yield Ok(sse_event("change", &change)),
+                    Err(RecvError::Lagged(_)) => {
+                        yield Ok(sse_event("sync", &serde_json::json!({ "seq": events.current_seq() })));
+                    }
+                    Err(RecvError::Closed) => break,
+                },
+                result = resets.changed() => {
+                    if result.is_err() {
+                        break;
+                    }
                     yield Ok(sse_event("reset", &serde_json::json!({})));
                 }
-                Err(RecvError::Closed) => break,
             }
         }
     };
@@ -426,6 +435,10 @@ mod tests {
     }
 
     async fn test_app() -> TestApp {
+        test_app_with_events(Events::new()).await
+    }
+
+    async fn test_app_with_events(events: Events) -> TestApp {
         let dir = std::env::temp_dir().join(format!(
             "xboct-log-server-{}-{}",
             std::process::id(),
@@ -486,7 +499,7 @@ mod tests {
         let state = AppState {
             db: Arc::new(db),
             config: Arc::new(config),
-            events: Arc::new(Events::new()),
+            events: Arc::new(events),
             tags_hint: String::new(),
         };
         let router = app(state.clone());
@@ -796,6 +809,53 @@ mod tests {
         assert_eq!(
             next_frame(&mut stream).await,
             "event: change\ndata: {\"seq\":1,\"entity\":\"tasks\",\"op\":\"tasks_update\",\"source\":\"ui\",\"client\":null}\n\n"
+        );
+
+        app.state.events.publish_reset();
+        assert_eq!(next_frame(&mut stream).await, "event: reset\ndata: {}\n\n");
+
+        drop(stream);
+        app.stop().await;
+    }
+
+    #[tokio::test]
+    async fn resyncs_a_lagged_sse_client_without_reloading_the_app() {
+        use xboct_log_core::{ActivitySource, Entity};
+
+        let app = test_app_with_events(Events::with_capacity(2)).await;
+        let request = Request::builder()
+            .method(Method::GET)
+            .uri("/api/events")
+            .body(Body::empty())
+            .unwrap();
+        let response = app.router.clone().oneshot(request).await.unwrap();
+        let mut stream = response.into_body().into_data_stream();
+
+        assert_eq!(
+            next_frame(&mut stream).await,
+            "event: sync\ndata: {\"seq\":0}\n\n"
+        );
+
+        for _ in 0..3 {
+            app.state.events.publish_change(
+                Entity::Tasks,
+                "tasks_update",
+                ActivitySource::Ui,
+                None,
+            );
+        }
+
+        assert_eq!(
+            next_frame(&mut stream).await,
+            "event: sync\ndata: {\"seq\":3}\n\n"
+        );
+        assert_eq!(
+            next_frame(&mut stream).await,
+            "event: change\ndata: {\"seq\":2,\"entity\":\"tasks\",\"op\":\"tasks_update\",\"source\":\"ui\",\"client\":null}\n\n"
+        );
+        assert_eq!(
+            next_frame(&mut stream).await,
+            "event: change\ndata: {\"seq\":3,\"entity\":\"tasks\",\"op\":\"tasks_update\",\"source\":\"ui\",\"client\":null}\n\n"
         );
 
         app.state.events.publish_reset();
