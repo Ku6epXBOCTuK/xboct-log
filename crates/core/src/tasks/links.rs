@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::SqliteConnection;
 
-use crate::ids::TaskKey;
+use crate::ids::{TaskKey, TaskUuid};
 use crate::{AppError, Db, Result};
 
 use super::model::{Change, ReleasedLink, Task};
@@ -42,13 +42,13 @@ impl LinkType {
     }
 }
 
-async fn task_uuid(conn: &mut SqliteConnection, key: &TaskKey) -> Result<Option<String>> {
+async fn task_uuid(conn: &mut SqliteConnection, key: &TaskKey) -> Result<Option<TaskUuid>> {
     let row: Option<(String,)> =
         sqlx::query_as("SELECT id FROM tasks WHERE key = ? AND deleted_at IS NULL")
             .bind(key.as_str())
             .fetch_optional(&mut *conn)
             .await?;
-    Ok(row.map(|(id,)| id))
+    row.map(|(id,)| TaskUuid::parse(&id)).transpose()
 }
 
 fn ordered_pair<'a>(source: &'a str, target: &'a str, link: LinkType) -> (&'a str, &'a str) {
@@ -154,7 +154,9 @@ pub async fn add_link(
             target.as_str()
         )));
     };
-    if !link.symmetric() && has_directed_path(&mut tx, link, &target_uuid, &source_uuid).await? {
+    if !link.symmetric()
+        && has_directed_path(&mut tx, link, target_uuid.as_str(), source_uuid.as_str()).await?
+    {
         return Err(AppError::conflict(format!(
             "{} cycle: {} already {} {}",
             link.as_str(),
@@ -163,10 +165,10 @@ pub async fn add_link(
             source.as_str()
         )));
     }
-    if has_link(&mut tx, link, &source_uuid, &target_uuid).await? {
+    if has_link(&mut tx, link, source_uuid.as_str(), target_uuid.as_str()).await? {
         return Ok(Vec::new());
     }
-    insert_link(&mut tx, link, &source_uuid, &target_uuid).await?;
+    insert_link(&mut tx, link, source_uuid.as_str(), target_uuid.as_str()).await?;
     if link != LinkType::Blocks {
         tx.commit().await?;
         return Ok(Vec::new());
@@ -205,7 +207,8 @@ pub async fn remove_link(
     } else {
         Vec::new()
     };
-    let (ordered_source, ordered_target) = ordered_pair(&source_uuid, &target_uuid, link);
+    let (ordered_source, ordered_target) =
+        ordered_pair(source_uuid.as_str(), target_uuid.as_str(), link);
     let result = sqlx::query(
         "DELETE FROM task_links WHERE source_task_id = ? AND target_task_id = ? AND link_type = ?",
     )

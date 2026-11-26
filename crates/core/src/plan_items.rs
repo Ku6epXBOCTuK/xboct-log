@@ -3,8 +3,8 @@ use serde::Serialize;
 use sqlx::{FromRow, Row};
 
 use crate::{
-    AppError, Db, Result, TextRevision, fetch::fetch_by_id, now_iso, require_plan, resolve_plan_id,
-    resolve_task_id,
+    AppError, Db, PlanNoteId, Result, TaskUuid, TextRevision, fetch::fetch_by_id, now_iso,
+    require_plan, resolve_plan_id, resolve_task_id,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
@@ -39,14 +39,14 @@ fn row_to_item(row: &sqlx::sqlite::SqliteRow) -> Result<PlanItem> {
     })
 }
 
-async fn task_uuid(db: &Db, key: &str) -> Result<String> {
+async fn task_uuid(db: &Db, key: &str) -> Result<TaskUuid> {
     let row: Option<(String, Option<String>)> =
         sqlx::query_as("SELECT id, deleted_at FROM tasks WHERE key = ?")
             .bind(key)
             .fetch_optional(db.pool())
             .await?;
     match row {
-        Some((id, None)) => Ok(id),
+        Some((id, None)) => TaskUuid::parse(&id),
         Some((_, Some(_))) => Err(AppError::validation(format!("task {key} is deleted"))),
         None => Err(AppError::not_found(format!("task {key} not found"))),
     }
@@ -75,7 +75,7 @@ pub async fn add_plan_item(db: &Db, plan_id: &str, task_id: &str) -> Result<Plan
     let existing: Option<i64> =
         sqlx::query_scalar("SELECT 1 FROM plan_items WHERE plan_id = ? AND task_id = ?")
             .bind(&plan_id)
-            .bind(&uuid)
+            .bind(uuid.as_str())
             .fetch_optional(db.pool())
             .await?;
     if existing.is_some() {
@@ -91,7 +91,7 @@ pub async fn add_plan_item(db: &Db, plan_id: &str, task_id: &str) -> Result<Plan
     .await?;
     sqlx::query("INSERT INTO plan_items (plan_id, task_id, position) VALUES (?, ?, ?)")
         .bind(&plan_id)
-        .bind(&uuid)
+        .bind(uuid.as_str())
         .bind(position)
         .execute(db.pool())
         .await?;
@@ -113,7 +113,7 @@ pub async fn remove_plan_item(db: &Db, plan_id: &str, task_id: &str) -> Result<O
         .find(|item| item.key == key.as_str());
     sqlx::query("DELETE FROM plan_items WHERE plan_id = ? AND task_id = ?")
         .bind(&plan_id)
-        .bind(&uuid)
+        .bind(uuid.as_str())
         .execute(db.pool())
         .await?;
     Ok(removed)
@@ -185,14 +185,14 @@ pub async fn list_plan_notes(db: &Db, plan_id: &str) -> Result<Vec<PlanNote>> {
     Ok(rows)
 }
 
-async fn require_plan_item(db: &Db, plan_id: &str, task_id: &str) -> Result<String> {
+async fn require_plan_item(db: &Db, plan_id: &str, task_id: &str) -> Result<TaskUuid> {
     let plan_id = resolve_plan_id(db, plan_id).await?;
     let key = resolve_task_id(db, task_id).await?;
     let uuid = task_uuid(db, key.as_str()).await?;
     let member: Option<i64> =
         sqlx::query_scalar("SELECT 1 FROM plan_items WHERE plan_id = ? AND task_id = ?")
             .bind(&plan_id)
-            .bind(&uuid)
+            .bind(uuid.as_str())
             .fetch_optional(db.pool())
             .await?;
     if member.is_none() {
@@ -211,20 +211,20 @@ pub async fn add_plan_note(db: &Db, plan_id: &str, task_id: &str, body: &str) ->
         return Err(AppError::validation("note body is required"));
     }
     let uuid = require_plan_item(db, &plan_id, task_id).await?;
-    let id = uuid::Uuid::new_v4().to_string();
+    let id = PlanNoteId::new();
     let now = now_iso();
     sqlx::query(
         "INSERT INTO plan_notes (id, plan_id, task_id, body, created_at)
          VALUES (?, ?, ?, ?, ?)",
     )
-    .bind(&id)
+    .bind(id.as_str())
     .bind(&plan_id)
-    .bind(&uuid)
+    .bind(uuid.as_str())
     .bind(body)
     .bind(&now)
     .execute(db.pool())
     .await?;
-    get_plan_note(db, &id).await
+    get_plan_note(db, id.as_str()).await
 }
 
 async fn get_plan_note(db: &Db, id: &str) -> Result<PlanNote> {
@@ -387,11 +387,12 @@ mod tests {
             ("LOG-2", "log", 2, 1),
             ("SPA-1", "spa", 1, 0),
         ] {
+            let uuid = TaskUuid::new();
             sqlx::query(
                 "INSERT INTO tasks (id, project_id, number, is_epic, key, title, status, priority, created_at, updated_at)
                  VALUES (?, ?, ?, ?, ?, 'task', 'backlog', 'medium', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z')",
             )
-            .bind(key)
+            .bind(uuid.as_str())
             .bind(project)
             .bind(number)
             .bind(is_epic)

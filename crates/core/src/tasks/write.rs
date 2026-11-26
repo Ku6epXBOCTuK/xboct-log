@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sqlx::SqliteConnection;
 
-use crate::ids::{ProjectId, ScopeId, TagName, TaskKey};
+use crate::ids::{ProjectId, ScopeId, TagName, TaskKey, TaskUuid};
 use crate::{AppError, Db, Result, Tx};
 
 use super::model::{
@@ -386,12 +386,12 @@ pub async fn create_task(db: &Db, input: NewTask) -> Result<Created> {
     let closed_at = matches!(status, Status::Done | Status::Cancelled).then(|| now.clone());
     let mut tx = db.begin().await?;
     let number = allocate_number_tx(&mut tx, input.project_id.as_str()).await?;
-    let id = uuid::Uuid::new_v4().to_string();
+    let id = TaskUuid::new();
     let key = format!("{prefix}-{number}");
     sqlx::query(
         "INSERT INTO tasks (id, key, project_id, number, title, description, status, priority, is_epic, epic_id, scope_id, source_file, estimate, assignee, due_at, blocked_reason, created_at, updated_at, closed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, (SELECT id FROM tasks WHERE key = ?), ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     )
-    .bind(&id)
+    .bind(id.as_str())
     .bind(&key)
     .bind(input.project_id.as_str())
     .bind(number)
@@ -414,7 +414,7 @@ pub async fn create_task(db: &Db, input: NewTask) -> Result<Created> {
     .await?;
     for tag in &tags {
         sqlx::query("INSERT INTO task_tags (task_id, tag) VALUES (?, ?)")
-            .bind(&id)
+            .bind(id.as_str())
             .bind(tag.as_str())
             .execute(&mut *tx)
             .await?;

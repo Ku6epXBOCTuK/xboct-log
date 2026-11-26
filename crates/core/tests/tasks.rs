@@ -896,3 +896,21 @@ async fn pages_large_lists_with_next_offset() {
     assert_eq!(ids.len(), 9);
     assert_eq!(unique.len(), ids.len());
 }
+
+#[tokio::test]
+async fn created_tasks_get_v7_uuids() {
+    let db = database().await;
+    let input: NewTask = serde_json::from_value(json!({
+        "project_id": "log",
+        "title": "Timestamped id",
+    }))
+    .unwrap();
+    let created = create_task(&db, input).await.unwrap();
+    let id: String = sqlx::query_scalar("SELECT id FROM tasks WHERE key = ?")
+        .bind(created.task.id.as_str())
+        .fetch_one(db.pool())
+        .await
+        .unwrap();
+    let uuid = uuid::Uuid::parse_str(&id).unwrap();
+    assert_eq!(uuid.get_version_num(), 7, "{id}");
+}

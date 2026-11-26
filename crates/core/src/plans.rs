@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Row, sqlite::SqliteRow};
 
 use crate::{
-    AppError, Db, PlanKey, Result, Tx,
+    AppError, Db, PlanId, PlanKey, Result, Tx,
     fetch::{fetch_by_id, unexpected},
 };
 
@@ -142,8 +142,8 @@ pub async fn get_plan_by_key(db: &Db, key: &str) -> Result<Option<Plan>> {
 
 pub async fn resolve_plan_id(db: &Db, id: &str) -> Result<String> {
     let raw = id.trim();
-    if let Ok(uuid) = uuid::Uuid::parse_str(raw) {
-        return Ok(uuid.hyphenated().to_string());
+    if let Ok(id) = PlanId::parse(raw) {
+        return Ok(id.into_string());
     }
     let key = match PlanKey::parse(raw) {
         Ok(key) => key,
@@ -275,7 +275,7 @@ pub async fn create_plan(
     if name.is_empty() {
         return Err(AppError::validation("plan name is required"));
     }
-    let id = uuid::Uuid::new_v4().to_string();
+    let id = PlanId::new();
     let now = crate::tasks::now_iso();
     let closed_at = if status == PlanStatus::Done {
         Some(now.clone())
@@ -289,7 +289,7 @@ pub async fn create_plan(
         "INSERT INTO plans (id, name, description, status, created_at, updated_at, closed_at)
          VALUES (?, ?, ?, ?, ?, ?, ?)",
     )
-    .bind(&id)
+    .bind(id.as_str())
     .bind(name)
     .bind(description.trim())
     .bind(status.as_str())
@@ -299,13 +299,13 @@ pub async fn create_plan(
     .execute(&mut *tx)
     .await?;
     sqlx::query("INSERT INTO plan_keys (plan_id, key, number) VALUES (?, ?, ?)")
-        .bind(&id)
+        .bind(id.as_str())
         .bind(&key)
         .bind(number)
         .execute(&mut *tx)
         .await?;
     tx.commit().await?;
-    require_plan(db, &id).await
+    require_plan(db, id.as_str()).await
 }
 
 pub async fn update_plan(
@@ -429,6 +429,7 @@ pub async fn restore_plan(db: &Db, id: &str) -> Result<Plan> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::TaskUuid;
 
     async fn open() -> Db {
         let db = Db::open(":memory:").await.expect("open");
@@ -502,11 +503,12 @@ mod tests {
         .into_iter()
         .enumerate()
         {
+            let uuid = TaskUuid::new();
             sqlx::query(
                 "INSERT INTO tasks (id, project_id, number, is_epic, key, title, status, priority, created_at, updated_at)
                  VALUES (?, 'log', ?, ?, ?, 't', ?, 'medium', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z')",
             )
-            .bind(key)
+            .bind(uuid.as_str())
             .bind(index as i64 + 1)
             .bind(is_epic)
             .bind(key)
@@ -516,7 +518,7 @@ mod tests {
             .expect("task");
             sqlx::query("INSERT INTO plan_items (plan_id, task_id, position) VALUES (?, ?, ?)")
                 .bind(&plan.id)
-                .bind(key)
+                .bind(uuid.as_str())
                 .bind(1024)
                 .execute(db.pool())
                 .await
@@ -583,10 +585,12 @@ mod tests {
             crate::AppErrorKind::NotFound
         );
 
+        let uuid = TaskUuid::new();
         sqlx::query(
             "INSERT INTO tasks (id, project_id, number, key, title, status, priority, created_at, updated_at)
-             VALUES ('t1', 'log', 1, 'LOG-1', 'Task', 'backlog', 'medium', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z')",
+             VALUES (?, 'log', 1, 'LOG-1', 'Task', 'backlog', 'medium', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z')",
         )
+        .bind(uuid.as_str())
         .execute(db.pool())
         .await
         .expect("task");

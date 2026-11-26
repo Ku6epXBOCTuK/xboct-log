@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, QueryBuilder, Row, sqlite::SqliteRow};
 
 use crate::{
-    AppError, Db, DocumentKey, Limit, Offset, ProjectId, Result, Tx,
+    AppError, Db, DocumentId, DocumentKey, Limit, Offset, ProjectId, Result, Tx,
     fetch::{fetch_by_id, unexpected},
     query::{FieldSelection, OneOrList, Order, like_pattern, push_in_text},
     resolve_plan_id, validate_limit, validate_offset,
@@ -338,8 +338,8 @@ pub async fn get_document_by_key(db: &Db, key: &str) -> Result<Option<Document>>
 
 pub async fn resolve_document_id(db: &Db, id: &str) -> Result<String> {
     let raw = id.trim();
-    if let Ok(uuid) = uuid::Uuid::parse_str(raw) {
-        return Ok(uuid.hyphenated().to_string());
+    if let Ok(id) = DocumentId::parse(raw) {
+        return Ok(id.into_string());
     }
     let key = DocumentKey::parse(raw)?;
     let document = get_document_by_key(db, key.as_str())
@@ -650,7 +650,7 @@ pub async fn create_document(
     if title.is_empty() {
         return Err(AppError::validation("document title is required"));
     }
-    let id = uuid::Uuid::new_v4().to_string();
+    let id = DocumentId::new();
     let now = crate::tasks::now_iso();
     let mut tx = db.begin().await?;
     let number = allocate_number_tx(&mut tx, project.id.as_str()).await?;
@@ -665,7 +665,7 @@ pub async fn create_document(
                                 source_file, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?)",
     )
-    .bind(&id)
+    .bind(id.as_str())
     .bind(project.id.as_str())
     .bind(number)
     .bind(&key)
@@ -678,7 +678,7 @@ pub async fn create_document(
     .execute(&mut *tx)
     .await?;
     tx.commit().await?;
-    require_document(db, &id).await
+    require_document(db, id.as_str()).await
 }
 
 pub async fn update_document(

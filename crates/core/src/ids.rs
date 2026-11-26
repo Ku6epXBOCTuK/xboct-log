@@ -84,6 +84,94 @@ text_newtype!(DocumentKey);
 text_newtype!(PlanKey);
 text_newtype!(Prefix);
 
+fn new_uuid_v7() -> String {
+    uuid::Uuid::now_v7().to_string()
+}
+
+fn parse_uuid(value: &str) -> Result<String, uuid::Error> {
+    let parsed = uuid::Uuid::parse_str(value.trim())?;
+    Ok(parsed.hyphenated().to_string())
+}
+
+macro_rules! uuid_newtype {
+    ($name:ident, $label:literal) => {
+        #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
+        #[serde(transparent)]
+        pub struct $name(String);
+
+        impl $name {
+            pub fn new() -> Self {
+                Self(new_uuid_v7())
+            }
+
+            pub fn parse(value: &str) -> Result<Self, AppError> {
+                parse_uuid(value).map(Self).map_err(|_| {
+                    AppError::validation(format!("the {} {value} is not a uuid", $label))
+                })
+            }
+
+            pub fn as_str(&self) -> &str {
+                &self.0
+            }
+
+            pub fn into_string(self) -> String {
+                self.0
+            }
+        }
+
+        impl Default for $name {
+            fn default() -> Self {
+                Self::new()
+            }
+        }
+
+        impl fmt::Display for $name {
+            fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+                formatter.write_str(&self.0)
+            }
+        }
+
+        impl AsRef<str> for $name {
+            fn as_ref(&self) -> &str {
+                &self.0
+            }
+        }
+
+        impl<'de> Deserialize<'de> for $name {
+            fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+                let raw = String::deserialize(deserializer)?;
+                Self::parse(&raw).map_err(serde::de::Error::custom)
+            }
+        }
+
+        impl JsonSchema for $name {
+            fn schema_name() -> std::borrow::Cow<'static, str> {
+                stringify!($name).into()
+            }
+
+            fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
+                String::json_schema(generator)
+            }
+        }
+
+        impl From<$name> for String {
+            fn from(value: $name) -> Self {
+                value.0
+            }
+        }
+    };
+}
+
+// NOTE: UUIDv7 carries a millisecond timestamp prefix, so ids from different
+// writers sort by creation time; there is no counter for ties, because strict
+// order comes from created_at + rowid or from the task number.
+uuid_newtype!(TaskUuid, "task uuid");
+uuid_newtype!(CommentId, "comment id");
+uuid_newtype!(AttachmentId, "attachment id");
+uuid_newtype!(DocumentId, "document id");
+uuid_newtype!(PlanId, "plan id");
+uuid_newtype!(PlanNoteId, "plan note id");
+
 fn parse_prefixed_key(value: &str) -> Result<String, AppError> {
     let trimmed = value.trim();
     let Some((prefix, number)) = trimmed.rsplit_once('-') else {
@@ -180,67 +268,6 @@ impl Prefix {
 impl TagName {
     pub fn normalized(value: &str) -> Self {
         Self(value.trim().to_lowercase())
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
-#[serde(transparent)]
-pub struct AttachmentId(String);
-impl AttachmentId {
-    pub fn new(value: impl Into<String>) -> Self {
-        Self(value.into())
-    }
-
-    pub fn parse(value: &str) -> Result<Self, AppError> {
-        let parsed = uuid::Uuid::parse_str(value).map_err(|_| {
-            AppError::validation(format!("the attachment id {value} is not a uuid"))
-        })?;
-        Ok(Self(parsed.hyphenated().to_string()))
-    }
-
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-}
-
-impl<'de> Deserialize<'de> for AttachmentId {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let raw = String::deserialize(deserializer)?;
-        Self::parse(&raw).map_err(serde::de::Error::custom)
-    }
-}
-
-impl JsonSchema for AttachmentId {
-    fn schema_name() -> std::borrow::Cow<'static, str> {
-        "AttachmentId".into()
-    }
-
-    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
-        String::json_schema(generator)
-    }
-}
-
-impl std::fmt::Display for AttachmentId {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter.write_str(&self.0)
-    }
-}
-
-impl AsRef<str> for AttachmentId {
-    fn as_ref(&self) -> &str {
-        &self.0
-    }
-}
-
-impl From<String> for AttachmentId {
-    fn from(value: String) -> Self {
-        Self(value)
-    }
-}
-
-impl From<AttachmentId> for String {
-    fn from(value: AttachmentId) -> Self {
-        value.0
     }
 }
 
@@ -361,5 +388,17 @@ mod tests {
         );
         let scope: ScopeId = serde_json::from_value(serde_json::json!(7)).unwrap();
         assert_eq!(scope.get(), 7);
+    }
+
+    #[test]
+    fn entity_ids_normalize_uuids() {
+        let raw = "019a5f7c-9c4b-7a11-8f1e-3b0c1d2e4f50";
+        assert_eq!(
+            AttachmentId::parse(&raw.to_ascii_uppercase())
+                .unwrap()
+                .as_str(),
+            raw
+        );
+        assert!(CommentId::parse("not-a-uuid").is_err());
     }
 }

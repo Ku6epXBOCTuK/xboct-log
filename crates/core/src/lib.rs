@@ -62,7 +62,8 @@ pub use documents::{
 pub use error::{AppError, AppErrorKind, ErrorStatus, Result};
 pub use events::{ActivitySource, ChangeEvent, Entity, Events, entity_of};
 pub use ids::{
-    AttachmentId, DocumentKey, PlanKey, Prefix, ProjectId, ScopeId, Seq, TagName, TaskKey,
+    AttachmentId, CommentId, DocumentId, DocumentKey, PlanId, PlanKey, PlanNoteId, Prefix,
+    ProjectId, ScopeId, Seq, TagName, TaskKey, TaskUuid,
 };
 pub use media::{
     AttachmentContents, AttachmentFormat, AttachmentKind, attachment_format, read_attachment_file,

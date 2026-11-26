@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use serde_json::json;
-use xboct_log_core::{Config, Db, Events, delete_task, move_task};
+use xboct_log_core::{Config, Db, Events, TaskUuid, delete_task, move_task};
 use xboct_log_ops::{Ctx, dispatch};
 
 async fn context() -> Ctx {
@@ -19,11 +19,12 @@ async fn context() -> Ctx {
         .unwrap();
     }
     for (key, project, number) in [("LOG-1", "log", 1), ("SPA-1", "spa", 1)] {
+        let uuid = TaskUuid::new();
         sqlx::query(
             "INSERT INTO tasks (id, project_id, number, is_epic, key, title, status, priority, created_at, updated_at)
              VALUES (?, ?, ?, 0, ?, 'task', 'backlog', 'medium', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z')",
         )
-        .bind(key)
+        .bind(uuid.as_str())
         .bind(project)
         .bind(number)
         .bind(key)

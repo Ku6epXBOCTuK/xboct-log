@@ -4,7 +4,6 @@ use std::path::Path;
 
 use serde::Serialize;
 use sqlx::FromRow;
-use uuid::Uuid;
 
 use crate::fetch::fetch_by_id;
 use crate::ids::{AttachmentId, TaskKey};
@@ -74,9 +73,9 @@ pub fn attachment_uri(id: &str) -> String {
     format!("xboct-log://attachment/{id}")
 }
 
-fn to_attachment(row: &Row, missing: bool) -> Attachment {
-    Attachment {
-        id: AttachmentId::new(row.id.clone()),
+fn to_attachment(row: &Row, missing: bool) -> Result<Attachment> {
+    Ok(Attachment {
+        id: AttachmentId::parse(&row.id)?,
         task_id: TaskKey::new(row.task_id.clone()),
         file_name: row.file_name.clone(),
         mime_type: row.mime_type.clone(),
@@ -85,7 +84,7 @@ fn to_attachment(row: &Row, missing: bool) -> Attachment {
         uri: attachment_uri(&row.id),
         missing,
         deleted_at: row.deleted_at.clone(),
-    }
+    })
 }
 
 async fn is_missing(media_dir: &Path, row: &Row) -> bool {
@@ -186,21 +185,21 @@ async fn deleted_rows_of(db: &Db, task_id: Option<&str>) -> Result<Vec<(Row, Opt
         .collect())
 }
 
-async fn with_missing(media_dir: &Path, rows: Vec<Row>) -> Vec<Attachment> {
+async fn with_missing(media_dir: &Path, rows: Vec<Row>) -> Result<Vec<Attachment>> {
     let mut items = Vec::with_capacity(rows.len());
     for row in rows {
         let missing = is_missing(media_dir, &row).await;
-        items.push(to_attachment(&row, missing));
+        items.push(to_attachment(&row, missing)?);
     }
-    items
+    Ok(items)
 }
 
 pub async fn list_attachments(db: &Db, media_dir: &Path, task_id: &str) -> Result<Vec<Attachment>> {
-    Ok(with_missing(media_dir, rows_of(db, Some(task_id)).await?).await)
+    with_missing(media_dir, rows_of(db, Some(task_id)).await?).await
 }
 
 pub async fn list_all_attachments(db: &Db, media_dir: &Path) -> Result<Vec<Attachment>> {
-    Ok(with_missing(media_dir, rows_of(db, None).await?).await)
+    with_missing(media_dir, rows_of(db, None).await?).await
 }
 
 pub async fn list_deleted_attachments(
@@ -212,7 +211,7 @@ pub async fn list_deleted_attachments(
     for (row, task_title) in deleted_rows_of(db, task_id).await? {
         let missing = is_missing(media_dir, &row).await;
         items.push(DeletedAttachment {
-            attachment: to_attachment(&row, missing),
+            attachment: to_attachment(&row, missing)?,
             task_title,
         });
     }
@@ -224,7 +223,7 @@ pub async fn attachment_by_id(db: &Db, media_dir: &Path, id: &str) -> Result<Opt
         return Ok(None);
     };
     let missing = is_missing(media_dir, &row).await;
-    Ok(Some(to_attachment(&row, missing)))
+    Ok(Some(to_attachment(&row, missing)?))
 }
 
 pub async fn verify_attachments(
@@ -233,7 +232,7 @@ pub async fn verify_attachments(
     task_id: Option<&str>,
 ) -> Result<AttachmentCheck> {
     let mut check = AttachmentCheck::default();
-    for item in with_missing(media_dir, rows_of(db, task_id).await?).await {
+    for item in with_missing(media_dir, rows_of(db, task_id).await?).await? {
         if item.missing {
             check.missing.push(item);
         } else {
@@ -297,17 +296,17 @@ pub async fn add_attachment(
             "the file is too large: {megabytes} MB, the limit is 20 MB"
         )));
     }
-    let id = Uuid::new_v4().to_string();
+    let id = AttachmentId::new();
     let extension = extension_of(file_name).unwrap_or_default();
     let stored_name = format!("{id}.{extension}");
-    write_stored_file(media_dir, &id, &stored_name, data).await?;
+    write_stored_file(media_dir, id.as_str(), &stored_name, data).await?;
 
     let created_at = now_iso();
     sqlx::query(
         "INSERT INTO task_attachments (id, task_id, file_name, mime_type, size, stored_name, created_at)
          VALUES (?, (SELECT id FROM tasks WHERE key = ?), ?, ?, ?, ?, ?)",
     )
-    .bind(&id)
+    .bind(id.as_str())
     .bind(task_id)
     .bind(&name)
     .bind(format.mime)
@@ -318,13 +317,13 @@ pub async fn add_attachment(
     .await?;
 
     Ok(Attachment {
-        id: AttachmentId::new(id.clone()),
+        id: id.clone(),
         task_id: TaskKey::new(task_id),
         file_name: name,
         mime_type: Some(format.mime.to_owned()),
         size: data.len() as i64,
         created_at,
-        uri: attachment_uri(&id),
+        uri: attachment_uri(id.as_str()),
         missing: false,
         deleted_at: None,
     })
@@ -400,13 +399,13 @@ pub async fn delete_attachment(db: &Db, id: &str) -> Result<Attachment> {
         .bind(id)
         .execute(db.pool())
         .await?;
-    Ok(to_attachment(
+    to_attachment(
         &Row {
             deleted_at: Some(now),
             ..row
         },
         false,
-    ))
+    )
 }
 
 pub async fn restore_attachment(db: &Db, media_dir: &Path, id: &str) -> Result<Attachment> {
@@ -444,13 +443,13 @@ pub async fn restore_attachment(db: &Db, media_dir: &Path, id: &str) -> Result<A
         .bind(id)
         .execute(db.pool())
         .await?;
-    Ok(to_attachment(
+    to_attachment(
         &Row {
             deleted_at: None,
             ..row
         },
         false,
-    ))
+    )
 }
 
 async fn task_deleted_at(db: &Db, task_id: &str) -> Result<Option<Option<String>>> {
@@ -507,7 +506,7 @@ pub async fn move_attachment(
                 ..row.clone()
             },
             missing,
-        ),
+        )?,
         previous_task_id: TaskKey::new(row.task_id),
         was_deleted,
     })
@@ -534,25 +533,25 @@ pub async fn copy_attachment(
         }
         Err(error) => return Err(error.into()),
     };
-    let new_id = Uuid::new_v4().to_string();
+    let new_id = AttachmentId::new();
     let extension = row
         .stored_name
         .rsplit_once('.')
         .map(|(_, extension)| extension.to_owned())
         .unwrap_or_default();
     let stored_name = if extension.is_empty() {
-        new_id.clone()
+        new_id.as_str().to_owned()
     } else {
         format!("{new_id}.{extension}")
     };
-    write_stored_file(media_dir, &new_id, &stored_name, &data).await?;
+    write_stored_file(media_dir, new_id.as_str(), &stored_name, &data).await?;
 
     let created_at = now_iso();
     let inserted = sqlx::query(
         "INSERT INTO task_attachments (id, task_id, file_name, mime_type, size, stored_name, created_at)
          VALUES (?, (SELECT id FROM tasks WHERE key = ?), ?, ?, ?, ?, ?)",
     )
-    .bind(&new_id)
+    .bind(new_id.as_str())
     .bind(target_task_id)
     .bind(&row.file_name)
     .bind(&row.mime_type)
@@ -562,18 +561,18 @@ pub async fn copy_attachment(
     .execute(db.pool())
     .await;
     if let Err(error) = inserted {
-        let _ = tokio::fs::remove_file(stored_path(media_dir, &new_id, &stored_name)).await;
+        let _ = tokio::fs::remove_file(stored_path(media_dir, new_id.as_str(), &stored_name)).await;
         return Err(error.into());
     }
 
     Ok(Attachment {
-        id: AttachmentId::new(new_id.clone()),
+        id: new_id.clone(),
         task_id: TaskKey::new(target_task_id),
         file_name: row.file_name,
         mime_type: row.mime_type,
         size: row.size,
         created_at,
-        uri: attachment_uri(&new_id),
+        uri: attachment_uri(new_id.as_str()),
         missing: false,
         deleted_at: None,
     })
@@ -594,7 +593,7 @@ pub async fn purge_attachment(db: &Db, media_dir: &Path, id: &str) -> Result<Pur
         .execute(db.pool())
         .await?;
     Ok(PurgedAttachment {
-        id: AttachmentId::new(row.id),
+        id: AttachmentId::parse(&row.id)?,
         task_id: TaskKey::new(row.task_id),
         file_name: row.file_name,
         file_removed,

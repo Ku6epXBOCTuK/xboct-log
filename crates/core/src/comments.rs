@@ -7,6 +7,7 @@ use sqlx::{FromRow, Row, sqlite::SqliteRow};
 use crate::{
     AppError, Db, Result, TaskKey,
     fetch::fetch_by_id,
+    ids::CommentId,
     tasks::{now_iso, record_revision, resolve_task_id},
 };
 
@@ -74,20 +75,20 @@ fn normalize_body(body: &str) -> Result<String> {
 pub async fn add_comment(db: &Db, task_id: &str, body: &str) -> Result<Comment> {
     let key = resolve_task_id(db, task_id).await?;
     let body = normalize_body(body)?;
-    let id = uuid::Uuid::now_v7().to_string();
+    let id = CommentId::new();
     let now = now_iso();
 
     sqlx::query(
         "INSERT INTO task_comments (id, task_id, body, created_at) VALUES (?, (SELECT id FROM tasks WHERE key = ?), ?, ?)",
     )
-    .bind(&id)
+    .bind(id.as_str())
     .bind(key.as_str())
     .bind(&body)
     .bind(&now)
     .execute(db.pool())
     .await?;
 
-    get_comment(db, &id)
+    get_comment(db, id.as_str())
         .await?
         .ok_or_else(|| AppError::not_found(format!("comment {id} not found")))
 }
