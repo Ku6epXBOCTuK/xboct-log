@@ -2268,7 +2268,7 @@ checksum = "3ad82d2a33cdc9674dc7465672f271e096168fcdbe0f799d9e6db8c5892679dc"
 
 [[package]]
 name = "xboct-log-cli"
-version = "0.17.0"
+version = "0.18.0"
 dependencies = [
  "axum",
  "chrono",
@@ -2285,7 +2285,7 @@ dependencies = [
 
 [[package]]
 name = "xboct-log-core"
-version = "0.17.0"
+version = "0.18.0"
 dependencies = [
  "chrono",
  "icu_casemap",
@@ -2306,7 +2306,7 @@ dependencies = [
 
 [[package]]
 name = "xboct-log-ops"
-version = "0.17.0"
+version = "0.18.0"
 dependencies = [
  "chrono",
  "schemars",
@@ -2320,7 +2320,7 @@ dependencies = [
 
 [[package]]
 name = "xboct-log-server"
-version = "0.17.0"
+version = "0.18.0"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -2345,7 +2345,7 @@ dependencies = [
 
 [[package]]
 name = "xboct-log-test-support"
-version = "0.17.0"
+version = "0.18.0"
 
 [[package]]
 name = "yoke"

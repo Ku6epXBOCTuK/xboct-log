@@ -2,6 +2,23 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.18.0](https://github.com/Ku6epXBOCTuK/xboct-log/compare/4b4fce4b360db70aae8cb3ebe21fc88f5558ff45..v0.18.0) - 2026-11-26
+#### Features
+- (**core**) hide closed plan items in tasks_list by default - ([0162523](https://github.com/Ku6epXBOCTuK/xboct-log/commit/01625238fc7265471c552f84057b9df4475966a9)) - Ku6epXBOCTuK
+- (**plans**) show active plans by default - ([74313d8](https://github.com/Ku6epXBOCTuK/xboct-log/commit/74313d821adc8b79aed6425cd8c0eedd26f2c93e)) - Ku6epXBOCTuK
+- (**plans**) add search by name and key - ([4b4fce4](https://github.com/Ku6epXBOCTuK/xboct-log/commit/4b4fce4b360db70aae8cb3ebe21fc88f5558ff45)) - Ku6epXBOCTuK
+- add plan deletion and restoration from plans page - ([138ed34](https://github.com/Ku6epXBOCTuK/xboct-log/commit/138ed34096334d9945d6801f1fedcf360571d9f6)) - Ku6epXBOCTuK
+#### Bug Fixes
+- (**core**) escape LIKE metacharacters in document and task search - ([de8fca8](https://github.com/Ku6epXBOCTuK/xboct-log/commit/de8fca8ed06cdc19d6575fb36d70c1086bd6dc51)) - Ku6epXBOCTuK
+- (**core**) generate all entity ids as UUIDv7 through typed newtypes - ([04e0677](https://github.com/Ku6epXBOCTuK/xboct-log/commit/04e06777f1a398f631126403c0a21effc04b47a1)) - Ku6epXBOCTuK
+- (**core**) resolve scope names with unicode case folding - ([c03dcb6](https://github.com/Ku6epXBOCTuK/xboct-log/commit/c03dcb60d7c26e919c4cb4a6c99535100c36238f)) - Ku6epXBOCTuK
+- (**server**) resync lagged SSE clients instead of reloading the app - ([1f5905b](https://github.com/Ku6epXBOCTuK/xboct-log/commit/1f5905b8f3428697d6732a41450150c755af05b3)) - Ku6epXBOCTuK
+#### Refactoring
+- (**plans**) route store mutations through onMutate - ([0e5da73](https://github.com/Ku6epXBOCTuK/xboct-log/commit/0e5da732ca0a397a55510ae5de354f48b533eee5)) - Ku6epXBOCTuK
+- (**tests**) share one scratch directory helper across crates - ([f35552b](https://github.com/Ku6epXBOCTuK/xboct-log/commit/f35552b31abec5745341fe4ef95f9d4a643ac308)) - Ku6epXBOCTuK
+
+- - -
+
 ## [v0.17.0](https://github.com/Ku6epXBOCTuK/xboct-log/compare/edbc251504c013d1c9cffa7fee2245d6689a4af6..v0.17.0) - 2026-11-24
 #### Features
 - (**plans**) add editable plan name, description and key fields - ([edbc251](https://github.com/Ku6epXBOCTuK/xboct-log/commit/edbc251504c013d1c9cffa7fee2245d6689a4af6)) - Ku6epXBOCTuK
