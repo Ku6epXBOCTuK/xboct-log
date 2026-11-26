@@ -1,5 +1,5 @@
-use crate::ids::TaskKey;
-use crate::{AppError, Db, Result};
+use crate::ids::{ProjectId, TaskKey};
+use crate::{AppError, Db, Result, find_scope_by_name};
 
 pub fn normalize_task_id_input(value: &str) -> String {
     if let Some((prefix, number)) = value.rsplit_once('-')
@@ -277,17 +277,6 @@ pub async fn resolve_epic_id(
     Ok(key)
 }
 
-async fn scope_by_name(db: &Db, project_id: &str, name: &str) -> Result<Option<i64>> {
-    let row: Option<(i64,)> = sqlx::query_as(
-        "SELECT id FROM scopes WHERE project_id = ? AND name = ? COLLATE NOCASE LIMIT 1",
-    )
-    .bind(project_id)
-    .bind(name)
-    .fetch_optional(db.pool())
-    .await?;
-    Ok(row.map(|(id,)| id))
-}
-
 async fn scope_choices(db: &Db, project_id: &str) -> Result<String> {
     let rows: Vec<(i64, String)> =
         sqlx::query_as("SELECT id, name FROM scopes WHERE project_id = ? ORDER BY name")
@@ -346,7 +335,9 @@ pub async fn resolve_scope_ref(
                 "scope name is empty: pass null to clear the scope, or the name of a scope of the project",
             ));
         }
-        let found = scope_by_name(db, project_id, name).await?;
+        let found = find_scope_by_name(db, &ProjectId::new(project_id), name)
+            .await?
+            .map(|scope| scope.id.get());
         let Some(id) = found else {
             return Err(AppError::validation(format!(
                 "unknown scope \"{name}\" in project {project_id}. {}",

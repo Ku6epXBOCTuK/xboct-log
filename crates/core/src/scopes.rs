@@ -98,7 +98,7 @@ pub async fn find_scope_by_name(
 ) -> Result<Option<Scope>> {
     fetch_by_id(
         sqlx::query(
-            "SELECT * FROM scopes WHERE project_id = ? AND lower(name) = lower(?) ORDER BY id LIMIT 1",
+            "SELECT * FROM scopes WHERE project_id = ? AND ULOWER(name) = ULOWER(?) ORDER BY id LIMIT 1",
         )
         .bind(project_id.as_str())
         .bind(name.trim()),
@@ -163,7 +163,7 @@ async fn name_conflict(
     except: Option<ScopeId>,
 ) -> Result<bool> {
     let row: Option<i64> = sqlx::query_scalar(
-        "SELECT id FROM scopes WHERE project_id = ? AND name = ? AND id IS NOT ?",
+        "SELECT id FROM scopes WHERE project_id = ? AND ULOWER(name) = ULOWER(?) AND id IS NOT ?",
     )
     .bind(project_id.as_str())
     .bind(name)
