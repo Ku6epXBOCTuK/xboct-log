@@ -10,20 +10,22 @@ use xboct_log_core::{
     record_activity,
 };
 
-pub mod activity;
-pub mod attachments;
-pub mod backups;
-pub mod comments;
 mod descriptions;
-pub mod documents;
+pub mod entities;
 mod entries;
-pub mod plans;
-pub mod projects;
-pub mod request_log;
-pub mod scopes;
-pub mod tags;
-pub mod tasks;
+pub mod records;
 pub mod validation;
+pub use entities::backups;
+pub use entities::plans;
+pub use entities::projects;
+pub use entities::scopes;
+pub use entities::tasks;
+pub use records::activity;
+pub use records::attachments;
+pub use records::comments;
+pub use records::documents;
+pub use records::request_log;
+pub use records::tags;
 
 pub fn schema_of<T: JsonSchema>() -> serde_json::Value {
     serde_json::to_value(schemars::schema_for!(T)).unwrap_or(serde_json::Value::Null)
@@ -242,35 +244,37 @@ macro_rules! ops {
 	};
 }
 
-pub use activity::{ActivitiesList, TasksHistory};
-pub use attachments::{
-    AttachmentsAdd, AttachmentsCopy, AttachmentsDelete, AttachmentsDeletedList, AttachmentsList,
-    AttachmentsMove, AttachmentsPurge, AttachmentsRestore, AttachmentsVerify,
-};
-pub use backups::{BackupCreate, BackupListOp, BackupsInspect, BackupsRestore};
-pub use comments::{CommentsAdd, CommentsDelete, CommentsEdit, CommentsList};
-pub use documents::{
-    DocumentsCreate, DocumentsDelete, DocumentsDeletedList, DocumentsGet, DocumentsList,
-    DocumentsRestore, DocumentsRevisionsList, DocumentsUpdate, PlansDocumentsLink,
-    PlansDocumentsList, PlansDocumentsUnlink,
-};
-pub use plans::{
+pub use entities::backups::{BackupCreate, BackupListOp, BackupsInspect, BackupsRestore};
+pub use entities::plans::{
     PlansCreate, PlansDelete, PlansDeletedList, PlansGet, PlansItemsAdd, PlansItemsRemove,
     PlansList, PlansListInput, PlansNotesAdd, PlansNotesDelete, PlansNotesDeletedList,
     PlansNotesEdit, PlansNotesList, PlansNotesRestore, PlansNotesRevisionsList, PlansReorder,
     PlansRestore, PlansUpdate,
 };
-pub use projects::{ProjectsCreate, ProjectsGet, ProjectsList, ProjectsUpdate};
-pub use request_log::{RequestLogExport, RequestLogList};
-pub use scopes::{
+pub use entities::projects::{ProjectsCreate, ProjectsGet, ProjectsList, ProjectsUpdate};
+pub use entities::scopes::{
     ScopesCreate, ScopesDelete, ScopesGet, ScopesList, ScopesProjectIds, ScopesUpdate,
 };
-pub use tags::{TagsCreate, TagsDictionary, TagsInventory, TagsList, TagsRename, TagsUpdate};
-pub use tasks::{
+pub use entities::tasks::{
     TasksAddBlocker, TasksAddLink, TasksClose, TasksCloseMany, TasksCreate, TasksCreateMany,
     TasksDelete, TasksDeletedList, TasksGet, TasksGetMany, TasksList, TasksMove, TasksOptions,
     TasksRemoveBlocker, TasksRemoveLink, TasksRestore, TasksRevisionsList, TasksStats, TasksUpdate,
     TasksUpdateMany,
+};
+pub use records::activity::{ActivitiesList, TasksHistory};
+pub use records::attachments::{
+    AttachmentsAdd, AttachmentsCopy, AttachmentsDelete, AttachmentsDeletedList, AttachmentsList,
+    AttachmentsMove, AttachmentsPurge, AttachmentsRestore, AttachmentsVerify,
+};
+pub use records::comments::{CommentsAdd, CommentsDelete, CommentsEdit, CommentsList};
+pub use records::documents::{
+    DocumentsCreate, DocumentsDelete, DocumentsDeletedList, DocumentsGet, DocumentsList,
+    DocumentsRestore, DocumentsRevisionsList, DocumentsUpdate, PlansDocumentsLink,
+    PlansDocumentsList, PlansDocumentsUnlink,
+};
+pub use records::request_log::{RequestLogExport, RequestLogList};
+pub use records::tags::{
+    TagsCreate, TagsDictionary, TagsInventory, TagsList, TagsRename, TagsUpdate,
 };
 
 crate::ops![

@@ -1,33 +1,19 @@
 #![deny(unsafe_code)]
 
 pub mod activity;
-pub mod activity_read;
 pub mod attachments;
-pub mod auto_backup;
-pub mod backup;
-pub mod comments;
-pub mod config;
+pub mod backups;
+pub mod common;
 pub mod db;
 pub mod documents;
-pub mod error;
-pub mod events;
-pub mod fetch;
-pub mod ids;
 pub mod media;
 mod migrations;
-pub mod op_name;
-pub mod pagination;
-pub mod paths;
-pub mod plan_items;
 pub mod plans;
-pub mod projects;
-pub mod query;
-pub mod request_log;
-pub mod restore;
-pub mod scheduler;
-pub mod scopes;
-pub mod tags;
 pub mod tasks;
+pub mod workspace;
+pub use activity::activity_read;
+pub use activity::events;
+pub use activity::request_log;
 pub use activity::{ActivityEntry, prune_activity, record_activity};
 pub use activity_read::{
     ActivityEntity, ActivityItem, ActivityPage, ActivitySearch, HistoryItem, HistoryPage,
@@ -43,10 +29,21 @@ pub use attachments::{
 };
 pub use auto_backup::{AutoBackup, maybe_auto_backup, newest_auto_snapshot_at};
 pub use backup::{BackupFile, BackupKind, file_name as backup_file_name, list_backups, run_backup};
+pub use backups::auto_backup;
+pub use backups::backup;
+pub use backups::restore;
 pub use comments::{
     Comment, MAX_COMMENT_BODY_LENGTH, add_comment, delete_comment, edit_comment, get_comment,
     list_comments,
 };
+pub use common::config;
+pub use common::error;
+pub use common::fetch;
+pub use common::ids;
+pub use common::op_name;
+pub use common::pagination;
+pub use common::paths;
+pub use common::query;
 pub use config::{BackupConfig, Config, ConfigError};
 pub use db::{Db, Tx};
 pub use documents::{
@@ -69,7 +66,7 @@ pub use media::{
 pub use op_name::OpName;
 pub use pagination::{DEFAULT_LIMIT, Limit, MAX_LIMIT, Offset, validate_limit, validate_offset};
 pub use paths::{data_fingerprint, fingerprint_path};
-pub use plan_items::{
+pub use plans::items::{
     PlanItem, PlanNote, add_plan_item, add_plan_note, delete_plan_note, edit_plan_note,
     list_deleted_plan_notes, list_plan_items, list_plan_note_revisions, list_plan_notes,
     remove_plan_item, reorder_plan_items, restore_plan_note,
@@ -119,3 +116,8 @@ pub use tasks::{
     resolve_task_id, resolve_task_id_any, restore_task, task_options, task_stats, update_task,
     update_task_detailed, warnings_for,
 };
+pub use workspace::comments;
+pub use workspace::projects;
+pub use workspace::scheduler;
+pub use workspace::scopes;
+pub use workspace::tags;
