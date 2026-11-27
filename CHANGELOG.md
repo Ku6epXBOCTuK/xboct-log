@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.18.4](https://github.com/Ku6epXBOCTuK/xboct-log/compare/a158496426136bf791187c5e68419b1b4d32a9a8..v0.18.4) - 2026-11-27
+#### Bug Fixes
+- (**tasks**) restore blocked reason and hide empty epic badge in task list - ([a158496](https://github.com/Ku6epXBOCTuK/xboct-log/commit/a158496426136bf791187c5e68419b1b4d32a9a8)) - Ku6epXBOCTuK
+
+- - -
+
 ## [v0.18.3](https://github.com/Ku6epXBOCTuK/xboct-log/compare/91ff5d71b02745afc8f57b2f6a325be83b78bef6..v0.18.3) - 2026-11-27
 #### Bug Fixes
 - (**mcp**) include resultType in tool results - ([91ff5d7](https://github.com/Ku6epXBOCTuK/xboct-log/commit/91ff5d71b02745afc8f57b2f6a325be83b78bef6)) - Ku6epXBOCTuK
