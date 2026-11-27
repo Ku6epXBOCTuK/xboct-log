@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.18.3](https://github.com/Ku6epXBOCTuK/xboct-log/compare/91ff5d71b02745afc8f57b2f6a325be83b78bef6..v0.18.3) - 2026-11-27
+#### Bug Fixes
+- (**mcp**) include resultType in tool results - ([91ff5d7](https://github.com/Ku6epXBOCTuK/xboct-log/commit/91ff5d71b02745afc8f57b2f6a325be83b78bef6)) - Ku6epXBOCTuK
+
+- - -
+
 ## [v0.18.2](https://github.com/Ku6epXBOCTuK/xboct-log/compare/066cd8a66be5e2b2873a9d542f74378e13c602c0..v0.18.2) - 2026-11-27
 #### Bug Fixes
 - (**pagination**) put ui pages and mcp budget in dispatch middleware - ([647dff4](https://github.com/Ku6epXBOCTuK/xboct-log/commit/647dff4f6728700750b6e2e6c1343d39236f8ffc)) - Ku6epXBOCTuK
