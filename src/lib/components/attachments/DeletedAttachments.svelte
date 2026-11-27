@@ -1,5 +1,6 @@
 <script lang="ts">
 	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton.svelte";
+	import { fetchFresh } from "#lib/api/fresh.ts";
 	import {
 		copyTaskAttachment,
 		getDeletedAttachments,
@@ -7,10 +8,10 @@
 		purgeTaskAttachment,
 		restoreTaskAttachment,
 	} from "#lib/api/tasks/attachments.ts";
-	import { fetchFresh } from "#lib/api/fresh.ts";
 	import MoveAttachmentDialog from "#lib/components/attachments/MoveAttachmentDialog.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
 	import ImageViewer from "#lib/components/ui/ImageViewer.svelte";
+	import { data } from "#lib/data/data.svelte.ts";
 	import { openExternal } from "#lib/host/embed.ts";
 	import { deletedMediaHref } from "#lib/navigation/href.ts";
 	import { useBoard } from "#lib/state/board.svelte.ts";
@@ -63,9 +64,15 @@
 
 	async function load() {
 		try {
-			const result = await fetchFresh(getDeletedAttachments({}));
-			items = result.items;
-			failed = false;
+			await data.load(
+				"attachments:deleted",
+				() => fetchFresh(getDeletedAttachments({})),
+				(result) => {
+					items = result.items;
+					failed = false;
+				},
+				true,
+			);
 		} catch {
 			failed = true;
 		} finally {
@@ -77,7 +84,7 @@
 		void load();
 	});
 
-	$effect(() => fresh.register("tasks", () => void load()));
+	$effect(() => fresh.register("tasks", () => load()));
 
 	async function restore(id: string) {
 		error = "";

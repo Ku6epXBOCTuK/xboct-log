@@ -1,5 +1,5 @@
-import { getDocuments, getPlanDocuments } from "#lib/api/plans/documents.ts";
 import { fetchFresh } from "#lib/api/fresh.ts";
+import { getDocuments, getPlanDocuments } from "#lib/api/plans/documents.ts";
 import {
 	getPlan,
 	listDeletedPlanNotes,
@@ -9,10 +9,21 @@ import {
 	updatePlan,
 } from "#lib/api/plans/plans.ts";
 import { getTasks } from "#lib/api/tasks/tasks.ts";
-import { mergePlan } from "./helpers.ts";
-import type { PlanField, PlansState } from "./types.ts";
+import { data, dataKey } from "#lib/data/data.svelte.ts";
+import { listedPlan, withCounts } from "./helpers.ts";
+import type { PlanData, PlanField, PlansState } from "./types.ts";
 
-export function createPlanDetail(state: PlansState, onMutate?: () => void) {
+const ZERO_COUNTS = {
+	tasks_count: 0,
+	epics_count: 0,
+	closed_tasks_count: 0,
+};
+
+export function createPlanDetail(
+	state: PlansState,
+	store: PlanData,
+	onMutate?: () => void,
+) {
 	function resetEdit(): void {
 		state.editedField = null;
 		state.editPlanId = null;
@@ -21,79 +32,98 @@ export function createPlanDetail(state: PlansState, onMutate?: () => void) {
 	}
 
 	function clearDetail(): void {
-		state.detail = null;
-		state.items = [];
+		state.selectedId = null;
 		resetEdit();
 	}
 
-	async function loadDetail(id: string): Promise<void> {
-		const revision = state.detailRevision;
+	async function loadDetail(id: string, force = false): Promise<void> {
 		try {
-			const [plan, page, all, linked, docs, planNotes, oldNotes] =
-				await Promise.all([
-					fetchFresh(getPlan({ plan_id: id })),
-					fetchFresh(
-						getTasks({
-							plan_id: id,
-							sort: "plan_position",
-							limit: 1000,
-							unfinished: false,
-							include_deleted: true,
-						}),
-					),
-					fetchFresh(getTasks({ limit: 1000 })),
-					fetchFresh(getPlanDocuments({ plan_id: id })),
-					fetchFresh(getDocuments({})),
-					fetchFresh(listPlanNotes({ plan_id: id })),
-					fetchFresh(listDeletedPlanNotes({ plan_id: id })),
-				]);
-			// NOTE: a reload started before a save must not overwrite the saved plan.
-			if (revision !== state.detailRevision) return;
-			state.detail = plan;
+			await Promise.all([
+				data.load(
+					dataKey("plans", "record", id),
+					() => fetchFresh(getPlan({ plan_id: id })),
+					(plan) => store.plans.put(listedPlan(plan)),
+					force,
+				),
+				data.load(
+					dataKey("detail", "items", id),
+					() =>
+						fetchFresh(
+							getTasks({
+								plan_id: id,
+								sort: "plan_position",
+								limit: 1000,
+								unfinished: false,
+								include_deleted: true,
+							}),
+						),
+					(page) => store.items.set(page.items),
+					force,
+				),
+				data.load(
+					dataKey("detail", "candidates", id),
+					() => fetchFresh(getTasks({ limit: 1000 })),
+					(page) => store.candidates.set(page.items),
+					force,
+				),
+				data.load(
+					dataKey("detail", "documents", id),
+					() => fetchFresh(getPlanDocuments({ plan_id: id })),
+					(linked) => store.planDocuments.set(linked),
+					force,
+				),
+				data.load(
+					dataKey("detail", "all-documents"),
+					() => fetchFresh(getDocuments({})),
+					(docs) => store.allDocuments.set(docs),
+					force,
+				),
+				data.load(
+					dataKey("detail", "notes", id),
+					() => fetchFresh(listPlanNotes({ plan_id: id })),
+					(notes) => store.notes.set(notes),
+					force,
+				),
+				data.load(
+					dataKey("detail", "deleted-notes", id),
+					() => fetchFresh(listDeletedPlanNotes({ plan_id: id })),
+					(notes) => store.deletedNotes.set(notes),
+					force,
+				),
+			]);
 			if (state.editPlanId !== id) resetEdit();
-			state.items = page.items;
-			state.candidates = all.items;
-			state.planDocuments = linked;
-			state.allDocuments = docs;
-			state.notes = planNotes;
-			state.deletedNotes = oldNotes;
+			state.failed = false;
 		} catch {
 			state.failed = true;
 		}
 	}
 
+	function activePlan() {
+		const id = state.selectedId ?? store.listIds.value[0] ?? null;
+		return id === null ? undefined : store.plans.get(id);
+	}
+
 	async function changeStatus(status: PlanStatus): Promise<void> {
+		const current = activePlan();
 		if (
-			state.detail === null ||
+			current === undefined ||
 			state.statusSaving ||
-			state.detail.status === status
+			current.status === status
 		)
 			return;
-		const id = state.detail.id;
-		const previous = state.detail.status;
-		state.detail = { ...state.detail, status };
-		state.plans = state.plans.map((plan) =>
-			plan.id === id ? { ...plan, status } : plan,
-		);
+		const id = current.id;
+		const previous = current.status;
 		state.statusSaving = true;
 		state.statusFailed = false;
 		try {
 			const updated = await updatePlan({ plan_id: id, patch: { status } });
-			state.detailRevision++;
-			state.plans = state.plans.map((plan) =>
-				plan.id === id ? mergePlan(plan, updated) : plan,
-			);
-			if (state.detail !== null && state.detail.id === id)
-				state.detail = mergePlan(state.detail, updated);
+			store.plans.put(withCounts(updated, ZERO_COUNTS));
 			onMutate?.();
 		} catch {
-			state.detail =
-				state.detail !== null && state.detail.id === id
-					? { ...state.detail, status: previous }
-					: state.detail;
-			state.plans = state.plans.map((plan) =>
-				plan.id === id ? { ...plan, status: previous } : plan,
-			);
+			const stale = store.plans.get(id);
+			if (stale !== undefined) {
+				store.plans.put({ ...stale, status: previous });
+			}
 			state.statusFailed = true;
 		} finally {
 			state.statusSaving = false;
@@ -115,15 +145,11 @@ export function createPlanDetail(state: PlansState, onMutate?: () => void) {
 	}
 
 	function startEdit(field: PlanField): void {
-		if (
-			state.detail === null ||
-			state.detail.id !== (state.selectedId ?? state.plans[0]?.id ?? null) ||
-			state.fieldSaving
-		)
-			return;
+		const plan = activePlan();
+		if (plan === undefined || state.fieldSaving) return;
 		state.editedField = field;
-		state.editPlanId = state.detail.id;
-		state.fieldDraft = state.detail[field];
+		state.editPlanId = plan.id;
+		state.fieldDraft = plan[field];
 		state.fieldFailed = false;
 	}
 
@@ -133,20 +159,17 @@ export function createPlanDetail(state: PlansState, onMutate?: () => void) {
 	}
 
 	async function saveEdit(): Promise<void> {
-		if (
-			state.detail === null ||
-			state.editedField === null ||
-			state.fieldSaving
-		)
+		const plan = activePlan();
+		if (plan === undefined || state.editedField === null || state.fieldSaving)
 			return;
-		const id = state.detail.id;
+		const id = plan.id;
 		const field = state.editedField;
 		const value = state.fieldDraft.trim();
 		if (field !== "description" && value === "") {
 			state.fieldFailed = true;
 			return;
 		}
-		if (value === state.detail[field]) {
+		if (value === plan[field]) {
 			resetEdit();
 			return;
 		}
@@ -157,13 +180,8 @@ export function createPlanDetail(state: PlansState, onMutate?: () => void) {
 				plan_id: id,
 				patch: patchFor(field, value),
 			});
-			state.detailRevision++;
 			resetEdit();
-			state.plans = state.plans.map((plan) =>
-				plan.id === id ? mergePlan(plan, updated) : plan,
-			);
-			if (state.detail !== null && state.detail.id === id)
-				state.detail = mergePlan(state.detail, updated);
+			store.plans.put(withCounts(updated, ZERO_COUNTS));
 			onMutate?.();
 		} catch {
 			state.fieldFailed = true;

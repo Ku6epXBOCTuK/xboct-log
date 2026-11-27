@@ -1,33 +1,30 @@
 import { SvelteMap } from "svelte/reactivity";
-import type { PlanNote } from "#lib/api/plans/plans.ts";
+import type { Document } from "#lib/api/plans/documents.ts";
+import type {
+	Plan,
+	PlanNote,
+	PlanWithCounts,
+	TextRevision,
+} from "#lib/api/plans/plans.ts";
+import { data } from "#lib/data/data.svelte.ts";
 import { taskHref } from "#lib/navigation/href.ts";
 import { planProgress } from "#lib/tasks/progress/plan-progress.ts";
 import type { Task } from "#lib/types.ts";
 import { createPlanContent } from "./content.ts";
 import { createPlanDetail } from "./detail.ts";
+import { mergePlan } from "./helpers.ts";
 import { createPlanList } from "./list.ts";
-import type { PlansState } from "./types.ts";
+import type { PlanData, PlansState } from "./types.ts";
 
 export type { PlanField, PlanStatusFilter } from "./types.ts";
 
 export function createPlanStore(onMutate?: () => void) {
 	const state = $state<PlansState>({
-		plans: [],
-		deletedPlans: [],
 		showDeleted: false,
 		deletedLoaded: false,
 		statusFilter: "active",
 		query: "",
 		selectedId: null,
-		detail: null,
-		detailRevision: 0,
-		items: [],
-		candidates: [],
-		planDocuments: [],
-		allDocuments: [],
-		notes: [],
-		deletedNotes: [],
-		revisions: [],
 		revisionNoteId: null,
 		noteDrafts: {},
 		editingNote: null,
@@ -59,40 +56,74 @@ export function createPlanStore(onMutate?: () => void) {
 		restoreFailed: false,
 	});
 
-	const activeId = $derived(state.selectedId ?? state.plans[0]?.id ?? null);
+	const store: PlanData = {
+		plans: data.entities<PlanWithCounts>("plans", mergePlan),
+		deleted: data.entities<Plan>("plans:deleted"),
+		listIds: data.cell<string[]>("plans:ids", []),
+		deletedIds: data.cell<string[]>("plans:deleted:ids", []),
+		items: data.cell<Task[]>("detail:items", []),
+		candidates: data.cell<Task[]>("detail:candidates", []),
+		planDocuments: data.cell<Document[]>("detail:documents", []),
+		allDocuments: data.cell<Document[]>("detail:all-documents", []),
+		notes: data.cell<PlanNote[]>("detail:notes", []),
+		deletedNotes: data.cell<PlanNote[]>("detail:deleted-notes", []),
+		revisions: data.cell<TextRevision[]>("detail:revisions", []),
+	};
+
+	const activeId = $derived(state.selectedId ?? store.listIds.value[0] ?? null);
+
+	const plans = $derived(
+		store.listIds.value
+			.map((id) => store.plans.get(id))
+			.filter((plan): plan is PlanWithCounts => plan !== undefined),
+	);
+
+	const deletedPlans = $derived(
+		store.deletedIds.value
+			.map((id) => store.deleted.get(id))
+			.filter((plan): plan is Plan => plan !== undefined),
+	);
+
+	const detail = $derived(
+		activeId === null ? null : (store.plans.get(activeId) ?? null),
+	);
 
 	const tasksById = $derived.by(() => {
 		const map = new SvelteMap<string, Task>();
-		for (const task of [...state.candidates, ...state.items])
+		for (const task of [...store.candidates.value, ...store.items.value])
 			map.set(task.id, task);
 		return map;
 	});
 
 	const documentsToLink = $derived(
-		state.allDocuments.filter(
+		store.allDocuments.value.filter(
 			(document) =>
-				!state.planDocuments.some((linked) => linked.id === document.id),
+				!store.planDocuments.value.some((linked) => linked.id === document.id),
 		),
 	);
 
-	const progress = $derived(planProgress(state.items));
+	const progress = $derived(planProgress(store.items.value));
 
-	const detail = createPlanDetail(state, onMutate);
-	const list = createPlanList(state, {
-		clearDetail: detail.clearDetail,
+	const detailStore = createPlanDetail(state, store, onMutate);
+	const listStore = createPlanList(state, store, {
+		clearDetail: detailStore.clearDetail,
 		onMutate,
 	});
-	const content = createPlanContent(state, {
-		loadDetail: detail.loadDetail,
+	const contentStore = createPlanContent(state, store, {
+		loadDetail: detailStore.loadDetail,
 		onMutate,
 	});
 
-	function notesFor(key: string) {
-		return state.notes.filter((note) => note.key === key);
+	function loadDetail(id: string, force = false): Promise<void> {
+		return detailStore.loadDetail(id, force);
 	}
 
-	function deletedNotesFor(key: string) {
-		return state.deletedNotes.filter((note) => note.key === key);
+	function notesFor(key: string): PlanNote[] {
+		return store.notes.value.filter((note) => note.key === key);
+	}
+
+	function deletedNotesFor(key: string): PlanNote[] {
+		return store.deletedNotes.value.filter((note) => note.key === key);
 	}
 
 	function linkFor(id: string): string | null {
@@ -100,12 +131,12 @@ export function createPlanStore(onMutate?: () => void) {
 		return task === undefined ? null : taskHref(task.project_id, id);
 	}
 
-	const store = {
+	const result = {
 		get plans() {
-			return state.plans;
+			return plans;
 		},
 		get deletedPlans() {
-			return state.deletedPlans;
+			return deletedPlans;
 		},
 		get showDeleted() {
 			return state.showDeleted;
@@ -126,31 +157,31 @@ export function createPlanStore(onMutate?: () => void) {
 			return activeId;
 		},
 		get detail() {
-			return state.detail;
+			return detail;
 		},
 		get items() {
-			return state.items;
+			return store.items.value;
 		},
 		get progress() {
 			return progress;
 		},
 		get candidates() {
-			return state.candidates;
+			return store.candidates.value;
 		},
 		get planDocuments() {
-			return state.planDocuments;
+			return store.planDocuments.value;
 		},
 		get documentsToLink() {
 			return documentsToLink;
 		},
 		get notes() {
-			return state.notes;
+			return store.notes.value;
 		},
 		get deletedNotes() {
-			return state.deletedNotes;
+			return store.deletedNotes.value;
 		},
 		get revisions() {
-			return state.revisions;
+			return store.revisions.value;
 		},
 		get revisionNoteId() {
 			return state.revisionNoteId;
@@ -237,7 +268,7 @@ export function createPlanStore(onMutate?: () => void) {
 		select(id: string) {
 			state.selectedId = id;
 		},
-		clearDetail: detail.clearDetail,
+		clearDetail: detailStore.clearDetail,
 		setDragKey(id: string | null) {
 			state.dragKey = id;
 		},
@@ -262,36 +293,36 @@ export function createPlanStore(onMutate?: () => void) {
 			state.editingNote = null;
 			state.editingVersion = null;
 		},
-		startEdit: detail.startEdit,
-		cancelEdit: detail.cancelEdit,
-		saveEdit: detail.saveEdit,
+		startEdit: detailStore.startEdit,
+		cancelEdit: detailStore.cancelEdit,
+		saveEdit: detailStore.saveEdit,
 		notesFor,
 		deletedNotesFor,
 		linkFor,
-		reloadPlans: list.reloadPlans,
-		reloadDeletedPlans: list.reloadDeletedPlans,
-		setShowDeleted: list.setShowDeleted,
-		deleteActive: list.deleteActive,
-		restore: list.restore,
-		setStatusFilter: list.setStatusFilter,
-		setQuery: list.setQuery,
-		changeStatus: detail.changeStatus,
-		loadDetail: detail.loadDetail,
-		create: list.create,
-		open: list.open,
-		addItem: content.addItem,
-		removeItem: content.removeItem,
-		linkDocument: content.linkDocument,
-		unlinkDocument: content.unlinkDocument,
-		addNote: content.addNote,
-		editNote: content.editNote,
-		removeNote: content.removeNote,
-		restoreNote: content.restoreNote,
-		showRevisions: content.showRevisions,
-		moveItem: content.moveItem,
+		reloadPlans: listStore.reloadPlans,
+		reloadDeletedPlans: listStore.reloadDeletedPlans,
+		setShowDeleted: listStore.setShowDeleted,
+		deleteActive: listStore.deleteActive,
+		restore: listStore.restore,
+		setStatusFilter: listStore.setStatusFilter,
+		setQuery: listStore.setQuery,
+		changeStatus: detailStore.changeStatus,
+		loadDetail,
+		create: listStore.create,
+		open: listStore.open,
+		addItem: contentStore.addItem,
+		removeItem: contentStore.removeItem,
+		linkDocument: contentStore.linkDocument,
+		unlinkDocument: contentStore.unlinkDocument,
+		addNote: contentStore.addNote,
+		editNote: contentStore.editNote,
+		removeNote: contentStore.removeNote,
+		restoreNote: contentStore.restoreNote,
+		showRevisions: contentStore.showRevisions,
+		moveItem: contentStore.moveItem,
 	};
 
-	return store;
+	return result;
 }
 
 export type PlanStore = ReturnType<typeof createPlanStore>;

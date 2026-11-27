@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { fetchFresh } from "#lib/api/fresh.ts";
 	import { getTaskRevisions } from "#lib/api/tasks/revisions.ts";
+	import { data } from "#lib/data/data.svelte.ts";
 	import { formatDateTime } from "#lib/tasks/presentation/display.ts";
 	import type { Task, TaskRevision } from "#lib/types.ts";
 
@@ -13,27 +14,26 @@
 
 	let items = $state<TaskRevision[]>([]);
 	let total = $state(0);
-	let loadedKey = $state("");
-	let requested = "";
 	let failed = $state(false);
 
 	$effect(() => {
 		const key = `${task.id}:${task.updated_at}`;
-		requested = key;
 		void load(task.id, key);
 	});
 
 	async function load(id: string, key: string) {
-		if (key === loadedKey) return;
 		try {
-			const result = await fetchFresh(getTaskRevisions({ task_id: id, limit }));
-			if (key !== requested) return;
-			items = result.items;
-			total = result.total;
-			loadedKey = key;
-			failed = false;
+			await data.load(
+				`revisions:${id}:${key}`,
+				() => fetchFresh(getTaskRevisions({ task_id: id, limit })),
+				(result) => {
+					items = result.items;
+					total = result.total;
+					failed = false;
+				},
+				true,
+			);
 		} catch {
-			if (key !== requested) return;
 			failed = true;
 		}
 	}

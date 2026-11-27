@@ -1,44 +1,52 @@
+import { untrack } from "svelte";
+import { SvelteMap } from "svelte/reactivity";
 import { getTask } from "#lib/api/tasks/tasks.ts";
+import { type DataCell, data } from "#lib/data/data.svelte.ts";
 import {
 	type EpicProgress,
 	epicProgress,
 } from "#lib/tasks/progress/epic-progress.ts";
 
 export function createEpicProgress() {
-	let entries = $state<Record<string, EpicProgress | null>>({});
+	const entries = new SvelteMap<string, DataCell<EpicProgress | null>>();
 	const tracked: Record<string, boolean> = {};
-	const pending: Record<string, boolean> = {};
-	const requests: Record<string, number> = {};
 
-	async function load(id: string) {
-		tracked[id] = true;
-		if (pending[id]) return;
-
-		pending[id] = true;
-		const request = (requests[id] ?? 0) + 1;
-		requests[id] = request;
-
-		try {
-			const task = await getTask({ task_id: id });
-			if (requests[id] === request) {
-				entries = { ...entries, [id]: epicProgress(task.children_counts) };
+	function entry(id: string): DataCell<EpicProgress | null> {
+		return untrack(() => {
+			let cell = entries.get(id);
+			if (cell === undefined) {
+				cell = data.cell<EpicProgress | null>(`epic-progress:${id}`, null);
+				entries.set(id, cell);
 			}
+			return cell;
+		});
+	}
+
+	async function load(id: string, force = false) {
+		tracked[id] = true;
+		try {
+			await data.load(
+				`epic-progress:${id}`,
+				() => getTask({ task_id: id }),
+				(task) => entry(id).set(epicProgress(task.children_counts)),
+				force,
+			);
 		} catch {
 			// NOTE: keep the last known counts when the server is unavailable
-		} finally {
-			delete pending[id];
 		}
 	}
 
 	return {
 		of(id: string): EpicProgress | null {
-			return entries[id] ?? null;
+			return entry(id).value;
 		},
 		load(id: string): void {
-			void load(id).catch(() => {});
+			void load(id);
 		},
 		async refresh(): Promise<void> {
-			await Promise.allSettled(Object.keys(tracked).map((id) => load(id)));
+			await Promise.allSettled(
+				Object.keys(tracked).map((id) => load(id, true)),
+			);
 		},
 	};
 }

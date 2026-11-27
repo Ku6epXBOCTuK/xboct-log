@@ -36,7 +36,7 @@
 
 	const search = createDebouncedValue("");
 
-	const paged = createPagedQuery<Task>((offset) =>
+	const paged = createPagedQuery<Task>("deleted-tasks", (offset) =>
 		fetchFresh(
 			listDeletedTasks({
 				project_id: filters.activeProject ?? undefined,

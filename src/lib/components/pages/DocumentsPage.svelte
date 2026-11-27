@@ -1,18 +1,19 @@
 <script lang="ts">
 	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
 	import TextInput from "@ku6epxboctuk/ui-kit/components/TextInput.svelte";
+	import { fetchFresh } from "#lib/api/fresh.ts";
 	import {
-		getDocumentRevisions,
-		getDocuments,
 		type Document,
 		type DocumentKind,
 		type DocumentStatus,
+		getDocumentRevisions,
+		getDocuments,
 		type TextRevision,
 	} from "#lib/api/plans/documents.ts";
-	import { fetchFresh } from "#lib/api/fresh.ts";
 	import AppBar from "#lib/components/layout/AppBar.svelte";
 	import MarkdownEditor from "#lib/components/markdown/MarkdownEditor.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
+	import { data, dataKey } from "#lib/data/data.svelte.ts";
 	import { useBoard } from "#lib/state/board.svelte.ts";
 	import { createDocumentStore } from "#lib/state/workspace/documents.svelte.ts";
 	import { page } from "$app/state";
@@ -61,22 +62,26 @@
 
 	async function reload(): Promise<void> {
 		try {
-			const items = await fetchFresh(
-				getDocuments({ project_id: project ?? undefined }),
+			await data.load(
+				dataKey("documents", "list", project ?? ""),
+				() => fetchFresh(getDocuments({ project_id: project ?? undefined })),
+				(items) => {
+					store.replaceAll(items);
+					if (
+						initialDocumentId !== undefined &&
+						appliedInitialId !== initialDocumentId &&
+						items.some(
+							(item) =>
+								item.id === initialDocumentId && item.project_id === project,
+						)
+					) {
+						selectedId = initialDocumentId;
+						appliedInitialId = initialDocumentId;
+					}
+					failed = false;
+				},
+				true,
 			);
-			store.replaceAll(items);
-			if (
-				initialDocumentId !== undefined &&
-				appliedInitialId !== initialDocumentId &&
-				items.some(
-					(item) =>
-						item.id === initialDocumentId && item.project_id === project,
-				)
-			) {
-				selectedId = initialDocumentId;
-				appliedInitialId = initialDocumentId;
-			}
-			failed = false;
 		} catch {
 			failed = true;
 		}
@@ -84,19 +89,34 @@
 	}
 
 	async function reloadRevisions(id: string): Promise<void> {
-		revisions = await fetchFresh(getDocumentRevisions({ document_id: id }));
+		try {
+			await data.load(
+				dataKey("documents", "revisions", id),
+				() => fetchFresh(getDocumentRevisions({ document_id: id })),
+				(value) => {
+					revisions = value;
+				},
+				true,
+			);
+		} catch {
+			failedDetail = true;
+		}
 	}
 
 	async function loadDetail(id: string): Promise<void> {
 		try {
-			const document = await fetchFresh(
-				getDocuments({ project_id: project ?? undefined }),
+			await data.load(
+				dataKey("documents", "detail", id),
+				() => fetchFresh(getDocuments({ project_id: project ?? undefined })),
+				(documents) => {
+					const found = documents.find((item) => item.id === id) ?? null;
+					detail = found;
+					body = found?.body ?? "";
+					failedDetail = false;
+				},
+				true,
 			);
-			const found = document.find((item) => item.id === id) ?? null;
-			detail = found;
-			body = found?.body ?? "";
 			await reloadRevisions(id);
-			failedDetail = false;
 		} catch {
 			failedDetail = true;
 		}
@@ -133,6 +153,7 @@
 				expected_updated_at: detail.updated_at,
 			});
 			detail = updated;
+			data.touch(dataKey("documents", "detail", updated.id));
 			failedDetail = false;
 			await reloadRevisions(updated.id);
 		} catch {
@@ -150,6 +171,7 @@
 				patch: { status },
 				expected_updated_at: detail.updated_at,
 			});
+			data.touch(dataKey("documents", "detail", detail.id));
 			failedDetail = false;
 		} catch {
 			failedDetail = true;
@@ -178,7 +200,7 @@
 	});
 
 	$effect(() => {
-		const offDocuments = fresh.register("documents", () => void reload());
+		const offDocuments = fresh.register("documents", () => reload());
 		return () => offDocuments();
 	});
 

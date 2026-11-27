@@ -20,6 +20,16 @@ export function withCounts(
 	return { ...plan, ...counts };
 }
 
+export function listedPlan(plan: Plan | PlanWithCounts): PlanWithCounts {
+	return "tasks_count" in plan
+		? plan
+		: withCounts(plan, {
+				tasks_count: 0,
+				epics_count: 0,
+				closed_tasks_count: 0,
+			});
+}
+
 export function mergePlan(
 	current: PlanWithCounts,
 	updated: Plan,

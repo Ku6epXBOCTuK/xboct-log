@@ -1,7 +1,8 @@
 <script lang="ts">
-	import { getTaskHistory } from "#lib/api/tasks/activity.ts";
 	import { fetchFresh } from "#lib/api/fresh.ts";
+	import { getTaskHistory } from "#lib/api/tasks/activity.ts";
 	import ActivityTable from "#lib/components/activity/ActivityTable.svelte";
+	import { data } from "#lib/data/data.svelte.ts";
 	import type { ActivityItem, Task } from "#lib/types.ts";
 
 	interface Props {
@@ -13,27 +14,26 @@
 
 	let items = $state<ActivityItem[]>([]);
 	let total = $state(0);
-	let loadedKey = $state("");
-	let requested = "";
 	let failed = $state(false);
 
 	$effect(() => {
 		const key = `${task.id}:${task.updated_at}`;
-		requested = key;
 		void load(task.id, key);
 	});
 
 	async function load(id: string, key: string) {
-		if (key === loadedKey) return;
 		try {
-			const result = await fetchFresh(getTaskHistory({ task_id: id, limit }));
-			if (key !== requested) return;
-			items = result.items;
-			total = result.total;
-			loadedKey = key;
-			failed = false;
+			await data.load(
+				`history:${id}:${key}`,
+				() => fetchFresh(getTaskHistory({ task_id: id, limit })),
+				(result) => {
+					items = result.items;
+					total = result.total;
+					failed = false;
+				},
+				true,
+			);
 		} catch {
-			if (key !== requested) return;
 			failed = true;
 		}
 	}

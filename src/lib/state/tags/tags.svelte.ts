@@ -7,6 +7,7 @@ import {
 	renameTagCommand,
 	updateTag,
 } from "#lib/api/workspace/tags.ts";
+import { data } from "#lib/data/data.svelte.ts";
 
 export interface TagEntry {
 	tag: string;
@@ -42,19 +43,26 @@ function byCount(
 }
 
 export function createTagStore(initial: TagEntry[], initialNames: string[]) {
-	let entries = $state<TagEntry[]>(initial);
-	let names = $state<string[]>(initialNames);
-	let inventory = $state<TagInventoryEntry[]>([]);
+	const entries = data.cell<TagEntry[]>("tags:entries", initial);
+	const names = data.cell<string[]>("tags:dictionary", initialNames);
+	const inventory = data.cell<TagInventoryEntry[]>("tags:inventory", []);
 
 	async function load() {
-		const [ranked, dictionary, full] = await Promise.all([
-			fetchFresh(getTags({})),
-			fetchFresh(getTagDictionary({})),
-			fetchFresh(listTagInventoryQuery({})),
-		]);
-		entries = ranked.items;
-		names = dictionary.items;
-		inventory = full.items;
+		await data.load(
+			"tags",
+			async () =>
+				Promise.all([
+					fetchFresh(getTags({})),
+					fetchFresh(getTagDictionary({})),
+					fetchFresh(listTagInventoryQuery({})),
+				]),
+			([ranked, dictionary, full]) => {
+				entries.set(ranked.items);
+				names.set(dictionary.items);
+				inventory.set(full.items);
+			},
+			true,
+		);
 	}
 
 	function ordered(scope: TagEntry[]): string[] {
@@ -62,12 +70,12 @@ export function createTagStore(initial: TagEntry[], initialNames: string[]) {
 			scope.map((entry) => [entry.tag, entry.count]),
 		);
 		const globalCounts = Object.fromEntries(
-			entries.map((entry) => [entry.tag, entry.count]),
+			entries.value.map((entry) => [entry.tag, entry.count]),
 		);
 		const scoped = Object.keys(scopedCounts).sort((left, right) =>
 			byCount(left, right, scopedCounts),
 		);
-		const rest = [...names, ...Object.keys(globalCounts)]
+		const rest = [...names.value, ...Object.keys(globalCounts)]
 			.filter((tag) => !Object.hasOwn(scopedCounts, tag))
 			.filter((tag, index, all) => all.indexOf(tag) === index)
 			.sort((left, right) => byCount(left, right, globalCounts));
@@ -85,13 +93,13 @@ export function createTagStore(initial: TagEntry[], initialNames: string[]) {
 
 	return {
 		get all() {
-			return entries;
+			return entries.value;
 		},
 		get dictionary() {
-			return names;
+			return names.value;
 		},
 		get inventory() {
-			return inventory;
+			return inventory.value;
 		},
 		async refresh() {
 			await load();

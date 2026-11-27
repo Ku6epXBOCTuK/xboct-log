@@ -1,5 +1,6 @@
 import { fetchFresh } from "#lib/api/fresh.ts";
 import { getTaskStats } from "#lib/api/tasks/stats.ts";
+import { data } from "#lib/data/data.svelte.ts";
 import {
 	activeCount,
 	emptyCounts,
@@ -13,20 +14,23 @@ export function createStatsStore(initial?: {
 	counts?: StatusCounts;
 	epics?: EpicSummary[];
 }) {
-	let counts = $state<StatusCounts>(initial?.counts ?? emptyCounts());
-	let epics = $state<EpicSummary[]>(initial?.epics ?? []);
-	let request = 0;
+	const counts = data.cell<StatusCounts>(
+		"stats:counts",
+		initial?.counts ?? emptyCounts(),
+	);
+	const epics = data.cell<EpicSummary[]>("stats:epics", initial?.epics ?? []);
 
 	async function load() {
-		const current = ++request;
-
 		try {
-			const stats = await fetchFresh(getTaskStats({}));
-
-			if (current !== request) return;
-
-			counts = stats.tasks;
-			epics = stats.epics;
+			await data.load(
+				"stats",
+				() => fetchFresh(getTaskStats({})),
+				(stats) => {
+					counts.set(stats.tasks);
+					epics.set(stats.epics);
+				},
+				true,
+			);
 		} catch {
 			return;
 		}
@@ -34,19 +38,19 @@ export function createStatsStore(initial?: {
 
 	return {
 		get counts() {
-			return counts;
+			return counts.value;
 		},
 		get activeTasks() {
-			return activeCount(counts) + epicActive(epics);
+			return activeCount(counts.value) + epicActive(epics.value);
 		},
 		get summary() {
-			return summarize(counts, epics);
+			return summarize(counts.value, epics.value);
 		},
 		get inProgress() {
-			return counts["in-progress"] ?? 0;
+			return counts.value["in-progress"] ?? 0;
 		},
 		get epics() {
-			return epics;
+			return epics.value;
 		},
 		load,
 		refresh: load,

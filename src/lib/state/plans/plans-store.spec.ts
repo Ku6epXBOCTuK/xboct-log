@@ -240,6 +240,25 @@ describe("plan store mutations", () => {
 		expect(getPlan).not.toHaveBeenCalled();
 	});
 
+	it("a detail read that resolves after a save cannot overwrite the saved name", async () => {
+		const store = await loaded();
+		let resolvePlan!: (value: PlanWithCounts) => void;
+		getPlan.mockImplementationOnce(
+			() => new Promise<PlanWithCounts>((done) => (resolvePlan = done)),
+		);
+		const pending = store.loadDetail("PL-1", true);
+
+		updatePlan.mockResolvedValue(plan("PL-1", { name: "Renamed" }));
+		store.startEdit("name");
+		store.setFieldDraft("Renamed");
+		await store.saveEdit();
+		resolvePlan(listed(plan("PL-1")));
+		await pending;
+
+		expect(store.detail?.name).toBe("Renamed");
+		expect(store.plans[0]?.name).toBe("Renamed");
+	});
+
 	it("adds a created plan from the response with zero counts", async () => {
 		const onMutate = vi.fn();
 		const store = await loaded(onMutate);

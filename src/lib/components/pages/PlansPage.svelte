@@ -1,7 +1,7 @@
 <script lang="ts">
 	import AppBar from "#lib/components/layout/AppBar.svelte";
-	import PlanCreateForm from "#lib/components/plans/list/PlanCreateForm.svelte";
 	import PlanDetail from "#lib/components/plans/detail/PlanDetail.svelte";
+	import PlanCreateForm from "#lib/components/plans/list/PlanCreateForm.svelte";
 	import PlanList from "#lib/components/plans/list/PlanList.svelte";
 	import PlanOpenForm from "#lib/components/plans/list/PlanOpenForm.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
@@ -18,9 +18,9 @@
 	});
 
 	$effect(() => {
-		const offPlans = fresh.register("plans", () => {
-			void store.reloadPlans();
-			if (store.showDeleted) void store.reloadDeletedPlans();
+		const offPlans = fresh.register("plans", async () => {
+			await store.reloadPlans();
+			if (store.showDeleted) await store.reloadDeletedPlans();
 		});
 		const reloadDetail = () => {
 			const id = store.activeId;

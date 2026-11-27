@@ -5,29 +5,33 @@ import type {
 	PlanWithCounts,
 	TextRevision,
 } from "#lib/api/plans/plans.ts";
+import type { DataCell, EntityCollection } from "#lib/data/data.svelte.ts";
 import type { Task } from "#lib/types.ts";
 
 export type PlanStatusFilter = "all" | "active" | "closed";
 
 export type PlanField = "key" | "name" | "description";
 
+export interface PlanData {
+	plans: EntityCollection<PlanWithCounts>;
+	deleted: EntityCollection<Plan>;
+	listIds: DataCell<string[]>;
+	deletedIds: DataCell<string[]>;
+	items: DataCell<Task[]>;
+	candidates: DataCell<Task[]>;
+	planDocuments: DataCell<Document[]>;
+	allDocuments: DataCell<Document[]>;
+	notes: DataCell<PlanNote[]>;
+	deletedNotes: DataCell<PlanNote[]>;
+	revisions: DataCell<TextRevision[]>;
+}
+
 export interface PlansState {
-	plans: PlanWithCounts[];
-	deletedPlans: Plan[];
 	showDeleted: boolean;
 	deletedLoaded: boolean;
 	statusFilter: PlanStatusFilter;
 	query: string;
 	selectedId: string | null;
-	detail: PlanWithCounts | null;
-	detailRevision: number;
-	items: Task[];
-	candidates: Task[];
-	planDocuments: Document[];
-	allDocuments: Document[];
-	notes: PlanNote[];
-	deletedNotes: PlanNote[];
-	revisions: TextRevision[];
 	revisionNoteId: string | null;
 	noteDrafts: Record<string, string>;
 	editingNote: string | null;

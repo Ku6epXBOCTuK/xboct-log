@@ -1,7 +1,7 @@
 <script lang="ts">
+	import { fetchFresh } from "#lib/api/fresh.ts";
 	import type { ActivityOp } from "#lib/api/tasks/activity.ts";
 	import { listActivityLog } from "#lib/api/tasks/activity.ts";
-	import { fetchFresh } from "#lib/api/fresh.ts";
 	import ActivityFilters from "#lib/components/activity/ActivityFilters.svelte";
 	import ActivityTable from "#lib/components/activity/ActivityTable.svelte";
 	import AppBar from "#lib/components/layout/AppBar.svelte";
@@ -26,22 +26,25 @@
 	let to = $state("");
 	let ops = $state<string[]>([]);
 
-	const paged = createPagedQuery<ActivityLogItem>(async (offset) => {
-		const result = await fetchFresh(
-			listActivityLog({
-				source: source === "" ? undefined : (source as ActivitySource),
-				op: op === "" ? undefined : (op as ActivityOp),
-				entity: entity === "" ? undefined : (entity as ActivityEntity),
-				project_id: filters.activeProject ?? undefined,
-				from: from === "" ? undefined : `${from}T00:00:00.000Z`,
-				to: to === "" ? undefined : `${to}T23:59:59.999Z`,
-				limit: LIMIT,
-				offset,
-			}),
-		);
-		ops = result.ops;
-		return result;
-	});
+	const paged = createPagedQuery<ActivityLogItem>(
+		"activity",
+		async (offset) => {
+			const result = await fetchFresh(
+				listActivityLog({
+					source: source === "" ? undefined : (source as ActivitySource),
+					op: op === "" ? undefined : (op as ActivityOp),
+					entity: entity === "" ? undefined : (entity as ActivityEntity),
+					project_id: filters.activeProject ?? undefined,
+					from: from === "" ? undefined : `${from}T00:00:00.000Z`,
+					to: to === "" ? undefined : `${to}T23:59:59.999Z`,
+					limit: LIMIT,
+					offset,
+				}),
+			);
+			ops = result.ops;
+			return result;
+		},
+	);
 
 	$effect(() => {
 		void paged.load(0);

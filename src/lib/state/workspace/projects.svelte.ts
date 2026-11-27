@@ -4,6 +4,7 @@ import {
 	getProjects,
 	updateProject,
 } from "#lib/api/workspace/projects.ts";
+import { data } from "#lib/data/data.svelte.ts";
 import { sortProjects } from "#lib/projects/sort.ts";
 import type { Project } from "#lib/types.ts";
 
@@ -18,7 +19,23 @@ export function createProjectStore(
 	initial: Project[],
 	onCreated?: () => void | Promise<void>,
 ) {
-	let projects = $state(sortProjects(initial));
+	const entities = data.entities<Project>("projects", (current, next) => ({
+		...current,
+		...next,
+		task_counts: next.task_counts ?? current.task_counts,
+		epic_counts: next.epic_counts ?? current.epic_counts,
+	}));
+	const ids = data.cell<string[]>(
+		"projects:ids",
+		sortProjects(initial).map((project) => project.id),
+	);
+	for (const project of initial) entities.put(project);
+
+	const projects = $derived(
+		ids.value
+			.map((id) => entities.get(id))
+			.filter((project): project is Project => project !== undefined),
+	);
 	const active = $derived(
 		projects.filter((project) => project.archived_at === null),
 	);
@@ -27,22 +44,12 @@ export function createProjectStore(
 	);
 
 	function replace(updated: Project) {
-		projects = sortProjects(
-			projects.map((project) =>
-				project.id === updated.id
-					? {
-							...project,
-							...updated,
-							task_counts: updated.task_counts ?? project.task_counts,
-							epic_counts: updated.epic_counts ?? project.epic_counts,
-						}
-					: project,
-			),
-		);
+		entities.put(updated);
 	}
 
 	function replaceAll(next: Project[]) {
-		projects = sortProjects(next);
+		for (const project of next) entities.put(project);
+		ids.set(sortProjects(next).map((project) => project.id));
 	}
 
 	return {
@@ -57,12 +64,18 @@ export function createProjectStore(
 		},
 		replaceAll,
 		async refresh() {
-			replaceAll(await fetchFresh(getProjects({ includeArchived: true })));
+			await data.load(
+				"projects",
+				() => fetchFresh(getProjects({ includeArchived: true })),
+				(next) => replaceAll(next),
+				true,
+			);
 		},
 		async create(input: NewProjectInput) {
 			const { id, ...rest } = input;
 			const project = await createProject({ project_id: id, ...rest });
-			projects = sortProjects([...projects, project]);
+			entities.put(project);
+			ids.set(sortProjects([...projects, project]).map((item) => item.id));
 			try {
 				await onCreated?.();
 			} catch (error) {

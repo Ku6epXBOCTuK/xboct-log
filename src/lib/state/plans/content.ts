@@ -1,32 +1,39 @@
+import { fetchFresh } from "#lib/api/fresh.ts";
 import {
+	type Document,
 	linkDocumentToPlan,
 	unlinkDocumentFromPlan,
-	type Document,
 } from "#lib/api/plans/documents.ts";
-import { fetchFresh } from "#lib/api/fresh.ts";
 import {
 	addPlanItem,
 	addPlanNote,
 	deletePlanNote,
 	editPlanNote,
 	listPlanNoteRevisions,
+	type PlanNote,
 	removePlanItem,
 	reorderPlanItems,
 	restorePlanNote,
-	type PlanNote,
 } from "#lib/api/plans/plans.ts";
-import type { PlansState } from "./types.ts";
+import { data, dataKey } from "#lib/data/data.svelte.ts";
+import type { PlanData, PlansState } from "./types.ts";
 
 export function createPlanContent(
 	state: PlansState,
+	store: PlanData,
 	deps: {
-		loadDetail: (id: string) => Promise<void>;
+		loadDetail: (id: string, force?: boolean) => Promise<void>;
 		onMutate?: () => void;
 	},
 ) {
+	function detailId(): string | null {
+		const id = state.selectedId ?? store.listIds.value[0] ?? null;
+		return id === null ? null : store.plans.get(id) === undefined ? null : id;
+	}
+
 	async function changeItems(action: () => Promise<unknown>): Promise<void> {
-		if (state.detail === null) return;
-		const id = state.detail.id;
+		const id = detailId();
+		if (id === null) return;
 		state.itemFailed = false;
 		try {
 			await action();
@@ -34,14 +41,14 @@ export function createPlanContent(
 		} catch {
 			state.itemFailed = true;
 		}
-		await deps.loadDetail(id);
+		await deps.loadDetail(id, true);
 	}
 
 	async function changeDocuments(
 		action: () => Promise<Document>,
 		apply: (document: Document) => void,
 	): Promise<void> {
-		if (state.detail === null) return;
+		if (detailId() === null) return;
 		state.documentFailed = false;
 		try {
 			const document = await action();
@@ -56,10 +63,10 @@ export function createPlanContent(
 		action: () => Promise<PlanNote>,
 		apply: (note: PlanNote) => void,
 	): Promise<void> {
-		if (state.detail === null) return;
+		if (detailId() === null) return;
 		state.notesFailed = false;
 		state.revisionNoteId = null;
-		state.revisions = [];
+		store.revisions.set([]);
 		try {
 			const note = await action();
 			apply(note);
@@ -72,17 +79,19 @@ export function createPlanContent(
 	async function showRevisions(noteId: string): Promise<void> {
 		if (state.revisionNoteId === noteId) {
 			state.revisionNoteId = null;
-			state.revisions = [];
+			store.revisions.set([]);
 			return;
 		}
 		state.revisionNoteId = noteId;
 		state.revisionsFailed = false;
 		try {
-			state.revisions = await fetchFresh(
-				listPlanNoteRevisions({ note_id: noteId }),
+			await data.load(
+				dataKey("detail", "revisions", noteId),
+				() => fetchFresh(listPlanNoteRevisions({ note_id: noteId })),
+				(revisions) => store.revisions.set(revisions),
 			);
 		} catch {
-			state.revisions = [];
+			store.revisions.set([]);
 			state.revisionsFailed = true;
 		}
 	}
@@ -90,27 +99,29 @@ export function createPlanContent(
 	async function moveItem(target: string): Promise<void> {
 		const source = state.dragKey;
 		state.dragKey = null;
-		if (source === null || source === target || state.detail === null) return;
+		const id = detailId();
+		if (source === null || source === target || id === null) return;
 
-		const from = state.items.findIndex((item) => item.id === source);
-		const to = state.items.findIndex((item) => item.id === target);
+		const items = store.items.value;
+		const from = items.findIndex((item) => item.id === source);
+		const to = items.findIndex((item) => item.id === target);
 		if (from < 0 || to < 0) return;
 
-		const next = [...state.items];
+		const next = [...items];
 		const [moved] = next.splice(from, 1);
 		next.splice(to, 0, moved);
-		state.items = next;
+		store.items.set(next);
 		state.reorderFailed = false;
 
 		try {
 			await reorderPlanItems({
-				plan_id: state.detail.id,
+				plan_id: id,
 				task_ids: next.map((item) => item.id),
 			});
 			deps.onMutate?.();
 		} catch {
 			state.reorderFailed = true;
-			await deps.loadDetail(state.detail.id);
+			await deps.loadDetail(id, true);
 		}
 	}
 
@@ -129,7 +140,7 @@ export function createPlanContent(
 			return changeDocuments(
 				() => linkDocumentToPlan({ plan_id: planId, document_id: id }),
 				(document) => {
-					state.planDocuments = [...state.planDocuments, document];
+					store.planDocuments.set([...store.planDocuments.value, document]);
 				},
 			);
 		},
@@ -137,8 +148,8 @@ export function createPlanContent(
 			return changeDocuments(
 				() => unlinkDocumentFromPlan({ plan_id: planId, document_id: id }),
 				(document) => {
-					state.planDocuments = state.planDocuments.filter(
-						(item) => item.id !== document.id,
+					store.planDocuments.set(
+						store.planDocuments.value.filter((item) => item.id !== document.id),
 					);
 				},
 			);
@@ -150,7 +161,7 @@ export function createPlanContent(
 			await changeNotes(
 				() => addPlanNote({ plan_id: planId, task_id: taskId, body: trimmed }),
 				(note) => {
-					state.notes = [...state.notes, note];
+					store.notes.set([...store.notes.value, note]);
 				},
 			);
 		},
@@ -169,8 +180,10 @@ export function createPlanContent(
 						expected_edited_at: version,
 					}),
 				(note) => {
-					state.notes = state.notes.map((item) =>
-						item.id === note.id ? note : item,
+					store.notes.set(
+						store.notes.value.map((item) =>
+							item.id === note.id ? note : item,
+						),
 					);
 				},
 			);
@@ -179,8 +192,10 @@ export function createPlanContent(
 			return changeNotes(
 				() => deletePlanNote({ note_id: noteId }),
 				(note) => {
-					state.notes = state.notes.filter((item) => item.id !== note.id);
-					state.deletedNotes = [...state.deletedNotes, note];
+					store.notes.set(
+						store.notes.value.filter((item) => item.id !== note.id),
+					);
+					store.deletedNotes.set([...store.deletedNotes.value, note]);
 				},
 			);
 		},
@@ -188,10 +203,10 @@ export function createPlanContent(
 			return changeNotes(
 				() => restorePlanNote({ note_id: noteId }),
 				(note) => {
-					state.deletedNotes = state.deletedNotes.filter(
-						(item) => item.id !== note.id,
+					store.deletedNotes.set(
+						store.deletedNotes.value.filter((item) => item.id !== note.id),
 					);
-					state.notes = [...state.notes, note];
+					store.notes.set([...store.notes.value, note]);
 				},
 			);
 		},

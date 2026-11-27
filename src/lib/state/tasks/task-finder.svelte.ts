@@ -1,35 +1,34 @@
 import { fetchFresh } from "#lib/api/fresh.ts";
 import { getTaskOptions } from "#lib/api/tasks/options.ts";
+import { data } from "#lib/data/data.svelte.ts";
 import { createDebouncedValue } from "#lib/state/ui/debounce.svelte.ts";
 import type { Task } from "#lib/types.ts";
 
 export function createTaskFinder() {
 	const search = createDebouncedValue("");
-	let found = $state<Task[]>([]);
-	let request = 0;
+	const found = data.cell<Task[]>("finder:found", []);
 
 	$effect(() => {
 		const text = search.applied.trim();
 		if (text === "") {
-			found = [];
+			found.set([]);
 			return;
 		}
-		const current = ++request;
-		void fetchFresh(getTaskOptions({ q: text }))
-			.then((page) => {
-				if (current !== request) return;
-				found = page.items;
-			})
-			.catch(() => {
-				if (current === request) found = [];
-			});
+		void data
+			.load(
+				`finder:${text}`,
+				() => fetchFresh(getTaskOptions({ q: text })),
+				(page) => found.set(page.items),
+				true,
+			)
+			.catch(() => found.set([]));
 	});
 
 	$effect(() => () => search.cancel());
 
 	return {
 		get found() {
-			return found;
+			return found.value;
 		},
 		search(query: string) {
 			search.set(query);

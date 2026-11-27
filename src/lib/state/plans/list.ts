@@ -7,36 +7,73 @@ import {
 	getPlans,
 	restorePlan,
 } from "#lib/api/plans/plans.ts";
-import { FILTER_STATUSES, upsertPlan, withCounts } from "./helpers.ts";
-import type { PlanStatusFilter, PlansState } from "./types.ts";
+import { data, dataKey } from "#lib/data/data.svelte.ts";
+import { FILTER_STATUSES, listedPlan, withCounts } from "./helpers.ts";
+import type { PlanData, PlanStatusFilter, PlansState } from "./types.ts";
+
+const ZERO_COUNTS = {
+	tasks_count: 0,
+	epics_count: 0,
+	closed_tasks_count: 0,
+};
 
 export function createPlanList(
 	state: PlansState,
+	store: PlanData,
 	deps: {
 		clearDetail: () => void;
 		onMutate?: () => void;
 	},
 ) {
+	function activeId(): string | null {
+		return state.selectedId ?? store.listIds.value[0] ?? null;
+	}
+
 	function keepSelectionVisible(): void {
-		if (
-			state.selectedId !== null &&
-			state.plans.some((plan) => plan.id === state.selectedId)
-		) {
-			return;
-		}
-		const next = state.plans[0]?.id ?? null;
+		const ids = store.listIds.value;
+		if (state.selectedId !== null && ids.includes(state.selectedId)) return;
+		const next = ids[0] ?? null;
 		if (next === state.selectedId) return;
 		state.selectedId = next;
 		if (next === null) deps.clearDetail();
 	}
 
+	function sorted(ids: string[]): string[] {
+		return [...ids].sort((left, right) => {
+			const a = store.plans.get(left);
+			const b = store.plans.get(right);
+			if (a === undefined || b === undefined) return left.localeCompare(right);
+			return a.name.localeCompare(b.name);
+		});
+	}
+
+	function insert(id: string): void {
+		if (store.listIds.value.includes(id)) return;
+		store.listIds.set(sorted([...store.listIds.value, id]));
+	}
+
 	async function reloadPlans(): Promise<void> {
+		const key = dataKey(
+			"plans",
+			"list",
+			state.statusFilter,
+			state.query.trim(),
+		);
 		try {
-			state.plans = await fetchFresh(
-				getPlans({
-					status: FILTER_STATUSES[state.statusFilter],
-					q: state.query.trim() === "" ? undefined : state.query.trim(),
-				}),
+			await data.load(
+				key,
+				() =>
+					fetchFresh(
+						getPlans({
+							status: FILTER_STATUSES[state.statusFilter],
+							q: state.query.trim() === "" ? undefined : state.query.trim(),
+						}),
+					),
+				(items) => {
+					for (const item of items) store.plans.put(item);
+					store.listIds.set(items.map((item) => item.id));
+				},
+				true,
 			);
 			state.failed = false;
 		} catch {
@@ -48,7 +85,15 @@ export function createPlanList(
 
 	async function reloadDeletedPlans(): Promise<void> {
 		try {
-			state.deletedPlans = await fetchFresh(getDeletedPlans({}));
+			await data.load(
+				dataKey("plans", "deleted"),
+				() => fetchFresh(getDeletedPlans({})),
+				(items) => {
+					for (const item of items) store.deleted.put(item);
+					store.deletedIds.set(items.map((item) => item.id));
+				},
+				true,
+			);
 			state.deletedFailed = false;
 		} catch {
 			state.deletedFailed = true;
@@ -62,15 +107,21 @@ export function createPlanList(
 	}
 
 	async function deleteActive(): Promise<void> {
-		const id = state.selectedId ?? state.plans[0]?.id ?? null;
+		const id = activeId();
 		if (id === null || state.deleting) return;
 		state.deleting = true;
 		state.deleteFailed = false;
 		try {
 			const deleted = await deletePlan({ plan_id: id });
-			state.plans = state.plans.filter((plan) => plan.id !== deleted.id);
+			store.plans.remove(deleted.id);
+			store.deleted.put(deleted);
+			store.deletedIds.set(
+				sortedDeleted([...store.deletedIds.value, deleted.id]),
+			);
+			store.listIds.set(
+				store.listIds.value.filter((item) => item !== deleted.id),
+			);
 			if (state.selectedId === deleted.id) state.selectedId = null;
-			if (state.detail?.id === deleted.id) deps.clearDetail();
 			deps.onMutate?.();
 		} catch {
 			state.deleteFailed = true;
@@ -79,15 +130,27 @@ export function createPlanList(
 		}
 	}
 
+	function sortedDeleted(ids: string[]): string[] {
+		return [...ids].sort((left, right) => {
+			const a = store.deleted.get(left);
+			const b = store.deleted.get(right);
+			if (a === undefined || b === undefined) return left.localeCompare(right);
+			return a.name.localeCompare(b.name);
+		});
+	}
+
 	async function restore(id: string): Promise<void> {
 		if (state.restoringId !== null) return;
 		state.restoringId = id;
 		state.restoreFailed = false;
 		try {
 			const restored = await restorePlan({ plan_id: id });
-			state.deletedPlans = state.deletedPlans.filter(
-				(plan) => plan.id !== restored.id,
+			store.deleted.remove(id);
+			store.deletedIds.set(
+				store.deletedIds.value.filter((item) => item !== restored.id),
 			);
+			store.plans.put(withCounts(restored, ZERO_COUNTS));
+			insert(restored.id);
 			deps.onMutate?.();
 		} catch {
 			state.restoreFailed = true;
@@ -115,15 +178,9 @@ export function createPlanList(
 			state.createFailed = false;
 			state.statusFilter = "all";
 			state.query = "";
+			store.plans.put(withCounts(plan, ZERO_COUNTS));
+			insert(plan.id);
 			state.selectedId = plan.id;
-			state.plans = upsertPlan(
-				state.plans,
-				withCounts(plan, {
-					tasks_count: 0,
-					epics_count: 0,
-					closed_tasks_count: 0,
-				}),
-			);
 			deps.onMutate?.();
 			return true;
 		} catch {
@@ -142,8 +199,9 @@ export function createPlanList(
 			state.openFailed = false;
 			state.statusFilter = "all";
 			state.query = "";
+			store.plans.put(listedPlan(plan));
+			insert(plan.id);
 			state.selectedId = plan.id;
-			state.plans = upsertPlan(state.plans, plan);
 			deps.onMutate?.();
 			return true;
 		} catch {

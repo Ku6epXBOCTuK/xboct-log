@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { onMount } from "svelte";
-	import { listBackupFiles } from "#lib/api/workspace/backups.ts";
 	import { fetchFresh } from "#lib/api/fresh.ts";
+	import { listBackupFiles } from "#lib/api/workspace/backups.ts";
 	import BackupList from "#lib/components/backups/BackupList.svelte";
 	import RestoreNotice from "#lib/components/backups/RestoreNotice.svelte";
 	import AppBar from "#lib/components/layout/AppBar.svelte";
 	import ErrorNote from "#lib/components/ui/ErrorNote.svelte";
+	import { data } from "#lib/data/data.svelte.ts";
 	import { reloadApp } from "#lib/reload.ts";
 	import { messageOf } from "#lib/tasks/presentation/display.ts";
 	import type { BackupItem, RestoreOutcome } from "#lib/types.ts";
@@ -31,8 +32,14 @@
 	async function load() {
 		error = "";
 		try {
-			const value = await fetchFresh(listBackupFiles({}));
-			items = value.items;
+			await data.load(
+				"backups",
+				() => fetchFresh(listBackupFiles({})),
+				(value) => {
+					items = value.items;
+				},
+				true,
+			);
 		} catch (cause) {
 			error = messageOf(cause);
 		} finally {

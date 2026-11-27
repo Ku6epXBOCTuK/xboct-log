@@ -1,30 +1,35 @@
+import { data } from "#lib/data/data.svelte.ts";
+
 export interface PagedResult<T> {
 	items: T[];
 	total: number;
 }
 
 export function createPagedQuery<T>(
+	key: string,
 	fetchPage: (offset: number) => Promise<PagedResult<T>>,
 ) {
 	let offset = $state(0);
-	let items = $state<T[]>([]);
-	let total = $state(0);
+	const items = data.cell<T[]>(`${key}:items`, []);
+	const total = data.cell(`${key}:total`, 0);
 	let failed = $state(false);
 	let loaded = $state(false);
-	let requestId = 0;
 
 	async function load(nextOffset: number): Promise<void> {
-		const current = ++requestId;
 		offset = nextOffset;
 		try {
-			const result = await fetchPage(nextOffset);
-			if (current !== requestId) return;
-			items = result.items;
-			total = result.total;
-			failed = false;
-			loaded = true;
+			await data.load(
+				`${key}:page:${nextOffset}`,
+				() => fetchPage(nextOffset),
+				(result) => {
+					items.set(result.items);
+					total.set(result.total);
+					failed = false;
+					loaded = true;
+				},
+				true,
+			);
 		} catch {
-			if (current !== requestId) return;
 			failed = true;
 		}
 	}
@@ -35,10 +40,10 @@ export function createPagedQuery<T>(
 			return offset;
 		},
 		get items() {
-			return items;
+			return items.value;
 		},
 		get total() {
-			return total;
+			return total.value;
 		},
 		get failed() {
 			return failed;

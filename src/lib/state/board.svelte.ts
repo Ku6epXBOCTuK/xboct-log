@@ -1,6 +1,7 @@
 import { getContext, setContext } from "svelte";
 import { fetchFresh } from "#lib/api/fresh.ts";
 import { getScopedProjectIds, getScopes } from "#lib/api/workspace/projects.ts";
+import { dataKey, data as dataLayer } from "#lib/data/data.svelte.ts";
 import { listHref } from "#lib/navigation/href.ts";
 import { parsePath } from "#lib/navigation/paths.ts";
 import {
@@ -8,21 +9,21 @@ import {
 	parseListSearch,
 	withoutListSearch,
 } from "#lib/navigation/search.ts";
-import { createCommentsStore } from "#lib/state/tasks/comments.svelte.ts";
-import { createDraftStore } from "#lib/state/drafts/draft.svelte.ts";
-import { createEpicProgress } from "#lib/state/workspace/epic-progress.svelte.ts";
-import { createFilters } from "#lib/state/ui/filters.svelte.ts";
 import { createHealth } from "#lib/state/connection/health.svelte.ts";
 import { createFreshness } from "#lib/state/connection/live.ts";
+import { createDraftStore } from "#lib/state/drafts/draft.svelte.ts";
+import { createTagStore, type TagEntry } from "#lib/state/tags/tags.svelte.ts";
+import { createCommentsStore } from "#lib/state/tasks/comments.svelte.ts";
+import { createSelection } from "#lib/state/tasks/selection.svelte.ts";
+import { createTaskStore } from "#lib/state/tasks/tasks.svelte.ts";
+import { createFilters } from "#lib/state/ui/filters.svelte.ts";
+import { createTheme, type ThemeName } from "#lib/state/ui/theme.svelte.ts";
+import { createUiStore } from "#lib/state/ui/ui.svelte.ts";
+import { createEpicProgress } from "#lib/state/workspace/epic-progress.svelte.ts";
 import { createProjectData } from "#lib/state/workspace/project-data.svelte.ts";
 import { createProjectStore } from "#lib/state/workspace/projects.svelte.ts";
 import { createScopeStore } from "#lib/state/workspace/scopes.svelte.ts";
-import { createSelection } from "#lib/state/tasks/selection.svelte.ts";
 import { createStatsStore } from "#lib/state/workspace/stats.svelte.ts";
-import { createTagStore, type TagEntry } from "#lib/state/tags/tags.svelte.ts";
-import { createTaskStore } from "#lib/state/tasks/tasks.svelte.ts";
-import { createTheme, type ThemeName } from "#lib/state/ui/theme.svelte.ts";
-import { createUiStore } from "#lib/state/ui/ui.svelte.ts";
 import { TASK_PAGE_SIZE } from "#lib/tasks/query/paging.ts";
 import { buildTaskQuery } from "#lib/tasks/query/query.ts";
 import {
@@ -78,11 +79,24 @@ export function createBoard(input: BoardInput) {
 	fresh.register("tags", () => tags.refresh());
 	fresh.register("comments", () => comments.refresh());
 	fresh.register("scopes", async () => {
-		const ids = await fetchFresh(getScopedProjectIds({}));
-		const lists = await Promise.all(
-			ids.map((id) => fetchFresh(getScopes({ project_id: id }))),
+		await dataLayer.load(
+			dataKey("scopes", "project-ids"),
+			() => fetchFresh(getScopedProjectIds({})),
+			async (ids) => {
+				const lists = await Promise.all(
+					ids.map((id) =>
+						dataLayer.load(
+							dataKey("scopes", id),
+							() => fetchFresh(getScopes({ project_id: id })),
+							(list) => scopes.replaceProject(id, list),
+							true,
+						),
+					),
+				);
+				await Promise.all(lists);
+			},
+			true,
 		);
-		scopes.replaceAll(lists.flat());
 	});
 
 	$effect.root(() => {

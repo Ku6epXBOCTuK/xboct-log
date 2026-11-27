@@ -1,6 +1,8 @@
+import { SvelteMap } from "svelte/reactivity";
 import { fetchFresh } from "#lib/api/fresh.ts";
 import { getTaskOptions } from "#lib/api/tasks/options.ts";
 import { getTags } from "#lib/api/workspace/tags.ts";
+import { type DataCell, data } from "#lib/data/data.svelte.ts";
 import type { TagEntry } from "#lib/state/tags/tags.svelte.ts";
 import type { Task } from "#lib/types.ts";
 
@@ -10,24 +12,37 @@ export interface ProjectData {
 }
 
 export function createProjectData() {
-	let entries = $state<Record<string, ProjectData>>({});
-	const pending: Record<string, true> = {};
+	const entries = new SvelteMap<string, DataCell<ProjectData>>();
+	const pending: Record<string, boolean> = {};
+
+	function entry(projectId: string): DataCell<ProjectData> {
+		let cell = entries.get(projectId);
+		if (cell === undefined) {
+			cell = data.cell<ProjectData>(`project-data:${projectId}`, {
+				tasks: [],
+				tags: [],
+			});
+			entries.set(projectId, cell);
+		}
+		return cell;
+	}
 
 	async function fetchProject(projectId: string) {
-		const [tasks, tags] = await Promise.all([
-			fetchFresh(getTaskOptions({ project_id: projectId })),
-			fetchFresh(getTags({ project_id: projectId })),
-		]);
-
-		entries = {
-			...entries,
-			[projectId]: { tasks: tasks.items, tags: tags.items },
-		};
+		await data.load(
+			`project-data:${projectId}`,
+			async () =>
+				Promise.all([
+					fetchFresh(getTaskOptions({ project_id: projectId })),
+					fetchFresh(getTags({ project_id: projectId })),
+				]),
+			([tasks, tags]) =>
+				entry(projectId).set({ tasks: tasks.items, tags: tags.items }),
+			true,
+		);
 	}
 
 	async function load(projectId: string) {
-		if (projectId === "" || entries[projectId] !== undefined) return;
-		if (pending[projectId] === true) return;
+		if (projectId === "" || pending[projectId] === true) return;
 		pending[projectId] = true;
 		try {
 			await fetchProject(projectId);
@@ -40,14 +55,15 @@ export function createProjectData() {
 
 	return {
 		of(projectId: string): ProjectData | undefined {
-			return entries[projectId];
+			return entries.has(projectId) ? entry(projectId).value : undefined;
 		},
 		ensure(projectId: string): void {
 			void load(projectId);
 		},
 		async refresh() {
-			const loaded = Object.keys(entries);
-			await Promise.allSettled(loaded.map((id) => fetchProject(id)));
+			await Promise.allSettled(
+				[...entries.keys()].map((id) => fetchProject(id)),
+			);
 		},
 	};
 }

@@ -1,3 +1,4 @@
+import { SvelteSet } from "svelte/reactivity";
 import { fetchFresh } from "#lib/api/fresh.ts";
 import {
 	addBlocker as addBlockerCommand,
@@ -14,6 +15,7 @@ import {
 	moveTask,
 	updateTask,
 } from "#lib/api/tasks/tasks.ts";
+import { data } from "#lib/data/data.svelte.ts";
 import type { TaskPatch } from "#lib/tasks/fields/fields.ts";
 import { pageCount, TASK_PAGE_SIZE } from "#lib/tasks/query/paging.ts";
 import type { TaskQueryArgs } from "#lib/tasks/query/query.ts";
@@ -41,10 +43,6 @@ export interface NewTaskInput {
 	due_at?: string | null;
 }
 
-function ids(tasks: Task[]): Set<string> {
-	return new Set(tasks.map((task) => task.id));
-}
-
 function message(error: unknown): string {
 	return error instanceof Error ? error.message : String(error);
 }
@@ -54,22 +52,32 @@ export function createTaskStore(
 	initialTotal = 0,
 	onMutate?: () => void,
 ) {
-	let tasks = $state<Task[]>(initial);
-	let total = $state(initialTotal);
+	const entities = data.entities<Task>("tasks");
+	const ids = data.cell<string[]>("tasks:ids", []);
+	const totalCell = data.cell("tasks:total", initialTotal);
+	const pinnedIds = data.cell<string[]>("tasks:pinned:ids", []);
 	let loading = $state(initial.length === 0);
 	let error = $state<string | null>(null);
-	let pinned = $state<Record<string, Task>>({});
 	let absent = $state<Record<string, true>>({});
 	let failed = $state<Record<string, true>>({});
 	const pending: Record<string, true> = {};
 	let lastQuery = $state<TaskQueryArgs | null>(null);
-	let request = 0;
 
+	for (const task of initial) entities.put(task);
+	ids.set(initial.map((task) => task.id));
+
+	const tasks = $derived(
+		ids.value
+			.map((id) => entities.get(id))
+			.filter((task): task is Task => task !== undefined),
+	);
 	const epics = $derived(tasks.filter((task) => task.is_epic));
-	const pages = $derived(pageCount(total, lastQuery?.limit ?? TASK_PAGE_SIZE));
+	const pages = $derived(
+		pageCount(totalCell.value, lastQuery?.limit ?? TASK_PAGE_SIZE),
+	);
 
 	function byId(id: string): Task | undefined {
-		return tasks.find((task) => task.id === id) ?? pinned[id];
+		return entities.get(id);
 	}
 
 	function isAbsent(id: string): boolean {
@@ -80,37 +88,23 @@ export function createTaskStore(
 		return failed[id] === true;
 	}
 
-	function put(next: Task) {
-		if (pinned[next.id] !== undefined) {
-			pinned = { ...pinned, [next.id]: next };
-			return;
-		}
-		tasks = tasks.map((task) => (task.id === next.id ? next : task));
-	}
-
-	function change(targets: string[], update: (task: Task) => Task) {
+	function change(targets: string[], update: (task: Task) => Task): void {
 		for (const id of targets) {
 			const task = byId(id);
-			if (task !== undefined) {
-				put(update(task));
-			}
+			if (task !== undefined) entities.put(update(task));
 		}
 	}
 
-	function changeAll(update: (task: Task) => Task) {
-		tasks = tasks.map(update);
-		pinned = Object.fromEntries(
-			Object.values(pinned).map((task) => [task.id, update(task)]),
-		);
+	function changeAll(update: (task: Task) => Task): void {
+		for (const task of entities.all()) entities.put(update(task));
 	}
 
-	function replaceAll(next: Task[], nextTotal = next.length) {
-		tasks = next;
-		total = nextTotal;
-		const present = ids(next);
-		pinned = Object.fromEntries(
-			Object.entries(pinned).filter(([id]) => !present.has(id)),
-		);
+	function replaceAll(next: Task[], nextTotal = next.length): void {
+		for (const task of next) entities.put(task);
+		ids.set(next.map((task) => task.id));
+		totalCell.set(nextTotal);
+		const present = new SvelteSet(next.map((task) => task.id));
+		pinnedIds.set(pinnedIds.value.filter((id) => !present.has(id)));
 		absent = Object.fromEntries(
 			Object.entries(absent).filter(([id]) => !present.has(id)),
 		);
@@ -119,18 +113,19 @@ export function createTaskStore(
 
 	async function load(query: TaskQueryArgs): Promise<void> {
 		lastQuery = query;
-		const current = ++request;
 		loading = true;
 		try {
-			const page = await fetchFresh(getTasks(query));
-			if (current !== request) return;
-			replaceAll(page.items, page.total);
+			await data.load(
+				"tasks:page",
+				() => fetchFresh(getTasks(query)),
+				(page) => replaceAll(page.items, page.total),
+				true,
+			);
 			error = null;
 		} catch (failure) {
-			if (current !== request) return;
 			error = message(failure);
 		} finally {
-			if (current === request) loading = false;
+			loading = false;
 		}
 	}
 
@@ -139,8 +134,10 @@ export function createTaskStore(
 		await load(lastQuery);
 	}
 
-	function keep(next: Task) {
-		pinned = { ...pinned, [next.id]: next };
+	function keep(next: Task): void {
+		entities.put(next);
+		if (!ids.value.includes(next.id))
+			pinnedIds.set([...pinnedIds.value, next.id]);
 	}
 
 	async function pin(targets: string[]): Promise<void> {
@@ -157,13 +154,7 @@ export function createTaskStore(
 		}
 		try {
 			const { items, missing } = await getTasksByIds({ task_ids: wanted });
-			const loaded = items.filter((task) => !ids(tasks).has(task.id));
-			if (loaded.length > 0) {
-				pinned = {
-					...pinned,
-					...Object.fromEntries(loaded.map((task) => [task.id, task])),
-				};
-			}
+			for (const item of items) keep(item);
 			markAbsent(missing);
 		} catch {
 			const next = { ...failed };
@@ -178,7 +169,7 @@ export function createTaskStore(
 		}
 	}
 
-	function markAbsent(targets: string[]) {
+	function markAbsent(targets: string[]): void {
 		if (targets.length === 0) return;
 		absent = {
 			...absent,
@@ -197,7 +188,7 @@ export function createTaskStore(
 			return epics;
 		},
 		get total() {
-			return total;
+			return totalCell.value;
 		},
 		get pages() {
 			return pages;
@@ -223,54 +214,39 @@ export function createTaskStore(
 		},
 		async save(id: string, patch: TaskPatch) {
 			const updated = await updateTask({ task_id: id, patch });
-			put(updated);
-			if (updated.closed_epic) {
-				put(updated.closed_epic);
-			}
-			if (updated.reopened_epic) {
-				put(updated.reopened_epic);
-			}
+			entities.put(updated);
+			if (updated.closed_epic) entities.put(updated.closed_epic);
+			if (updated.reopened_epic) entities.put(updated.reopened_epic);
 			onMutate?.();
 			return updated;
 		},
 		async moveTo(id: string, projectId: string) {
 			const moved = await moveTask({ task_id: id, project_id: projectId });
-			if (moved.id === id) {
-				put(moved);
-			} else {
-				tasks = tasks.map((task) => (task.id === id ? moved : task));
-				if (pinned[id] !== undefined) {
-					const next = { ...pinned };
-					delete next[id];
-					next[moved.id] = moved;
-					pinned = next;
-				}
-			}
+			entities.remove(id);
+			entities.put(moved);
+			ids.set(ids.value.map((item) => (item === id ? moved.id : item)));
+			pinnedIds.set(
+				pinnedIds.value.map((item) => (item === id ? moved.id : item)),
+			);
 			onMutate?.();
 			return moved;
 		},
 		async close(id: string, reason: ClosedReason) {
 			const updated = await closeTask({ task_id: id, reason });
-			put(updated);
-			if (updated.closed_epic) {
-				put(updated.closed_epic);
-			}
+			entities.put(updated);
+			if (updated.closed_epic) entities.put(updated.closed_epic);
 			onMutate?.();
 			return updated;
 		},
 		async destroy(id: string) {
 			await deleteTask({ task_id: id });
-			tasks = tasks
-				.filter((task) => task.id !== id)
-				.map((task) =>
-					task.epic_id === id ? { ...task, epic_id: null } : task,
-				);
-			total = Math.max(0, total - 1);
-			if (pinned[id] !== undefined) {
-				const next = { ...pinned };
-				delete next[id];
-				pinned = next;
-			}
+			entities.remove(id);
+			ids.set(ids.value.filter((item) => item !== id));
+			pinnedIds.set(pinnedIds.value.filter((item) => item !== id));
+			changeAll((task) =>
+				task.epic_id === id ? { ...task, epic_id: null } : task,
+			);
+			totalCell.set(Math.max(0, totalCell.value - 1));
 			onMutate?.();
 		},
 		async addBlocker(id: string, blockerId: string) {
@@ -278,13 +254,14 @@ export function createTaskStore(
 				task_id: id,
 				blocked_by: blockerId,
 			});
-			put(updated);
+			entities.put(updated);
 			change([blockerId], (task) => {
 				const blocks = task.blocks ?? [];
 				return blocks.includes(updated.id)
 					? task
 					: { ...task, blocks: [...blocks, updated.id].sort() };
 			});
+			onMutate?.();
 			return updated;
 		},
 		async removeBlocker(id: string, blockerId: string) {
@@ -292,11 +269,12 @@ export function createTaskStore(
 				task_id: id,
 				blocked_by: blockerId,
 			});
-			put(updated);
+			entities.put(updated);
 			change([blockerId], (task) => ({
 				...task,
 				blocks: (task.blocks ?? []).filter((item) => item !== updated.id),
 			}));
+			onMutate?.();
 			return updated;
 		},
 		async addLink(
@@ -309,7 +287,7 @@ export function createTaskStore(
 				link_type: linkType,
 				target: targetId,
 			});
-			put(updated);
+			entities.put(updated);
 			change([targetId], (task) => {
 				if (linkType === "relates_to") {
 					const relates = task.relates_to ?? [];
@@ -322,6 +300,7 @@ export function createTaskStore(
 					? task
 					: { ...task, duplicated_by: [...by, updated.id].sort() };
 			});
+			onMutate?.();
 			return updated;
 		},
 		async removeLink(
@@ -334,7 +313,7 @@ export function createTaskStore(
 				link_type: linkType,
 				target: targetId,
 			});
-			put(updated);
+			entities.put(updated);
 			change([targetId], (task) => {
 				if (linkType === "relates_to") {
 					return {
@@ -351,6 +330,7 @@ export function createTaskStore(
 					),
 				};
 			});
+			onMutate?.();
 			return updated;
 		},
 		clearScope(scopeId: number) {

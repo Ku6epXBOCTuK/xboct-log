@@ -1,3 +1,4 @@
+import { fetchFresh } from "#lib/api/fresh.ts";
 import {
 	addTaskAttachment,
 	copyTaskAttachment,
@@ -5,7 +6,7 @@ import {
 	moveTaskAttachment,
 	removeTaskAttachment,
 } from "#lib/api/tasks/attachments.ts";
-import { fetchFresh } from "#lib/api/fresh.ts";
+import { data } from "#lib/data/data.svelte.ts";
 import { createAttachmentFlash } from "#lib/state/attachments/attachment-flash.svelte.ts";
 import { createAttachmentNotice } from "#lib/state/attachments/attachment-notice.svelte.ts";
 import type { TaskStore } from "#lib/state/tasks/tasks.svelte.ts";
@@ -166,9 +167,15 @@ export function createSavedAttachments(
 
 	async function load(id: string) {
 		try {
-			const result = await fetchFresh(getTaskAttachments({ task_id: id }));
-			items = result.items;
-			failed = false;
+			await data.load(
+				`attachments:${id}`,
+				() => fetchFresh(getTaskAttachments({ task_id: id })),
+				(result) => {
+					items = result.items;
+					failed = false;
+				},
+				true,
+			);
 		} catch {
 			failed = true;
 		}
@@ -196,6 +203,7 @@ export function createSavedAttachments(
 					content_base64: content,
 				});
 				items = [...items, item];
+				data.touch(`attachments:${task.id}`);
 				getTasks().bumpAttachments(task.id, 1);
 			}
 			flash.mark();
@@ -214,6 +222,7 @@ export function createSavedAttachments(
 		try {
 			await removeTaskAttachment({ attachment_id: id });
 			items = items.filter((item) => item.id !== id);
+			data.touch(`attachments:${task.id}`);
 			getTasks().bumpAttachments(task.id, -1);
 		} catch (error) {
 			failure = messageOf(error);

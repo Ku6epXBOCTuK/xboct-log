@@ -3,6 +3,7 @@ import {
 	deleteScope as deleteScopeRemote,
 	updateScope as updateScopeRemote,
 } from "#lib/api/workspace/projects.ts";
+import { data } from "#lib/data/data.svelte.ts";
 import type { ProjectFilter, Scope } from "#lib/types.ts";
 
 export interface NewScopeInput {
@@ -19,41 +20,53 @@ function sortScopes(scopes: Scope[]): Scope[] {
 }
 
 export function createScopeStore(initial: Scope[]) {
-	let scopes = $state(sortScopes(initial));
+	const scopes = data.cell<Scope[]>("scopes:all", sortScopes(initial));
 
 	const byProject = $derived.by(() => {
 		const map: Record<string, Scope[]> = {};
-		for (const scope of scopes) {
+		for (const scope of scopes.value) {
 			(map[scope.project_id] ??= []).push(scope);
 		}
 		return map;
 	});
 
 	function replace(updated: Scope) {
-		scopes = sortScopes(
-			scopes.map((scope) => (scope.id === updated.id ? updated : scope)),
+		scopes.set(
+			sortScopes(
+				scopes.value.map((scope) =>
+					scope.id === updated.id ? updated : scope,
+				),
+			),
 		);
 	}
 
 	return {
 		get all() {
-			return scopes;
+			return scopes.value;
 		},
 		get byProject() {
 			return byProject;
 		},
 		replaceAll(next: Scope[]) {
-			scopes = sortScopes(next);
+			scopes.set(sortScopes(next));
+		},
+		replaceProject(projectId: string, next: Scope[]) {
+			scopes.set(
+				sortScopes([
+					...scopes.value.filter((scope) => scope.project_id !== projectId),
+					...next,
+				]),
+			);
 		},
 		listFor(projectId: ProjectFilter) {
-			return projectId === null ? scopes : (byProject[projectId] ?? []);
+			return projectId === null ? scopes.value : (byProject[projectId] ?? []);
 		},
 		hasProject(projectId: string) {
 			return (byProject[projectId]?.length ?? 0) > 0;
 		},
 		async create(input: NewScopeInput) {
 			const scope = await createScopeRemote(input);
-			scopes = sortScopes([...scopes, scope]);
+			scopes.set(sortScopes([...scopes.value, scope]));
 			return scope;
 		},
 		async rename(id: number, name: string) {
@@ -66,7 +79,7 @@ export function createScopeStore(initial: Scope[]) {
 		},
 		async destroy(id: number) {
 			await deleteScopeRemote({ scope_id: id });
-			scopes = scopes.filter((scope) => scope.id !== id);
+			scopes.set(scopes.value.filter((scope) => scope.id !== id));
 		},
 	};
 }
