@@ -2,6 +2,20 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.18.1](https://github.com/Ku6epXBOCTuK/xboct-log/compare/640047fc849f829b45c586bbd4faec95f2a86908..v0.18.1) - 2026-11-27
+#### Bug Fixes
+- (**core**) report every epic in task stats - ([68cb742](https://github.com/Ku6epXBOCTuK/xboct-log/commit/68cb74231defa9196587090eba2a1342bf7d9a27)) - Ku6epXBOCTuK
+- (**ui**) reset task fields when selection changes - ([a8ed5fe](https://github.com/Ku6epXBOCTuK/xboct-log/commit/a8ed5fea298773e8e1a502e70c0411ac47eb65cc)) - Ku6epXBOCTuK
+#### Refactoring
+- (**core**) extract shared primitives to break module dependency cycles - ([3e60e0a](https://github.com/Ku6epXBOCTuK/xboct-log/commit/3e60e0a9d0a0d7d20327ac0644156be3b274da8a)) - Ku6epXBOCTuK
+- (**core**) decouple workspace projects and scopes - ([56b57ad](https://github.com/Ku6epXBOCTuK/xboct-log/commit/56b57ad637bc3f707bdd2a4f0ea6f60048e75d9d)) - Ku6epXBOCTuK
+- (**core**) decouple migrations from Db via shared helper - ([42b4ea4](https://github.com/Ku6epXBOCTuK/xboct-log/commit/42b4ea45c09daa309d4d865e8cf50e31a9e544ce)) - Ku6epXBOCTuK
+- (**frontend**) split large files and regroup folders by meaning - ([96a677f](https://github.com/Ku6epXBOCTuK/xboct-log/commit/96a677f7c09c0762b007a6fe4cdf64b57c7fb120)) - Ku6epXBOCTuK
+- (**server**) split oversized files and regroup crate modules - ([640047f](https://github.com/Ku6epXBOCTuK/xboct-log/commit/640047fc849f829b45c586bbd4faec95f2a86908)) - Ku6epXBOCTuK
+- (**state**) replace per-store race guards with a share versioned data layer - ([f1db530](https://github.com/Ku6epXBOCTuK/xboct-log/commit/f1db530abf84dcbcea254364e00b16964de90463)) - Ku6epXBOCTuK
+
+- - -
+
 ## [v0.18.0](https://github.com/Ku6epXBOCTuK/xboct-log/compare/4b4fce4b360db70aae8cb3ebe21fc88f5558ff45..v0.18.0) - 2026-11-26
 #### Features
 - (**core**) hide closed plan items in tasks_list by default - ([0162523](https://github.com/Ku6epXBOCTuK/xboct-log/commit/01625238fc7265471c552f84057b9df4475966a9)) - Ku6epXBOCTuK
