@@ -48,6 +48,7 @@
 	}: Props = $props();
 
 	const today = localToday();
+	const epicId = $derived(task.epic_id ?? null);
 
 	const overdue = $derived(
 		task.due_at !== null &&
@@ -99,13 +100,13 @@
 					{progress}
 					onfilter={(target) => onepic?.(target)}
 				/>
-			{:else if task.epic_id !== null}
+			{:else if epicId !== null}
 				<InfoPopover
 					text="Show tasks of this epic"
 					class="epic-badge epic-filter"
-					onclick={() => filterEpic(task.epic_id)}
+					onclick={() => filterEpic(epicId)}
 				>
-					{task.epic_id}
+					{epicId}
 				</InfoPopover>
 			{/if}
 			{#if task.status === "blocked"}

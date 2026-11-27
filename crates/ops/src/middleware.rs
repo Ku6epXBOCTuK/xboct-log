@@ -17,6 +17,7 @@ const UI_FIELDS: &[&str] = &[
     "created_at",
     "closed_at",
     "blocked_by",
+    "blocked_reason",
     "blocks",
 ];
 
@@ -118,7 +119,26 @@ mod tests {
         assert!(input.get("page").is_none());
         assert_eq!(input["offset"], 100);
         assert_eq!(input["limit"], UI_PAGE_SIZE);
-        assert_eq!(input["fields"][0], "title");
+        assert_eq!(
+            input["fields"],
+            json!([
+                "title",
+                "status",
+                "priority",
+                "is_epic",
+                "epic_id",
+                "scope_id",
+                "tags",
+                "estimate",
+                "due_at",
+                "attachments_count",
+                "created_at",
+                "closed_at",
+                "blocked_by",
+                "blocked_reason",
+                "blocks",
+            ])
+        );
         assert!(input.get("include_description").is_none());
         assert!(input.get("description_chars").is_none());
         assert!(input.get("include_plan_names").is_none());

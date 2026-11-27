@@ -62,6 +62,43 @@ async fn ui_pages_are_bounded_by_the_server_page_size_and_have_no_description() 
 }
 
 #[tokio::test]
+async fn ui_page_keeps_the_blocked_reason_used_by_the_badge() {
+    let mut ctx = context().await;
+    dispatch(
+        &ctx,
+        "projects_create",
+        json!({"project_id": "log", "name": "Log", "prefix": "LOG"}),
+    )
+    .await
+    .unwrap();
+    let blocked = dispatch(
+        &ctx,
+        "tasks_create",
+        json!({
+            "project_id": "log",
+            "title": "Blocked with a reason",
+            "status": "blocked",
+            "blocked_reason": "waiting for review",
+        }),
+    )
+    .await
+    .unwrap();
+    ctx.source = ActivitySource::Ui;
+
+    let page = dispatch(&ctx, "tasks_list", json!({"page": 1}))
+        .await
+        .unwrap();
+    let item = page["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|task| task["id"] == blocked["id"])
+        .expect("blocked task is on the first page");
+
+    assert_eq!(item["blocked_reason"], "waiting for review");
+}
+
+#[tokio::test]
 async fn mcp_keeps_its_own_pagination_and_budget() {
     let mut ctx = context().await;
     seed(&ctx).await;
