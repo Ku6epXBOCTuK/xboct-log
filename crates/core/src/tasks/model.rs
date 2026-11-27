@@ -267,8 +267,16 @@ pub enum TaskListEntry {
 pub struct TaskList {
     pub items: Vec<TaskListEntry>,
     pub total: i64,
+    #[schemars(description = "Offset of the returned page.")]
+    pub offset: i64,
     #[schemars(
-        description = "Present when more tasks match the filters: repeat the same call with offset set to this value. A page is capped at about 24 KB, so this can happen before limit is reached."
+        description = "Number of tasks actually returned. For MCP calls this can be less than page_size when the 24 KB response budget trims the page."
+    )]
+    pub size: usize,
+    #[schemars(description = "Effective page size chosen by the pagination policy.")]
+    pub page_size: i64,
+    #[schemars(
+        description = "Present when more tasks match the filters: repeat the same call with offset set to this value. On MCP calls the 24 KB response budget can end a page before page_size is reached."
     )]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub next_offset: Option<i64>,

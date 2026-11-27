@@ -28,4 +28,5 @@ async fn media_context(media: &std::path::Path) -> Ctx {
 
 mod catalog;
 mod commands;
+mod pagination;
 mod validation;

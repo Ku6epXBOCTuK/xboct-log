@@ -1,16 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { pageCount, pageItems } from "./paging";
+import { pageCount, pageItems, pageRange } from "./paging";
 
 describe("pageCount", () => {
 	it("reports at least one page", () => {
-		expect(pageCount(0)).toBe(1);
-		expect(pageCount(1)).toBe(1);
+		expect(pageCount(0, 50)).toBe(1);
+		expect(pageCount(1, 50)).toBe(1);
 	});
 
 	it("rounds a partial page up", () => {
 		expect(pageCount(20, 20)).toBe(1);
 		expect(pageCount(21, 20)).toBe(2);
 		expect(pageCount(1250, 20)).toBe(63);
+	});
+});
+
+describe("pageRange", () => {
+	it("uses the size actually returned, not the requested page size", () => {
+		expect(pageRange(0, 20, 74)).toBe("1–20 of 74");
+		expect(pageRange(20, 20, 74)).toBe("21–40 of 74");
+		expect(pageRange(0, 50, 74)).toBe("1–50 of 74");
 	});
 });
 

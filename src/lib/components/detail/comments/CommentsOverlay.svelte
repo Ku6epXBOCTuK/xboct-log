@@ -1,12 +1,12 @@
 <script lang="ts">
-	import PanelOverlay from "#lib/components/detail/panel/PanelOverlay.svelte";
+	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton.svelte";
 	import TaskComments from "#lib/components/detail/comments/TaskComments.svelte";
+	import PanelOverlay from "#lib/components/detail/panel/PanelOverlay.svelte";
 	import MarkdownView from "#lib/components/markdown/MarkdownView.svelte";
 	import StatusDot from "#lib/components/ui/StatusDot.svelte";
 	import { useBoard } from "#lib/state/board.svelte.ts";
 	import { useTaskPanel } from "#lib/state/tasks/task-panel.ts";
 	import { STATUS_LABELS } from "#lib/tasks/presentation/display.ts";
-	import IconButton from "@ku6epxboctuk/ui-kit/components/IconButton.svelte";
 	import RefreshCw from "~icons/lucide/refresh-cw";
 
 	const { comments } = useBoard();
@@ -38,9 +38,9 @@
 			<StatusDot status={task.status} />
 			<span>{STATUS_LABELS[task.status]}</span>
 		</div>
-		{#if task.description.trim() !== ""}
+		{#if (task.description ?? "").trim() !== ""}
 			<div class="summary-description">
-				<MarkdownView text={task.description} repo={panel.repo} />
+				<MarkdownView text={task.description ?? ""} repo={panel.repo} />
 			</div>
 		{/if}
 	</div>

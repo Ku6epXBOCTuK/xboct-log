@@ -24,7 +24,6 @@ import { createProjectData } from "#lib/state/workspace/project-data.svelte.ts";
 import { createProjectStore } from "#lib/state/workspace/projects.svelte.ts";
 import { createScopeStore } from "#lib/state/workspace/scopes.svelte.ts";
 import { createStatsStore } from "#lib/state/workspace/stats.svelte.ts";
-import { TASK_PAGE_SIZE } from "#lib/tasks/query/paging.ts";
 import { buildTaskQuery } from "#lib/tasks/query/query.ts";
 import {
 	ENTITIES,
@@ -128,9 +127,7 @@ export function createBoard(input: BoardInput) {
 			const prefix = projects.all.find(
 				(project) => project.id === filters.activeProject,
 			)?.prefix;
-			void tasks.load(
-				buildTaskQuery(filters, filters.page, TASK_PAGE_SIZE, prefix),
-			);
+			void tasks.load(buildTaskQuery(filters, filters.page, prefix));
 		});
 
 		$effect(() => {

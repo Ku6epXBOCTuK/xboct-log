@@ -3,10 +3,11 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use xboct_log_core::{
-    AppError, Change, Closed, ClosedReason, Created, Deleted, Entity, Linked, NewTask, OpName,
-    ProjectId, ReleasedLink, Result, RevisionsPage, Task, TaskKey, TaskList, TaskMany, TaskPatch,
-    TaskStats, Updated, close_task, close_task_detailed, count_epic_children_by_status,
-    create_task, get_task, list_tasks, update_task, validate_limit, validate_offset, warnings_for,
+    AppError, Change, Closed, ClosedReason, Created, Deleted, Entity, FieldSelection, Linked,
+    NewTask, OpName, ProjectId, ReleasedLink, Result, RevisionsPage, Task, TaskKey, TaskList,
+    TaskMany, TaskPatch, TaskStats, Updated, close_task, close_task_detailed,
+    count_epic_children_by_status, create_task, get_task, list_tasks, update_task, validate_limit,
+    validate_offset, warnings_for,
 };
 
 use crate::{Ctx, Kind, Op};

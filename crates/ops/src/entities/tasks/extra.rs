@@ -128,6 +128,9 @@ pub struct DeletedListInput {
     #[schemars(description = "Number of tasks to skip, for pagination.")]
     #[serde(default)]
     offset: Option<i64>,
+    #[schemars(description = "Fields to include in each deleted task, as an array of names.")]
+    #[serde(default)]
+    fields: Option<FieldSelection>,
 }
 
 pub struct TasksDeletedList;
@@ -152,6 +155,12 @@ impl Op for TasksDeletedList {
             "limit": limit,
             "offset": offset
         });
+        if let Some(fields) = input.fields {
+            query["fields"] = match fields {
+                FieldSelection::Csv(value) => json!(value),
+                FieldSelection::List(values) => json!(values),
+            };
+        }
         if let Some(project_id) = &input.project_id {
             query["project_id"] = json!(project_id);
         }

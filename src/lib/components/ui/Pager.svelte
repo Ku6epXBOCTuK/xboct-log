@@ -1,24 +1,23 @@
 <script lang="ts">
-	import { pageCount, pageItems } from "#lib/tasks/query/paging.ts";
+	import { pageCount, pageItems, pageRange } from "#lib/tasks/query/paging.ts";
 	import ChevronLeft from "~icons/lucide/chevron-left";
 	import ChevronRight from "~icons/lucide/chevron-right";
 
 	interface Props {
 		offset: number;
-		limit: number;
+		size: number;
+		pageSize: number;
 		total: number;
 		emptyLabel: string;
 		onchange: (offset: number) => void;
 	}
 
-	let { offset, limit, total, emptyLabel, onchange }: Props = $props();
+	let { offset, size, pageSize, total, emptyLabel, onchange }: Props = $props();
 
-	const pages = $derived(pageCount(total, limit));
-	const page = $derived(Math.min(pages, Math.floor(offset / limit) + 1));
+	const pages = $derived(pageCount(total, pageSize));
+	const page = $derived(Math.min(pages, Math.floor(offset / pageSize) + 1));
 	const range = $derived(
-		total === 0
-			? emptyLabel
-			: `${offset + 1}–${Math.min(offset + limit, total)} of ${total}`,
+		total === 0 ? emptyLabel : pageRange(offset, size, total),
 	);
 </script>
 
@@ -28,7 +27,7 @@
 		<button
 			class="arrow"
 			disabled={page <= 1}
-			onclick={() => onchange((page - 2) * limit)}
+			onclick={() => onchange((page - 2) * pageSize)}
 			aria-label="Previous page"
 		>
 			<ChevronLeft />
@@ -43,7 +42,7 @@
 						class="number"
 						class:current={item === page}
 						aria-current={item === page ? "page" : undefined}
-						onclick={() => onchange((item - 1) * limit)}
+						onclick={() => onchange((item - 1) * pageSize)}
 					>
 						{item}
 					</button>
@@ -53,7 +52,7 @@
 		<button
 			class="arrow"
 			disabled={page >= pages}
-			onclick={() => onchange(page * limit)}
+			onclick={() => onchange(page * pageSize)}
 			aria-label="Next page"
 		>
 			<ChevronRight />

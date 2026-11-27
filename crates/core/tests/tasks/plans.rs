@@ -192,7 +192,7 @@ async fn rejects_invalid_description_chars() {
 }
 
 #[tokio::test]
-async fn pages_large_lists_with_next_offset() {
+async fn lists_every_row_of_the_limit_without_a_response_budget() {
     let db = database().await;
     for number in 1..=3 {
         let input: NewTask = serde_json::from_value(json!({
@@ -203,28 +203,17 @@ async fn pages_large_lists_with_next_offset() {
         .unwrap();
         create_task(&db, input).await.unwrap();
     }
-    let mut ids = Vec::new();
-    let mut offset = None;
-    loop {
-        let mut query = json!({"include_description": true, "limit": 100});
-        if let Some(value) = offset {
-            query["offset"] = json!(value);
-        }
-        let page = list_tasks(&db, &filters(query)).await.unwrap();
-        for item in &page.items {
-            ids.push(item.as_json()["id"].as_str().unwrap().to_string());
-        }
-        let Some(next) = page.next_offset else {
-            break;
-        };
-        assert!(next > offset.unwrap_or(0));
-        offset = Some(next);
-    }
-    let mut unique = ids.clone();
-    unique.sort();
-    unique.dedup();
-    assert_eq!(ids.len(), 9);
-    assert_eq!(unique.len(), ids.len());
+
+    let page = list_tasks(
+        &db,
+        &filters(json!({"include_description": true, "limit": 100})),
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(page.items.len() as i64, page.total);
+    assert_eq!(page.size, page.items.len());
+    assert!(page.next_offset.is_none());
 }
 
 #[tokio::test]

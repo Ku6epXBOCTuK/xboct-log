@@ -13,6 +13,7 @@ use xboct_log_core::{
 mod descriptions;
 pub mod entities;
 mod entries;
+mod middleware;
 pub mod records;
 pub mod validation;
 pub use entities::backups;
@@ -229,12 +230,20 @@ macro_rules! ops {
 			name: &str,
 			input: ::serde_json::Value,
 		) -> ::xboct_log_core::Result<::serde_json::Value> {
+			let mut input = input;
+			if ctx.source == ::xboct_log_core::ActivitySource::Ui {
+				$crate::middleware::ui_request(&mut input);
+			}
 			$(
 				if name == <$op as $crate::Op>::NAME.as_str() {
 					$crate::validation::validate_arguments(name, &input)?;
 					let parsed = ::serde_json::from_value::<<$op as $crate::Op>::Input>(input.clone())
 						.map_err(|error| ::xboct_log_core::AppError::validation(error.to_string()))?;
-					return $crate::execute::<$op>(ctx, parsed, input).await;
+					let mut value = $crate::execute::<$op>(ctx, parsed, input).await?;
+					if ctx.source == ::xboct_log_core::ActivitySource::Mcp {
+						$crate::middleware::mcp_response(&mut value);
+					}
+					return ::std::result::Result::Ok(value);
 				}
 			)+
 			::std::result::Result::Err(

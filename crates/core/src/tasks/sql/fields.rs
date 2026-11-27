@@ -97,32 +97,10 @@ pub(crate) fn pick_fields(task: Task, fields: Option<&[String]>) -> TaskListEntr
     )
 }
 
-const RESPONSE_BUDGET_BYTES: usize = 24 * 1024;
-
 pub async fn list_tasks(db: &Db, filters: &TaskFilters) -> Result<TaskList> {
     filters.validate()?;
     let (limit, offset) = filters.pagination()?;
-    let page = list_tasks_unchecked(db, filters, limit, offset).await?;
-    Ok(bound_page(page, offset.get()))
-}
-
-pub(crate) fn bound_page(mut page: TaskList, offset: i64) -> TaskList {
-    let mut bytes = 0usize;
-    let mut keep = page.items.len();
-    for (index, item) in page.items.iter().enumerate() {
-        let Ok(json) = serde_json::to_string(item) else {
-            continue;
-        };
-        if index > 0 && bytes.saturating_add(json.len()) > RESPONSE_BUDGET_BYTES {
-            keep = index;
-            break;
-        }
-        bytes = bytes.saturating_add(json.len());
-    }
-    page.items.truncate(keep);
-    let next = offset.saturating_add(i64::try_from(keep).unwrap_or(i64::MAX));
-    page.next_offset = (page.total > next).then_some(next);
-    page
+    list_tasks_unchecked(db, filters, limit, offset).await
 }
 
 pub(crate) async fn list_tasks_unchecked(
@@ -190,7 +168,7 @@ pub(crate) async fn list_tasks_unchecked(
     };
 
     let fields = fields_of(filters);
-    let items = rows
+    let items: Vec<_> = rows
         .into_iter()
         .map(|row| {
             let key = row.key.clone();
@@ -223,10 +201,17 @@ pub(crate) async fn list_tasks_unchecked(
         })
         .collect();
 
+    let size = items.len();
+    let next = offset
+        .get()
+        .saturating_add(i64::try_from(size).unwrap_or(i64::MAX));
     Ok(TaskList {
         items,
         total,
-        next_offset: None,
+        offset: offset.get(),
+        size,
+        page_size: limit.get(),
+        next_offset: (total > next).then_some(next),
     })
 }
 

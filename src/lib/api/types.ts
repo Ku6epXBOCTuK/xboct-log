@@ -95,6 +95,7 @@ export interface TaskQuery {
 		| "title"
 		| "plan_position";
 	order?: "asc" | "desc";
+	page?: number;
 	limit?: number;
 	offset?: number;
 	include_deleted?: boolean;

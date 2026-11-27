@@ -17,7 +17,7 @@ import {
 } from "#lib/api/tasks/tasks.ts";
 import { data } from "#lib/data/data.svelte.ts";
 import type { TaskPatch } from "#lib/tasks/fields/fields.ts";
-import { pageCount, TASK_PAGE_SIZE } from "#lib/tasks/query/paging.ts";
+import { pageCount } from "#lib/tasks/query/paging.ts";
 import type { TaskQueryArgs } from "#lib/tasks/query/query.ts";
 import type {
 	ClosedReason,
@@ -55,7 +55,13 @@ export function createTaskStore(
 	const entities = data.entities<Task>("tasks");
 	const ids = data.cell<string[]>("tasks:ids", []);
 	const totalCell = data.cell("tasks:total", initialTotal);
+	const pageInfo = data.cell("tasks:page:info", {
+		offset: 0,
+		size: 0,
+		pageSize: 1,
+	});
 	const pinnedIds = data.cell<string[]>("tasks:pinned:ids", []);
+	const fullIds = new SvelteSet<string>();
 	let loading = $state(initial.length === 0);
 	let error = $state<string | null>(null);
 	let absent = $state<Record<string, true>>({});
@@ -72,9 +78,7 @@ export function createTaskStore(
 			.filter((task): task is Task => task !== undefined),
 	);
 	const epics = $derived(tasks.filter((task) => task.is_epic));
-	const pages = $derived(
-		pageCount(totalCell.value, lastQuery?.limit ?? TASK_PAGE_SIZE),
-	);
+	const pages = $derived(pageCount(totalCell.value, pageInfo.value.pageSize));
 
 	function byId(id: string): Task | undefined {
 		return entities.get(id);
@@ -88,6 +92,10 @@ export function createTaskStore(
 		return failed[id] === true;
 	}
 
+	function isFull(id: string): boolean {
+		return fullIds.has(id);
+	}
+
 	function change(targets: string[], update: (task: Task) => Task): void {
 		for (const id of targets) {
 			const task = byId(id);
@@ -99,10 +107,21 @@ export function createTaskStore(
 		for (const task of entities.all()) entities.put(update(task));
 	}
 
-	function replaceAll(next: Task[], nextTotal = next.length): void {
-		for (const task of next) entities.put(task);
+	function replaceAll(
+		next: Task[],
+		info: { offset: number; size: number; pageSize: number; total: number },
+	): void {
+		for (const task of next) {
+			entities.put(task);
+			fullIds.delete(task.id);
+		}
 		ids.set(next.map((task) => task.id));
-		totalCell.set(nextTotal);
+		totalCell.set(info.total);
+		pageInfo.set({
+			offset: info.offset,
+			size: info.size,
+			pageSize: info.pageSize,
+		});
 		const present = new SvelteSet(next.map((task) => task.id));
 		pinnedIds.set(pinnedIds.value.filter((id) => !present.has(id)));
 		absent = Object.fromEntries(
@@ -118,7 +137,13 @@ export function createTaskStore(
 			await data.load(
 				"tasks:page",
 				() => fetchFresh(getTasks(query)),
-				(page) => replaceAll(page.items, page.total),
+				(page) =>
+					replaceAll(page.items, {
+						offset: page.offset,
+						size: page.size,
+						pageSize: page.page_size,
+						total: page.total,
+					}),
 				true,
 			);
 			error = null;
@@ -136,6 +161,7 @@ export function createTaskStore(
 
 	function keep(next: Task): void {
 		entities.put(next);
+		fullIds.add(next.id);
 		if (!ids.value.includes(next.id))
 			pinnedIds.set([...pinnedIds.value, next.id]);
 	}
@@ -143,7 +169,7 @@ export function createTaskStore(
 	async function pin(targets: string[]): Promise<void> {
 		const wanted = targets.filter(
 			(id) =>
-				byId(id) === undefined &&
+				!fullIds.has(id) &&
 				!isAbsent(id) &&
 				!isFailed(id) &&
 				pending[id] !== true,
@@ -190,6 +216,15 @@ export function createTaskStore(
 		get total() {
 			return totalCell.value;
 		},
+		get offset() {
+			return pageInfo.value.offset;
+		},
+		get size() {
+			return pageInfo.value.size;
+		},
+		get pageSize() {
+			return pageInfo.value.pageSize;
+		},
 		get pages() {
 			return pages;
 		},
@@ -202,6 +237,7 @@ export function createTaskStore(
 		byId,
 		isAbsent,
 		isFailed,
+		isFull,
 		pin,
 		load,
 		refresh,

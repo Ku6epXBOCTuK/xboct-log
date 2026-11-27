@@ -1,13 +1,13 @@
 <script lang="ts">
+	import { untrack } from "svelte";
 	import MarkdownEditor from "#lib/components/markdown/MarkdownEditor.svelte";
 	import CopyButton from "#lib/components/ui/CopyButton.svelte";
 	import { useTaskEditorSlot } from "#lib/state/tasks/task-editor.ts";
-	import { untrack } from "svelte";
 
 	const slot = useTaskEditorSlot();
 	const editor = $derived(slot.current);
 
-	let text = $state(untrack(() => editor.value.description));
+	let text = $state(untrack(() => editor.value.description ?? ""));
 	let dirty = false;
 	let shownTask: string | undefined;
 
@@ -21,7 +21,7 @@
 	// NOTE: the parent may replace the description without a blur (form reset),
 	// so a clean draft follows the value instead of outliving it.
 	$effect(() => {
-		const current = editor.value.description;
+		const current = editor.value.description ?? "";
 		untrack(() => {
 			if (dirty || text === current) return;
 			text = current;
@@ -70,7 +70,7 @@
 		label="Description"
 		placeholder="Description"
 		repo={editor.repo}
-		target={editor.taskId}
+		target={`${editor.taskId ?? ""}:${editor.value.description ?? ""}`}
 		height="20rem"
 		resizable
 		actions={extraActions}

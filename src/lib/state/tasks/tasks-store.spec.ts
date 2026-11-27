@@ -64,15 +64,16 @@ function task(id: string, extra: Partial<Task> = {}): Task {
 	};
 }
 
-function page(offset = 0): TaskQueryArgs {
+function page(number = 1): TaskQueryArgs {
 	return {
 		sort: "updated_at",
 		order: "desc",
-		limit: 20,
-		offset,
-		include_description: true,
-		include_plan_names: true,
+		page: number,
 	};
+}
+
+function pageResult(items: Task[], total: number) {
+	return { items, total, offset: 0, size: items.length, page_size: 20 };
 }
 
 const first = [task("SPA-1")];
@@ -88,7 +89,7 @@ describe("task store", () => {
 
 	it("loads a page and reports the server total", async () => {
 		const store = createTaskStore();
-		getTasks.mockResolvedValue({ items: first, total: 120 });
+		getTasks.mockResolvedValue(pageResult(first, 120));
 
 		await store.load(page());
 
@@ -100,17 +101,35 @@ describe("task store", () => {
 		expect(store.error).toBeNull();
 	});
 
+	it("takes the offset, size and page size from the server response", async () => {
+		const store = createTaskStore();
+		getTasks.mockResolvedValue({
+			items: first,
+			total: 74,
+			offset: 0,
+			size: 1,
+			page_size: 50,
+		});
+
+		await store.load(page());
+
+		expect(store.offset).toBe(0);
+		expect(store.size).toBe(1);
+		expect(store.pageSize).toBe(50);
+		expect(store.pages).toBe(2);
+	});
+
 	it("ignores a response overtaken by a newer request", async () => {
 		const store = createTaskStore();
 		let resolveSlow: (value: unknown) => void = () => {};
 		getTasks.mockImplementationOnce(
 			() => new Promise((resolve) => (resolveSlow = resolve)),
 		);
-		getTasks.mockResolvedValueOnce({ items: [task("SPA-2")], total: 2 });
+		getTasks.mockResolvedValueOnce(pageResult([task("SPA-2")], 2));
 
-		const slow = store.load(page(0));
-		await store.load(page(20));
-		resolveSlow({ items: [task("SPA-9")], total: 999 });
+		const slow = store.load(page(1));
+		await store.load(page(2));
+		resolveSlow(pageResult([task("SPA-9")], 999));
 		await slow;
 
 		expect(store.tasks.map((item) => item.id)).toEqual(["SPA-2"]);
@@ -130,21 +149,21 @@ describe("task store", () => {
 
 	it("repeats the last query on refresh", async () => {
 		const store = createTaskStore();
-		getTasks.mockResolvedValue({ items: first, total: 1 });
+		getTasks.mockResolvedValue(pageResult(first, 1));
 
-		await store.load(page(20));
+		await store.load(page(2));
 		await store.refresh();
 
 		expect(getTasks).toHaveBeenCalledTimes(2);
-		expect(getTasks).toHaveBeenNthCalledWith(2, page(20));
+		expect(getTasks).toHaveBeenNthCalledWith(2, page(2));
 	});
 
 	it("follows the server total through a live refresh", async () => {
 		const store = createTaskStore();
-		getTasks.mockResolvedValueOnce({ items: first, total: 1 });
+		getTasks.mockResolvedValueOnce(pageResult(first, 1));
 		await store.load(page());
 
-		getTasks.mockResolvedValueOnce({ items: first, total: 1200 });
+		getTasks.mockResolvedValueOnce(pageResult(first, 1200));
 		await store.refresh();
 
 		expect(store.total).toBe(1200);
@@ -153,12 +172,12 @@ describe("task store", () => {
 
 	it("keeps total in step with create and delete", async () => {
 		const store = createTaskStore();
-		getTasks.mockResolvedValueOnce({ items: first, total: 1 });
+		getTasks.mockResolvedValueOnce(pageResult(first, 1));
 		await store.load(page());
 
 		const created = task("SPA-2");
 		createTask.mockResolvedValue(created);
-		getTasks.mockResolvedValueOnce({ items: [...first, created], total: 2 });
+		getTasks.mockResolvedValueOnce(pageResult([...first, created], 2));
 
 		await store.create({ project_id: "spa", title: "SPA-2" });
 		expect(store.total).toBe(2);
@@ -194,6 +213,22 @@ describe("task store", () => {
 		expect(getTasksByIds).toHaveBeenCalledTimes(1);
 	});
 
+	it("hydrates a task that came from the list without its description", async () => {
+		const store = createTaskStore(first, 1);
+		getTasksByIds.mockResolvedValue({
+			items: [task("SPA-1", { description: "full text" })],
+			missing: [],
+		});
+
+		await store.pin(["SPA-1"]);
+
+		expect(getTasksByIds).toHaveBeenCalledWith({ task_ids: ["SPA-1"] });
+		expect(store.byId("SPA-1")?.description).toBe("full text");
+
+		await store.pin(["SPA-1"]);
+		expect(getTasksByIds).toHaveBeenCalledTimes(1);
+	});
+
 	it("remembers ids the server reports as missing", async () => {
 		const store = createTaskStore(first, 1);
 		getTasksByIds.mockResolvedValue({ items: [], missing: ["SPA-9"] });
@@ -221,7 +256,7 @@ describe("task store", () => {
 		expect(getTasksByIds).toHaveBeenCalledTimes(1);
 
 		getTasksByIds.mockResolvedValue({ items: [task("SPA-9")], missing: [] });
-		getTasks.mockResolvedValue({ items: first, total: 1 });
+		getTasks.mockResolvedValue(pageResult(first, 1));
 		await store.load(page());
 
 		expect(store.isFailed("SPA-9")).toBe(false);
@@ -236,10 +271,9 @@ describe("task store", () => {
 		getTasksByIds.mockResolvedValue({ items: [task("SPA-9")], missing: [] });
 		await store.pin(["SPA-9"]);
 
-		getTasks.mockResolvedValue({
-			items: [task("SPA-1", { title: "renamed" })],
-			total: 1,
-		});
+		getTasks.mockResolvedValue(
+			pageResult([task("SPA-1", { title: "renamed" })], 1),
+		);
 		await store.load(page());
 
 		expect(store.byId("SPA-9")?.id).toBe("SPA-9");

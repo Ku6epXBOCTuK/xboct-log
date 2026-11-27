@@ -64,7 +64,6 @@ describe("task query", () => {
 				query: "=29 =30",
 			}),
 			1,
-			50,
 			"SPA",
 		);
 
@@ -87,7 +86,6 @@ describe("task query", () => {
 				query: "=LOG-42",
 			}),
 			1,
-			50,
 			"SPA",
 		);
 
@@ -100,7 +98,6 @@ describe("task query", () => {
 		const query = buildTaskQuery(
 			filters({ activeProject: "spa", statuses: ["open"], query: "=29" }),
 			1,
-			50,
 		);
 
 		expect(query.number_exact).toEqual([29]);
@@ -113,7 +110,6 @@ describe("task query", () => {
 		const query = buildTaskQuery(
 			filters({ activeProject: "spa", statuses: ["open"], query: "login =29" }),
 			1,
-			50,
 			"SPA",
 		);
 
@@ -124,14 +120,18 @@ describe("task query", () => {
 		expect(query.status).toEqual(["open"]);
 	});
 
-	it("asks the server for readable plan names", () => {
-		expect(buildTaskQuery(filters()).include_plan_names).toBe(true);
+	it("asks for no fields the table does not show", () => {
+		const query = buildTaskQuery(filters());
+
+		expect(query).not.toHaveProperty("include_description");
+		expect(query).not.toHaveProperty("include_plan_names");
 	});
 
-	it("maps the page onto limit and offset", () => {
-		const query = buildTaskQuery(filters({ page: 3 }), 3, 20);
+	it("sends the page number instead of computing an offset", () => {
+		const query = buildTaskQuery(filters({ page: 3 }), 3);
 
-		expect(query.limit).toBe(20);
-		expect(query.offset).toBe(40);
+		expect(query.page).toBe(3);
+		expect(query).not.toHaveProperty("offset");
+		expect(query).not.toHaveProperty("limit");
 	});
 });

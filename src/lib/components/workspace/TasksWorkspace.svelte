@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { goto } from "$app/navigation";
-	import { page } from "$app/state";
+	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
 	import DetailPanel from "#lib/components/detail/panel/DetailPanel.svelte";
 	import AppBar from "#lib/components/layout/AppBar.svelte";
 	import NewTaskModal from "#lib/components/newtask/NewTaskModal.svelte";
@@ -12,9 +11,9 @@
 	import { listHref, taskHref } from "#lib/navigation/href.ts";
 	import { parsePath } from "#lib/navigation/paths.ts";
 	import { useBoard } from "#lib/state/board.svelte.ts";
-	import { TASK_PAGE_SIZE } from "#lib/tasks/query/paging.ts";
 	import type { Task } from "#lib/types.ts";
-	import Button from "@ku6epxboctuk/ui-kit/components/Button.svelte";
+	import { goto } from "$app/navigation";
+	import { page } from "$app/state";
 	import Plus from "~icons/lucide/plus";
 
 	const { tasks, projects, scopes, stats, filters, selection } = useBoard();
@@ -22,7 +21,9 @@
 	let creating = $state(false);
 	let childEpic = $state<Task | null>(null);
 
-	const selected = $derived(selection.task);
+	const selected = $derived(
+		selection.id !== null && tasks.isFull(selection.id) ? selection.task : null,
+	);
 
 	const epics = $derived(stats.epics);
 
@@ -114,12 +115,13 @@
 		onepic={(id) => (filters.epic = id)}
 	/>
 	<Pager
-		offset={(filters.page - 1) * TASK_PAGE_SIZE}
-		limit={TASK_PAGE_SIZE}
+		offset={tasks.offset}
+		size={tasks.size}
+		pageSize={tasks.pageSize}
 		{total}
 		emptyLabel="0 tasks"
 		onchange={(offset) =>
-			filters.setPage(Math.floor(offset / TASK_PAGE_SIZE) + 1)}
+			filters.setPage(Math.floor(offset / tasks.pageSize) + 1)}
 	/>
 </section>
 

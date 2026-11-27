@@ -44,6 +44,7 @@
 			ops = result.ops;
 			return result;
 		},
+		LIMIT,
 	);
 
 	$effect(() => {
@@ -52,7 +53,7 @@
 
 	$effect(() => {
 		const offs = ENTITIES.map((entity) =>
-			fresh.register(entity, () => paged.load(paged.offset)),
+			fresh.register(entity, () => paged.load(paged.cursor)),
 		);
 		return () => {
 			for (const off of offs) {
@@ -107,7 +108,8 @@
 
 	<Pager
 		offset={paged.offset}
-		limit={LIMIT}
+		size={paged.size}
+		pageSize={paged.pageSize}
 		total={paged.total}
 		emptyLabel="0 entries"
 		onchange={(next) => void paged.load(next)}

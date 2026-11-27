@@ -1,3 +1,4 @@
+import { client, unwrap } from "#lib/api/system/client.ts";
 import type {
 	BatchItem,
 	CreateBatchItem,
@@ -5,13 +6,19 @@ import type {
 	NewTask,
 	TaskPatch,
 	TaskQuery,
-	TaskUpdateOutcome,
 	TasksByIds,
+	TaskUpdateOutcome,
 } from "#lib/api/types.ts";
 import type { ClosedReason, Task } from "#lib/types.ts";
-import { client, unwrap } from "#lib/api/system/client.ts";
 
-export type TaskPage = { items: Task[]; total: number };
+export type TaskPage = {
+	items: Task[];
+	total: number;
+	offset: number;
+	size: number;
+	page_size: number;
+	next_offset?: number | null;
+};
 
 export async function getTasks(input: TaskQuery): Promise<TaskPage> {
 	return unwrap<TaskPage>(
@@ -24,8 +31,7 @@ export async function getTasks(input: TaskQuery): Promise<TaskPage> {
 export async function listDeletedTasks(input: {
 	project_id?: string;
 	q?: string;
-	limit?: number;
-	offset?: number;
+	page?: number;
 }): Promise<TaskPage> {
 	return unwrap<TaskPage>(
 		await client.POST("/api/tasks_deleted_list", { body: input }),

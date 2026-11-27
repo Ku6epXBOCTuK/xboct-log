@@ -1,7 +1,9 @@
-export const TASK_PAGE_SIZE = 50;
-
-export function pageCount(total: number, pageSize = TASK_PAGE_SIZE): number {
+export function pageCount(total: number, pageSize: number): number {
 	return Math.max(1, Math.ceil(total / pageSize));
+}
+
+export function pageRange(offset: number, size: number, total: number): string {
+	return `${offset + 1}–${offset + size} of ${total}`;
 }
 
 export type PageItem = number | "gap";

@@ -36,15 +36,17 @@
 
 	const search = createDebouncedValue("");
 
-	const paged = createPagedQuery<Task>("deleted-tasks", (offset) =>
-		fetchFresh(
-			listDeletedTasks({
-				project_id: filters.activeProject ?? undefined,
-				q: search.applied === "" ? undefined : search.applied,
-				limit: LIMIT,
-				offset,
-			}),
-		),
+	const paged = createPagedQuery<Task>(
+		"deleted-tasks",
+		(page) =>
+			fetchFresh(
+				listDeletedTasks({
+					project_id: filters.activeProject ?? undefined,
+					q: search.applied === "" ? undefined : search.applied,
+					page,
+				}),
+			),
+		LIMIT,
 	);
 
 	const projectNames = $derived(
@@ -60,10 +62,10 @@
 	);
 
 	$effect(() => {
-		void paged.load(0);
+		void paged.load(1);
 	});
 
-	$effect(() => fresh.register("tasks", () => paged.load(paged.offset)));
+	$effect(() => fresh.register("tasks", () => paged.load(paged.cursor)));
 
 	$effect(() => {
 		return () => search.cancel();
@@ -74,7 +76,7 @@
 		busy = id;
 		try {
 			await restoreTask({ task_id: id });
-			await paged.load(paged.offset);
+			await paged.load(paged.cursor);
 		} catch (cause) {
 			error = messageOf(cause);
 		} finally {
@@ -175,10 +177,12 @@
 
 		<Pager
 			offset={paged.offset}
-			limit={LIMIT}
+			size={paged.size}
+			pageSize={paged.pageSize}
 			total={paged.total}
 			emptyLabel="0 tasks"
-			onchange={(next) => void paged.load(next)}
+			onchange={(next) =>
+				void paged.load(Math.floor(next / paged.pageSize) + 1)}
 		/>
 	{/if}
 </section>

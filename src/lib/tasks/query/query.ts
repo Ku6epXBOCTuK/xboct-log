@@ -1,5 +1,4 @@
 import type { Filters } from "#lib/state/ui/filters.svelte.ts";
-import { TASK_PAGE_SIZE } from "#lib/tasks/query/paging.ts";
 import { isExactTerm, parseSearchQuery } from "#lib/tasks/query/search.ts";
 import type { TaskSortKey } from "#lib/tasks/query/sort.ts";
 import type { Priority, Status } from "#lib/types.ts";
@@ -37,10 +36,7 @@ export interface TaskQueryArgs {
 	id_exact?: string[];
 	sort: ServerSort;
 	order: "asc" | "desc";
-	limit: number;
-	offset: number;
-	include_description: true;
-	include_plan_names: true;
+	page: number;
 }
 
 function isExactOnly(input: string): boolean {
@@ -76,16 +72,12 @@ function addSearch(
 export function buildTaskQuery(
 	filters: Filters,
 	page = filters.page,
-	pageSize = TASK_PAGE_SIZE,
 	projectPrefix?: string,
 ): TaskQueryArgs {
 	const args: TaskQueryArgs = {
 		sort: SERVER_SORT[filters.sortKey],
 		order: filters.sortOrder,
-		limit: pageSize,
-		offset: (page - 1) * pageSize,
-		include_description: true,
-		include_plan_names: true,
+		page,
 	};
 
 	const exactOnly = isExactOnly(filters.query);
