@@ -2,6 +2,14 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.18.2](https://github.com/Ku6epXBOCTuK/xboct-log/compare/066cd8a66be5e2b2873a9d542f74378e13c602c0..v0.18.2) - 2026-11-27
+#### Bug Fixes
+- (**pagination**) put ui pages and mcp budget in dispatch middleware - ([647dff4](https://github.com/Ku6epXBOCTuK/xboct-log/commit/647dff4f6728700750b6e2e6c1343d39236f8ffc)) - Ku6epXBOCTuK
+#### Refactoring
+- (**documents**) split page state and markup into focused components - ([066cd8a](https://github.com/Ku6epXBOCTuK/xboct-log/commit/066cd8a66be5e2b2873a9d542f74378e13c602c0)) - Ku6epXBOCTuK
+
+- - -
+
 ## [v0.18.1](https://github.com/Ku6epXBOCTuK/xboct-log/compare/640047fc849f829b45c586bbd4faec95f2a86908..v0.18.1) - 2026-11-27
 #### Bug Fixes
 - (**core**) report every epic in task stats - ([68cb742](https://github.com/Ku6epXBOCTuK/xboct-log/commit/68cb74231defa9196587090eba2a1342bf7d9a27)) - Ku6epXBOCTuK
