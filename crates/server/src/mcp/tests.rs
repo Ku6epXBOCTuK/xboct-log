@@ -1,4 +1,5 @@
 use super::*;
+use rmcp::model::ResultType;
 use xboct_log_core::{Config, Events, OpName};
 
 async fn backlog() -> Backlog {
@@ -282,6 +283,22 @@ fn reads_the_error_kind_and_message_from_a_failed_call() {
         Some(("validation".to_string(), "bad input".to_string()))
     );
     assert_eq!(failure_details(&success(json!({"ok": true}))), None);
+}
+
+#[test]
+fn every_tool_result_carries_result_type() {
+    for result in [
+        success(json!({"ok": true})),
+        failure(&AppError::validation("bad input")),
+        bare_failure("bad input"),
+    ] {
+        assert_eq!(result.result_type, Some(ResultType::COMPLETE));
+    }
+    assert_eq!(success(json!({})).is_error, None);
+    assert_eq!(
+        failure(&AppError::validation("bad input")).is_error,
+        Some(true)
+    );
 }
 
 #[test]

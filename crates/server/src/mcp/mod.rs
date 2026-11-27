@@ -346,7 +346,6 @@ fn failure(error: &AppError) -> CallToolResult {
     let payload = json!({ "error": { "kind": error.kind(), "message": message } });
     let mut result = CallToolResult::error(vec![ContentBlock::text(message)]);
     result.structured_content = Some(payload);
-    result.result_type = None;
     result
 }
 
@@ -363,13 +362,10 @@ fn failure_details(result: &CallToolResult) -> Option<(String, String)> {
 }
 
 fn bare_failure(message: &str) -> CallToolResult {
-    let mut result = CallToolResult::error(vec![ContentBlock::text(message.to_string())]);
-    result.result_type = None;
-    result
+    CallToolResult::error(vec![ContentBlock::text(message.to_string())])
 }
 
 fn settle_success(result: &mut CallToolResult) {
-    result.result_type = None;
     result.is_error = None;
 }
 
